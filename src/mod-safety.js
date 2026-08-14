@@ -67,7 +67,25 @@
   /* ── small helpers ────────────────────────────────────────────────── */
   const today = () => new Date().toISOString().slice(0, 10);
   const nowISO = () => new Date().toISOString();
-  const bag = () => (S.safety = S.safety || { reports: [], refunds: [], privacy: [], reportsToday: 0, quotaDate: today() });
+  /* `S.safety || {...}` was not enough. doSignOut() now resets every
+     account-scoped field to its EMPTY shape, so S.safety comes back as {} — a
+     truthy object with no arrays on it — and the next render threw
+     "Cannot read properties of undefined (reading 'map')" on s.refunds. The whole
+     trust route went blank for anyone who had signed out in that tab.
+
+     A regression from my own sign-out fix, caught by smoke rather than by a
+     user. Fill each key individually so ANY partial bag is repaired, not just a
+     missing one. */
+  const bag = () => {
+    const b = (S.safety && typeof S.safety === "object") ? S.safety : {};
+    if (!Array.isArray(b.reports)) b.reports = [];
+    if (!Array.isArray(b.refunds)) b.refunds = [];
+    if (!Array.isArray(b.privacy)) b.privacy = [];
+    if (typeof b.reportsToday !== "number") b.reportsToday = 0;
+    if (!b.quotaDate) b.quotaDate = today();
+    S.safety = b;
+    return b;
+  };
 
   function reportsLeft() {
     const s = bag();
@@ -277,8 +295,9 @@
         <div id="sfRefundErr" class="err hide"></div>
 
         <button class="btn wide" type="submit">Submit request</button>
-        <p class="sf-fine">Requests are reviewed before any money moves. A review can end in a full refund,
-          a partial refund, or a denial with a written reason — and only one request stays open per booking.</p>
+        <p class="sf-fine">Your booking's cancellation policy decides this, not a review queue:
+          Sporve checks the policy saved when you booked and how long is left before the session,
+          then refunds what it allows straight to your card. If nothing is due, we tell you why.</p>
       </form>`);
   }
 
@@ -635,16 +654,45 @@
       if (reason.length < REASON_MIN || reason.length > REASON_MAX)
         return showErr("sfRefundErr", "Reason must be 10 to 2000 characters.");
 
-      const r = {
-        id: "ref_" + Date.now(),
-        ref: ref("RR", s.refunds.length + 1),
-        bookingId: b.id, reason, amount: b.price,
-        status: "submitted", createdAt: today(), at: nowISO(),
-      };
-      s.refunds = [r, ...s.refunds];
-      S.modal = null;
-      render();
-      toast(`Refund request ${r.ref} submitted`);
+      /* [CRITICAL-PATH: money] REAL NOW. This used to mint a "RR-0001" reference
+         and push the request into memory — the module has no network calls — and
+         claim `amount: b.price`, a FULL refund regardless of policy, for a
+         request nobody would ever read.
+
+         It now calls stripe-refund, which prices the refund server-side from the
+         cancellation policy snapshotted at booking time. The client sends a
+         booking id and nothing else; it cannot name a figure. */
+      const btn = ff.querySelector('button[type="submit"]');
+      if (btn) { btn.disabled = true; btn.textContent = "Checking your policy…"; }
+
+      const B = window.SporveBooking;
+      if (!B || !B.refund) {
+        if (btn) { btn.disabled = false; btn.textContent = "Submit request"; }
+        return showErr("sfRefundErr", "Refunds are unavailable right now. Email support@sporve.com.");
+      }
+
+      B.refund(b.id).then(res => {
+        s.refunds = [{
+          id: "ref_" + Date.now(),
+          /* No invented case number. This is the parent's own record of a
+             decision that already happened, not a ticket someone will work. */
+          ref: res.refunded ? "issued" : "no refund due",
+          bookingId: b.id, reason,
+          amount: res.refunded ? res.amount : 0,
+          status: res.refunded ? "refunded" : "declined",
+          policy: res.policy || null, decision: res.reason || null,
+          createdAt: today(), at: nowISO(),
+        }, ...s.refunds];
+        S.modal = null;
+        render();
+        toast(res.refunded
+          ? `Refund of ${money(res.amount)} sent to your card`
+          : (res.reason || "No refund is due under this booking's policy"));
+      }).catch(err => {
+        if (btn) { btn.disabled = false; btn.textContent = "Submit request"; }
+        showErr("sfRefundErr",
+          (err && err.message) || "That refund could not be processed. Nothing was charged or changed.");
+      });
     };
 
     /* ── privacy: live deletion notice + submit ── */

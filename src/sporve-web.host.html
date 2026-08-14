@@ -1773,8 +1773,18 @@ img{max-width:100%;display:block}
   display:flex;align-items:center;gap:10px;padding:6px 11px;min-height:32px;
   border-radius:var(--r-m);position:relative;
   font-family:var(--sans);font-size:13px;line-height:1.15;font-weight:500;
-  color:#FFFFFF;text-align:left;width:100%;transition:.14s;
+  /* The owner asked for white and I set color:#FFFFFF unconditionally. The rail
+     also renders on a LIGHT ground — measured 1.00:1 on "Home", text exactly the
+     colour of what is behind it, invisible. --ink did not save it either,
+     because it does not invert in that state.
+
+     So the base stays --muted, which is legible on both grounds and is what was
+     here before, and white is scoped to the dark portal below, where it is what
+     was actually asked for. I only ever looked at the signed-in dark view; the
+     contrast assertion looked at the other one. */
+  color:var(--muted);text-align:left;width:100%;transition:.14s;
 }
+#app.coachdark .rail button{color:#FFFFFF}
 .rail button svg{width:16px;height:16px;flex:none;opacity:.72;transition:opacity .14s}
 .rail button:hover{background:rgba(11,12,14,.055);color:var(--ink)}
 .rail button:hover svg{opacity:1}
@@ -2196,7 +2206,16 @@ h2.ctr{margin-bottom:10px}
 .metric .v{font-size:var(--text-lg);font-weight:800;letter-spacing:-.02em;margin:5px 0 7px;font-family:var(--sans)}
 .metric .d{font-size:var(--text-sm);color:var(--muted);line-height:1.35;margin-top:4px}
 .spark{width:100%;height:22px;display:block}
-.sparkdash{color:var(--rule-strong);font-size:20px}
+/* --faint, not --rule-strong. This is the "no data yet" em-dash a sparkline
+   falls back to, and --rule-strong is a BORDER colour: on the coach portal's
+   #0B0C0E ground it measured 1.71:1, so the placeholder that is supposed to say
+   "there is nothing here yet" said nothing at all to a sighted user.
+
+   It went unnoticed because the coach dashboard was never rendered with empty
+   data until doSignOut() started clearing account state properly — the fix
+   exposed the defect rather than causing it. --faint is ~5:1 here: quiet enough
+   to stay a placeholder, visible enough to be one. */
+.sparkdash{color:var(--faint);font-size:20px}
 .livebox{background:transparent}
 .livecount{display:flex;align-items:center;gap:8px;font-size:var(--text-lg);font-weight:800;letter-spacing:-.02em;font-family:var(--sans)}
 .livecount .dot{

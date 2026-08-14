@@ -21,7 +21,7 @@
 <meta name="twitter:description" content="Find coaches, trainers, camps and teams across 20+ sports in Chicagoland.">
 <meta name="twitter:image" content="https://the-sporve-web.vercel.app/og.png">
 <link rel="icon" href="data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%2032%2032'%3E%3Crect%20width='32'%20height='32'%20rx='7'%20fill='%2309090B'/%3E%3Ccircle%20cx='16'%20cy='16'%20r='6'%20fill='white'/%3E%3C/svg%3E">
-<meta name="sporve-build" content="807881d1e641331b">
+<meta name="sporve-build" content="82da6a49e0fa283a">
 </head>
 <body>
 <noscript><h1>Sporve — Every sport. One app.</h1><p>Sporve connects families and athletes with coaches, trainers, camps, and teams across more than 20 sports. Please enable JavaScript to use the app.</p></noscript>
@@ -1806,8 +1806,18 @@ img{max-width:100%;display:block}
   display:flex;align-items:center;gap:10px;padding:6px 11px;min-height:32px;
   border-radius:var(--r-m);position:relative;
   font-family:var(--sans);font-size:13px;line-height:1.15;font-weight:500;
-  color:#FFFFFF;text-align:left;width:100%;transition:.14s;
+  /* The owner asked for white and I set color:#FFFFFF unconditionally. The rail
+     also renders on a LIGHT ground — measured 1.00:1 on "Home", text exactly the
+     colour of what is behind it, invisible. --ink did not save it either,
+     because it does not invert in that state.
+
+     So the base stays --muted, which is legible on both grounds and is what was
+     here before, and white is scoped to the dark portal below, where it is what
+     was actually asked for. I only ever looked at the signed-in dark view; the
+     contrast assertion looked at the other one. */
+  color:var(--muted);text-align:left;width:100%;transition:.14s;
 }
+#app.coachdark .rail button{color:#FFFFFF}
 .rail button svg{width:16px;height:16px;flex:none;opacity:.72;transition:opacity .14s}
 .rail button:hover{background:rgba(11,12,14,.055);color:var(--ink)}
 .rail button:hover svg{opacity:1}
@@ -2229,7 +2239,16 @@ h2.ctr{margin-bottom:10px}
 .metric .v{font-size:var(--text-lg);font-weight:800;letter-spacing:-.02em;margin:5px 0 7px;font-family:var(--sans)}
 .metric .d{font-size:var(--text-sm);color:var(--muted);line-height:1.35;margin-top:4px}
 .spark{width:100%;height:22px;display:block}
-.sparkdash{color:var(--rule-strong);font-size:20px}
+/* --faint, not --rule-strong. This is the "no data yet" em-dash a sparkline
+   falls back to, and --rule-strong is a BORDER colour: on the coach portal's
+   #0B0C0E ground it measured 1.71:1, so the placeholder that is supposed to say
+   "there is nothing here yet" said nothing at all to a sighted user.
+
+   It went unnoticed because the coach dashboard was never rendered with empty
+   data until doSignOut() started clearing account state properly — the fix
+   exposed the defect rather than causing it. --faint is ~5:1 here: quiet enough
+   to stay a placeholder, visible enough to be one. */
+.sparkdash{color:var(--faint);font-size:20px}
 .livebox{background:transparent}
 .livecount{display:flex;align-items:center;gap:8px;font-size:var(--text-lg);font-weight:800;letter-spacing:-.02em;font-family:var(--sans)}
 .livecount .dot{
@@ -13655,6 +13674,33 @@ document.addEventListener("click",e=>{
       ).then(function (r) { return (r && r[0]) || null; });
     },
 
+    /* REFUND. [CRITICAL-PATH: money]
+       -----------------------------------------------------------------------
+       Sends a booking id and NOTHING ELSE. The amount is decided by
+       booking_refund_quote() on the server, from the cancellation policy
+       snapshotted at booking time. Deliberately no amount parameter exists on
+       this function: a client that cannot express a figure cannot inflate one,
+       and the edge function logs-and-ignores any amount that arrives anyway.
+
+       Resolves for BOTH outcomes rather than rejecting when nothing is due —
+       {refunded:false, reason:"outside the flexible refund window"} is a real
+       answer a parent needs to read, not an error. Only a transport or server
+       failure rejects. */
+    refund: function (bookingId) {
+      var no = guard(); if (no) return no;
+      if (!bookingId) return Promise.reject(new Error("Which booking?"));
+      return API.fn("stripe-refund", { bookingId: bookingId }).then(function (r) {
+        r = r || {};
+        return {
+          refunded: r.refunded === true,
+          amount: typeof r.amount === "number" ? r.amount : 0,
+          policy: r.policy || null,
+          reason: r.reason || null,
+          note: r.note || null,
+        };
+      });
+    },
+
     consentVersion: CONSENT_VERSION,
   };
 
@@ -13733,7 +13779,25 @@ document.addEventListener("click",e=>{
   /* ── small helpers ────────────────────────────────────────────────── */
   const today = () => new Date().toISOString().slice(0, 10);
   const nowISO = () => new Date().toISOString();
-  const bag = () => (S.safety = S.safety || { reports: [], refunds: [], privacy: [], reportsToday: 0, quotaDate: today() });
+  /* `S.safety || {...}` was not enough. doSignOut() now resets every
+     account-scoped field to its EMPTY shape, so S.safety comes back as {} — a
+     truthy object with no arrays on it — and the next render threw
+     "Cannot read properties of undefined (reading 'map')" on s.refunds. The whole
+     trust route went blank for anyone who had signed out in that tab.
+
+     A regression from my own sign-out fix, caught by smoke rather than by a
+     user. Fill each key individually so ANY partial bag is repaired, not just a
+     missing one. */
+  const bag = () => {
+    const b = (S.safety && typeof S.safety === "object") ? S.safety : {};
+    if (!Array.isArray(b.reports)) b.reports = [];
+    if (!Array.isArray(b.refunds)) b.refunds = [];
+    if (!Array.isArray(b.privacy)) b.privacy = [];
+    if (typeof b.reportsToday !== "number") b.reportsToday = 0;
+    if (!b.quotaDate) b.quotaDate = today();
+    S.safety = b;
+    return b;
+  };
 
   function reportsLeft() {
     const s = bag();
@@ -13943,8 +14007,9 @@ document.addEventListener("click",e=>{
         <div id="sfRefundErr" class="err hide"></div>
 
         <button class="btn wide" type="submit">Submit request</button>
-        <p class="sf-fine">Requests are reviewed before any money moves. A review can end in a full refund,
-          a partial refund, or a denial with a written reason — and only one request stays open per booking.</p>
+        <p class="sf-fine">Your booking's cancellation policy decides this, not a review queue:
+          Sporve checks the policy saved when you booked and how long is left before the session,
+          then refunds what it allows straight to your card. If nothing is due, we tell you why.</p>
       </form>`);
   }
 
@@ -14301,16 +14366,45 @@ document.addEventListener("click",e=>{
       if (reason.length < REASON_MIN || reason.length > REASON_MAX)
         return showErr("sfRefundErr", "Reason must be 10 to 2000 characters.");
 
-      const r = {
-        id: "ref_" + Date.now(),
-        ref: ref("RR", s.refunds.length + 1),
-        bookingId: b.id, reason, amount: b.price,
-        status: "submitted", createdAt: today(), at: nowISO(),
-      };
-      s.refunds = [r, ...s.refunds];
-      S.modal = null;
-      render();
-      toast(`Refund request ${r.ref} submitted`);
+      /* [CRITICAL-PATH: money] REAL NOW. This used to mint a "RR-0001" reference
+         and push the request into memory — the module has no network calls — and
+         claim `amount: b.price`, a FULL refund regardless of policy, for a
+         request nobody would ever read.
+
+         It now calls stripe-refund, which prices the refund server-side from the
+         cancellation policy snapshotted at booking time. The client sends a
+         booking id and nothing else; it cannot name a figure. */
+      const btn = ff.querySelector('button[type="submit"]');
+      if (btn) { btn.disabled = true; btn.textContent = "Checking your policy…"; }
+
+      const B = window.SporveBooking;
+      if (!B || !B.refund) {
+        if (btn) { btn.disabled = false; btn.textContent = "Submit request"; }
+        return showErr("sfRefundErr", "Refunds are unavailable right now. Email support@sporve.com.");
+      }
+
+      B.refund(b.id).then(res => {
+        s.refunds = [{
+          id: "ref_" + Date.now(),
+          /* No invented case number. This is the parent's own record of a
+             decision that already happened, not a ticket someone will work. */
+          ref: res.refunded ? "issued" : "no refund due",
+          bookingId: b.id, reason,
+          amount: res.refunded ? res.amount : 0,
+          status: res.refunded ? "refunded" : "declined",
+          policy: res.policy || null, decision: res.reason || null,
+          createdAt: today(), at: nowISO(),
+        }, ...s.refunds];
+        S.modal = null;
+        render();
+        toast(res.refunded
+          ? `Refund of ${money(res.amount)} sent to your card`
+          : (res.reason || "No refund is due under this booking's policy"));
+      }).catch(err => {
+        if (btn) { btn.disabled = false; btn.textContent = "Submit request"; }
+        showErr("sfRefundErr",
+          (err && err.message) || "That refund could not be processed. Nothing was charged or changed.");
+      });
     };
 
     /* ── privacy: live deletion notice + submit ── */

@@ -1432,6 +1432,28 @@ so=$($B js "
 [ "${so//\"/}" = "OK" ] && pass "sign-out leaves no trace of the previous account" \
   || fail "sign-out leaks the previous family's data: $so"
 
+# ── Every route must still render AFTER a sign-out ────────────────────────
+# The sign-out fix resets account-scoped fields to their EMPTY shape, which is
+# correct — and mod-safety's bag() read S.safety as {} (truthy, no arrays) and
+# threw "Cannot read properties of undefined (reading 'map')". The trust route
+# went blank for anyone who had signed out in that tab. Clearing state and
+# rendering are two halves of one contract; this asserts the second half.
+sor=$($B js "
+(()=>{S.auth={status:'user',user:{id:'u',email:'a@b.c'}};
+ doSignOut();
+ const bad=[];
+ ['explore','home','trust','bookings','saved','messages','profile','info','pricing']
+   .forEach(r=>{ try{ S.route={name:r,arg:r==='info'?'help':null}; render(); }
+                 catch(e){ bad.push(r+':'+e.message.slice(0,40)) } });
+ S.route={name:'explore',arg:null};render();
+ return bad.length?bad.join(' | '):'OK';})()" 2>/dev/null)
+[ "${sor//\"/}" = "OK" ] && pass "every route still renders after sign-out" \
+  || fail "a route throws once state is cleared: $sor"
+# This probe signs out, which by design clears coachTab and the coach caches —
+# leaving the coach contrast check below measuring a dashboard with no data.
+# Reload so the next assertion sees a page in the state a visitor gets.
+$B goto "file://$(pwd)/index.html" >/dev/null 2>&1
+
 # ── The real legal documents must be published and reachable ──────────────
 # The published privacy notice (11 sections), terms (7) and refund policy (4)
 # existed in sporve-landing all along while this site linked to NONE of them: the

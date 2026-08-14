@@ -236,6 +236,33 @@
       ).then(function (r) { return (r && r[0]) || null; });
     },
 
+    /* REFUND. [CRITICAL-PATH: money]
+       -----------------------------------------------------------------------
+       Sends a booking id and NOTHING ELSE. The amount is decided by
+       booking_refund_quote() on the server, from the cancellation policy
+       snapshotted at booking time. Deliberately no amount parameter exists on
+       this function: a client that cannot express a figure cannot inflate one,
+       and the edge function logs-and-ignores any amount that arrives anyway.
+
+       Resolves for BOTH outcomes rather than rejecting when nothing is due —
+       {refunded:false, reason:"outside the flexible refund window"} is a real
+       answer a parent needs to read, not an error. Only a transport or server
+       failure rejects. */
+    refund: function (bookingId) {
+      var no = guard(); if (no) return no;
+      if (!bookingId) return Promise.reject(new Error("Which booking?"));
+      return API.fn("stripe-refund", { bookingId: bookingId }).then(function (r) {
+        r = r || {};
+        return {
+          refunded: r.refunded === true,
+          amount: typeof r.amount === "number" ? r.amount : 0,
+          policy: r.policy || null,
+          reason: r.reason || null,
+          note: r.note || null,
+        };
+      });
+    },
+
     consentVersion: CONSENT_VERSION,
   };
 
