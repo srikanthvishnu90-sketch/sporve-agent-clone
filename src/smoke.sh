@@ -1099,6 +1099,18 @@ esac
 # colour-law comment mentioning #C2410C must not trip this, only a painted use).
 c=$(grep -oc "picsum" index.html 2>/dev/null); c=${c:-0}
 [ "$c" -eq 0 ] && pass "built index free of 'picsum'" || fail "'picsum' present in built index ($c)"
+# The coach chatbox must talk to coach-command (the interpret-only agentic
+# turn), and must no longer call the retired coach-assistant tool loop. Both
+# are plain string literals in askCoach(), so a static grep sees them — this is
+# NOT a template-literal name (the trap rule 1 documents).
+grep -q '"coach-command"' index.html \
+  && pass "coach chatbox wired to coach-command" \
+  || fail "coach-command endpoint missing from built index"
+# grep -o | wc -l counts OCCURRENCES; -oc would count matching lines and
+# under-report a line carrying two references.
+c=$(grep -o '"coach-assistant"' index.html 2>/dev/null | wc -l | tr -d ' '); c=${c:-0}
+[ "$c" -eq 0 ] && pass "retired coach-assistant absent from build" \
+  || fail "coach-assistant still referenced in built index ($c)"
 # Per marketing page: zero emoji codepoints, zero decorative svg inside a band
 # (svg is allowed only in functional chrome), zero scaffolds, and no painted
 # #C2410C (rgb 194,65,12) or #38BDF8 (rgb 56,189,248).
@@ -1515,10 +1527,10 @@ ai=$($B js "
  if(window.SporveAuth) window.SporveAuth.isSignedIn=()=>true;
  S.portal='coach';S.aiOpen=true;S.chat=[];
  try{ askCoach('do you have basketball for a 12 year old'); }catch(e){ bad.push('THREW') }
- /* Either endpoint counts: the coach portal routes to coach-assistant (tool
-    loop), the family side to ai-chat (text only). The assertion is that a real
+ /* The coach portal routes to coach-command (the agentic interpret-only
+    turn); the family side to ai-chat (text only). The assertion is that a real
     AI endpoint is reached at all — it used to be a local keyword matcher. */
- if(!calls.some(c=>/ai-chat|coach-assistant/.test(c))) bad.push('NO_AI_CALL');
+ if(!calls.some(c=>/ai-chat|coach-command/.test(c))) bad.push('NO_AI_CALL');
  window.fetch=of; if(window.SporveAuth) window.SporveAuth.isSignedIn=wasSigned;
  S.chat=[{role:'user',text:'x'},{role:'coach',text:'y'}];render();
  const t=document.querySelector('.aidock-panel .bub.them');

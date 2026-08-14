@@ -304,6 +304,91 @@
       }).then(function (r) { return (r && r[0]) || null; });
     },
 
+    /* THE ASSISTANT'S ONLY SEND RAIL — a coach-approved chat draft to ONE
+       parent, through the messaging tables the product already has.
+       -----------------------------------------------------------------------
+       coach-command (the chatbox brain) is interpret-only by law: it returns a
+       draft_message PROPOSAL and never touches a table. When the coach taps
+       Approve, THIS function dispatches it — and it is deliberately nothing
+       but the existing conversations/messages rail under the coach's own JWT:
+
+         booking (RLS: only visible via the coach's own session chain)
+           → its searcher_id is the parent
+           → find or create the conversation (RLS: participants only)
+           → insert the message (RLS: sender must be auth.uid())
+
+       No service role, no new policy, no path a coach couldn't already walk
+       by hand in the Messages tab. If any step is refused, the whole thing
+       rejects and the chat shows the failure — a draft must never be reported
+       sent when it wasn't (the control-that-lied class). */
+    sendParentMessage: function (bookingId, bodyText) {
+      var no = guard(); if (no) return no;
+      /* guard() proves a session, not a profile. enterCoachPortal() can route
+         here before load() resolves, and provider.id on null would throw
+         SYNCHRONOUSLY — the caller's .catch never runs and its card sticks on
+         "Sending…". A rejection keeps the failure on the promise path. */
+      if (!provider || !provider.id) {
+        return Promise.reject(new Error("Your coach profile hasn't loaded yet — try again in a moment."));
+      }
+      var text = String(bodyText || "").trim();
+      if (!bookingId) return Promise.reject(new Error("No booking attached to this draft."));
+      if (!text) return Promise.reject(new Error("The message is empty."));
+      var provId = provider.id;
+      return API.from("bookings",
+        "id=eq." + encodeURIComponent(bookingId) +
+        "&select=id,searcher_id,program_id,athlete_first_name&limit=1"
+      ).then(function (rows) {
+        var b = rows && rows[0];
+        if (!b) throw new Error("That booking isn't visible to this account.");
+        if (!b.searcher_id) throw new Error("That booking has no parent account attached.");
+        return API.from("conversations",
+          "provider_id=eq." + encodeURIComponent(provId) +
+          "&searcher_id=eq." + encodeURIComponent(b.searcher_id) +
+          "&select=id&order=created_at.desc&limit=1"
+        ).then(function (cs) {
+          if (cs && cs[0]) return cs[0].id;
+          return API.from("conversations", "", {
+            method: "POST",
+            headers: { Prefer: "return=representation" },
+            body: { provider_id: provId, searcher_id: b.searcher_id, program_id: b.program_id || null },
+          }).then(function (r) {
+            if (!r || !r[0]) throw new Error("Could not open a conversation with that parent.");
+            return r[0].id;
+          }).catch(function (err) {
+            /* Two approvals racing can both see "no conversation" and both
+               POST — the table has no unique key on (provider, searcher), so
+               the second insert may succeed as a duplicate or fail on RLS
+               quirks. On ANY create failure, look again: if a conversation
+               now exists (the other writer won), use it; otherwise surface
+               the original error. */
+            return API.from("conversations",
+              "provider_id=eq." + encodeURIComponent(provId) +
+              "&searcher_id=eq." + encodeURIComponent(b.searcher_id) +
+              "&select=id&order=created_at.desc&limit=1"
+            ).then(function (cs2) {
+              if (cs2 && cs2[0]) return cs2[0].id;
+              throw err;
+            });
+          });
+        }).then(function (cid) {
+          return API.from("messages", "", {
+            method: "POST",
+            headers: { Prefer: "return=representation" },
+            body: { conversation_id: cid, sender_id: uid(), body: text },
+          }).then(function (r) {
+            if (!r || !r[0]) throw new Error("The message was not accepted.");
+            /* Preview columns are convenience, not truth — never fail the send
+               over them. */
+            API.from("conversations", "id=eq." + encodeURIComponent(cid), {
+              method: "PATCH",
+              body: { last_message: text.slice(0, 140), last_message_at: new Date().toISOString() },
+            }).catch(function () {});
+            return { conversationId: cid, messageId: r[0].id, firstName: b.athlete_first_name || null };
+          });
+        });
+      });
+    },
+
     current: function () { return provider; },
     clear: function () { provider = null; },
 

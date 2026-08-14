@@ -21,7 +21,7 @@
 <meta name="twitter:description" content="Find coaches, trainers, camps and teams across 20+ sports in Chicagoland.">
 <meta name="twitter:image" content="https://the-sporve-web.vercel.app/og.png">
 <link rel="icon" href="data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%2032%2032'%3E%3Crect%20width='32'%20height='32'%20rx='7'%20fill='%2309090B'/%3E%3Ccircle%20cx='16'%20cy='16'%20r='6'%20fill='white'/%3E%3C/svg%3E">
-<meta name="sporve-build" content="340f3b106f52dbef">
+<meta name="sporve-build" content="48f39bb601a824dd">
 </head>
 <body>
 <noscript><h1>Sporve — Every sport. One app.</h1><p>Sporve connects families and athletes with coaches, trainers, camps, and teams across more than 20 sports. Please enable JavaScript to use the app.</p></noscript>
@@ -1738,6 +1738,37 @@ img{max-width:100%;display:block}
 .aidock-panel .aidock-pick{background:#131519;border-color:#333A45;color:#F5F7F9}
 .aidock-panel .aidock-pick:hover{background:#1B1F26;border-color:#4A5462}
 .aidock-panel .aidock-pick em{color:#9AA6B2}
+
+/* ── the review card ──────────────────────────────────────────────────────
+   Lives ONLY inside the always-dark assistant panel, so every colour is a
+   literal per §3 — a token here could resolve near-black-on-black under
+   data-theme, which is the exact defect class the colour law exists for.
+   White #F5F7F9 on #131519 measures 15.9:1; slate #9AA6B2 measures 8.1:1. */
+.propcard{background:#131519;border:1px solid #333A45;border-radius:14px;
+  padding:13px 14px;display:flex;flex-direction:column;gap:9px}
+.propcard.done{opacity:.75}
+.propcard-head{font-size:var(--text-sm);font-weight:700;letter-spacing:.04em;
+  text-transform:uppercase;color:#9AA6B2}
+.propcard-title{color:#F5F7F9;font-weight:600;margin:0}
+.propcard-sub{color:#9AA6B2;font-size:var(--text-sm);margin:0}
+.propcard-draft{width:100%;resize:vertical;font:inherit;font-size:var(--text-sm);
+  line-height:1.5;color:#F5F7F9;background:#1B2129;border:1px solid #2A313B;
+  border-radius:10px;padding:10px 11px}
+.propcard-draft:focus{outline:none;border-color:#6B7C8D}
+.propcard-row{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+/* Buttons restated in literals — the site-wide .btn tokens assume a light
+   ground and are not trusted inside a hard-dark surface. */
+.propcard .btn{background:#F5F7F9;color:#14202C;border-color:#F5F7F9}
+.propcard .btn:hover{background:#DDE3E9}
+.propcard .btn.ghost{background:none;color:#F5F7F9;border:1px solid #4A5462}
+.propcard .btn.ghost:hover{background:#1B1F26;border-color:#6B7C8D}
+.propcard .btn[disabled]{opacity:.55;cursor:default}
+/* The quiet "Checked your schedule…" caption over a reply — tool activity
+   made visible without streaming. */
+.aidock-toolsline{color:#9AA6B2;font-size:var(--text-sm)}
+/* A failed turn is a different colour of bubble, not a pretend answer.
+   #F0B5AE on #2A1215 measures 10.0:1. */
+.aidock-panel .bub.bub-err{background:#2A1215;color:#F0B5AE;border:1px solid #57262B}
 
 /* ── composer, from the owner's reference image ───────────────────────────
    A wide rounded bar: near-black fill a step off the panel ground so the bar
@@ -7239,6 +7270,46 @@ function aiContext(){
   return {label:LABEL[t]||t, chips:MAP[t]||["What needs my attention today?"]};
 }
 
+/* The review card — the one genuinely new UI piece of the chatbox build.
+   A write PROPOSAL from coach-command renders as: what will happen, the exact
+   draft (editable — the coach's edit wins over the model's text), and honest
+   verbs. [Approve & send] exists ONLY where a real dispatch rail exists today
+   (draft_message with a booking id → the conversations/messages tables).
+   Every other proposal gets the draft, a copy button where a draft exists,
+   and a deep link to the tab that owns the work — a button that cannot do the
+   thing does not get to look like one that can. */
+function propCardHTML(p,i){
+  const meta=PROP_META[p.tool]||{label:p.tool.replace(/_/g," "),tab:"dashboard"};
+  const isMsgFamily=["draft_message","draft_bulk_message","draft_recap","camp_broadcast","draft_waitlist_offer"].includes(p.tool);
+  const draft=String(p.args&&p.args.body||"");
+  const canSend=p.tool==="draft_message"&&p.args&&p.args.booking_id;
+  if(p.state==="done") return `<div class="propcard done">
+    <div class="propcard-head">✓ Done</div>
+    <p class="propcard-sub">${esc(meta.label)} — approved and dispatched.</p></div>`;
+  if(p.state==="dismissed") return `<div class="propcard done">
+    <div class="propcard-head">Dismissed</div>
+    <p class="propcard-sub">Nothing was sent or changed.</p></div>`;
+  const busy=p.state==="sending";
+  return `<div class="propcard">
+    <div class="propcard-head">Proposed — nothing happens until you approve</div>
+    <p class="propcard-title">${esc(meta.label)}</p>
+    ${draft?`<textarea class="propcard-draft" id="propEdit${i}" rows="4" aria-label="Edit the draft"${busy?" disabled":""}>${esc(draft)}</textarea>`:""}
+    ${!draft&&p.args&&Object.keys(p.args).length?`<p class="propcard-sub">${
+      /* Truncate BEFORE escaping — slicing an escaped string can cut an
+         entity like &amp; in half and leak raw markup. */
+      Object.entries(p.args).slice(0,4).map(([k,v])=>esc(k.replace(/_/g," "))+": "+esc(String(v).slice(0,60))).join(" · ")}</p>`:""}
+    <div class="propcard-row">
+      ${canSend
+        ?`<button class="btn sm" data-approve="${i}"${busy?" disabled":""}>${busy?"Sending…":"Approve & send"}</button>`
+        :`${draft?`<button class="btn sm" data-copyprop="${i}">Copy draft</button>`:""}
+           <button class="btn ghost sm" data-coachtab="${esc(meta.tab)}">Open ${
+             {inbox:"Messages",schedule:"Schedule",listings:"Listings",profile:"Settings",media:"Media",dashboard:"Home"}[meta.tab]||meta.tab}</button>`}
+      <button class="btn ghost sm" data-dismissprop="${i}"${busy?" disabled":""}>Dismiss</button>
+    </div>
+    ${!canSend&&isMsgFamily?`<p class="propcard-sub">Bulk and broadcast sends go out through the Approvals queue — this draft is yours to paste until that rail is wired.</p>`:""}
+  </div>`;
+}
+
 function aiDockHTML(){
   /* COACH SIDE ONLY (owner, 2026-08-12). Families get Support, not an AI
      assistant — a parent choosing a coach for their child is not a person who
@@ -7251,10 +7322,16 @@ function aiDockHTML(){
      closing it lasts for the session and a fresh visit opens again. */
   const open=S.aiOpen!==false;
   const thread=S.chat.length
-    ? S.chat.map(m=>m.role==="user"
+    ? S.chat.map((m,i)=>m.role==="user"
         ? `<div class="bub me" style="max-width:82%">${esc(m.text)}</div>`
         : `<div style="max-width:94%;align-self:flex-start;display:flex;flex-direction:column;gap:8px">
-             <div class="bub them">${esc(m.text)}</div>
+             ${(m.tools||[]).length?`<div class="aidock-toolsline">Checked ${
+               m.tools.map(t=>({get_schedule:"your schedule",get_bookings:"your bookings",
+                 get_roster:"your roster",whos_booked:"who's booked",get_earnings:"earnings",
+                 get_waitlist:"the waitlist"}[t]||esc(t))).join(", ")}</div>`:""}
+             <div class="bub them${m.err?" bub-err":""}">${esc(m.text)}</div>
+             ${m.err&&m.retry?`<button class="btn ghost sm" data-airetry="${i}" style="align-self:flex-start">Try again</button>`:""}
+             ${m.proposal?propCardHTML(m.proposal,i):""}
              ${(m.picks||[]).map(id=>{
                const p=PROGRAMS.find(x=>x.id===id);
                return p?`<button class="aidock-pick" data-open="${esc(p.id)}">
@@ -11482,6 +11559,29 @@ document.querySelectorAll('.sig-ai-coach').forEach(sigAiCoachWire);
     render();});
   $("[data-chatclear]").forEach(b=>b.onclick=()=>{S.chat=[];render();});
   $("[data-ask]").forEach(b=>b.onclick=()=>askCoach(b.dataset.ask));
+  /* Review-card verbs. Approve/dismiss mutate the proposal IN the chat state,
+     so a re-render shows the card's new life stage rather than a fresh copy. */
+  $("[data-approve]").forEach(b=>b.onclick=()=>approveProposal(Number(b.dataset.approve)));
+  $("[data-dismissprop]").forEach(b=>b.onclick=()=>dismissProposal(Number(b.dataset.dismissprop)));
+  $("[data-copyprop]").forEach(b=>b.onclick=()=>{
+    const i=Number(b.dataset.copyprop);
+    const ta=document.getElementById("propEdit"+i);
+    const p=proposalAt(i);
+    const textToCopy=(ta&&ta.value)||(p&&String(p.args.body||""))||"";
+    if(navigator.clipboard&&textToCopy) navigator.clipboard.writeText(textToCopy)
+      .then(()=>toast("Draft copied")).catch(()=>toast("Couldn't copy — select it by hand"));
+  });
+  $("[data-airetry]").forEach(b=>b.onclick=()=>{
+    const i=Number(b.dataset.airetry);
+    const m=S.chat[i];
+    if(!m||!m.retry) return;
+    /* Drop the failed bubble AND the user turn that produced it — askCoach()
+       re-appends the question, so leaving the original would show it twice
+       and double it in the history sent to the model. */
+    const prevIsSame=i>0&&S.chat[i-1].role==="user"&&S.chat[i-1].text===m.retry;
+    S.chat=S.chat.filter((_,x)=>x!==i&&!(prevIsSame&&x===i-1));
+    askCoach(m.retry);
+  });
   /* The dock's own controls. data-ask / data-chatclear / data-open above are
      document-wide, so the dock's copies of those are already wired. */
   /* Category card -> filter the grid to that type and scroll to it. Sets the
@@ -12358,13 +12458,43 @@ function askCoach(q){
     content:String(m.text||""),
   }));
 
-  /* THE COACH GETS THE TOOL-USING ASSISTANT. coach-assistant runs a tool loop —
-     it can read the coach's schedule, listings and bookings and answer from real
-     rows instead of guessing. The family side keeps ai-chat, which is text-only
-     and grounded in the public catalogue; a parent has no business triggering
-     tools scoped to a coach's business. */
-  const endpoint = S.portal==="coach" ? "coach-assistant" : "ai-chat";
-  API.fn(endpoint,{messages:history}).then(r=>{
+  /* THE COACH GETS THE AGENTIC TURN — coach-command. One call per message,
+     structured output {intent, reply_text, tool_calls, needs_confirmation}:
+     reads were already executed server-side under the coach's own JWT (RLS
+     scopes every row); a write comes back as a PROPOSAL that renders as a
+     review card and does NOTHING until the coach taps Approve. The family side
+     keeps ai-chat, text-only and grounded in the public catalogue. */
+  if(S.portal==="coach"){
+    /* A turn takes ~10s through the gateway; a HUNG request would leave the
+       thinking dots forever with no path out. 45s is past any legitimate
+       turn, then the race rejects into the same loud-failure path — the
+       request itself isn't aborted (API.fn has no cancellation), but the UI
+       recovers and offers retry. */
+    const timeout=new Promise((_,rej)=>setTimeout(()=>rej(new Error("timeout")),45000));
+    Promise.race([API.fn("coach-command",{text,history}),timeout]).then(r=>{
+      const reply=(r&&typeof r.reply_text==="string"?r.reply_text.trim():"");
+      if(!reply) throw new Error("empty reply");
+      const calls=Array.isArray(r.tool_calls)?r.tool_calls:[];
+      /* Reads become a quiet "checked…" caption; the (at most one, server-
+         enforced) write becomes the review card. */
+      const tools=calls.filter(c=>c&&c.kind==="read").map(c=>String(c.tool||""));
+      const write=calls.find(c=>c&&c.kind==="write");
+      const proposal=write?{tool:String(write.tool||""),args:(write.args&&typeof write.args==="object")?write.args:{},state:"open"}:null;
+      S.chatThinking=false;
+      S.chat=[...S.chat,{role:"coach",text:reply,tools,proposal}];
+      render();
+    }).catch(()=>{
+      /* LOUD FAILURE — design-doc law. A signed-in coach never gets the
+         keyword matcher pretending to be the assistant; they get the truth
+         and a retry that resends this exact message. */
+      S.chatThinking=false;
+      S.chat=[...S.chat,{role:"coach",err:true,retry:text,
+        text:"I couldn't process that — the assistant call failed. Nothing was changed or sent."}];
+      render();
+    });
+    return;
+  }
+  API.fn("ai-chat",{messages:history}).then(r=>{
     const reply=r&&typeof r.text==="string"?r.text.trim():"";
     if(!reply) return fallback("I couldn't reach the assistant, so here's a catalogue match:");
     /* Ground the picks: only listings the model NAMED and that actually exist. */
@@ -12375,6 +12505,73 @@ function askCoach(q){
     S.chat=[...S.chat,{role:"coach",text:reply,picks}];
     render();
   }).catch(()=>fallback("I couldn't reach the assistant, so here's a catalogue match:"));
+}
+
+/* ── The review card's verbs ─────────────────────────────────────────
+   "LLM proposes, deterministic code disposes" (docs/COACH-AI-CHATBOX.md).
+   coach-command returns at most one write proposal per turn; these three
+   functions are the entire set of things a proposal can become. Every
+   dispatch goes through an EXISTING rail — the one genuinely wired today is
+   draft_message → SporveCoach.sendParentMessage (conversations/messages
+   under the coach's own JWT). Anything without a live rail gets a deep link
+   to the tab that owns the work, never a button that pretends. */
+const PROP_META={
+  draft_message:       {label:"Send a message to a parent", tab:"inbox"},
+  draft_bulk_message:  {label:"Message several families",   tab:"inbox"},
+  draft_recap:         {label:"Session recap for a parent", tab:"inbox"},
+  camp_broadcast:      {label:"Broadcast to a camp",        tab:"inbox"},
+  draft_waitlist_offer:{label:"Waitlist offer",             tab:"inbox"},
+  cancel_booking:      {label:"Cancel a booking",           tab:"schedule"},
+  open_slot:           {label:"Open a slot",                tab:"schedule"},
+  close_slot:          {label:"Close a slot",               tab:"schedule"},
+  add_availability_exception:{label:"Block out time",       tab:"schedule"},
+  create_service:      {label:"Create a listing",           tab:"listings"},
+  set_policy:          {label:"Update a policy",            tab:"profile"},
+  draft_bio:           {label:"Update your bio",            tab:"profile"},
+  set_profile_image:   {label:"Change your profile photo",  tab:"media"},
+  set_gallery_image:   {label:"Add a gallery photo",        tab:"media"},
+};
+function proposalAt(i){
+  const m=S.chat[i];
+  return (m&&m.role==="coach"&&m.proposal)?m.proposal:null;
+}
+function approveProposal(i){
+  const p=proposalAt(i);
+  if(!p||p.state!=="open"||p.tool!=="draft_message") return;
+  /* The coach may have edited the draft in the card — if the textarea EXISTS
+     its value is the truth, even when that value is empty. `(ta&&ta.value)||…`
+     would silently resurrect the model's original wording the moment a coach
+     cleared the box, which is the opposite of "your edit wins". An emptied
+     draft rejects downstream with "The message is empty." — honest, not
+     helpful-by-substitution. */
+  const ta=document.getElementById("propEdit"+i);
+  const bodyText=ta?ta.value:String(p.args.body||"");
+  p.state="sending";render();
+  /* Promise.resolve() first, so a SYNCHRONOUS throw (module not loaded,
+     unexpected state) lands in the same .catch as a network failure instead
+     of leaving the card stuck on "Sending…". */
+  Promise.resolve().then(()=>{
+    if(!window.SporveCoach||!window.SporveCoach.sendParentMessage)
+      throw new Error("The coach account module didn't load.");
+    return window.SporveCoach.sendParentMessage(p.args.booking_id,bodyText);
+  }).then(res=>{
+    p.state="done";
+    S.chat=[...S.chat,{role:"coach",
+      text:"Sent"+(res&&res.firstName?" to "+res.firstName+"'s parent":"")+". It's in your Messages thread now."}];
+    render();
+  }).catch(e=>{
+    /* Loud, specific, and honest about state: the send REJECTED, so nothing
+       reached the parent. The proposal reopens so the coach can retry. */
+    p.state="open";
+    const why=((e&&e.message)||"the request was refused").replace(/\.?\s*$/,".");
+    S.chat=[...S.chat,{role:"coach",err:true,
+      text:"That didn't send — "+why+" Nothing reached the parent."}];
+    render();
+  });
+}
+function dismissProposal(i){
+  const p=proposalAt(i);
+  if(p&&p.state==="open"){p.state="dismissed";render();}
 }
 
 /* Photography comes from external image hosts. Behind a strict CSP — or simply
@@ -13636,6 +13833,91 @@ document.addEventListener("click",e=>{
            nothing. */
         body: { status: status },
       }).then(function (r) { return (r && r[0]) || null; });
+    },
+
+    /* THE ASSISTANT'S ONLY SEND RAIL — a coach-approved chat draft to ONE
+       parent, through the messaging tables the product already has.
+       -----------------------------------------------------------------------
+       coach-command (the chatbox brain) is interpret-only by law: it returns a
+       draft_message PROPOSAL and never touches a table. When the coach taps
+       Approve, THIS function dispatches it — and it is deliberately nothing
+       but the existing conversations/messages rail under the coach's own JWT:
+
+         booking (RLS: only visible via the coach's own session chain)
+           → its searcher_id is the parent
+           → find or create the conversation (RLS: participants only)
+           → insert the message (RLS: sender must be auth.uid())
+
+       No service role, no new policy, no path a coach couldn't already walk
+       by hand in the Messages tab. If any step is refused, the whole thing
+       rejects and the chat shows the failure — a draft must never be reported
+       sent when it wasn't (the control-that-lied class). */
+    sendParentMessage: function (bookingId, bodyText) {
+      var no = guard(); if (no) return no;
+      /* guard() proves a session, not a profile. enterCoachPortal() can route
+         here before load() resolves, and provider.id on null would throw
+         SYNCHRONOUSLY — the caller's .catch never runs and its card sticks on
+         "Sending…". A rejection keeps the failure on the promise path. */
+      if (!provider || !provider.id) {
+        return Promise.reject(new Error("Your coach profile hasn't loaded yet — try again in a moment."));
+      }
+      var text = String(bodyText || "").trim();
+      if (!bookingId) return Promise.reject(new Error("No booking attached to this draft."));
+      if (!text) return Promise.reject(new Error("The message is empty."));
+      var provId = provider.id;
+      return API.from("bookings",
+        "id=eq." + encodeURIComponent(bookingId) +
+        "&select=id,searcher_id,program_id,athlete_first_name&limit=1"
+      ).then(function (rows) {
+        var b = rows && rows[0];
+        if (!b) throw new Error("That booking isn't visible to this account.");
+        if (!b.searcher_id) throw new Error("That booking has no parent account attached.");
+        return API.from("conversations",
+          "provider_id=eq." + encodeURIComponent(provId) +
+          "&searcher_id=eq." + encodeURIComponent(b.searcher_id) +
+          "&select=id&order=created_at.desc&limit=1"
+        ).then(function (cs) {
+          if (cs && cs[0]) return cs[0].id;
+          return API.from("conversations", "", {
+            method: "POST",
+            headers: { Prefer: "return=representation" },
+            body: { provider_id: provId, searcher_id: b.searcher_id, program_id: b.program_id || null },
+          }).then(function (r) {
+            if (!r || !r[0]) throw new Error("Could not open a conversation with that parent.");
+            return r[0].id;
+          }).catch(function (err) {
+            /* Two approvals racing can both see "no conversation" and both
+               POST — the table has no unique key on (provider, searcher), so
+               the second insert may succeed as a duplicate or fail on RLS
+               quirks. On ANY create failure, look again: if a conversation
+               now exists (the other writer won), use it; otherwise surface
+               the original error. */
+            return API.from("conversations",
+              "provider_id=eq." + encodeURIComponent(provId) +
+              "&searcher_id=eq." + encodeURIComponent(b.searcher_id) +
+              "&select=id&order=created_at.desc&limit=1"
+            ).then(function (cs2) {
+              if (cs2 && cs2[0]) return cs2[0].id;
+              throw err;
+            });
+          });
+        }).then(function (cid) {
+          return API.from("messages", "", {
+            method: "POST",
+            headers: { Prefer: "return=representation" },
+            body: { conversation_id: cid, sender_id: uid(), body: text },
+          }).then(function (r) {
+            if (!r || !r[0]) throw new Error("The message was not accepted.");
+            /* Preview columns are convenience, not truth — never fail the send
+               over them. */
+            API.from("conversations", "id=eq." + encodeURIComponent(cid), {
+              method: "PATCH",
+              body: { last_message: text.slice(0, 140), last_message_at: new Date().toISOString() },
+            }).catch(function () {});
+            return { conversationId: cid, messageId: r[0].id, firstName: b.athlete_first_name || null };
+          });
+        });
+      });
     },
 
     current: function () { return provider; },
