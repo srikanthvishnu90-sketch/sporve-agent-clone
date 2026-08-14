@@ -339,6 +339,35 @@ img{max-width:100%;display:block}
    14px the folded-away subnav used. */
 /* Centred menu group on the black bar: slate labels, white on hover/active. */
 .tnav-row{display:flex;align-items:center;gap:30px;flex:0 0 auto;min-width:0}
+/* ═══ THE MARKETING TABS SPEAK IN TWO GROTESQUES ═════════════════════════
+   Owner, 2026-08-14, with two reference images: a clean grotesque for body and
+   most headings, and a geometric display face carrying an italic accent.
+
+   Mapped to the families ALREADY EMBEDDED rather than adding new ones — every
+   face is base64'd into the page so the build survives a CSP that blocks
+   external requests, and a new family is a payload change, not a CSS change.
+   Inter is the closest match to the first reference, Archivo to the second, and
+   Archivo has a true italic for the accent (Syne does not).
+
+   Scoped to the four marketing routes the owner named — product, coaches
+   (coachinfo), trust, pricing — via .reg-tabs on #app. The landing, the app and
+   the coach portal are untouched: §4 assigns their registers by subject, and a
+   blanket change would have overwritten those decisions. */
+#app.reg-tabs{
+  --display:"Archivo","Inter",system-ui,sans-serif;
+  --sans:"Inter",system-ui,-apple-system,sans-serif;
+  font-family:var(--sans);
+}
+#app.reg-tabs h1,#app.reg-tabs h2,#app.reg-tabs h3,
+#app.reg-tabs .display,#app.reg-tabs .pg-serif{
+  font-family:var(--display);font-weight:700;letter-spacing:-.02em;
+}
+/* The italic accent from the second reference: an <em> inside a heading is the
+   emphasis, and it stays in the display face rather than falling back to the
+   body italic. */
+#app.reg-tabs h1 em,#app.reg-tabs h2 em,#app.reg-tabs .display em{
+  font-family:var(--display);font-style:italic;font-weight:700;
+}
 .tnav-row .tnav{
   display:inline-flex;align-items:center;gap:7px;height:var(--h-compact);padding:0 2px;
   border-radius:0;font-family:var(--nav-face);font-size:var(--t-body);font-weight:600;
@@ -5557,15 +5586,16 @@ function productMenuHTML(){
     ["Client roster","page:roster"],["Session notes","page:session-notes"],
     ["Media & consent","page:media-consent"],["Insights","page:insights"]];
   const row=(t,a)=>`<button class="pmrow2" role="menuitem" data-pdest="${esc(a)}">${esc(t)}</button>`;
-  /* Pricing is a first-class route (data-nav="pricing" → pricingHTML), not a
-     page:<id> marketing page, so it gets a data-nav row rather than a pdest one.
-     It stays in the top nav too; this only makes it discoverable inside Product. */
-  const navrow=(t,d)=>`<button class="pmrow2" role="menuitem" data-nav="${esc(d)}">${esc(t)}</button>`;
+  /* Pricing REMOVED from this menu (owner, 2026-08-14): "the pricing page is
+     also in the product toggle, remove that as the pricing page has its own
+     section." It is a first-class top-level tab, and listing it here as well
+     made the same destination reachable twice from one nav bar — the reader has
+     to decide whether the two are the same thing. They are. */
   const col=(eyebrow,rows)=>`<div class="pmcol">
     <div class="eyebrow">${esc(eyebrow)}</div>${rows.map(r=>row(r[0],r[1])).join("")}</div>`;
   return `<div class="productmenu" role="menu" aria-label="Product"><div class="shell pmgrid4">
     <div class="pmcol"><div class="eyebrow">About</div>
-      ${about.map(r=>row(r[0],r[1])).join("")}${navrow("Pricing","pricing")}</div>
+      ${about.map(r=>row(r[0],r[1])).join("")}</div>
     ${col("For families",fam)}
     ${col("For coaches",co)}
     <div class="pmdiv" aria-hidden="true"></div>
@@ -10522,6 +10552,10 @@ function render(){
   const seriousTab=S.portal==="coach"&&["finances","media"].includes(S.coachTab);
   const app=document.getElementById("app");
   app.classList.toggle("reg-serious",seriousRoute||seriousTab);
+  /* The four marketing tabs get the two-grotesque register. Named routes, not a
+     "not the app" negation, so a new route does not silently inherit it. */
+  app.classList.toggle("reg-tabs",
+    ["product","coachinfo","trust","pricing"].includes(r.name));
   /* The coach dashboard runs on a dark ground. Scoped to a signed-in coach on
      the dashboard itself — the guest pitch and the sign-in gate stay light, so
      a visitor never lands on a half-inverted page. On #app rather than on the
