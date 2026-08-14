@@ -12192,7 +12192,13 @@ function askCoach(q){
     content:String(m.text||""),
   }));
 
-  API.fn("ai-chat",{messages:history}).then(r=>{
+  /* THE COACH GETS THE TOOL-USING ASSISTANT. coach-assistant runs a tool loop —
+     it can read the coach's schedule, listings and bookings and answer from real
+     rows instead of guessing. The family side keeps ai-chat, which is text-only
+     and grounded in the public catalogue; a parent has no business triggering
+     tools scoped to a coach's business. */
+  const endpoint = S.portal==="coach" ? "coach-assistant" : "ai-chat";
+  API.fn(endpoint,{messages:history}).then(r=>{
     const reply=r&&typeof r.text==="string"?r.text.trim():"";
     if(!reply) return fallback("I couldn't reach the assistant, so here's a catalogue match:");
     /* Ground the picks: only listings the model NAMED and that actually exist. */

@@ -1515,7 +1515,10 @@ ai=$($B js "
  if(window.SporveAuth) window.SporveAuth.isSignedIn=()=>true;
  S.portal='coach';S.aiOpen=true;S.chat=[];
  try{ askCoach('do you have basketball for a 12 year old'); }catch(e){ bad.push('THREW') }
- if(!calls.some(c=>/ai-chat/.test(c))) bad.push('NO_AI_CALL');
+ /* Either endpoint counts: the coach portal routes to coach-assistant (tool
+    loop), the family side to ai-chat (text only). The assertion is that a real
+    AI endpoint is reached at all — it used to be a local keyword matcher. */
+ if(!calls.some(c=>/ai-chat|coach-assistant/.test(c))) bad.push('NO_AI_CALL');
  window.fetch=of; if(window.SporveAuth) window.SporveAuth.isSignedIn=wasSigned;
  S.chat=[{role:'user',text:'x'},{role:'coach',text:'y'}];render();
  const t=document.querySelector('.aidock-panel .bub.them');
