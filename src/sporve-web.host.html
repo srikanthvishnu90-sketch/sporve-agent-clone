@@ -1592,6 +1592,15 @@ img{max-width:100%;display:block}
   box-shadow:0 0 0 1px rgba(154,166,178,.14),
              0 10px 20px rgba(0,0,0,.45),
              0 0 60px rgba(154,166,178,.22)}
+/* THE BLANK WHITE BOX. .bub.them is background:var(--raise2), which is #EFF2F5
+   on the light theme — and the panel sets its text to #F5F7F9. White on white:
+   the reply rendered as an empty rectangle, which is exactly what the owner
+   screenshotted. §3 says a surface that is ALWAYS dark must say so in hex
+   rather than borrowing a token that can resolve light, and this is the same
+   defect the panel ground itself was fixed for. */
+.aidock-panel .bub.them{background:#1B2129;color:#F5F7F9;border:1px solid #2A313B}
+.aidock-panel .bub.me{background:#3E4C5A;color:#FFFFFF}
+.aidock-panel .bub{max-width:100%;white-space:pre-wrap;word-break:break-word}
 .aidock-panel .aidock-scroll,.aidock-panel .aidock-empty h3,.aidock-panel b{color:#F5F7F9}
 .aidock-panel .aidock-sub,.aidock-panel .aidock-empty p{color:#9AA6B2}
 .aidock-panel .aidock-pick{background:#131519;border-color:#333A45;color:#F5F7F9}
@@ -12140,16 +12149,60 @@ function runCommand(text){
   toast(did);
 }
 
+/* THE ASSISTANT NOW ACTUALLY CALLS CLAUDE. [CRITICAL-PATH]
+   ---------------------------------------------------------------------------
+   This used to setTimeout(700) and then run answerFor() — a local keyword
+   matcher — with no network call anywhere. That is why asking "can you create a
+   group chat with me and three existing clients?" came back with three swim
+   listings: the matcher only knows how to look for sports, ages and prices, so
+   every question became a search. The 700ms delay was a fake thinking pause on
+   a function that never thought.
+
+   It now posts to the ai-chat edge function, which forwards to ai-gateway,
+   which owns the system prompt and calls Anthropic. answerFor() survives ONLY as
+   the offline fallback: if the call fails the visitor still gets grounded
+   listings rather than a dead box, and the reply says plainly that the
+   assistant is offline instead of pretending the local answer came from it.
+
+   The picks are still resolved LOCALLY from the model's reply, so the assistant
+   can never surface a listing that does not exist — the model suggests, the
+   catalogue decides. */
 function askCoach(q){
   if(!q||!q.trim()) return;
-  S.chat=[...S.chat,{role:"user",text:q.trim()}];
+  const text=q.trim();
+  S.chat=[...S.chat,{role:"user",text}];
   S.chatThinking=true; render();
-  setTimeout(()=>{
-    const a=answerFor(q);
+
+  const fallback=(note)=>{
+    const a=answerFor(text);
     S.chatThinking=false;
-    S.chat=[...S.chat,{role:"coach",text:a.text,picks:a.picks}];
+    S.chat=[...S.chat,{role:"coach",text:(note?note+" ":"")+a.text,picks:a.picks}];
     render();
-  },700);
+  };
+
+  const API=window.SporveAPI;
+  if(!API||!API.fn||!window.SporveAuth||!window.SporveAuth.isSignedIn()){
+    return fallback("I'm offline right now, so this is a plain catalogue match:");
+  }
+
+  /* Send the recent turns so the model has context, capped so a long session
+     cannot grow the request without bound — the gateway rejects over 24. */
+  const history=S.chat.slice(-12).map(m=>({
+    role:m.role==="user"?"user":"assistant",
+    content:String(m.text||""),
+  }));
+
+  API.fn("ai-chat",{messages:history}).then(r=>{
+    const reply=r&&typeof r.text==="string"?r.text.trim():"";
+    if(!reply) return fallback("I couldn't reach the assistant, so here's a catalogue match:");
+    /* Ground the picks: only listings the model NAMED and that actually exist. */
+    const low=reply.toLowerCase();
+    const picks=PROGRAMS.filter(p=>p.title&&low.includes(String(p.title).toLowerCase()))
+                        .slice(0,3).map(p=>p.id);
+    S.chatThinking=false;
+    S.chat=[...S.chat,{role:"coach",text:reply,picks}];
+    render();
+  }).catch(()=>fallback("I couldn't reach the assistant, so here's a catalogue match:"));
 }
 
 /* Photography comes from external image hosts. Behind a strict CSP — or simply

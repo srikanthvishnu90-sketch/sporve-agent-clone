@@ -1502,6 +1502,31 @@ rst=$($B js "
 [ "${rst//\"/}" = "OK" ] && pass "password reset makes a real recover request" \
   || fail "password reset is a mock again: $rst"
 
+# ── The assistant must reach the network, and its bubbles must be legible ──
+# askCoach() used to setTimeout(700) and run a LOCAL keyword matcher — no network
+# call anywhere. That is why "can you create a group chat?" returned three swim
+# listings: every question became a catalogue search. And .bub.them used
+# var(--raise2) (#EFF2F5 on light) against #F5F7F9 text, so replies rendered as
+# blank white rectangles inside the dark panel.
+ai=$($B js "
+(()=>{const bad=[];const calls=[];const of=window.fetch;
+ window.fetch=function(u){calls.push(String(u));return of.apply(this,arguments)};
+ const wasSigned=window.SporveAuth&&window.SporveAuth.isSignedIn;
+ if(window.SporveAuth) window.SporveAuth.isSignedIn=()=>true;
+ S.portal='coach';S.aiOpen=true;S.chat=[];
+ try{ askCoach('do you have basketball for a 12 year old'); }catch(e){ bad.push('THREW') }
+ if(!calls.some(c=>/ai-chat/.test(c))) bad.push('NO_AI_CALL');
+ window.fetch=of; if(window.SporveAuth) window.SporveAuth.isSignedIn=wasSigned;
+ S.chat=[{role:'user',text:'x'},{role:'coach',text:'y'}];render();
+ const t=document.querySelector('.aidock-panel .bub.them');
+ if(!t) bad.push('NO_BUBBLE');
+ else{const cs=getComputedStyle(t);
+   if(cs.color===cs.backgroundColor) bad.push('BUBBLE_INVISIBLE');}
+ S.chat=[];S.portal='family';S.route={name:'home',arg:null};render();
+ return bad.length?bad.join(','):'OK'})()" 2>/dev/null)
+[ "${ai//\"/}" = "OK" ] && pass "assistant calls the AI endpoint and its replies are legible" \
+  || fail "assistant regressed: $ai"
+
 # ── A safety surface may not promise what no code delivers ────────────────
 # [CRITICAL-PATH: child safety] mod-safety.js has ZERO network calls, yet it
 # minted case numbers ("SR-0001") and told parents "Reports reach a person —
