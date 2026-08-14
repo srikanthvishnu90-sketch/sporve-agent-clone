@@ -21,7 +21,7 @@
 <meta name="twitter:description" content="Find coaches, trainers, camps and teams across 20+ sports in Chicagoland.">
 <meta name="twitter:image" content="https://the-sporve-web.vercel.app/og.png">
 <link rel="icon" href="data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%2032%2032'%3E%3Crect%20width='32'%20height='32'%20rx='7'%20fill='%2309090B'/%3E%3Ccircle%20cx='16'%20cy='16'%20r='6'%20fill='white'/%3E%3C/svg%3E">
-<meta name="sporve-build" content="609ab0d68642f2ec">
+<meta name="sporve-build" content="13f8173b7642826a">
 </head>
 <body>
 <noscript><h1>Sporve — Every sport. One app.</h1><p>Sporve connects families and athletes with coaches, trainers, camps, and teams across more than 20 sports. Please enable JavaScript to use the app.</p></noscript>
@@ -1769,6 +1769,51 @@ img{max-width:100%;display:block}
 /* A failed turn is a different colour of bubble, not a pretend answer.
    #F0B5AE on #2A1215 measures 10.0:1. */
 .aidock-panel .bub.bub-err{background:#2A1215;color:#F0B5AE;border:1px solid #57262B}
+
+/* ── state 3: the maximized assistant (Amboras) ────────────────────────────
+   A near-full-viewport window over a dimmed page. Always dark, so §3 says
+   literals throughout — same palette as the pill panel it grows out of.
+   z-index 86: over the pill (84) and the S fab (85); the maximized panel IS
+   the assistant, nothing of the dock should poke through it. */
+.aimax-wrap{position:fixed;inset:0;z-index:86;display:flex;align-items:center;
+  justify-content:center;background:rgba(8,10,12,.55);padding:24px}
+.aidock-panel.aimax{width:min(960px,100%);height:min(860px,calc(100vh - 48px));
+  max-height:none;display:flex;flex-direction:column}
+.aimax-head{display:flex;align-items:center;gap:10px;padding:12px 14px;
+  border-bottom:1px solid #1C222B;position:relative}
+.aimax-ctx{color:#9AA6B2;font-size:var(--text-sm)}
+.aimax-actions{margin-left:auto;display:flex;gap:4px}
+.aimax-ic{display:inline-flex;align-items:center;gap:4px;padding:7px 9px;
+  border:0;border-radius:9px;background:none;color:#9AA6B2;cursor:pointer;transition:.13s}
+.aimax-ic:hover{background:#1B1F26;color:#F5F7F9}
+/* The conversation reads in a centred column, like a document — the panel is
+   wide so the TEXT can be measured, not so bubbles can stretch. */
+.aimax-scroll{flex:1;overflow-y:auto;padding:22px 0}
+.aimax-col{max-width:720px;margin:0 auto;padding:0 22px;display:flex;
+  flex-direction:column;gap:11px}
+.aimax-compose{margin:0 auto 16px;width:min(720px,calc(100% - 32px))}
+/* History: a dropdown anchored to the clock control, newest first. */
+.aimax-histwrap{position:relative}
+.aimax-hist{position:absolute;top:calc(100% + 6px);left:0;min-width:300px;
+  max-width:380px;max-height:420px;overflow-y:auto;background:#131519;
+  border:1px solid #333A45;border-radius:12px;padding:6px;z-index:5;
+  box-shadow:0 10px 24px rgba(0,0,0,.5)}
+.aimax-histrow{display:flex;align-items:center;gap:9px;width:100%;text-align:left;
+  padding:9px 10px;border:0;border-radius:8px;background:none;color:#F5F7F9;
+  cursor:pointer;transition:.12s}
+.aimax-histrow:hover{background:#1B1F26}
+.aimax-histrow.on{background:#1B2129}
+.aimax-histrow b{font-weight:500;flex:1;min-width:0;overflow:hidden;
+  text-overflow:ellipsis;white-space:nowrap}
+.aimax-histrow .num{color:#9AA6B2;font-size:var(--text-sm);flex:0 0 auto}
+.aimax-histnew{color:#F5F7F9;font-weight:600;border-bottom:1px solid #2A313B;
+  border-radius:8px 8px 0 0;margin-bottom:4px}
+.aimax-histempty{color:#9AA6B2;font-size:var(--text-sm);padding:10px;margin:0}
+/* The maximize control sits beside the X on the pill's composer. The X is
+   absolutely placed at right:12px; this lands one slot to its left. */
+.aidock-maxbtn{right:42px}
+@media(max-width:767px){.aimax-wrap{padding:10px}
+  .aidock-panel.aimax{height:calc(100vh - 20px)}}
 
 /* ── composer, from the owner's reference image ───────────────────────────
    A wide rounded bar: near-black fill a step off the panel ground so the bar
@@ -4695,6 +4740,10 @@ const S={
   chat:[],
   chatThinking:false,
   aiOpen:true,                     // coach AI dock: open on arrival, X collapses to the S
+  aiMax:false,                     // Amboras state 3: the full-screen assistant with history
+  aiHistOpen:false,                // history dropdown inside the maximized view (ephemeral)
+  chatSessions:[],                 // previous assistant conversations [{id,title,ts,msgs}]
+  chatSessionId:null,              // which session S.chat mirrors; null = a fresh thread
   cmdAction:"",
   cmdDraft:"",
   cmdSending:false,
@@ -7416,6 +7465,92 @@ function aiDockHTML(){
       </button>
     </div>${fabHTML(true)}`;
   }
+  /* STATE 3 — MAXIMIZED (owner, 2026-08-14, to the Amboras reference).
+     A full-height reading surface with the conversation in a centred column,
+     a history control top-left (previous chats + New chat, the GPT pattern),
+     and minimize/close top-right. Same S.chat, same composer ids, same
+     askCoach() — this is a bigger window onto the same conversation, never a
+     second chat implementation. */
+  if(open&&S.aiMax){
+    const sess=[...S.chatSessions].sort((a,b)=>(b.ts||0)-(a.ts||0));
+    const rel=ts=>{const m=Math.round((Date.now()-(ts||0))/60000);
+      return m<1?"just now":m<60?m+"m ago":m<1440?Math.round(m/60)+"h ago":Math.round(m/1440)+"d ago";};
+    return `<div class="aimax-wrap"><section class="aidock-panel talking aimax" role="dialog" aria-label="Sporve AI">
+      <div class="aimax-head">
+        <div class="aimax-histwrap">
+          <button type="button" class="aimax-ic" data-aihist="1"
+                  aria-expanded="${S.aiHistOpen?"true":"false"}" aria-label="Chat history" title="Chat history">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                 stroke-width="1.8" stroke-linecap="round" aria-hidden="true">
+              <circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>
+            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                 stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg>
+          </button>
+          ${S.aiHistOpen?`<div class="aimax-hist" role="menu" aria-label="Previous chats">
+            <button class="aimax-histrow aimax-histnew" data-ainew="1" role="menuitem">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                   stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>
+              New chat</button>
+            ${sess.length?sess.map(s=>`<button class="aimax-histrow${s.id===S.chatSessionId?" on":""}"
+                data-aihistpick="${esc(s.id)}" role="menuitem">
+                <b>${esc(s.title)}</b><span class="num">${rel(s.ts)}</span></button>`).join("")
+              :`<p class="aimax-histempty">No previous chats yet.</p>`}
+          </div>`:""}
+        </div>
+        <span class="aimax-ctx">${esc(aiContext().label)}</span>
+        <div class="aimax-actions">
+          <button type="button" class="aimax-ic" data-ainew="1" aria-label="New chat" title="New chat">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                 stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <path d="M12 20h9M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg></button>
+          <button type="button" class="aimax-ic" data-aiminimize="1" aria-label="Minimize" title="Minimize">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                 stroke-width="2" stroke-linecap="round" aria-hidden="true">
+              <path d="M10 4v6H4M4 10l6-6M14 20v-6h6M20 14l-6 6"/></svg></button>
+          <button type="button" class="aimax-ic" data-aiclose="1" aria-label="Close Sporve AI">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                 stroke-width="2" stroke-linecap="round" aria-hidden="true">
+              <path d="M6 6l12 12M18 6L6 18"/></svg></button>
+        </div>
+      </div>
+      <div class="aidock-scroll aimax-scroll" id="aidockScroll">
+        <div class="aimax-col">
+          ${S.chat.length?thread
+            :`<div class="aidock-empty"><span class="mark" style="margin:0 auto 11px">S</span>
+               <h3>What can I take off your plate?</h3>
+               <p style="color:#9AA6B2;font-size:var(--text-sm);margin-top:6px">
+                 Ask about your schedule, your roster, or tell me what to draft.</p></div>`}
+          ${S.chatThinking?`<div class="bub them" style="align-self:flex-start;display:flex;gap:5px;align-items:center">
+            <i class="dotdot"></i><i class="dotdot" style="animation-delay:.16s"></i><i class="dotdot" style="animation-delay:.32s"></i></div>`:""}
+        </div>
+      </div>
+      <form class="aidock-compose aimax-compose" id="aiDockForm">
+        <input id="aiDockInput" class="aidock-input" placeholder="Write a message…"
+               aria-label="Message Sporve AI" autocomplete="off">
+        <div class="aidock-row">
+          <button type="button" class="aidock-ic" data-aiattach="1" aria-label="Add an attachment">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                 stroke-width="1.9" stroke-linecap="round" aria-hidden="true">
+              <path d="M12 5v14M5 12h14"/></svg></button>
+          <span class="aidock-model" style="margin-left:auto">
+            <b>Opus 5</b><span class="aidock-effort">High</span>
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                 stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <path d="M6 9l6 6 6-6"/></svg>
+          </span>
+          <button type="button" class="aidock-ic" data-aivoice="1" aria-label="Dictate a message">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                 stroke-width="1.8" stroke-linecap="round" aria-hidden="true">
+              <rect x="9" y="3" width="6" height="11" rx="3"/>
+              <path d="M5 11a7 7 0 0 0 14 0M12 18v3"/></svg></button>
+          <button type="submit" class="aidock-ic" aria-label="Send">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                 stroke-width="1.8" stroke-linecap="round" aria-hidden="true">
+              <path d="M4 10v4M8 7v10M12 5v14M16 8v8M20 11v2"/></svg></button>
+        </div>
+      </form>
+    </section></div>${fabHTML(true)}`;
+  }
   /* THE WIDGET IS THE BAR. Owner, 2026-08-13: "all that should show on the
      screen is the exact layout and format of [the reference] at the bottom of
      the screen, outside of that and an X button, that's it."
@@ -7466,6 +7601,14 @@ function aiDockHTML(){
                  stroke-width="1.8" stroke-linecap="round" aria-hidden="true">
               <path d="M4 10v4M8 7v10M12 5v14M16 8v8M20 11v2"/></svg></button>
         </div>
+        ${/* State 2 → 3: the maximize control exists only once a conversation
+             does — the at-rest bar stays exactly the bar (owner: "minimizing
+             would be the initial thing"). */""}
+        ${S.chat.length||S.chatThinking?`<button type="button" class="aidock-x aidock-maxbtn"
+          data-aimaximize="1" aria-label="Maximize Sporve AI" title="Maximize">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+               stroke-width="2" stroke-linecap="round" aria-hidden="true">
+            <path d="M14 4h6v6M20 4l-7 7M10 20H4v-6M4 20l7-7"/></svg></button>`:""}
         <button type="button" class="aidock-x" data-aiclose="1" aria-label="Close Sporve AI">
           <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor"
                stroke-width="2" stroke-linecap="round" aria-hidden="true">
@@ -9914,10 +10057,12 @@ function pageHTML(id){
         <h2 style="margin-top:12px">You always know how it went.</h2>
         <p class="sub" style="margin-top:14px">Notes, focus areas and the next booking arrive in one thread — written by the coach, not a form.</p>
         <div class="lchecks">
+          ${/* Enforcement sweep 2026-08-14: the tick glyphs are deleted, not
+               replaced — the claim carries the row (spec STEP 1). */""}
           ${[["Session notes tied to your athlete, not a generic log"],
              ["Receipts and rebooking in the same place"],
              ["Media shared only with recorded consent"]]
-            .map(([t])=>`<div class="lcheck"><i>${TICK(12,3.4)}</i><span>${esc(t)}</span></div>`).join("")}
+            .map(([t])=>`<div class="lcheck"><span>${esc(t)}</span></div>`).join("")}
         </div>
       </div>
 
@@ -9946,7 +10091,7 @@ function pageHTML(id){
           <ul class="dlist">
             ${["Every coach clears a per-person check","Message before you spend anything",
                "Sessions, receipts and updates in one thread","One account, however many kids"]
-              .map(t=>`<li>${TICK(14,3)}<span>${esc(t)}</span></li>`).join("")}
+              .map(t=>`<li><span>${esc(t)}</span></li>`).join("")}
           </ul>
           <button class="btn" data-nav="explore">Find a coach</button>
         </div>
@@ -9957,7 +10102,7 @@ function pageHTML(id){
           <ul class="dlist">
             ${["Free to join and list","Bring the families you already coach",
                "Checkout and automatic payouts","Roster, notes, media and insights"]
-              .map(t=>`<li>${TICK(14,3)}<span>${esc(t)}</span></li>`).join("")}
+              .map(t=>`<li><span>${esc(t)}</span></li>`).join("")}
           </ul>
           <button class="btn ghost" data-becomecoach="1">Become a coach</button>
         </div>
@@ -11754,6 +11899,17 @@ document.querySelectorAll('.sig-ai-coach').forEach(sigAiCoachWire);
     if(i){ i.value=b.dataset.aichip; i.focus(); }
   });
   $("[data-aitoggle]").forEach(b=>b.onclick=()=>{S.aiOpen=!S.aiOpen;render();});
+  /* Amboras state machine. Maximize is only offered from a live conversation;
+     minimize returns to the pill; close resets max so the NEXT open starts at
+     the bar — "minimizing would be the initial thing" (owner). */
+  $("[data-aimaximize]").forEach(b=>b.onclick=()=>{S.aiMax=true;S.aiHistOpen=false;render();
+    /* Initial focus lands in the composer — the overlay owns the keyboard
+       from the first keystroke, pairing with the Tab trap. */
+    const inp=document.getElementById("aiDockInput"); if(inp) inp.focus();});
+  $("[data-aiminimize]").forEach(b=>b.onclick=()=>{S.aiMax=false;S.aiHistOpen=false;render();});
+  $("[data-aihist]").forEach(b=>b.onclick=e=>{e.stopPropagation();S.aiHistOpen=!S.aiHistOpen;render();});
+  $("[data-ainew]").forEach(b=>b.onclick=()=>chatNew());
+  $("[data-aihistpick]").forEach(b=>b.onclick=()=>chatLoadSession(b.dataset.aihistpick));
   /* Attach and dictate are in the reference image, so the controls are there —
      but neither is wired to anything yet. They SAY so rather than failing
      silently: a button that looks live and does nothing is worse than one that
@@ -11761,7 +11917,7 @@ document.querySelectorAll('.sig-ai-coach').forEach(sigAiCoachWire);
      asked to trust the product. */
   $("[data-aiattach]").forEach(b=>b.onclick=()=>toast("Attachments aren't wired up yet"));
   $("[data-aivoice]").forEach(b=>b.onclick=()=>toast("Voice input isn't wired up yet"));
-  $("[data-aiclose]").forEach(b=>b.onclick=()=>{S.aiOpen=false;render();});
+  $("[data-aiclose]").forEach(b=>b.onclick=()=>{S.aiOpen=false;S.aiMax=false;S.aiHistOpen=false;render();});
   $("[data-waitlist]").forEach(b=>b.onclick=()=>{
     const id=b.dataset.waitlist;
     requireAuth(()=>{S.modal={type:"waitlist",programId:id};render();});
@@ -12498,6 +12654,11 @@ function askCoach(q){
   if(!q||!q.trim()) return;
   const text=q.trim();
   S.chat=[...S.chat,{role:"user",text}];
+  /* Keep the session archive in step with the live thread, so the history
+     list in the maximized view always shows the conversation in progress.
+     Coach-side only: the family finder keeps its single persistent thread. */
+  if(S.portal==="coach") chatArchive();
+  const epoch=chatEpoch;
   S.chatThinking=true; render();
 
   const fallback=(note)=>{
@@ -12533,6 +12694,9 @@ function askCoach(q){
        recovers and offers retry. */
     const timeout=new Promise((_,rej)=>setTimeout(()=>rej(new Error("timeout")),45000));
     Promise.race([API.fn("coach-command",{text,history}),timeout]).then(r=>{
+      /* The coach switched threads while this turn was in flight — its reply
+         belongs to a conversation that is no longer on screen. Drop it. */
+      if(epoch!==chatEpoch) return;
       const reply=(r&&typeof r.reply_text==="string"?r.reply_text.trim():"");
       if(!reply) throw new Error("empty reply");
       const calls=Array.isArray(r.tool_calls)?r.tool_calls:[];
@@ -12545,6 +12709,7 @@ function askCoach(q){
       S.chat=[...S.chat,{role:"coach",text:reply,tools,proposal}];
       render();
     }).catch(()=>{
+      if(epoch!==chatEpoch) return;
       /* LOUD FAILURE — design-doc law. A signed-in coach never gets the
          keyword matcher pretending to be the assistant; they get the truth
          and a retry that resends this exact message. */
@@ -12607,6 +12772,7 @@ function approveProposal(i){
      helpful-by-substitution. */
   const ta=document.getElementById("propEdit"+i);
   const bodyText=ta?ta.value:String(p.args.body||"");
+  const epoch=chatEpoch;
   p.state="sending";render();
   /* Promise.resolve() first, so a SYNCHRONOUS throw (module not loaded,
      unexpected state) lands in the same .catch as a network failure instead
@@ -12616,23 +12782,70 @@ function approveProposal(i){
       throw new Error("The coach account module didn't load.");
     return window.SporveCoach.sendParentMessage(p.args.booking_id,bodyText);
   }).then(res=>{
+    /* The card's own state updates wherever its thread now lives (archived
+       or on screen); the CONFIRMATION bubble only joins the thread the coach
+       is still looking at. */
     p.state="done";
-    S.chat=[...S.chat,{role:"coach",
-      text:"Sent"+(res&&res.firstName?" to "+res.firstName+"'s parent":"")+". It's in your Messages thread now."}];
+    if(epoch===chatEpoch){
+      S.chat=[...S.chat,{role:"coach",
+        text:"Sent"+(res&&res.firstName?" to "+res.firstName+"'s parent":"")+". It's in your Messages thread now."}];
+    }
     render();
   }).catch(e=>{
     /* Loud, specific, and honest about state: the send REJECTED, so nothing
        reached the parent. The proposal reopens so the coach can retry. */
     p.state="open";
-    const why=((e&&e.message)||"the request was refused").replace(/\.?\s*$/,".");
-    S.chat=[...S.chat,{role:"coach",err:true,
-      text:"That didn't send — "+why+" Nothing reached the parent."}];
+    if(epoch===chatEpoch){
+      const why=((e&&e.message)||"the request was refused").replace(/\.?\s*$/,".");
+      S.chat=[...S.chat,{role:"coach",err:true,
+        text:"That didn't send — "+why+" Nothing reached the parent."}];
+    }
     render();
   });
 }
 function dismissProposal(i){
   const p=proposalAt(i);
   if(p&&p.state==="open"){p.state="dismissed";render();}
+}
+
+/* ── conversation sessions — the GPT-style history behind the maximize ──
+   The live thread is still S.chat (every existing consumer keeps working);
+   these three verbs move threads between S.chat and S.chatSessions. Archive
+   is UPSERT-by-id, so switching away and back never forks a conversation.
+
+   chatEpoch fences ASYNC completions: an askCoach reply that resolves after
+   the coach opened a new chat (or loaded an old one) must not append itself
+   to the thread it no longer belongs to. Every switch bumps the epoch; every
+   in-flight handler captured the epoch it was born under and bails on a
+   mismatch. */
+let chatEpoch=0;
+function chatArchive(){
+  if(!S.chat.length) return;
+  const first=S.chat.find(m=>m.role==="user");
+  const title=String((first&&first.text)||"New chat").slice(0,60);
+  if(S.chatSessionId){
+    const s=S.chatSessions.find(x=>x.id===S.chatSessionId);
+    if(s){ s.msgs=S.chat; s.ts=Date.now(); return; }
+  }
+  const id="c"+Date.now().toString(36)+Math.random().toString(36).slice(2,6);
+  /* Newest first, capped — sessionStorage quota is finite and a demo does
+     not need an infinite archive. */
+  S.chatSessions=[{id,title,ts:Date.now(),msgs:S.chat},...S.chatSessions].slice(0,30);
+  S.chatSessionId=id;
+}
+function chatNew(){
+  chatArchive();
+  chatEpoch++;
+  S.chat=[]; S.chatSessionId=null; S.chatThinking=false; S.aiHistOpen=false;
+  render();
+}
+function chatLoadSession(id){
+  const s=S.chatSessions.find(x=>x.id===id);
+  if(!s) return;
+  chatArchive();
+  chatEpoch++;
+  S.chat=(s.msgs||[]).slice(); S.chatSessionId=id; S.chatThinking=false; S.aiHistOpen=false;
+  render();
 }
 
 /* Photography comes from external image hosts. Behind a strict CSP — or simply
@@ -12669,6 +12882,11 @@ document.addEventListener("keydown",e=>{
      can be open on top of it. Collapsing rather than closing is deliberate:
      Escape from a text field the user is typing in should retreat one step,
      not throw the thread away. The S is left as the way back. */
+  /* Innermost-first within the assistant too: the history dropdown closes
+     before the maximized view, the maximized view steps DOWN to the pill
+     rather than closing outright, and only then does Escape collapse it. */
+  else if(S.portal==="coach"&&S.aiHistOpen){S.aiHistOpen=false;render();}
+  else if(S.portal==="coach"&&S.aiMax){S.aiMax=false;render();}
   else if(S.portal==="coach"&&S.aiOpen!==false){S.aiOpen=false;render();}
   /* mega-menus are pure CSS :focus-within, so Escape closes them by moving
      focus off the trigger — and the trigger's aria-expanded is kept honest */
@@ -12678,6 +12896,13 @@ document.addEventListener("keydown",e=>{
       if(t){t.setAttribute("aria-expanded","false");t.blur();}
       if(document.activeElement&&open.contains(document.activeElement)) document.activeElement.blur();}
   }
+});
+/* Outside-click closes the assistant's history dropdown; clicks inside it
+   are picks and land on their own handlers first. */
+document.addEventListener("click",e=>{
+  if(!S.aiHistOpen) return;
+  if(e.target.closest(".aimax-hist")||e.target.closest("[data-aihist]")) return;
+  S.aiHistOpen=false;render();
 });
 /* Click anywhere outside the sport chooser closes it. Clicks INSIDE it are
    selections, and must not close — multi-select means several in a row. */
@@ -25424,6 +25649,9 @@ const EPHEMERAL = new Set([
   "fdraft", "fdOpen",
   "cmdDraft", "cmdSending", "cmdError", "cmdPending", "cmdAction", "cmdModelOpen",
   "chatThinking", "sportOpen", "sportAnchor", "faqOpen", "forgotSent", "mapPick",
+  /* An open dropdown is a gesture, not work — restoring it on reload steals
+     the first click. aiMax itself persists, same reasoning as aiOpen. */
+  "aiHistOpen",
   /* From the ported coach-portal work. coachSearchFocus is a one-render flag
      that puts the caret back after #app's innerHTML is replaced; restoring it
      from storage would steal focus into the search box on every page load.
@@ -25477,10 +25705,17 @@ function loadState(){
        Shape mismatch means the snapshot is not ours — skip that key and keep
        the default rather than trusting it. */
     const kind = v => Array.isArray(v) ? "array" : v === null ? "null" : typeof v;
+    /* Keys whose DEFAULT is null but whose saved value is a string. The kind
+       check reads the default's type, so without this a saved chatSessionId
+       could never restore — the sessions list came back but the pointer into
+       it reset, and the next archive forked the active thread into a
+       duplicate session. */
+    const NULLABLE_STRING = new Set(["chatSessionId"]);
     for(const k of Object.keys(S)){
       if(EPHEMERAL.has(k)) continue;
       if(!Object.prototype.hasOwnProperty.call(saved, k)) continue;
-      if(kind(saved[k]) !== kind(S[k])) continue;
+      if(kind(saved[k]) !== kind(S[k]) &&
+         !(NULLABLE_STRING.has(k) && S[k] === null && typeof saved[k] === "string")) continue;
       S[k] = saved[k];
     }
     return true;
@@ -25703,9 +25938,19 @@ hydrateReturn();
    One delegated handler rather than eleven per-modal implementations: the
    modal layer is a single container, so the trap belongs to the layer. */
 document.addEventListener("keydown",e=>{
-  const box=document.querySelector('[role="dialog"], .fd, .modal');
+  /* The assistant panel carries role="dialog" for the screen reader but is
+     NOT a modal — it has its own Escape ladder (history → minimize →
+     collapse), and letting this trap click its close button collapsed all
+     three states in one keypress. It is excluded from the ESCAPE branch;
+     everything the modal layer actually renders as a modal still matches.
+     Its MAXIMIZED form, though, is a full-viewport overlay, and Tab must
+     not wander into the dimmed page behind it — so it joins the Tab trap
+     (last, so a real modal stacked above it still wins). */
+  const modal=document.querySelector('[role="dialog"]:not(.aidock-panel), .fd, .modal');
+  const box=modal||document.querySelector('.aidock-panel.aimax');
   if(!box) return;
   if(e.key==="Escape"){
+    if(!modal) return; /* the assistant's own Escape ladder handles it */
     /* Same exits the existing close buttons use, so Escape cannot leave a
        modal half-dismissed with its state still set. */
     const x=box.querySelector("[data-close],[data-fdclose],[data-aiclose],.x");

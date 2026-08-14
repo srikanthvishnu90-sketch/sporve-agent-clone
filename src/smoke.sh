@@ -1136,10 +1136,47 @@ const banned=c=>c.includes('194, 65, 12')||c.includes('56, 189, 248');
 return bad.length?bad.join(' '):'CLEAN'})()" 2>/dev/null)
 sweepc=${sweep//\"/}; sweepc=$(printf '%s' "$sweepc" | tr -d '\r')
 if [ "$(printf '%s' "$sweepc" | tr -d '[:space:]')" = "CLEAN" ]; then
-  pass "17 pages: zero emoji, zero decorative in-band svg, zero scaffolds"
+  pass "16 pages: zero emoji, zero decorative in-band svg, zero scaffolds"
 elif [ -z "$(printf '%s' "$sweepc" | tr -d '[:space:]')" ]; then
   printf "  \033[33mWARN\033[0m  %s\n" "§9 sweep did not return — re-run"
 else fail "§9 sweep: $sweep"; fi
+
+# ── slop-audit: the enforcement instrument (owner spec 2026-08-14) ────────
+# scripts/slop-audit.js is injected into the live page and evaluated on all
+# 19 product pages (16 PAGE_META mini-pages + trust, pricing, coachinfo).
+# Rules A (icons), C (stranded grids), D (emoji) FAIL the build; rule B
+# (copy depth) and .psdot WARN pending the owner's ruling on the 40–80-word
+# floor vs the standing ≤180-word page cap. pr-checks.yml runs this file on
+# every PR, which is what wires the auditor into CI.
+AUD=$(cat scripts/slop-audit.js 2>/dev/null)
+if [ -z "$AUD" ]; then fail "scripts/slop-audit.js missing"; else
+slop=$($B js "$AUD;
+(()=>{const routes='$PAGES'.split(' ').map(id=>['page',id]).concat([['trust',null],['pricing',null],['coachinfo',null]]);
+ const fails=[];let wcopy=0,wdot=0;
+ routes.forEach(([name,arg])=>{S.route={name,arg};render();
+  const r=window.SLOP_AUDIT();
+  const f=r.fail.icons.length+r.fail.grids.length+r.fail.emoji.length;
+  if(f)fails.push((arg||name)+'['+
+    (r.fail.icons.length?'icons:'+r.fail.icons.slice(0,2).join('|'):'')+
+    (r.fail.grids.length?' grids:'+r.fail.grids.slice(0,2).join('|'):'')+
+    (r.fail.emoji.length?' emoji:'+r.fail.emoji[0]:'')+']');
+  wcopy+=r.warn.copy.length;wdot+=r.warn.psdot.length;});
+ S.route={name:'explore',arg:null};render();
+ return JSON.stringify({fails,wcopy,wdot})})()" 2>/dev/null)
+slopc=${slop//\"/}
+case "$slopc" in
+  *"fails:[]"*)
+    pass "slop-audit: 19 pages clean on icons, grids, emoji"
+    w=$(printf '%s' "$slopc" | grep -o 'wcopy:[0-9]*' | grep -o '[0-9]*')
+    d=$(printf '%s' "$slopc" | grep -o 'wdot:[0-9]*' | grep -o '[0-9]*')
+    [ "${w:-0}" -gt 0 ] || [ "${d:-0}" -gt 0 ] && \
+      printf "  \033[33mWARN\033[0m  %s\n" "slop-audit advisories: copy-depth=$w psdot=$d (rule B awaits the owner's word-count ruling)";;
+  "")
+    fail "slop-audit did not return";;
+  *)
+    fail "slop-audit: $slop";;
+esac
+fi
 # Home + explore: zero emoji. Rails are now ALLOWED here: the owner overrode the
 # no-rails §6.4 rule via the six-task spec 2026-08-08; the explore kind bands
 # (.kindrow, T4) are intentional horizontal rows, so a rail no longer fails this
@@ -1576,6 +1613,56 @@ reg=$($B js "
  return bad.length?[...new Set(bad)].slice(0,8).join(','):'OK'})()" 2>/dev/null)
 [ "${reg//\"/}" = "OK" ] && pass "coach UI register: one face, scale sizes, 600-max weights" \
   || fail "coach register regressed: $reg"
+
+# ── Assistant state machine (owner spec 2026-08-14, Amboras) ──────────────
+# Three states: bar at rest (no maximize control), talking pill (maximize
+# appears), maximized (history + New chat + previous sessions). Escape steps
+# DOWN one level per press — the modal focus-trap used to claim the panel via
+# role=dialog and collapse all three states in one keypress.
+ams=$($B js "
+(()=>{const bad=[];
+ S.portal='coach';S.auth={status:'coach'};S.route={name:'dashboard',arg:null};
+ /* chatThinking leaks true from the endpoint assertion above (its fetch is
+    intercepted and never settles) — and thinking alone shows the maximize
+    control, which is correct for a user and a false MAXBTN_AT_REST here. */
+ S.chat=[];S.chatSessions=[];S.chatSessionId=null;S.aiOpen=true;S.aiMax=false;
+ S.chatThinking=false;S.aiHistOpen=false;S.aiCollapsed=false;S.modal=null;S.sportOpen=false;render();
+ if(document.querySelector('.aidock-maxbtn'))bad.push('MAXBTN_AT_REST');
+ S.chat=[{role:'user',text:'x'},{role:'coach',text:'y'}];render();
+ if(!document.querySelector('[data-aimaximize]'))bad.push('NO_MAXBTN');
+ document.querySelector('[data-aimaximize]').click();
+ if(!S.aiMax||!document.querySelector('.aimax-wrap'))bad.push('MAX_FAILED');
+ document.querySelector('[data-aihist]').click();
+ if(!document.querySelector('.aimax-histempty'))bad.push('NO_EMPTY_HIST');
+ document.querySelector('[data-ainew]').click();
+ if(S.chat.length||S.chatSessions.length!==1)bad.push('NEWCHAT_'+S.chat.length+'_'+S.chatSessions.length);
+ document.querySelector('[data-aihist]').click();
+ const row=document.querySelector('[data-aihistpick]');
+ if(!row)bad.push('NO_HIST_ROW');else{row.click();if(S.chat.length!==2)bad.push('LOAD_'+S.chat.length);}
+ S.aiHistOpen=true;render();
+ const esc=()=>document.dispatchEvent(new KeyboardEvent('keydown',{key:'Escape',bubbles:true}));
+ esc();if(S.aiHistOpen||!S.aiMax)bad.push('ESC1');
+ esc();if(S.aiMax||S.aiOpen===false)bad.push('ESC2');
+ esc();if(S.aiOpen!==false)bad.push('ESC3');
+ S.aiOpen=true;S.aiMax=false;S.modal={type:'addchild'};render();
+ esc();if(S.modal)bad.push('MODAL_ESC');
+ // the archive caps at 30 sessions, newest kept
+ S.chat=[];S.chatSessions=[];S.chatSessionId=null;
+ for(let i=0;i<31;i++){S.chat=[{role:'user',text:'t'+i}];S.chatSessionId=null;chatArchive();}
+ if(S.chatSessions.length!==30)bad.push('CAP_'+S.chatSessions.length);
+ // a saved string chatSessionId must survive loadState over its null default
+ S.chat=[{role:'user',text:'restore me'}];S.chatSessionId=null;chatArchive();
+ const savedId=S.chatSessionId; saveState();
+ S.chatSessionId=null;S.chatSessions=[];
+ loadState();
+ if(S.chatSessionId!==savedId)bad.push('RESTORE_ID');
+ if(!S.chatSessions.some(s=>s.id===savedId))bad.push('RESTORE_LIST');
+ S.chat=[];S.chatSessions=[];S.chatSessionId=null;S.aiMax=false;S.aiHistOpen=false;
+ saveState();
+ S.portal='family';S.route={name:'home',arg:null};render();document.body.classList.remove('reg-coach');
+ return bad.length?bad.join(','):'OK'})()" 2>/dev/null)
+[ "${ams//\"/}" = "OK" ] && pass "assistant states: rest, talking, maximized; Escape steps one level" \
+  || fail "assistant state machine regressed: $ams"
 
 # ── The coach profile renders its blocks, and invents nothing ─────────────
 # Built to the owner's Athletes Untapped reference: pricing ladder, collapsible
