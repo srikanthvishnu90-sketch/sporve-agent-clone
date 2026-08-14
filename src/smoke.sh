@@ -1697,6 +1697,46 @@ disc=$($B js "
 [ "${disc//\"/}" = "OK" ] && pass "AI disclosure present in every chat session (usage policy)" \
   || fail "AI disclosure missing: $disc"
 
+# ── Approvals: approve SENDS via lifecycle-approve, never a status PATCH ───
+# The §10 Approve button used to PATCH status='approved', a value no sender
+# consumes — the message was stranded while the coach was told it sent. Assert
+# decide('approve') calls the lifecycle-approve edge function, that only a
+# 'drafted' row offers Approve, and that a non-drafted row does not.
+appr=$($B js "
+(()=>{const bad=[];const calls=[];
+ const API=window.SporveAPI; const of=API.fn;
+ API.fn=function(name,body){calls.push(name);return Promise.resolve({ok:true,status:'sent'});};
+ const wasSigned=window.SporveAuth&&window.SporveAuth.isSignedIn;
+ const wasUid=window.SporveAuth&&window.SporveAuth.userId;
+ if(window.SporveAuth){window.SporveAuth.isSignedIn=()=>true;window.SporveAuth.userId=()=>'u1';}
+ // approve must route to lifecycle-approve, not a PATCH
+ try{window.SporveCoach.decide('m1','approve');}catch(e){bad.push('THREW');}
+ if(!calls.includes('lifecycle-approve'))bad.push('NO_LIFECYCLE_CALL');
+ API.fn=of;
+ // render: only a drafted row shows Approve; a pending row does not
+ S.portal='coach';S.auth={status:'coach'};S.coachTab='approvals';
+ S.route={name:'dashboard',arg:null};
+ S.coachQueue=[{id:'d1',event_type:'reminder_24h',status:'drafted',content:{body:'See you Saturday.'}},
+               {id:'p1',event_type:'post_session',status:'pending',content:{body:''}}];
+ render();
+ const html=document.querySelector('#app').innerHTML;
+ const approves=(html.match(/data-qdecide=\"approve:/g)||[]).length;
+ if(approves!==1)bad.push('APPROVE_COUNT_'+approves);
+ if(!/data-qdecide=\"approve:d1/.test(html))bad.push('DRAFTED_NO_APPROVE');
+ if(/data-qdecide=\"approve:p1/.test(html))bad.push('PENDING_HAS_APPROVE');
+ if(/worker will send/i.test(html))bad.push('OLD_WORKER_COPY');
+ // in-flight guard: a row mid-decision shows Working…, no live button (no twin)
+ S.qDeciding={d1:true};render();
+ const h2=document.querySelector('#app').innerHTML;
+ if(/data-qdecide=\"approve:d1/.test(h2))bad.push('TWIN_BUTTON');
+ if(!/Working/.test(h2))bad.push('NO_WORKING_STATE');
+ S.qDeciding={};
+ if(window.SporveAuth){window.SporveAuth.isSignedIn=wasSigned;window.SporveAuth.userId=wasUid;}
+ S.coachQueue=[];S.portal='family';S.route={name:'home',arg:null};render();document.body.classList.remove('reg-coach');
+ return bad.length?bad.join(','):'OK'})()" 2>/dev/null)
+[ "${appr//\"/}" = "OK" ] && pass "approvals: approve sends via lifecycle-approve; Approve only on drafted" \
+  || fail "approve regressed: $appr"
+
 # ── The coach profile renders its blocks, and invents nothing ─────────────
 # Built to the owner's Athletes Untapped reference: pricing ladder, collapsible
 # sections, weekly availability, location. The reference also shows earned

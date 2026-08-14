@@ -8559,15 +8559,31 @@ function coachBody(t){
         ${q.map(m=>`<div class="panel" style="display:flex;flex-direction:column;gap:8px">
           <div style="display:flex;align-items:center;gap:9px">
             <span class="k" style="font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--faint)">${esc(LABEL[m.event_type]||m.event_type)}</span>
-            <span class="pill ${m.status==="approved"?"gold":"warn"}" style="margin-left:auto">${esc(m.status)}</span>
+            <span class="pill ${m.status==="drafted"?"warn":m.status==="approved"?"gold":"slate"}" style="margin-left:auto">${esc(m.status)}</span>
           </div>
           <p style="font-size:var(--text-sm)">${esc(
             (m.content&&(m.content.body||m.content.text||m.content.message))||"(no draft body)")}</p>
-          ${m.status==="approved"
-            ? `<span style="color:var(--muted);font-size:var(--text-xs)">Approved — the worker will send it.</span>`
-            : `<div style="display:flex;gap:8px">
-                <button class="btn sm" data-qdecide="approve:${esc(m.id)}">Approve</button>
-                <button class="btn ghost sm" data-qdecide="redraft:${esc(m.id)}">Send back</button>
+          ${/* Only a DRAFTED row can be sent — lifecycle-approve 409s on anything
+               else. A pending/processing row is still being written by the
+               worker; offering an Approve button that can only fail is the lie
+               this screen just stopped telling. A legacy 'approved' row is one
+               the old bug stranded: it can be recovered by sending it back to
+               draft, then approving it properly. A row mid-decision shows
+               "Working…" — no live button exists to be double-fired. */""}
+          ${(S.qDeciding&&S.qDeciding[m.id])
+            ? `<span style="color:var(--muted);font-size:var(--text-xs)">Working…</span>`
+            : m.status==="drafted"
+            ? `<div style="display:flex;gap:8px">
+                <button class="btn sm" data-qdecide="approve:${esc(m.id)}">Approve &amp; send</button>
+                <button class="btn ghost sm" data-qdecide="reject:${esc(m.id)}">Skip</button>
+               </div>`
+            : m.status==="approved"
+            ? `<div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+                <span style="color:var(--muted);font-size:var(--text-xs)">Stuck from an earlier version — send it back to redraft, then approve.</span>
+                <button class="btn ghost sm" data-qdecide="redraft:${esc(m.id)}">Send back to draft</button>
+               </div>`
+            : `<div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+                <span style="color:var(--muted);font-size:var(--text-xs)">Sporve is still drafting this.</span>
                 <button class="btn ghost sm" data-qdecide="reject:${esc(m.id)}">Skip</button>
                </div>`}
         </div>`).join("")}
@@ -11892,11 +11908,33 @@ document.querySelectorAll('.sig-ai-coach').forEach(sigAiCoachWire);
   $("[data-qdecide]").forEach(b=>b.onclick=()=>{
     const i=b.dataset.qdecide.indexOf(":");
     const decision=b.dataset.qdecide.slice(0,i), id=b.dataset.qdecide.slice(i+1);
-    b.disabled=true;
+    /* IN-FLIGHT GUARD IN STATE, not just on the DOM node. b.disabled alone
+       blocks a second click on THIS element, but any render() during the
+       async gap (a toast auto-dismiss, another handler) rebuilds the queue and
+       would mint a fresh, enabled twin button for the same id — a second click
+       on the twin fires a second lifecycle-approve, and the parent receives the
+       message twice. Marking the id in S.qDeciding makes the render draw a
+       "Working…" row instead of live buttons, so no twin can exist; the guard
+       here is the belt to that render's braces. Ephemeral: a reload starts
+       clean. */
+    S.qDeciding=S.qDeciding||{};
+    if(S.qDeciding[id]) return;
+    S.qDeciding[id]=true;
+    const clear=()=>{ if(S.qDeciding) delete S.qDeciding[id]; };
     window.SporveCoach.decide(id,decision)
+      /* Hold the lock THROUGH hydration: clearing before the re-read leaves a
+         window where a stray render() draws a live button for a row the server
+         has already acted on. hydrateQueue() re-renders with the lock still set
+         (the row shows "Working…"), and only then do we clear and render the
+         final state — so a redrafted row (which stays in the queue) gets its
+         buttons back rather than sticking on "Working…". */
       .then(()=>hydrateQueue())
-      .then(()=>toast(decision==="approve"?"Approved":decision==="reject"?"Skipped":"Sent back to draft"))
-      .catch(e=>{b.disabled=false;toast((e&&e.message)||"Could not update that message");});
+      /* "Sent", not "Approved" — approve now delivers via lifecycle-approve and
+         the row leaves the queue as 'sent'. The catch surfaces the function's
+         own error text (e.g. "No verified guardian to deliver to"), so a send
+         that cannot happen says so instead of claiming success. */
+      .then(()=>{clear();render();toast(decision==="approve"?"Sent to the family":decision==="reject"?"Skipped":"Sent back to draft");})
+      .catch(e=>{clear();render();toast((e&&e.message)||"Could not update that message");});
   });
   $("[data-railmenu]").forEach(b=>b.onclick=()=>{S.railMenu=!S.railMenu;render();});
   $("[data-signout]").forEach(b=>b.onclick=()=>{doSignOut();S.portal="family";go("home");});
@@ -13000,6 +13038,9 @@ const EPHEMERAL = new Set([
   /* An open dropdown is a gesture, not work — restoring it on reload steals
      the first click. aiMax itself persists, same reasoning as aiOpen. */
   "aiHistOpen",
+  /* In-flight approval decisions — a transient lock, never persisted; a
+     reload must start with no row wrongly stuck in "Working…". */
+  "qDeciding",
   /* From the ported coach-portal work. coachSearchFocus is a one-render flag
      that puts the caret back after #app's innerHTML is replaced; restoring it
      from storage would steal focus into the search box on every page load.

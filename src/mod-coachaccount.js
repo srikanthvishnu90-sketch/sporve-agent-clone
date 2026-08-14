@@ -291,15 +291,27 @@
        invented that the trigger would then refuse. */
     decide: function (id, decision) {
       var no = guard(); if (no) return no;
-      var MAP = { approve: "approved", reject: "skipped", redraft: "drafted" };
+      /* APPROVE SENDS — and sending is NOT a column write. It is the
+         lifecycle-approve edge function: the ONLY code that delivers a drafted
+         message to the verified guardian, re-runs the credential/medical/safety
+         claim guardrail on the body server-side, and stamps sent/approved_by
+         under the service role. This client used to PATCH status='approved'
+         here, but nothing consumes 'approved' — the lifecycle worker claims
+         only 'pending' — so an approved message was stranded forever while the
+         coach was told "the worker will send it." A control that reported
+         success on a send that never happened, on a child-facing surface.
+         reject/redraft stay plain column writes; only the SEND crosses a rail. */
+      if (decision === "approve") {
+        return API.fn("lifecycle-approve", { id: id });
+      }
+      var MAP = { reject: "skipped", redraft: "drafted" };
       var status = MAP[decision];
       if (!status) return Promise.reject(new Error("Unknown decision: " + decision));
       return API.from("outbound_messages", "id=eq." + encodeURIComponent(id), {
         method: "PATCH",
         headers: { Prefer: "return=representation" },
-        /* approved_by / approved_at are stamped by the trigger. Sending them
-           from here would be a self-reported audit field, which is worth
-           nothing. */
+        /* approved_by / approved_at are stamped server-side. Sending them from
+           here would be a self-reported audit field, which is worth nothing. */
         body: { status: status },
       }).then(function (r) { return (r && r[0]) || null; });
     },
