@@ -353,6 +353,15 @@ img{max-width:100%;display:block}
    (coachinfo), trust, pricing — via .reg-tabs on #app. The landing, the app and
    the coach portal are untouched: §4 assigns their registers by subject, and a
    blanket change would have overwritten those decisions. */
+/* The mega-menus render from the topbar on EVERY route, so they cannot be
+   scoped by route class. They are part of the same marketing surface as the
+   pages they open, so their rows take the body face directly. The tab labels
+   themselves keep --nav-face (Instrument Serif), which is a separate owner
+   decision and is not touched here. */
+.productmenu .pmrow2,.productmenu .pmcol .eyebrow,
+.coachesmenu .pmrow2,.coachesmenu .pmcol .eyebrow{
+  font-family:"Inter",system-ui,-apple-system,sans-serif;
+}
 #app.reg-tabs{
   --display:"Archivo","Inter",system-ui,sans-serif;
   --sans:"Inter",system-ui,-apple-system,sans-serif;
@@ -10552,10 +10561,17 @@ function render(){
   const seriousTab=S.portal==="coach"&&["finances","media"].includes(S.coachTab);
   const app=document.getElementById("app");
   app.classList.toggle("reg-serious",seriousRoute||seriousTab);
-  /* The four marketing tabs get the two-grotesque register. Named routes, not a
-     "not the app" negation, so a new route does not silently inherit it. */
+  /* The marketing surface gets the two-grotesque register: the four tabs AND
+     every page reachable from their menus.
+     `page` covers all 16 PAGE_META mini-pages — What is Sporve, How background
+     checks work, Search by sport & age, Instant booking, Payments & payouts and
+     the rest — which is what the owner meant by "all of the pages in these
+     tabs". My first pass listed only the four parents, so a reader clicking any
+     menu row landed on a page still set in the old face.
+     Still an explicit list rather than a "not the app" negation, so a route
+     added later does not silently inherit the register. */
   app.classList.toggle("reg-tabs",
-    ["product","coachinfo","trust","pricing"].includes(r.name));
+    ["product","coachinfo","trust","pricing","page"].includes(r.name));
   /* The coach dashboard runs on a dark ground. Scoped to a signed-in coach on
      the dashboard itself — the guest pitch and the sign-in gate stay light, so
      a visitor never lands on a half-inverted page. On #app rather than on the

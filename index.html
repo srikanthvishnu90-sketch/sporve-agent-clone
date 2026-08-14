@@ -21,7 +21,7 @@
 <meta name="twitter:description" content="Find coaches, trainers, camps and teams across 20+ sports in Chicagoland.">
 <meta name="twitter:image" content="https://the-sporve-web.vercel.app/og.png">
 <link rel="icon" href="data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%2032%2032'%3E%3Crect%20width='32'%20height='32'%20rx='7'%20fill='%2309090B'/%3E%3Ccircle%20cx='16'%20cy='16'%20r='6'%20fill='white'/%3E%3C/svg%3E">
-<meta name="sporve-build" content="16d4ee9844adf50a">
+<meta name="sporve-build" content="406be22b4d35bfb0">
 </head>
 <body>
 <noscript><h1>Sporve — Every sport. One app.</h1><p>Sporve connects families and athletes with coaches, trainers, camps, and teams across more than 20 sports. Please enable JavaScript to use the app.</p></noscript>
@@ -386,6 +386,15 @@ img{max-width:100%;display:block}
    (coachinfo), trust, pricing — via .reg-tabs on #app. The landing, the app and
    the coach portal are untouched: §4 assigns their registers by subject, and a
    blanket change would have overwritten those decisions. */
+/* The mega-menus render from the topbar on EVERY route, so they cannot be
+   scoped by route class. They are part of the same marketing surface as the
+   pages they open, so their rows take the body face directly. The tab labels
+   themselves keep --nav-face (Instrument Serif), which is a separate owner
+   decision and is not touched here. */
+.productmenu .pmrow2,.productmenu .pmcol .eyebrow,
+.coachesmenu .pmrow2,.coachesmenu .pmcol .eyebrow{
+  font-family:"Inter",system-ui,-apple-system,sans-serif;
+}
 #app.reg-tabs{
   --display:"Archivo","Inter",system-ui,sans-serif;
   --sans:"Inter",system-ui,-apple-system,sans-serif;
@@ -10601,10 +10610,17 @@ function render(){
   const seriousTab=S.portal==="coach"&&["finances","media"].includes(S.coachTab);
   const app=document.getElementById("app");
   app.classList.toggle("reg-serious",seriousRoute||seriousTab);
-  /* The four marketing tabs get the two-grotesque register. Named routes, not a
-     "not the app" negation, so a new route does not silently inherit it. */
+  /* The marketing surface gets the two-grotesque register: the four tabs AND
+     every page reachable from their menus.
+     `page` covers all 16 PAGE_META mini-pages — What is Sporve, How background
+     checks work, Search by sport & age, Instant booking, Payments & payouts and
+     the rest — which is what the owner meant by "all of the pages in these
+     tabs". My first pass listed only the four parents, so a reader clicking any
+     menu row landed on a page still set in the old face.
+     Still an explicit list rather than a "not the app" negation, so a route
+     added later does not silently inherit the register. */
   app.classList.toggle("reg-tabs",
-    ["product","coachinfo","trust","pricing"].includes(r.name));
+    ["product","coachinfo","trust","pricing","page"].includes(r.name));
   /* The coach dashboard runs on a dark ground. Scoped to a signed-in coach on
      the dashboard itself — the guest pitch and the sign-in gate stay light, so
      a visitor never lands on a half-inverted page. On #app rather than on the
