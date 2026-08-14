@@ -222,7 +222,7 @@ function reviewsFor(programId){
     el.ok?`You attended a session here — your review will carry a verified-booking mark.`
     :el.why==="guest"?`Only families with a completed booking on Sporve can review a program.`
     :el.why==="already"?`One review per family, per program. Message the coach for anything else.`
-    :`Reviews unlock after your athlete has attended a session with ${esc(p.biz)}. It keeps the ratings worth reading.`;
+    :`Reviews open after your athlete has attended a session with ${esc(p.biz)}. It keeps the ratings worth reading.`;
 
   return `<section class="rv-wrap" aria-label="Reviews">
     <div class="sec-head" style="margin-bottom:0"><h2>Reviews</h2>${cta}</div>

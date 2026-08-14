@@ -1506,6 +1506,21 @@ img{max-width:100%;display:block}
   background:rgba(255,255,255,.94);color:#334155;
   border:1px solid rgba(51,65,85,.22);pointer-events:none}
 /* ── coach profile (owner reference: Athletes Untapped) ─────────────────── */
+/* ── B3 comparison table (anti-slop constitution) ────────────────────────
+   Hairline rules, prose cells, no cards. The row header is the JOB, so the
+   reader scans what they need done and reads across. */
+.cmp-wrap{overflow-x:auto;padding-bottom:6px}
+.cmp{width:100%;border-collapse:collapse;max-width:980px}
+.cmp th,.cmp td{text-align:left;vertical-align:top;padding:16px 22px 16px 0;
+  border-top:1px solid var(--rule);font-size:var(--text-base);line-height:1.55}
+.cmp thead th{border-top:0;padding-top:0;font-family:var(--sans);
+  font-size:var(--text-xs);font-weight:700;letter-spacing:.08em;
+  text-transform:uppercase;color:var(--muted)}
+.cmp tbody th{font-weight:700;letter-spacing:-.015em;width:20%;padding-right:28px}
+.cmp td{color:var(--ink-2);width:40%}
+.cmp td:last-child{color:var(--ink)}
+.cmp-fine{font-size:var(--text-sm);color:var(--muted);margin:18px 0 26px;max-width:64ch}
+.cmp-ctas{display:flex;gap:12px;flex-wrap:wrap;padding-bottom:64px}
 .cp-card{border:1px solid var(--rule);border-radius:var(--r-card);
   padding:22px 22px 20px;margin:0 0 18px;background:var(--paper)}
 .cp-h{font-size:var(--text-xl);font-weight:700;letter-spacing:-.02em;margin-bottom:14px}
@@ -5588,32 +5603,46 @@ function primaryNavHTML(){
 
 /* PART 1 — Pricing. Both sides on one page; no number the app contradicts. */
 function pricingHTML(){
-  const free=["Browse every coach and programme","Message a coach before you book",
-    "Save coaches and compare them","Add your athletes and manage consent"];
-  const coach=["Listing, scheduling, and messaging","In-app checkout and automatic payouts",
-    "Client roster, session notes, and media","Insights on demand and pricing"];
-  const li=a=>a.map(x=>`<li>${esc(x)}</li>`).join("");
+  /* Anti-slop C4: this page was TWO PANEL CARDS side by side — tell #17
+     (everything wrapped in a card), tell #18 (equal padding, no hierarchy).
+     Now the constitution's B3 comparison table: THE JOB / ELSEWHERE / ON
+     SPORVE, hairline rules, prose cells, zero cards. The page carries one
+     claim, one table, one line of small print. The only number on it is
+     FEE_PCT, which is the number the checkout actually charges. */
+  const rows=[
+    ["Finding a coach",
+     "Group-chat threads, a friend of a friend, a flyer at the gym.",
+     "Browse every coach free. No membership, no booking fee."],
+    ["Knowing who you're hiring",
+     "A business vouches for its own staff.",
+     "Each person clears their own background check before they can be booked."],
+    ["Booking a session",
+     "Texts back and forth until a time sticks.",
+     "Pick a real open slot. It holds while you pay."],
+    ["Paying",
+     "Cash, Venmo, chasing an invoice.",
+     "Card checkout. The coach's price is the price — no fee added for families."],
+    ["Getting paid, as a coach",
+     "Chasing parents after practice.",
+     `Automatic payout, minus a flat ${FEE_PCT}% platform fee, itemized on every payout — gross, fee, net.`],
+    ["Running the season, as a coach",
+     "Spreadsheets, screenshots, a shoebox of notes.",
+     "Roster, schedule, session notes and messages in one place. Listing is free."],
+  ];
   return `<main class="shell">
     <div class="co-head"><h1>What Sporve costs</h1>
-      <p>Families pay per booking. Coaches pay only when they get paid.</p></div>
-    <div class="cardrow two" style="padding:8px 0 60px">
-      <div class="panel">
-        <div class="eyebrow">For families</div>
-        <h2 style="margin-top:8px">Free to browse</h2>
-        <p style="color:var(--muted);margin-top:8px;font-size:var(--t-small)">
-          You pay the coach's price for a session. There is no booking fee and no membership.</p>
-        <ul class="pricelist">${li(free)}</ul>
-        <button class="btn ghost" data-nav="explore" style="margin-top:20px">Find a coach</button>
-      </div>
-      <div class="panel">
-        <div class="eyebrow">For coaches</div>
-        <h2 style="margin-top:8px">A flat ${FEE_PCT}% platform fee</h2>
-        <p style="color:var(--muted);margin-top:8px;font-size:var(--t-small)">
-          Taken only when a booking is paid, and itemized on every payout — gross,
-          fee, and your net on each one. Joining and listing are free.</p>
-        <ul class="pricelist">${li(coach)}</ul>
-        <button class="btn" data-becomecoach="1" style="margin-top:20px">Become a coach</button>
-      </div>
+      <p>Families pay the coach's price. Coaches pay ${FEE_PCT}%, only when they get paid.</p></div>
+    <div class="cmp-wrap">
+      <table class="cmp" aria-label="What Sporve costs, compared">
+        <thead><tr><th>The job</th><th>Elsewhere</th><th>On Sporve</th></tr></thead>
+        <tbody>${rows.map(([a,b,c])=>`<tr><th scope="row">${esc(a)}</th><td>${esc(b)}</td><td>${c}</td></tr>`).join("")}</tbody>
+      </table>
+    </div>
+    <p class="cmp-fine">Joining, listing, browsing and messaging are free on both sides.
+      The ${FEE_PCT}% is taken from a paid booking and from nothing else.</p>
+    <div class="cmp-ctas">
+      <button class="btn" data-becomecoach="1">Become a coach</button>
+      <button class="btn ghost" data-nav="explore">Find a coach</button>
     </div>
   </main>`;
 }
@@ -5955,7 +5984,7 @@ function landingHTML(){
           these are the rules they clear before a listing goes live.</p>
         <div class="lchecks">
           ${[["Per-person background checks, not business-level"],
-             ["Reviews unlock only after a completed session"],
+             ["Reviews open only after a completed session"],
              ["A child profile needs recorded parental consent"]]
             .map(([t])=>`<div class="lcheck"><i>${TICK(12,3.4)}</i><span>${esc(t)}</span></div>`).join("")}
         </div>
@@ -5967,9 +5996,9 @@ function landingHTML(){
           <span class="featbadge" style="background:var(--slate-tint);color:var(--slate-ink)">Chicago, IL</span>
         </div>
         <div class="lstats">
-          <div class="lstat"><span>Programs</span><b data-count="${f.programs}">0</b></div>
-          <div class="lstat"><span>Sports</span><b data-count="${f.sports}">0</b></div>
-          <div class="lstat"><span>Businesses</span><b data-count="${f.bizCount}">0</b></div>
+          <div class="lstat"><span>Programs</span><b class="num">${f.programs}</b></div>
+          <div class="lstat"><span>Sports</span><b class="num">${f.sports}</b></div>
+          <div class="lstat"><span>Businesses</span><b class="num">${f.bizCount}</b></div>
         </div>
         <div class="lrow"><span>Background-checked businesses</span>
           <em>${f.verifiedCount} of ${f.bizCount}</em></div>
@@ -6078,7 +6107,7 @@ function landingHTML(){
       </div>
       <p class="sub ctr" style="margin-top:14px">
         Coaches are gated on a per-person background check — an approved business never vouches for an individual.
-        Reviews unlock only after a completed session, and a child profile can't exist without recorded parental consent.</p>
+        Reviews open only after a completed session, and a child profile can't exist without recorded parental consent.</p>
     </div>
   </section>
 
@@ -6275,18 +6304,31 @@ function coachLandingHTML(){
     </div>
   </section>
 
+  ${/* Anti-slop C3, plus a factual correction. This was a centred CARD
+       (tell #17) around the display word "Tiered" — and "Tiered" is FALSE:
+       the fee is a flat ${FEE_PCT}%, the owner's stated decision and the number
+       stripe-create-checkout actually charges. A fee section is the one place
+       a wrong word is a contract problem, not a style problem.
+       Now a coach-scoped B3 table: the money questions a coach actually asks,
+       hairline rows, the real number, no card. */""}
   <section class="band">
-    <div class="shell pricingblock">
-      <h2 class="ctr">What it costs</h2>
-      <div class="pricecard">
-        <div class="bignum">Tiered</div>
-        <p><b>platform fee, taken only when you get paid.</b></p>
-        <ul class="pricelist">
-          <li>Joining, listing, and messaging are free</li>
-          <li>No monthly fee and no per-listing fee</li>
-          <li>The fee is itemized on every payout — gross, fee, net</li>
-          <li>Background checks are run at our cost, not billed to you</li>
-        </ul>
+    <div class="shell">
+      <h2>What it costs</h2>
+      <div class="cmp-wrap" style="margin-top:18px">
+        <table class="cmp" aria-label="Coach fees, compared">
+          <thead><tr><th>The job</th><th>Elsewhere</th><th>On Sporve</th></tr></thead>
+          <tbody>
+            <tr><th scope="row">Getting paid</th>
+              <td>Chasing parents after practice, card readers, invoices.</td>
+              <td>Automatic payout on every paid booking, minus a flat ${FEE_PCT}% — itemized as gross, fee, net.</td></tr>
+            <tr><th scope="row">Being listed</th>
+              <td>A directory fee, a subscription, ads.</td>
+              <td>Joining, listing and messaging are free. No monthly fee, no per-listing fee.</td></tr>
+            <tr><th scope="row">The background check</th>
+              <td>Billed to you, or skipped.</td>
+              <td>Run at Sporve's cost. Never billed to you, never optional.</td></tr>
+          </tbody>
+        </table>
       </div>
     </div>
   </section>
@@ -6523,7 +6565,7 @@ function productHTML(){
     [PICON.chart,"Insights","Demand, funnel, price positioning, and a client watchlist.","tab:insights"],
     [PICON.clock,"Waitlist & recurring slots","Fill cancellations automatically and repeat what works.","tab:listings"],
     [PICON.doc,"Policies","Your cancellation policy is snapshotted onto every booking.","tab:policies"],
-    [PICON.star,"Reviews","Unlocked by a completed session — never by a booking.","tab:reviews"],
+    [PICON.star,"Reviews","Opened by a completed session — never by a booking.","tab:reviews"],
     [PICON.check,"Onboarding","Seven steps from application to bookable, check included.","coach"],
   ];
   const rules=[
@@ -7872,7 +7914,7 @@ function dashboardHTML(){
             <button class="tlink" data-ctab="reviews">Reply →</button>
           </div>`).join("")
           :`<p style="color:var(--muted);font-size:var(--text-base);margin-top:8px">
-             No reviews yet. They unlock after a family completes a session.</p>`;})()}
+             No reviews yet. They open after a family completes a session.</p>`;})()}
       </div>
       ${window.MOD_INSIGHTS&&window.MOD_INSIGHTS.watchlistCard
         ? window.MOD_INSIGHTS.watchlistCard()
@@ -9657,7 +9699,12 @@ function pageHTML(id){
 
     <section class="pgband slate"><div class="shell" data-rev>
       <div class="pg-stats">
-        ${[["100%","of bookable coaches, background-checked"],["9","sports live on Sporve today"],["$0","to browse, save, and message"]]
+        ${/* Tell #36 (invented stats): "9 sports" was hardcoded while the
+             catalogue holds 24 — a stat row is only defensible when every
+             number in it is computed or enforced. 100% background-checked IS
+             enforced now: provider_safety_cleared() refuses any booking whose
+             provider lacks a real completed check. */""}
+        ${[["100%","of bookable coaches, background-checked"],[String(new Set(PROGRAMS.map(p=>p.sport)).size),"sports live on Sporve today"],["$0","to browse, save, and message"]]
           .map(([n,l])=>`<div class="pg-stat"><div class="n" data-count="${esc(n)}">${esc(n)}</div><div class="l">${esc(l)}</div></div>`).join("")}
       </div>
     </div></section>
@@ -12031,17 +12078,12 @@ function wireLanding(){
     document.querySelectorAll("[data-count]").forEach(el=>el.textContent=el.dataset.count);
   }
 
+  /* Anti-slop tell #47: the count-up animation is DELETED, not parameterised.
+     A number that rolls upward is theatre around a figure the page should
+     simply state — and while it rolls, the page is showing a WRONG number on
+     purpose. The stat is the content; it renders as itself, instantly. */
   function countUp(el){
-    const target=Number(el.dataset.count)||0;
-    if(reduce||target<=0){el.textContent=target;return;}
-    const dur=900, t0=performance.now();
-    const tick=now=>{
-      const p=Math.min(1,(now-t0)/dur);
-      /* ease-out cubic: fast off the line, settles on the real figure */
-      el.textContent=Math.round(target*(1-Math.pow(1-p,3)));
-      if(p<1) requestAnimationFrame(tick); else el.textContent=target;
-    };
-    requestAnimationFrame(tick);
+    el.textContent=el.dataset.count;
   }
 
   /* One control, both marquees, state kept outside the DOM so it survives the

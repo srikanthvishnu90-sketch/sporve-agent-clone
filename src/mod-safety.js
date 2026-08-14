@@ -343,11 +343,23 @@
      Page-level content, in the order a reader needs it. The per-person check
      policy is the proof behind the product's central claim, so it leads the
      page instead of sitting in the third panel down. */
+  /* Anti-slop constitution C1: the icon column is GONE. These four rendered as
+     shield/check/doc/clock cards in a 3-up grid — tells #1 (outline icons over
+     text), #3 (icon+bold+gray as the only pattern), #16 (icon-card grid), and
+     #23: four items in a three-column grid stranded "Checks are re-run" alone
+     on its own row, which is the exact screenshot the constitution opens with.
+     Now a B6 definition list sharing .sf-rule with the rules section below —
+     a document's own rows, hairline-separated, the term doing the work the
+     icon pretended to do.
+
+     One copy correction while here: "stay bookable" was FALSE — since the
+     evidence gate landed, an uncleared provider cannot take a booking at all.
+     The page said the opposite of what the database enforces. */
   const POLICY = [
-    ["shield", "Each person clears their own", "A background check is required before a coach can be booked."],
-    ["check",  "Sporve sets the badge",        "An organization cannot verify its own staff."],
-    ["doc",    "Pending is shown",             "Uncleared listings read Verification pending, and stay bookable."],
-    ["clock",  "Checks are re-run",            "A badge that stops being true stops showing."],
+    ["Each person clears their own", "A background check is required before a coach can be booked."],
+    ["Sporve sets the badge",        "An organization cannot verify its own staff."],
+    ["Pending is shown",             "Uncleared listings read Verification pending — visible, but not bookable until the check clears."],
+    ["Checks are re-run",            "A badge that stops being true stops showing."],
   ];
   const RULES = [
     ["Reports go to safety@sporve.com", "During beta a report opens an email to Sporve's safety address. Send it, and keep your copy — that email IS the record."],
@@ -356,7 +368,6 @@
   ];
   /* PICON is the host's stroke-icon set (never emoji); guarded so a module
      loaded against an older host degrades to no icon rather than throwing. */
-  const picon = k => (typeof PICON === "object" && PICON[k]) || "";
 
   function trustView() {
     const s = bag();
@@ -434,10 +445,8 @@
           <h2>The check is per person.</h2>
           <p class="sub">Approving a business says nothing about who coaches your child.</p>
         </div>
-        <div class="prodgrid" data-rev>
-          ${POLICY.map(([ic, t, d]) => `<div class="prodcard sf-static">
-            <span class="ic" aria-hidden="true">${picon(ic)}</span>
-            <b>${esc(t)}</b><span>${esc(d)}</span></div>`).join("")}
+        <div class="sf-rules" data-rev>
+          ${POLICY.map(([t, d]) => `<div class="sf-rule"><b>${esc(t)}</b><p>${esc(d)}</p></div>`).join("")}
         </div>
       </div>
     </section>
@@ -448,15 +457,15 @@
           <p class="eyebrow">The badge</p>
           <h2>Withheld, never implied.</h2>
         </div>
-        <div class="sf-states" data-rev>
-          <div class="prodcard sf-static">
-            <span class="pill gold">${ICON.shield} Background-checked</span>
-            <span>Check passed, and re-run on schedule.</span>
-          </div>
-          <div class="prodcard sf-static">
-            <span class="pill warn">${ICON.shield} Verification pending</span>
-            <span>The badge waits for that person's check.</span>
-          </div>
+        ${/* The two pills are the PRODUCT'S REAL UI — the one place an icon is
+             earned, because it encodes state. What goes is the card chrome
+             around them: flat hairline rows on the dark panel, badge left,
+             clause right, same document grammar as the rest of the page. */""}
+        <div class="sf-badges" data-rev>
+          <div class="sf-badge"><span class="pill gold">${ICON.shield} Background-checked</span>
+            <p>Check passed, and re-run on schedule.</p></div>
+          <div class="sf-badge"><span class="pill warn">${ICON.shield} Verification pending</span>
+            <p>The badge waits for that person's check.</p></div>
         </div>
       </div>
     </section>
@@ -771,10 +780,13 @@
 .sf-static{cursor:default}
 .sf-static:hover{border-color:var(--rule);transform:none;box-shadow:none}
 .sf-static .pill{align-self:flex-start;margin-bottom:3px}
-.sf-states{
-  display:grid;grid-template-columns:repeat(auto-fit,minmax(272px,1fr));
-  gap:18px;padding:6px 0 12px;max-width:840px;
-}
+/* Badge rows on the dark panel: flat, hairline-separated, no cards. Literals
+   for the rules because this band is ALWAYS dark (§3). */
+.sf-badges{max-width:720px;border-bottom:1px solid #1C222B}
+.sf-badge{display:grid;grid-template-columns:minmax(0,240px) minmax(0,1fr);
+  gap:5px 34px;padding:16px 0;border-top:1px solid #1C222B;align-items:center}
+.sf-badge p{color:#9AA6B2;font-size:var(--text-base);line-height:1.5;margin:0}
+@media(max-width:560px){.sf-badge{grid-template-columns:1fr;gap:8px}}
 
 /* The rules read as a document's own rows, not as cards: a lead column and a
    clause column separated by the page's rule. */
