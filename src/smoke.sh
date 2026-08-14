@@ -1542,6 +1542,41 @@ ai=$($B js "
 [ "${ai//\"/}" = "OK" ] && pass "assistant calls the AI endpoint and its replies are legible" \
   || fail "assistant regressed: $ai"
 
+# ── The coach UI register (owner spec 2026-08-14) ─────────────────────────
+# Every coach tab: one UI face (Inter) for everything but large headers, sizes
+# on the eight-step scale, weights 400/500/600 with 700+ reserved for h1/h2/
+# .display, glyph marks and .num readouts (the #91 instrument system). Hanken
+# on finances/media was superseded — its reappearance is a regression. The
+# visitor-route scale check above cannot see any of this: it never signs in.
+reg=$($B js "
+(()=>{const tabs=['dashboard','roster','inbox','finances','schedule','listings','media','operations','profile'];
+ S.portal='coach';S.auth={status:'coach'};const bad=[];
+ const okS=new Set(['10.5px','12px','13px','14.5px','15.5px','21px','22px']);
+ const clampOK=px=>(px>=17&&px<=19)||(px>=21&&px<=54);
+ for(const t of tabs){
+   S.coachTab=t;S.route={name:'dashboard',arg:null};
+   try{render()}catch(e){bad.push('RENDER_'+t);continue}
+   if(!document.body.classList.contains('reg-coach')){bad.push('NO_REG_'+t);continue}
+   document.querySelectorAll('#app *, #layer *').forEach(el=>{
+     if(!el.offsetParent)return;
+     if(![...el.childNodes].some(n=>n.nodeType===3&&n.textContent.trim()))return;
+     const cs=getComputedStyle(el);
+     const fam=cs.fontFamily.split(',')[0].replace(/\"/g,'').trim();
+     if(/Hanken/.test(fam)) bad.push('HANKEN_'+t);
+     const glyph=el.matches('.avatar,.sparkdash,.empty .big,.bandhead span,.faqi,.mark,.railmark,.aidock-fab-mark');
+     const px=parseFloat(cs.fontSize);
+     if(!okS.has(cs.fontSize)&&!clampOK(px)&&!glyph) bad.push('SIZE_'+cs.fontSize+'_'+t);
+     const exempt=el.matches('h1,h2,.display,h1 *,h2 *,.display *,.num,.num *')||glyph;
+     if(Number(cs.fontWeight)>600&&!exempt) bad.push('W'+cs.fontWeight+'_'+(el.className||el.tagName)+'_'+t);
+   });
+ }
+ if(!/cv05/.test(getComputedStyle(document.body).fontFeatureSettings)) bad.push('NO_FEATURES');
+ S.portal='family';S.coachTab='dashboard';S.route={name:'home',arg:null};render();
+ document.body.classList.remove('reg-coach');
+ return bad.length?[...new Set(bad)].slice(0,8).join(','):'OK'})()" 2>/dev/null)
+[ "${reg//\"/}" = "OK" ] && pass "coach UI register: one face, scale sizes, 600-max weights" \
+  || fail "coach register regressed: $reg"
+
 # ── The coach profile renders its blocks, and invents nothing ─────────────
 # Built to the owner's Athletes Untapped reference: pricing ladder, collapsible
 # sections, weekly availability, location. The reference also shows earned

@@ -21,7 +21,7 @@
 <meta name="twitter:description" content="Find coaches, trainers, camps and teams across 20+ sports in Chicagoland.">
 <meta name="twitter:image" content="https://the-sporve-web.vercel.app/og.png">
 <link rel="icon" href="data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%2032%2032'%3E%3Crect%20width='32'%20height='32'%20rx='7'%20fill='%2309090B'/%3E%3Ccircle%20cx='16'%20cy='16'%20r='6'%20fill='white'/%3E%3C/svg%3E">
-<meta name="sporve-build" content="48f39bb601a824dd">
+<meta name="sporve-build" content="609ab0d68642f2ec">
 </head>
 <body>
 <noscript><h1>Sporve — Every sport. One app.</h1><p>Sporve connects families and athletes with coaches, trainers, camps, and teams across more than 20 sports. Please enable JavaScript to use the app.</p></noscript>
@@ -2010,7 +2010,10 @@ img{max-width:100%;display:block}
 #app.coachdark .rail button.on svg{color:var(--accent-on-dark)}
 #app.coachdark .rail button.on::before{background:var(--accent-on-dark)}
 /* A3 — group headers, in the Part C micro-label treatment. */
-.railgroup{font-family:var(--sans);font-size:11px;font-weight:700;
+/* 11px/700 until 2026-08-14 — the only coach-rail size off the eight-step
+   scale, and a label wearing emphasis weight. Now --text-xs at label 500,
+   per the coach UI register's weight discipline. */
+.railgroup{font-family:var(--sans);font-size:var(--text-xs);font-weight:500;
   letter-spacing:.08em;text-transform:uppercase;color:var(--faint);
   padding:0 11px;margin:12px 0 4px}
 /* A6 — count badge, right-aligned, numerals in the data face. */
@@ -3012,6 +3015,55 @@ h2.ctr{margin-bottom:10px}
 }
 .reg-serious .display,.reg-serious h1,.reg-serious h2{letter-spacing:-.022em}
 .reg-serious .eyebrow,.reg-serious .t-label,.reg-serious .t-chip{font-weight:700}
+
+/* ═══════════════ THE COACH UI REGISTER (owner spec, 2026-08-14) ═══════════
+   "All text but the large header texts" on the coach dashboard is ONE face:
+   Inter, weights 400/500/600, optical features on, tracking tightened. The
+   class sits on <body>, not #app, because the assistant panel, modals and
+   toasts mount into #layer — a register scoped to #app would sweep the
+   dashboard and miss the chat it was partly written for.
+
+   Spec premises corrected against this repo (§9): there is no next/font
+   (fonts are base64-embedded); "Geist Mono" is not embedded (JetBrains Mono
+   is the numerals face); "Archivo Expanded" is not embedded (large headers
+   keep the page's display face). Raw sizes 11/14/16px would mint new steps,
+   so every size maps to the EXISTING eight-step scale instead. */
+body.reg-coach{
+  /* cv05 = the straight-leg l, cv11 = the single-storey a — Inter's optical
+     alternates for UI text. Set here so every descendant that inherits the
+     family also inherits the features. */
+  font-feature-settings:'cv05','cv11';
+  -webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale;
+  letter-spacing:-.011em;
+}
+/* Form controls do NOT inherit font by default — the browser gives them
+   system-ui at its own size, which is exactly the stray this kills in the
+   chat composer, dropdowns and every settings field. */
+body.reg-coach button,body.reg-coach input,
+body.reg-coach select,body.reg-coach textarea{font:inherit;letter-spacing:inherit}
+/* Large headers are EXEMPT: h1/h2/.display keep the display face and their
+   own tracking — -.011em is Inter's number, not Instrument Serif's. */
+body.reg-coach h1,body.reg-coach h2,body.reg-coach .display{letter-spacing:-.02em}
+/* h3 in the coach portal is a PANEL TITLE, not a large header — dense ops
+   chrome reads better with a UI-face title. Judgement call, owner may
+   overrule: the exemption keeps h1/h2 serif; h3 joins the UI register. */
+body.reg-coach h3,body.reg-coach .cal-title{
+  font-family:var(--sans);font-weight:600;letter-spacing:-.011em}
+/* Weight discipline: 400 body / 500 nav, buttons, labels / 600 emphasis max.
+   Everything here measured 700 in the 2026-08-14 census. */
+body.reg-coach .eyebrow,body.reg-coach .t-label,body.reg-coach .tlink,
+body.reg-coach .pill,body.reg-coach label,body.reg-coach .k,
+body.reg-coach .navlink{font-weight:500}
+body.reg-coach b,body.reg-coach strong,body.reg-coach .cal-num,
+body.reg-coach .dashhello,body.reg-coach .railmark{font-weight:600}
+/* Component rules that outgun the generic b/label rules on specificity —
+   restated here at (0,2,1)+ so the register wins. Day-of-week cells are
+   labels (500); a bolded time inside an insight line is emphasis (600). */
+body.reg-coach .cal-dow span{font-weight:500}
+body.reg-coach .in-sub b{font-weight:600}
+/* The one off-scale text size in shared chrome, snapped under this register
+   only — the family topbar keeps its own value. */
+body.reg-coach .navlink{font-size:var(--text-md)}
 
 /* ═══════════════ INVARIANT: dark ground, light type ═══════════════
    A black or near-black background carries WHITE or SLATE text. Never a
@@ -10815,9 +10867,13 @@ function render(){
      Coach tabs are matched on S.coachTab because they all share the
      "dashboard" route name. */
   const seriousRoute=["trust","bookings","pricing","info","wallet"].includes(r.name);
-  const seriousTab=S.portal==="coach"&&["finances","media"].includes(S.coachTab);
+  /* SUPERSEDED 2026-08-14 (owner): the coach dashboard is one Inter UI
+     register for everything but large headers — including the finances and
+     media tabs, which used to switch to Hanken via reg-serious. The serious
+     register still owns the family-side money/consent ROUTES above; it no
+     longer claims coach TABS. */
   const app=document.getElementById("app");
-  app.classList.toggle("reg-serious",seriousRoute||seriousTab);
+  app.classList.toggle("reg-serious",seriousRoute);
   /* The marketing surface gets the two-grotesque register: the four tabs AND
      every page reachable from their menus.
      `page` covers all 16 PAGE_META mini-pages — What is Sporve, How background
@@ -10838,6 +10894,11 @@ function render(){
      gets the same dark ground a signed-in coach does, otherwise dismissing the
      sheet dropped them onto a half-inverted page. */
   app.classList.toggle("coachdark",
+    S.portal==="coach"&&r.name!=="coachgate");
+  /* The coach UI register rides the same switch as the dark ground — but on
+     <body>, so the #layer surfaces (assistant panel, modals, toasts) inherit
+     it too. #app alone would miss the chat. */
+  document.body.classList.toggle("reg-coach",
     S.portal==="coach"&&r.name!=="coachgate");
   app.classList.toggle("noorange", NO_ORANGE_ACTIVE);
 
@@ -23787,7 +23848,7 @@ function demandCard(){
       <div class="in-tags"><span class="eyebrow" style="margin-right:2px">Price positioning</span>${DERIVED_PILL}</div>
       ${positions.length
         ? positions.map(pp => `<p class="in-sub" style="margin-top:8px">
-            ${sportDot(pp.listing.sport)}<b style="color:var(--ink);font-weight:700">${esc(pp.listing.title)}</b> —
+            ${sportDot(pp.listing.sport)}<b style="color:var(--ink)">${esc(pp.listing.title)}</b> —
             <span class="num">${esc(money(pp.listing.price))}</span> ${esc(modelLabel(pp.listing.model))}.
             ${esc(pp.read)} Local range
             <span class="num">${esc(money(pp.min))}–${esc(money(pp.max))}</span>.</p>`).join("")
@@ -23798,7 +23859,7 @@ function demandCard(){
     <div style="border-top:1px solid var(--rule);margin:16px 0 0;padding-top:14px">
       <div class="in-tags"><span class="eyebrow" style="margin-right:2px">Most-requested time you don't offer</span>${SAMPLE_PILL}</div>
       <p class="in-sub" style="margin-top:8px">
-        <b style="color:var(--ink);font-weight:700">${esc(wdName)}, ${esc(d.unmet.timeLabel)}</b> —
+        <b style="color:var(--ink)">${esc(wdName)}, ${esc(d.unmet.timeLabel)}</b> —
         <span class="num">${esc(n0(d.unmet.requests))}</span> requests in ${esc(d.windowLabel)} (sample).
         ${onThatDay === 0
           ? `Your calendar has no ${esc(wdName)} sessions at all — that part is real.`

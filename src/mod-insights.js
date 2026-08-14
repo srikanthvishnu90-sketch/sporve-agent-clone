@@ -646,7 +646,7 @@ function demandCard(){
       <div class="in-tags"><span class="eyebrow" style="margin-right:2px">Price positioning</span>${DERIVED_PILL}</div>
       ${positions.length
         ? positions.map(pp => `<p class="in-sub" style="margin-top:8px">
-            ${sportDot(pp.listing.sport)}<b style="color:var(--ink);font-weight:700">${esc(pp.listing.title)}</b> —
+            ${sportDot(pp.listing.sport)}<b style="color:var(--ink)">${esc(pp.listing.title)}</b> —
             <span class="num">${esc(money(pp.listing.price))}</span> ${esc(modelLabel(pp.listing.model))}.
             ${esc(pp.read)} Local range
             <span class="num">${esc(money(pp.min))}–${esc(money(pp.max))}</span>.</p>`).join("")
@@ -657,7 +657,7 @@ function demandCard(){
     <div style="border-top:1px solid var(--rule);margin:16px 0 0;padding-top:14px">
       <div class="in-tags"><span class="eyebrow" style="margin-right:2px">Most-requested time you don't offer</span>${SAMPLE_PILL}</div>
       <p class="in-sub" style="margin-top:8px">
-        <b style="color:var(--ink);font-weight:700">${esc(wdName)}, ${esc(d.unmet.timeLabel)}</b> —
+        <b style="color:var(--ink)">${esc(wdName)}, ${esc(d.unmet.timeLabel)}</b> —
         <span class="num">${esc(n0(d.unmet.requests))}</span> requests in ${esc(d.windowLabel)} (sample).
         ${onThatDay === 0
           ? `Your calendar has no ${esc(wdName)} sessions at all — that part is real.`
