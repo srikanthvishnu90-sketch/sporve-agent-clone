@@ -1530,6 +1530,27 @@ ai=$($B js "
 [ "${ai//\"/}" = "OK" ] && pass "assistant calls the AI endpoint and its replies are legible" \
   || fail "assistant regressed: $ai"
 
+# ── The coach profile renders its blocks, and invents nothing ─────────────
+# Built to the owner's Athletes Untapped reference: pricing ladder, collapsible
+# sections, weekly availability, location. The reference also shows earned
+# badges ("8 lessons", "Highly rebooked") — this catalogue cannot back those, so
+# they are deliberately absent. Asserts the blocks exist AND that no fabricated
+# rating rides along with them.
+cp=$($B js "
+(()=>{S.portal='family';
+ const p=PROGRAMS.find(x=>x.price>0)||PROGRAMS[0];
+ S.route={name:'detail',arg:p.id};render();
+ const bad=[];
+ if(document.querySelectorAll('.cp-tier').length<3) bad.push('NO_PRICE_LADDER');
+ if(!document.querySelectorAll('.cp-acc').length) bad.push('NO_ACCORDION');
+ if(document.querySelectorAll('.cp-day').length!==7) bad.push('WEEK_GRID_'+document.querySelectorAll('.cp-day').length);
+ const t=document.querySelector('.detail');
+ if(t&&/Highly rebooked|lessons taught/i.test(t.innerText)) bad.push('INVENTED_BADGE');
+ S.route={name:'explore',arg:null};render();
+ return bad.length?bad.join(','):'OK'})()" 2>/dev/null)
+[ "${cp//\"/}" = "OK" ] && pass "coach profile renders its blocks and invents no credentials" \
+  || fail "coach profile regressed: $cp"
+
 # ── A safety surface may not promise what no code delivers ────────────────
 # [CRITICAL-PATH: child safety] mod-safety.js has ZERO network calls, yet it
 # minted case numbers ("SR-0001") and told parents "Reports reach a person —

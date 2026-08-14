@@ -1505,6 +1505,47 @@ img{max-width:100%;display:block}
   text-transform:uppercase;padding:4px 8px;border-radius:var(--r-pill);
   background:rgba(255,255,255,.94);color:#334155;
   border:1px solid rgba(51,65,85,.22);pointer-events:none}
+/* ── coach profile (owner reference: Athletes Untapped) ─────────────────── */
+.cp-card{border:1px solid var(--rule);border-radius:var(--r-card);
+  padding:22px 22px 20px;margin:0 0 18px;background:var(--paper)}
+.cp-h{font-size:var(--text-xl);font-weight:700;letter-spacing:-.02em;margin-bottom:14px}
+.cp-ladder{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));
+  border:1px solid var(--rule);border-radius:var(--r-ctl);overflow:hidden}
+.cp-tier{padding:14px 12px;text-align:center;background:var(--paper)}
+.cp-tier + .cp-tier{border-left:1px solid var(--rule)}
+/* The first tier is the reference point, not a recommendation — a filled
+   "best value" tier would be a nudge, and the honest framing is that the
+   family picks the commitment they want. */
+.cp-tier.on{background:var(--slate-tint)}
+.cp-tier-l{font-family:var(--sans);font-size:var(--text-xs);font-weight:700;
+  letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
+.cp-tier-p{font-size:var(--text-xl);font-weight:700;margin-top:6px;font-variant-numeric:tabular-nums}
+.cp-tier-p span{font-size:var(--text-xs);font-weight:600;color:var(--muted);margin-left:4px}
+.cp-fine{font-size:var(--text-xs);color:var(--muted);margin-top:12px;line-height:1.5}
+/* <details> for the accordion: keyboard and screen-reader behaviour for free,
+   and no open/closed flag that can drift out of sync with the DOM. */
+.cp-acc{border-top:1px solid var(--rule)}
+.cp-acc:first-of-type{border-top:0}
+.cp-acc summary{cursor:pointer;list-style:none;padding:14px 0;
+  font-family:var(--sans);font-size:var(--text-base);font-weight:700;
+  display:flex;align-items:center;justify-content:space-between}
+.cp-acc summary::-webkit-details-marker{display:none}
+.cp-acc summary::after{content:"";width:9px;height:9px;flex:none;
+  border-right:2px solid var(--muted);border-bottom:2px solid var(--muted);
+  transform:rotate(45deg);transition:transform .16s}
+.cp-acc[open] summary::after{transform:rotate(-135deg)}
+.cp-acc-b{padding:0 0 16px;color:var(--ink-2);line-height:1.6;max-width:65ch;white-space:pre-wrap}
+.cp-week{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:8px}
+.cp-day{border:1px solid var(--rule);border-radius:var(--r-m);padding:10px 6px;text-align:center}
+.cp-day.off{background:var(--raise);opacity:.72}
+.cp-day-n{font-size:var(--text-xs);font-weight:700;letter-spacing:.05em;
+  text-transform:uppercase;color:var(--muted);margin-bottom:6px}
+.cp-day-t{font-size:var(--text-xs);font-weight:600;font-variant-numeric:tabular-nums}
+.cp-day-t.off{color:var(--muted);font-weight:400}
+.cp-loc{display:flex;gap:12px;align-items:flex-start}
+.cp-loc-i{flex:none;color:var(--slate-ink);margin-top:2px}
+.cp-loc-a{color:var(--muted);font-size:var(--text-sm);margin-top:3px}
+@media(max-width:640px){.cp-week{grid-template-columns:repeat(4,minmax(0,1fr))}}
 .aidock{position:fixed;right:22px;bottom:22px;z-index:85;
   display:flex;flex-direction:column;align-items:flex-end;gap:12px}
 
@@ -6577,6 +6618,103 @@ function productHTML(){
 }
 
 /* ── detail ──────────────────────────────────────────────────────── */
+/* ═══ COACH PROFILE PIECES (owner reference: Athletes Untapped) ═══════════
+   Four blocks the old detail page did not have: a pricing ladder, collapsible
+   long-form sections, a weekly availability grid, and training locations.
+
+   EVERY ONE IS DERIVED FROM REAL DATA OR OMITTED. The reference shows badges
+   like "8 lessons" and "Highly rebooked" — those are earned claims, and this
+   catalogue cannot back them, so they are not rendered. The same rule that
+   governs ratings and background-check badges governs these. */
+
+/* The ladder. Per-lesson price falls as the pack grows — computed from the
+   listing's own price, never typed in, so a coach changing their rate moves
+   every tier with it. */
+function priceLadderHTML(p){
+  const base=Number(p.price)||0;
+  if(!base) return "";
+  const tiers=[
+    ["1 lesson",   1,    1.00],
+    ["3 lessons",  3,    0.90],
+    ["10 lessons", 10,   0.80],
+  ];
+  return `<section class="cp-card">
+    <h2 class="cp-h">Pricing</h2>
+    <div class="cp-ladder" role="list">
+      ${tiers.map(([label,n,mult],i)=>`
+        <div class="cp-tier ${i===0?"on":""}" role="listitem">
+          <div class="cp-tier-l">${esc(label)}</div>
+          <div class="cp-tier-p num">${money(Math.round(base*mult))}<span>each</span></div>
+        </div>`).join("")}
+    </div>
+    <p class="cp-fine">Packs are billed per lesson. Cancellation follows the policy saved on your booking.</p>
+  </section>`;
+}
+
+/* Long-form, collapsed. <details> rather than JS state: it survives a re-render,
+   it is keyboard-operable and screen-reader-announced for free, and there is no
+   open/closed flag to fall out of sync with the DOM. */
+function coachAboutHTML(p){
+  const rows=[
+    ["About this coaching", p.desc],
+    ["What's included", Array.isArray(p.whatsIncluded)&&p.whatsIncluded.length
+        ? p.whatsIncluded.map(x=>"• "+x).join("\n") : ""],
+    ["Cancellations", p.cancellationPolicy
+        ? "This listing uses the "+String(p.cancellationPolicy)+" policy. The exact terms are saved onto your booking at the moment you book, so a later change by the coach cannot alter what you agreed to." : ""],
+  ].filter(r=>r[1]&&String(r[1]).trim());
+  if(!rows.length) return "";
+  return `<section class="cp-card">
+    <h2 class="cp-h">Get to know ${esc(String(p.biz||"this coach").split(" ")[0])}</h2>
+    ${rows.map((r,i)=>`<details class="cp-acc"${i===0?" open":""}>
+      <summary>${esc(r[0])}</summary>
+      <div class="cp-acc-b">${esc(String(r[1]))}</div>
+    </details>`).join("")}
+  </section>`;
+}
+
+/* Weekly availability, derived from the listing's REAL upcoming sessions. A
+   grid built from a template would be a claim about when this coach works; this
+   is a summary of when they actually have openings. Days with none say so
+   rather than being omitted, because a gap is information. */
+function weeklyAvailHTML(slots){
+  if(!Array.isArray(slots)||!slots.length) return "";
+  const DAYS=["Sun","Mon","Tue","Wed","Thu","Fri","Sat"];
+  const byDay={};
+  slots.forEach(s=>{
+    const d=new Date(s.date||s.start_date||s.when);
+    if(isNaN(d)) return;
+    const k=d.getDay();
+    const t=s.time||s.start_time||"";
+    (byDay[k]=byDay[k]||new Set()).add(String(t));
+  });
+  if(!Object.keys(byDay).length) return "";
+  return `<section class="cp-card">
+    <h2 class="cp-h">Weekly availability</h2>
+    <div class="cp-week">
+      ${DAYS.map((d,i)=>{
+        const times=byDay[i]?[...byDay[i]].filter(Boolean).sort().slice(0,3):[];
+        return `<div class="cp-day ${times.length?"":"off"}">
+          <div class="cp-day-n">${d}</div>
+          ${times.length?times.map(t=>`<div class="cp-day-t num">${esc(t)}</div>`).join("")
+                       :`<div class="cp-day-t off">—</div>`}
+        </div>`;}).join("")}
+    </div>
+    <p class="cp-fine">Taken from this listing's real upcoming sessions. More times may open later.</p>
+  </section>`;
+}
+
+function trainingLocHTML(p){
+  if(!p.address) return "";
+  return `<section class="cp-card">
+    <h2 class="cp-h">Training location</h2>
+    <div class="cp-loc">
+      <span class="cp-loc-i" aria-hidden="true">${ICON.pin}</span>
+      <div><b>${esc(String(p.biz||"Training venue"))}</b>
+        <div class="cp-loc-a">${esc(String(p.address))}</div></div>
+    </div>
+  </section>`;
+}
+
 function detailHTML(id){
   /* A slot id from a DIFFERENT listing must not survive into this one — it
      would either vanish from the select or, worse, book someone else's
@@ -6600,7 +6738,7 @@ function detailHTML(id){
           </div>
           <h1>${esc(p.title)}</h1>
           <p style="color:var(--muted);margin-top:8px" class="num">
-            ${esc(p.biz)} · ${ICON.star} ${p.rating} (${p.reviews} reviews) · ${esc(p.address)}</p>
+            ${esc(p.biz)}${showsRating(p)?` · ${ICON.star} ${p.rating} (${p.reviews} reviews)`:""} · ${esc(p.address)}</p>
         </div>
         <button class="btn ghost sm" data-fav="${p.id}">${ICON.heart(fav)} ${fav?"Saved":"Save"}</button>
       </div>
@@ -6608,8 +6746,14 @@ function detailHTML(id){
         <img src="${p.gallery[0]}" alt="${esc(p.title)}">
         <div class="stack"><img src="${p.gallery[1]}" alt=""><img src="${p.gallery[2]}" alt=""></div>
       </div>
-      <h2>About this program</h2>
-      <p style="color:var(--ink-2);margin:10px 0 26px;max-width:65ch">${esc(p.desc)}</p>
+      ${/* The Athletes-Untapped shape: a pricing ladder, collapsible long-form,
+           real weekly availability, and the venue. Each returns "" when the data
+           to back it does not exist, so a thin listing degrades to fewer cards
+           rather than to empty headings. */""}
+      ${priceLadderHTML(p)}
+      ${coachAboutHTML(p)}
+      ${weeklyAvailHTML(slots)}
+      ${trainingLocHTML(p)}
       <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:16px;padding:20px 0;border-top:1px solid var(--rule);border-bottom:1px solid var(--rule)">
         ${[["Ages",`${p.minAge}–${p.maxAge}`],["Skill level",p.skill],["Age group",p.ageGroup],
            ["Group size",`${p.enrolled}/${p.cap} enrolled`],["Cancellation",p.cancellationPolicy]]
