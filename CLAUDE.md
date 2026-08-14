@@ -240,6 +240,16 @@ gate is for anything that touches behaviour, style tokens, or the build.
 
 ---
 
+## 13. Prompt intake — every prompt becomes a folder
+
+Owner decision 2026-08-14. Each substantive prompt is captured in `prompts/`
+(gitignored, internal) as a folder: `PROMPT.md` verbatim, `BREAKDOWN.md` with
+the discrete asks numbered, `STATUS.md` with one evidenced row per ask —
+done / open / blocked / declined, never a bare "done". A prompt is finished
+only when every ask has a row. Mid-turn additions append to the open folder's
+BREAKDOWN rather than living in the model's head. Born from a real failure:
+a two-issue prompt that got one fix (2026-08-14).
+
 ## Before you commit
 
 ```bash

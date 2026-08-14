@@ -11,6 +11,9 @@ backup/
 skills-lock.json
 .claude/skills/
 
+# Owner prompt intake — internal working material, never in this PUBLIC repo
+prompts/
+
 # Internal security/roadmap docs — never in this PUBLIC repo
 docs/security/
 docs/gaps.md
