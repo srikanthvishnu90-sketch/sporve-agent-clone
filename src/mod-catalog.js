@@ -274,7 +274,13 @@
         "&status=eq.published&order=is_featured.desc,average_rating.desc&limit=200"),
       API.from("sessions",
         "select=" + encodeURIComponent(SESSION_COLS) +
-        "&start_date=gte." + todayISO() + "&order=start_date.asc&limit=1000"),
+        /* 5000, not 1000. Publishing the archived catalogue took future sessions
+           from 302 to 1182 across 125 listings, and a 1000-row ceiling on a
+           date-ordered query silently drops the tail — the listings whose
+           sessions sort last simply have no openings, with no error anywhere.
+           A truncated fetch is indistinguishable from an empty one at the call
+           site, which is exactly how this class of bug hides. */
+        "&start_date=gte." + todayISO() + "&order=start_date.asc&limit=5000"),
     ])
       .then(function (res) {
         var rows = res[0], slots = res[1];

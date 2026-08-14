@@ -21,7 +21,7 @@
 <meta name="twitter:description" content="Find coaches, trainers, camps and teams across 20+ sports in Chicagoland.">
 <meta name="twitter:image" content="https://the-sporve-web.vercel.app/og.png">
 <link rel="icon" href="data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%2032%2032'%3E%3Crect%20width='32'%20height='32'%20rx='7'%20fill='%2309090B'/%3E%3Ccircle%20cx='16'%20cy='16'%20r='6'%20fill='white'/%3E%3C/svg%3E">
-<meta name="sporve-build" content="ed9df25d1e450a9c">
+<meta name="sporve-build" content="a8d185897f066a14">
 </head>
 <body>
 <noscript><h1>Sporve — Every sport. One app.</h1><p>Sporve connects families and athletes with coaches, trainers, camps, and teams across more than 20 sports. Please enable JavaScript to use the app.</p></noscript>
@@ -13115,7 +13115,13 @@ document.addEventListener("click",e=>{
         "&status=eq.published&order=is_featured.desc,average_rating.desc&limit=200"),
       API.from("sessions",
         "select=" + encodeURIComponent(SESSION_COLS) +
-        "&start_date=gte." + todayISO() + "&order=start_date.asc&limit=1000"),
+        /* 5000, not 1000. Publishing the archived catalogue took future sessions
+           from 302 to 1182 across 125 listings, and a 1000-row ceiling on a
+           date-ordered query silently drops the tail — the listings whose
+           sessions sort last simply have no openings, with no error anywhere.
+           A truncated fetch is indistinguishable from an empty one at the call
+           site, which is exactly how this class of bug hides. */
+        "&start_date=gte." + todayISO() + "&order=start_date.asc&limit=5000"),
     ])
       .then(function (res) {
         var rows = res[0], slots = res[1];
