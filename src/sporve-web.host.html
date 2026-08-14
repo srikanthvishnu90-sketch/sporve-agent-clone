@@ -1776,9 +1776,15 @@ img{max-width:100%;display:block}
 .aimax-histnew{color:#F5F7F9;font-weight:600;border-bottom:1px solid #2A313B;
   border-radius:8px 8px 0 0;margin-bottom:4px}
 .aimax-histempty{color:#9AA6B2;font-size:var(--text-sm);padding:10px;margin:0}
-/* The maximize control sits beside the X on the pill's composer. The X is
-   absolutely placed at right:12px; this lands one slot to its left. */
+/* The bar's control cluster, right-to-left beside the X (absolute at
+   right:12px): maximize, thread tuck/restore, history — 30px per slot. */
 .aidock-maxbtn{right:42px}
+.aidock-threadbtn{right:72px}
+.aidock-histbtn{right:102px}
+/* The bar sits at the bottom of the viewport, so its history list opens
+   UPWARD; same panel, flipped anchor. Anchored to the composer, which is
+   the positioning context the X already relies on. */
+.aimax-hist.up{top:auto;bottom:calc(100% + 8px);left:12px}
 @media(max-width:767px){.aimax-wrap{padding:10px}
   .aidock-panel.aimax{height:calc(100vh - 20px)}}
 
@@ -4692,7 +4698,8 @@ const S={
   chatThinking:false,
   aiOpen:true,                     // coach AI dock: open on arrival, X collapses to the S
   aiMax:false,                     // Amboras state 3: the full-screen assistant with history
-  aiHistOpen:false,                // history dropdown inside the maximized view (ephemeral)
+  aiHistOpen:false,                // history dropdown (either view; ephemeral)
+  aiThreadHidden:false,            // state 2 with the thread tucked away — back to "just the bar"
   chatSessions:[],                 // previous assistant conversations [{id,title,ts,msgs}]
   chatSessionId:null,              // which session S.chat mirrors; null = a fresh thread
   cmdAction:"",
@@ -7362,6 +7369,28 @@ function propCardHTML(p,i){
   </div>`;
 }
 
+/* The previous-chats dropdown, shared by the talking bar (opens UPWARD from
+   the bottom of the screen) and the maximized head (opens downward). One
+   markup source so the two views can never drift apart. */
+function histDropHTML(up){
+  const sess=[...S.chatSessions].sort((a,b)=>(b.ts||0)-(a.ts||0));
+  const rel=ts=>{const m=Math.round((Date.now()-(ts||0))/60000);
+    return m<1?"just now":m<60?m+"m ago":m<1440?Math.round(m/60)+"h ago":Math.round(m/1440)+"d ago";};
+  /* type="button" is load-bearing on every row: the upward variant renders
+     INSIDE the composer <form>, where a typeless button is a submit —
+     picking a chat would have sent whatever sat in the input. */
+  return `<div class="aimax-hist${up?" up":""}" role="menu" aria-label="Previous chats">
+    <button type="button" class="aimax-histrow aimax-histnew" data-ainew="1" role="menuitem">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+           stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>
+      New chat</button>
+    ${sess.length?sess.map(s=>`<button type="button" class="aimax-histrow${s.id===S.chatSessionId?" on":""}"
+        data-aihistpick="${esc(s.id)}" role="menuitem">
+        <b>${esc(s.title)}</b><span class="num">${rel(s.ts)}</span></button>`).join("")
+      :`<p class="aimax-histempty">No previous chats yet.</p>`}
+  </div>`;
+}
+
 function aiDockHTML(){
   /* COACH SIDE ONLY (owner, 2026-08-12). Families get Support, not an AI
      assistant — a parent choosing a coach for their child is not a person who
@@ -7423,9 +7452,6 @@ function aiDockHTML(){
      askCoach() — this is a bigger window onto the same conversation, never a
      second chat implementation. */
   if(open&&S.aiMax){
-    const sess=[...S.chatSessions].sort((a,b)=>(b.ts||0)-(a.ts||0));
-    const rel=ts=>{const m=Math.round((Date.now()-(ts||0))/60000);
-      return m<1?"just now":m<60?m+"m ago":m<1440?Math.round(m/60)+"h ago":Math.round(m/1440)+"d ago";};
     return `<div class="aimax-wrap"><section class="aidock-panel talking aimax" role="dialog" aria-label="Sporve AI">
       <div class="aimax-head">
         <div class="aimax-histwrap">
@@ -7437,16 +7463,7 @@ function aiDockHTML(){
             <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor"
                  stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg>
           </button>
-          ${S.aiHistOpen?`<div class="aimax-hist" role="menu" aria-label="Previous chats">
-            <button class="aimax-histrow aimax-histnew" data-ainew="1" role="menuitem">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                   stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>
-              New chat</button>
-            ${sess.length?sess.map(s=>`<button class="aimax-histrow${s.id===S.chatSessionId?" on":""}"
-                data-aihistpick="${esc(s.id)}" role="menuitem">
-                <b>${esc(s.title)}</b><span class="num">${rel(s.ts)}</span></button>`).join("")
-              :`<p class="aimax-histempty">No previous chats yet.</p>`}
-          </div>`:""}
+          ${S.aiHistOpen?histDropHTML(false):""}
         </div>
         <span class="aimax-ctx">${esc(aiContext().label)}</span>
         <div class="aimax-actions">
@@ -7517,14 +7534,20 @@ function aiDockHTML(){
      of "nothing more" would hide replies too, and being unable to see the
      answer is the exact bug reported two turns ago. At rest — which is what the
      reference shows and what a coach sees on arrival — it is the bar alone. */
-  return `${open?`<div class="aipill"><section class="aidock-panel${S.chat.length||S.chatThinking?" talking":""}" role="dialog" aria-label="Sporve AI helper">
-      ${S.chat.length||S.chatThinking?`
+  /* A conversation exists; whether its thread is on screen is the coach's
+     choice — "back to just the original chatbox" tucks it away without
+     ending it, and the same buttons bring it back. */
+  const convo=S.chat.length||S.chatThinking;
+  const showThread=convo&&!S.aiThreadHidden;
+  return `${open?`<div class="aipill"><section class="aidock-panel${showThread?" talking":""}" role="dialog" aria-label="Sporve AI helper">
+      ${showThread?`
       <div class="aidock-scroll" id="aidockScroll">
         ${thread}
         ${S.chatThinking?`<div class="bub them" style="align-self:flex-start;display:flex;gap:5px;align-items:center">
           <i class="dotdot"></i><i class="dotdot" style="animation-delay:.16s"></i><i class="dotdot" style="animation-delay:.32s"></i></div>`:""}
       </div>`:""}
       <form class="aidock-compose" id="aiDockForm">
+        ${S.aiHistOpen&&!S.aiMax?histDropHTML(true):""}
         ${/* Two rows, matching the reference exactly: the message field owns the
              top line, the controls sit beneath it. I merged these onto one row
              last turn from a different screenshot and it was wrong — the field
@@ -7552,14 +7575,28 @@ function aiDockHTML(){
                  stroke-width="1.8" stroke-linecap="round" aria-hidden="true">
               <path d="M4 10v4M8 7v10M12 5v14M16 8v8M20 11v2"/></svg></button>
         </div>
-        ${/* State 2 → 3: the maximize control exists only once a conversation
-             does — the at-rest bar stays exactly the bar (owner: "minimizing
-             would be the initial thing"). */""}
-        ${S.chat.length||S.chatThinking?`<button type="button" class="aidock-x aidock-maxbtn"
+        ${/* State 2 controls, right-to-left beside the X: maximize, thread
+             tuck/restore, history. All appear only once a conversation (or a
+             past one) exists — the at-rest bar stays exactly the bar (owner:
+             "minimizing would be the initial thing"). */""}
+        ${convo?`<button type="button" class="aidock-x aidock-maxbtn"
           data-aimaximize="1" aria-label="Maximize Sporve AI" title="Maximize">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
                stroke-width="2" stroke-linecap="round" aria-hidden="true">
-            <path d="M14 4h6v6M20 4l-7 7M10 20H4v-6M4 20l7-7"/></svg></button>`:""}
+            <path d="M14 4h6v6M20 4l-7 7M10 20H4v-6M4 20l7-7"/></svg></button>` :""}
+        ${convo?`<button type="button" class="aidock-x aidock-threadbtn"
+          data-aithread="1" aria-expanded="${showThread?"true":"false"}"
+          aria-label="${showThread?"Hide the conversation":"Show the conversation"}"
+          title="${showThread?"Back to just the bar":"Show the conversation"}">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+               stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="${showThread?"M6 9l6 6 6-6":"M6 15l6-6 6 6"}"/></svg></button>`:""}
+        ${convo||S.chatSessions.length?`<button type="button" class="aidock-x aidock-histbtn"
+          data-aihist="1" aria-expanded="${S.aiHistOpen?"true":"false"}"
+          aria-label="Chat history" title="Chat history">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+               stroke-width="1.8" stroke-linecap="round" aria-hidden="true">
+            <circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg></button>`:""}
         <button type="button" class="aidock-x" data-aiclose="1" aria-label="Close Sporve AI">
           <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor"
                stroke-width="2" stroke-linecap="round" aria-hidden="true">
@@ -11857,6 +11894,7 @@ document.querySelectorAll('.sig-ai-coach').forEach(sigAiCoachWire);
     /* Initial focus lands in the composer — the overlay owns the keyboard
        from the first keystroke, pairing with the Tab trap. */
     const inp=document.getElementById("aiDockInput"); if(inp) inp.focus();});
+  $("[data-aithread]").forEach(b=>b.onclick=()=>{S.aiThreadHidden=!S.aiThreadHidden;S.aiHistOpen=false;render();});
   $("[data-aiminimize]").forEach(b=>b.onclick=()=>{S.aiMax=false;S.aiHistOpen=false;render();});
   $("[data-aihist]").forEach(b=>b.onclick=e=>{e.stopPropagation();S.aiHistOpen=!S.aiHistOpen;render();});
   $("[data-ainew]").forEach(b=>b.onclick=()=>chatNew());
@@ -12609,6 +12647,9 @@ function askCoach(q){
      list in the maximized view always shows the conversation in progress.
      Coach-side only: the family finder keeps its single persistent thread. */
   if(S.portal==="coach") chatArchive();
+  /* Sending while the thread is tucked away brings it back — you asked the
+     assistant something, so you want to see the answer arrive. */
+  S.aiThreadHidden=false;
   const epoch=chatEpoch;
   S.chatThinking=true; render();
 
@@ -12795,7 +12836,10 @@ function chatLoadSession(id){
   if(!s) return;
   chatArchive();
   chatEpoch++;
+  /* Loading a chat is a request to SEE it — clear the tuck, or a session
+     picked while the thread was hidden would restore invisible. */
   S.chat=(s.msgs||[]).slice(); S.chatSessionId=id; S.chatThinking=false; S.aiHistOpen=false;
+  S.aiThreadHidden=false;
   render();
 }
 
