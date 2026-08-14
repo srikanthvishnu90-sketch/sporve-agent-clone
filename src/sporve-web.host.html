@@ -1110,7 +1110,11 @@ img{max-width:100%;display:block}
   box-shadow:0 1px 2px rgba(10,14,19,.06);
   transition:transform .18s cubic-bezier(.2,.7,.3,1),box-shadow .18s;
 }
-.card:hover{transform:translateY(-2px);box-shadow:0 10px 28px rgba(10,14,19,.14)}
+/* Tell 50 toned down: the row responds because it IS interactive (a data-open
+   button covers it), but the response is a border shift, not a lift-and-zoom —
+   motion promises interactivity the element already states, and the transform
+   was firing on every card the pointer crossed. */
+.card:hover{border-color:var(--rule-strong)}
 .card>*:not(.shot):not(.featfoot){padding-left:14px;padding-right:14px}
 .card>*:last-child:not(.featfoot){padding-bottom:14px}
 .card .shot{
@@ -1149,7 +1153,7 @@ img{max-width:100%;display:block}
 }
 @media(max-width:640px){.card.feature{grid-column:span 1}.card.feature .shot{aspect-ratio:20/19}}
 .card .shot img{width:100%;height:100%;object-fit:cover;transition:transform .5s cubic-bezier(.2,.7,.3,1)}
-.card:hover .shot img{transform:scale(1.045)}
+
 .heart{
   position:absolute;top:8px;right:8px;width:30px;height:30px;border-radius:999px;
   display:grid;place-items:center;background:rgba(11,12,14,.32);backdrop-filter:blur(6px);
@@ -1509,6 +1513,45 @@ img{max-width:100%;display:block}
 /* ── B3 comparison table (anti-slop constitution) ────────────────────────
    Hairline rules, prose cells, no cards. The row header is the JOB, so the
    reader scans what they need done and reads across. */
+/* ── C2 landing pieces ──────────────────────────────────────────────────── */
+/* The home hero speaks left, per B1. Scoped so nothing else moves. */
+.heroL .hero-in{text-align:left;align-items:flex-start;max-width:var(--shell)}
+.heroL .lede{margin-left:0;max-width:60ch}
+.heroL .chiprow{justify-content:flex-start}
+/* B2: the live figures sit bare on the dark ground. */
+/* Literals, not tokens — §3. The .lstat/.lrow text was styled against the
+   CARD'S ground; with the chrome stripped it sat straight on #0B0C0E and the
+   suite measured the numeral at 1.00:1 (invisible) and the labels at 3.64:1.
+   Same class of bug as the footer, caught the same way. */
+.lcard.bare{background:none;border:0;border-radius:0;box-shadow:none;padding:0;color:#F5F7F9}
+.lcard.bare .lstat span,.lcard.bare .lrow span{color:#9AA6B2}
+.lcard.bare .lstat b,.lcard.bare .lrow em{color:#F5F7F9}
+.lcard.bare .lrow{border-color:#1C222B;background:none;padding-left:0;padding-right:0}
+.lcard.bare .lstats{background:none}
+.lcard.bare .lstat{background:none;border:0;border-radius:0}
+.lcard.bare .lstats{border-bottom:1px solid #1C222B;padding-bottom:14px}
+.lcard.bare .lstat+.lstat{border-left:1px solid #1C222B;padding-left:18px}
+/* B6: term + sentence rows on hairlines — the grid-killer. */
+.deflist{border-bottom:1px solid var(--rule);margin-top:18px;max-width:920px}
+.defrow{display:grid;grid-template-columns:minmax(0,26ch) minmax(0,1fr);
+  gap:5px 34px;padding:16px 0;border-top:1px solid var(--rule);align-items:baseline}
+.defrow b{font-size:var(--text-base);letter-spacing:-.015em}
+.defrow p{color:var(--ink-2);font-size:var(--text-base);line-height:1.55;max-width:58ch;margin:0}
+.defnum{color:var(--slate-ink);margin-right:10px;font-weight:700}
+/* A text-link inside a dark band takes the sanctioned accent-on-dark (8.52:1);
+   its light-ground colour measured 3.73:1 there. */
+.band.dark .tlink{color:var(--accent-on-dark)}
+@media(max-width:640px){.defrow{grid-template-columns:1fr;gap:4px}}
+/* C4: the pricing masthead and its bare stat row. */
+.pr-head{padding:56px 0 8px}
+.pr-head .display{font-size:var(--text-hero);line-height:1.04;letter-spacing:-.03em;margin:10px 0 14px}
+.pr-stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));
+  margin:26px 0 34px;border-top:1px solid var(--rule);border-bottom:1px solid var(--rule)}
+.pr-stats>div{padding:18px 22px 18px 0}
+.pr-stats>div+div{border-left:1px solid var(--rule);padding-left:22px}
+.pr-stats b{display:block;font-size:var(--text-2xl);font-weight:800;letter-spacing:-.02em;font-variant-numeric:tabular-nums}
+.pr-stats span{display:block;margin-top:4px;color:var(--muted);font-size:var(--text-sm);line-height:1.4}
+@media(max-width:640px){.pr-stats>div+div{border-left:0;border-top:1px solid var(--rule);padding-left:0}}
 .cmp-wrap{overflow-x:auto;padding-bottom:6px}
 .cmp{width:100%;border-collapse:collapse;max-width:980px}
 .cmp th,.cmp td{text-align:left;vertical-align:top;padding:16px 22px 16px 0;
@@ -2154,7 +2197,7 @@ h2.ctr{margin-bottom:10px}
 .splitcopy h2{margin-bottom:11px}
 .tlink{color:var(--slate-ink);font-weight:700;font-size:var(--text-base);margin-top:14px}
 .tlink:hover{text-decoration:underline}
-.foundernote{max-width:64ch;margin:0 auto;text-align:center}
+.foundernote{max-width:64ch;margin:0}
 .foundernote p{color:var(--ink-2);font-size:var(--text-base);line-height:1.65;margin-top:14px}
 .foundernote .sig{color:var(--muted);font-size:var(--text-base);margin-top:16px}
 .pricingblock{max-width:620px;margin:0 auto}
@@ -2969,7 +3012,10 @@ h2.ctr{margin-bottom:10px}
 .band.dark .accq{color:#FFFFFF}
 .band.dark .accq:hover,.band.dark .accitem.on .accq{color:var(--accent-on-dark)}
 .band.dark .acca{color:#AEB8C4}
-.band.dark .btn.ghost{border-color:#39424E;color:#FFFFFF}
+/* background:none is load-bearing: the ghost's light-ground base paints #FFF,
+   and this rule only recoloured border+text — leaving white text ON the white
+   base. Measured 1.00:1 in the new dark statement band. */
+.band.dark .btn.ghost{background:none;border-color:#39424E;color:#FFFFFF}
 .band.dark .btn.ghost:hover{border-color:#5A6675;background:rgba(255,255,255,.05)}
 /* The global focus ring is --slate #223140. Against black that is ~1.6:1,
    under the 3:1 WCAG minimum for a non-text indicator -- a keyboard
@@ -3014,7 +3060,7 @@ h2.ctr{margin-bottom:10px}
 /* `.card.feature .fov img` was in this selector and matched nothing -- .fov
    holds the text overlay, the photo is in .shot, which the first half covers. */
 .card .shot img{filter:brightness(.88) contrast(1.03)}
-.card:hover .shot img{filter:brightness(.97) contrast(1.02)}
+
 
 /* The card keeps its own white ground inside a dark band, so its text stays
    dark -- it is a white card ON black, not text on black. Scoped to the card
@@ -5630,8 +5676,23 @@ function pricingHTML(){
      "Roster, schedule, session notes and messages in one place. Listing is free."],
   ];
   return `<main class="shell">
-    <div class="co-head"><h1>What Sporve costs</h1>
-      <p>Families pay the coach's price. Coaches pay ${FEE_PCT}%, only when they get paid.</p></div>
+    ${/* C4, tell 9: the top-level answer to "what does this cost" was set one
+         notch above a card title with 12px support text. B1 statement now —
+         eyebrow, display headline, one paragraph — then a B2 stat row of the
+         three real numbers, bare on hairlines, then the table. FEE_PCT is the
+         single constant checkout charges; it is never retyped as prose. */""}
+    <div class="pr-head">
+      <p class="eyebrow">Pricing</p>
+      <h1 class="display">${FEE_PCT}%, and only<br>when you're paid.</h1>
+      <p class="lede" style="margin-left:0;max-width:58ch">Families pay the coach's
+        listed price and nothing on top. Coaches pay one flat fee per paid booking,
+        itemized on every payout.</p>
+    </div>
+    <div class="pr-stats" role="list">
+      <div role="listitem"><b class="num">${FEE_PCT}%</b><span>platform fee, only on a paid booking</span></div>
+      <div role="listitem"><b class="num">$0</b><span>to join, list, browse, and message</span></div>
+      <div role="listitem"><b class="num">$0</b><span>background checks — run at Sporve's cost</span></div>
+    </div>
     <div class="cmp-wrap">
       <table class="cmp" aria-label="What Sporve costs, compared">
         <thead><tr><th>The job</th><th>Elsewhere</th><th>On Sporve</th></tr></thead>
@@ -5800,21 +5861,6 @@ function landingFacts(){
   };
 }
 
-/* The infinite carousel. The card set is emitted TWICE and the track travels
-   exactly -50%, so copy two arrives where copy one started and the loop has
-   no seam. Spacing is margin on the card, never `gap` on the track -- see the
-   .amq-track rule for why.
-
-   The cards are BUTTONS. They carry a border, a shadow, a hover lift and a
-   real price off PROGRAMS -- the same affordance vocabulary every navigable
-   card on the site uses -- so a parent will click one. They used to be inert
-   <div>s and nothing happened. As buttons they also make :focus-within real,
-   which is the only way a keyboard or touch user can pause either marquee.
-
-   The duplicate copy is aria-hidden AND inert. A focusable element inside an
-   aria-hidden subtree is a WCAG violation and a real trap: tabbing would land
-   on a control screen readers cannot describe. `inert` removes it from the
-   tab order and from hit-testing, so the duplicate is purely scenery. */
 function heroCarouselHTML(){
   const cards=PROGRAMS.filter(p=>p.featured).concat(PROGRAMS.filter(p=>!p.featured)).slice(0,10);
   const card=p=>`<button class="amq-card" data-open="${p.id}"
@@ -5908,20 +5954,35 @@ function peekRowHTML(){
 }
 
 function landingHTML(){
+  /* ═══ ANTI-SLOP C2: THE FIVE-ARGUMENT LANDING ════════════════════════════
+     The old page was the template skeleton the constitution bans by name
+     (tell #22): hero → carousel → rail → marquee → sportgrid → dark → 2-card →
+     3-card frames → 3-card featgrid → 3-card stepgrid → trust pills → centred
+     CTA → FAQ. Thirteen sections, four of them the same 3-up card grid, five
+     centred headlines in a row, and a "Background-checked always" feature card
+     the data cannot back.
+
+     Now five arguments and a FAQ, no two consecutive sections sharing a
+     structure: B1 statement hero → the live rail → B3 comparison table →
+     B4 prose-pair on dark (the rules, argued, beside the real figures) →
+     B6 definition list (what you get + the three steps, one list) →
+     B5 dark statement carrying the CTAs → FAQ.
+
+     Deleted outright, per the audit: the .amq hero carousel (tell 45 — auto
+     -advancing, and a duplicate of the rail one section later), the .tick
+     marquee (second auto-mover), .sportgrid (chips in the hero already jump to
+     sports), the .dual 2-card, the .frames device mockups with their UNGATED
+     "Background-checked" gold pill (tells 43+7 — a fake badge on the one site
+     where that badge is the product), .featgrid, .stepgrid, the shield-pill
+     trustband (tell 4 — four decorative shields), and the centred finalcta
+     whose "Background-checked. Bookable today." the catalogue cannot back. */
   const f=landingFacts();
   const heroSports=["Soccer","Basketball","Tennis","Baseball","Swimming"];
-  const gridSports=[...new Set(PROGRAMS.map(p=>p.sport))].slice(0,12);
-  const seg=S.showcaseSide||"families";
-  /* No .toUpperCase() -- .tick-item already does it in CSS. Baking it into the
-     text made the DOM read APEX PERFORMANCE CLUB, which some screen readers
-     spell out letter by letter, and it destroys the real casing for copy or
-     search. Let the presentation layer present. */
-  const tickSet=f.bizes.map(b=>`${esc(b)} <em aria-hidden="true">+</em>`).join(" ");
   return `
-  <section class="band hero">
+  <section class="band hero heroL">
     <div class="shell hero-in">
+      <p class="eyebrow">Youth sports · Chicago</p>
       <h1 class="display">Coaching. Booked.</h1>
-      ${/* Same false claim as the explore hero, same fix — see the note there. */""}
       <p class="lede">Every sport, one app — and no one takes a booking here
         until they have cleared a background check.</p>
       ${searchPillHTML()}
@@ -5931,37 +5992,28 @@ function landingHTML(){
         <button class="hchip alt" data-nav="explore">All sports →</button>
       </div>
     </div>
-    ${heroCarouselHTML()}
   </section>
 
-  ${/* role="region" + a label, not aria-label on a bare <div>: a div maps to
-        role generic, ARIA forbids naming generic, and every major browser
-        drops the label. Both marquees were unlabelled in practice. */""}
   ${peekRowHTML()}
 
-  <div class="tick" role="region" aria-label="Businesses on Sporve" style="position:relative">
-    <button class="mqpause" data-mqpause aria-pressed="false">Pause</button>
-    <div class="tick-track">
-      <span class="tick-item">${tickSet}</span>
-      ${/* Four copies, not two. One copy of the six names is ~1550px, so at
-            translateX(-50%) a two-copy track only spans ~1550px either side of
-            centre -- leaving bare ground at the right edge of any viewport
-            wider than that (~370px of it at 1920). It closes over the cycle
-            then blinks open again at the loop. Four copies clear 3100px. */""}
-      ${[1,2,3].map(()=>`<span class="tick-item" aria-hidden="true">${tickSet}</span>`).join("")}
-    </div>
-  </div>
-
-  <section class="band">
-    <div class="shell">
-      <button class="bandhead" data-nav="explore"><h2>Every sport your kid wants to try</h2><span>→</span></button>
-      <div class="sportgrid">
-        ${gridSports.map(s=>{
-          const n=PROGRAMS.filter(p=>p.sport===s).length;
-          return `<button class="stile" data-sportjump="${esc(s)}">
-            <span class="sdot" style="background:${sportColor(s)}" aria-hidden="true"></span>
-            <b>${esc(s)}</b>
-            <span class="num">${n} program${n>1?"s":""}</span></button>`;}).join("")}
+  <section class="band alt">
+    <div class="shell" data-rev>
+      <h2>What changes with Sporve</h2>
+      <div class="cmp-wrap" style="margin-top:18px">
+        <table class="cmp" aria-label="Finding a coach, compared">
+          <thead><tr><th>The job</th><th>Elsewhere</th><th>On Sporve</th></tr></thead>
+          <tbody>
+            <tr><th scope="row">Finding a coach</th>
+              <td>Group-chat threads, a flyer at the gym, a friend of a friend.</td>
+              <td>Browse every coach free. Search by sport, your child's age, and budget.</td></tr>
+            <tr><th scope="row">Knowing who you're hiring</th>
+              <td>A business vouches for its own staff.</td>
+              <td>Each person clears their own background check before they can take a booking.</td></tr>
+            <tr><th scope="row">Booking and paying</th>
+              <td>Texts until a time sticks, then cash or Venmo.</td>
+              <td>A real open slot that holds while you pay. Sessions, receipts and messages in one thread.</td></tr>
+          </tbody>
+        </table>
       </div>
     </div>
   </section>
@@ -5970,13 +6022,6 @@ function landingHTML(){
     <div class="shell lgrid">
       <div data-rev>
         <div class="eyebrow" style="color:var(--accent-on-dark)">What's on Sporve today</div>
-        ${/* WAS: "Every listing here is a real one." / "No placeholder inventory
-             and no seeded numbers." Both were false. The catalogue is seeded:
-             thirty listings with authored ratings and review counts, twenty of
-             them asserting a background check that no vendor has performed. The
-             claim sat directly above the cards making it. Rewritten to say what
-             is actually true — these are the RULES the marketplace runs on, and
-             the sample inventory is labelled as sample. */""}
         <h2 style="margin-top:12px">The rules every listing runs on.</h2>
         <p class="sub" style="margin-top:14px">
           The catalogue below is sample inventory, shown so you can see how Sporve
@@ -5989,12 +6034,10 @@ function landingHTML(){
             .map(([t])=>`<div class="lcheck"><i>${TICK(12,3.4)}</i><span>${esc(t)}</span></div>`).join("")}
         </div>
       </div>
-
-      <div class="lcard" data-rev data-rev-d="1">
-        <div class="lcard-hd">
-          <span class="lcard-live"><i></i>Live catalogue</span>
-          <span class="featbadge" style="background:var(--slate-tint);color:var(--slate-ink)">Chicago, IL</span>
-        </div>
+      ${/* B2, not a card: the figures sit bare on the dark ground, hairline
+           -separated. The card chrome (.lcard bg/border) is stripped in CSS —
+           a stat row is only credible when it is not dressed up. */""}
+      <div class="lcard bare" data-rev data-rev-d="1">
         <div class="lstats">
           <div class="lstat"><span>Programs</span><b class="num">${f.programs}</b></div>
           <div class="lstat"><span>Sports</span><b class="num">${f.sports}</b></div>
@@ -6002,120 +6045,36 @@ function landingHTML(){
         </div>
         <div class="lrow"><span>Background-checked businesses</span>
           <em>${f.verifiedCount} of ${f.bizCount}</em></div>
-        ${/* "Average rating across N reviews" read as a review-weighted mean;
-              this is the unweighted mean of the 30 programme ratings, and the
-              two round differently (4.6 vs 4.7). Labelled for what it is. */""}
-        <div class="lrow"><span>Average programme rating · ${f.reviews} reviews</span>
-          <em>${f.rating} ${ICON.star}</em></div>
         <div class="lrow"><span>Sessions start from</span><em>${money(f.minPrice)}</em></div>
       </div>
     </div>
   </section>
 
-  <section class="band alt">
-    <div class="shell">
-      <h2 class="ctr" data-rev>Two ways in</h2>
-      <p class="sub ctr" data-rev>The same platform families book on is the one coaches run their week on.</p>
-      <div class="dual">
-        <div class="dpath" data-rev>
-          <div class="eyebrow">For families</div>
-          <h3>Find someone you'd trust with your kid</h3>
-          <p>Search by sport, your child's age and your budget. Book and pay without leaving the page.</p>
-          <ul class="dlist">
-            ${["Every coach clears a per-person check","Message before you spend anything",
-               "Sessions, receipts and updates in one thread","One account, however many kids"]
-              .map(t=>`<li>${TICK(14,3)}<span>${esc(t)}</span></li>`).join("")}
-          </ul>
-          <button class="btn" data-nav="explore">Find a coach</button>
-        </div>
-        <div class="dpath" data-rev data-rev-d="1">
-          <div class="eyebrow">For coaches</div>
-          <h3>Run your week, get paid on time</h3>
-          <p>Your calendar, your policies, your prices. Sporve handles the admin around them.</p>
-          <ul class="dlist">
-            ${["Free to join and list","Bring the families you already coach",
-               "Checkout and automatic payouts","Roster, notes, media and insights"]
-              .map(t=>`<li>${TICK(14,3)}<span>${esc(t)}</span></li>`).join("")}
-          </ul>
-          <button class="btn ghost" data-becomecoach="1">Become a coach</button>
-        </div>
-      </div>
-    </div>
-  </section>
-
   <section class="band">
-    <div class="shell">
-      ${/* Retitled. This section and the .dual block above it were both
-            pitching "two audiences, one product", and carried the SAME
-            sub-headline verbatim -- it read as an unfinished merge of two
-            drafts. The dual block makes the argument; this one exists to show
-            the actual screens, so it now says that instead. */""}
-      <h2 class="ctr" data-rev>See the real screens</h2>
-      <p class="sub ctr" data-rev>Not a mockup. This is what you get on either side of the booking.</p>
-      <div class="segwrap">
-        <div class="seg2" role="tablist" aria-label="Preview side">
-          <button role="tab" aria-selected="${seg==="families"}" class="${seg==="families"?"on":""}" data-showcase="families">For families</button>
-          <button role="tab" aria-selected="${seg==="coaches"}" class="${seg==="coaches"?"on":""}" data-showcase="coaches">For coaches</button>
-        </div>
-      </div>
-      <div class="frames">${seg==="families"?famFrames():coachFrames()}</div>
-      <p class="risk ctr">${seg==="families"
-        ? "No booking fee to browse. You only pay when you book a session."
-        : "Free to join and list. Sporve's platform fee is taken only when you get paid, and itemized on every payout."}</p>
-      ${seg==="coaches"?`<div class="ctr" style="margin-top:18px">
-        <button class="btn" data-becomecoach="1">Become a coach</button></div>`:""}
-    </div>
-  </section>
-
-  <section class="band alt">
-    <div class="shell">
-      ${/* Was "Find a coach you'd trust with your kid", a near-restatement of
-            the .dpath h3 two sections up. */""}
-      <h2 class="ctr" data-rev>What you get, either way</h2>
-      <div class="featgrid">
-        ${[["Background-checked always","Every coach clears a per-person check. An unverified coach never appears in search, results, or the assistant."],
-           ["Search that understands you","Describe the goal in plain words. The assistant matches age, level, budget, and distance."],
-           ["Book and pay in one place","Pick a slot, add your athlete, and pay without leaving the page."],
-           ["Message before you commit","Ask about equipment, group size, or experience before you spend anything."],
-           ["Everything in one thread","Sessions, receipts, and coach updates about your athlete stay together."],
-           ["Any sport, one account","Twenty-plus sports and one profile per family, however many kids you have."]]
-          .map(([t,d])=>`<div class="feat"><b>${esc(t)}</b><p>${esc(d)}</p></div>`).join("")}
+    <div class="shell" data-rev>
+      <h2>What you get, and how it starts</h2>
+      <div class="deflist">
+        ${[["Background checks, per person","An unverified coach cannot take a booking. Not policy copy — the booking system refuses it."],
+           ["Search in plain words","Describe the goal; matching covers age, level, budget and distance."],
+           ["One thread per athlete","Sessions, receipts, and coach updates stay together."],
+           ["Message before you commit","Ask about equipment, group size, or experience before you spend anything."]]
+          .map(([t,d])=>`<div class="defrow"><b>${esc(t)}</b><p>${esc(d)}</p></div>`).join("")}
+        ${[["Search","Tell us the sport, your kid's age, and your budget."],
+           ["Book","Pick a real open slot and pay in one flow — cancellation terms shown before you commit."],
+           ["Show up","Directions, coach contact, notes and receipts land in the thread."]]
+          .map(([t,d],i)=>`<div class="defrow"><b><span class="defnum num">0${i+1}</span>${esc(t)}</b><p>${esc(d)}</p></div>`).join("")}
       </div>
     </div>
   </section>
 
-  <section class="band alt">
-    <div class="shell">
-      <h2 class="ctr" data-rev>Three steps, start to session</h2>
-      <p class="sub ctr" data-rev>No membership, no booking fee, nothing to install.</p>
-      <div class="stepgrid">
-        ${[["Search","Tell us the sport, your kid's age, and your budget. The assistant matches on distance and level too."],
-           ["Book","Pick a real open slot and pay in one flow. Cancellation terms are shown before you commit, not after."],
-           ["Show up","Directions, coach contact, session notes and receipts all land in one thread."]]
-          .map(([t,d],i)=>`<div class="scard" data-rev data-rev-d="${i}">
-            <span class="snum">0${i+1}</span>
-            <b>${esc(t)}</b><p>${esc(d)}</p></div>`).join("")}
-      </div>
-    </div>
-  </section>
-
-  <section class="band trustband">
-    <div class="shell">
-      <div class="trustrow">
-        ${["Background checks","Secure payments","Verified reviews","COPPA-conscious"]
-          .map(t=>`<span class="tritem"><span aria-hidden="true">${ICON.shield}</span> ${esc(t)}</span>`).join("")}
-      </div>
-      <p class="sub ctr" style="margin-top:14px">
-        Coaches are gated on a per-person background check — an approved business never vouches for an individual.
-        Reviews open only after a completed session, and a child profile can't exist without recorded parental consent.</p>
-    </div>
-  </section>
-
-  <section class="band finalcta">
-    <div class="shell ctr">
-      <h2>Find your kid's next coach</h2>
-      <p class="sub ctr">Twenty-plus sports. Background-checked. Bookable today.</p>
-      <div class="ctarow">
+  <section class="band dark">
+    <div class="shell" data-rev>
+      <h2 style="max-width:18ch">Find your kid's next coach.</h2>
+      <p class="sub" style="margin-top:12px;max-width:60ch">Coaches are gated on a
+        per-person background check — an approved business never vouches for an
+        individual. Reviews open only after a completed session, and a child
+        profile can't exist without recorded parental consent.</p>
+      <div class="ctarow" style="margin-top:22px;justify-content:flex-start">
         <button class="btn" data-nav="explore">Find a coach</button>
         <button class="btn ghost" data-becomecoach="1">Become a coach</button>
       </div>
@@ -6143,8 +6102,8 @@ function faqSectionHTML(){
   ];
   return `<section class="band dark">
     <div class="shell" style="max-width:860px">
-      <div class="eyebrow ctr" data-rev>Before you book</div>
-      <h2 class="ctr" data-rev style="margin-top:10px">Questions, answered</h2>
+      <div class="eyebrow" data-rev>Before you book</div>
+      <h2 data-rev style="margin-top:10px">Questions, answered</h2>
       <div class="acc" data-rev style="margin-top:34px">
         ${faqs.map(([q,a])=>`<div class="accitem" data-acc>
           <button class="accq" aria-expanded="false">
@@ -6155,63 +6114,6 @@ function faqSectionHTML(){
     </div>
   </section>`;
 }
-function famFrames(){
-  /* A marketing frame illustrating one listing. It used to look up the literal
-     id "prog_1", which exists only in the seed — against a live catalogue the
-     find() returns undefined and the next line throws, blanking the landing
-     page. Take the first listing of whatever catalogue is loaded, and fall back
-     to the seeded one so the frame is never empty. */
-  const p=PROGRAMS[0]||DEMO_CATALOGUE[0];
-  return `
-  <div class="frame"><div class="fbar"><i></i><i></i><i></i></div>
-    <div class="fbody">
-      <div class="fsearch">Soccer · Chicago, IL</div>
-      ${PROGRAMS.slice(0,3).map(x=>`<div class="frow">
-        <span class="fthumb" style="background:${sportColor(x.sport)}22"></span>
-        <span><b>${esc(x.title.slice(0,26))}</b><span class="num">${money(x.price)} · ${ICON.star} ${x.rating}</span></span></div>`).join("")}
-    </div><p class="fcap">Search results, filtered to checked coaches</p></div>
-  <div class="frame"><div class="fbar"><i></i><i></i><i></i></div>
-    <div class="fbody">
-      <div class="fhero" style="background:${sportColor(p.sport)}22"></div>
-      <b>${esc(p.title)}</b>
-      <span class="fpill gold">Background-checked</span>
-      <div class="num" style="font-weight:700;margin-top:6px">${money(p.price)} per session</div>
-    </div><p class="fcap">Coach profile with the trust badge</p></div>
-  <div class="frame"><div class="fbar"><i></i><i></i><i></i></div>
-    <div class="fbody ctr">
-      <span class="fcheck">${ICON.check}</span>
-      <b>You're booked</b>
-      <span class="num" style="color:var(--muted)">Mon, May 4 · 05:00 PM</span>
-      <span class="fpill good">Paid</span>
-    </div><p class="fcap">Confirmed booking and receipt</p></div>`;
-}
-function coachFrames(){
-  return `
-  <div class="frame"><div class="fbar"><i></i><i></i><i></i></div>
-    <div class="fbody">
-      <div class="fsearch">This week</div>
-      ${["Mon · Elite Soccer U12","Tue · Junior Tennis","Wed · Basketball U14"].map(t=>`
-        <div class="frow"><span class="fthumb" style="background:var(--slate-tint)"></span>
-        <span><b>${esc(t)}</b><span class="num">8/15 enrolled</span></span></div>`).join("")}
-    </div><p class="fcap">One calendar across every service</p></div>
-  <div class="frame"><div class="fbar"><i></i><i></i><i></i></div>
-    <div class="fbody">
-      <div class="eyebrow">Net payout</div>
-      <div class="num" style="font-size:var(--text-xl);font-weight:700;letter-spacing:-.03em">$40</div>
-      <div class="num" style="color:var(--muted);font-size:var(--text-sm)">$45 gross · $5 platform fee</div>
-      <span class="fpill good">Payouts connected</span>
-    </div><p class="fcap">Automatic payouts with the fee itemized</p></div>
-  <div class="frame"><div class="fbar"><i></i><i></i><i></i></div>
-    <div class="fbody">
-      <div class="fbub them">Move Thursday's 5pm to 6pm</div>
-      <div class="fbub me">Done — 4 families notified.</div>
-    </div><p class="fcap">Run the day by chat</p></div>`;
-}
-
-/* ═══════════════════ LANDING — COACH VIEW (spec Part 4) ═══════════════════
-   §2 numbers strip is OMITTED: no real operating numbers exist yet, and the
-   spec says never invent them. §5 testimonials likewise replaced by a
-   founder's note rather than fabricated coach quotes.                        */
 function coachLandingHTML(){
   const feats=[
     ["Listings","Define what you offer, what it costs, and where you coach. Group clinics, private sessions, and camps each carry their own price and capacity.","See how listings work","listings"],
@@ -6234,68 +6136,97 @@ function coachLandingHTML(){
     ["Who owns the client relationship?","You do. Families you bring keep booking you, and your roster and notes are yours."],
     ["Can I leave and take my data?","Yes. Request an export at any time. Deletion is reviewed as a case so financial and safety records required by law are retained, and everything else is removed."]];
   return `
+  ${/* C3: the hero's browser-chrome mockup is deleted — tell 43, and worse,
+       tell 36: "5 listings · 35 enrolled · $45 paid out" were INVENTED numbers
+       styled as a live dashboard, on the page asking a coach to trust us with
+       their money. The hero argues alone now, B1, full width. */""}
   <section class="band hero coachhero">
-    <div class="shell chero-in">
-      <div>
-        <h1 class="display">Coaching is your job.<br>Admin shouldn't be.</h1>
-        <p class="lede" style="margin-left:0">Sporve runs your scheduling, payments, and client roster so your hours go to the field, not the spreadsheet.</p>
-        <div class="ctarow" style="justify-content:flex-start">
-          <button class="btn" data-becomecoach="1">Start coaching on Sporve</button>
-          <button class="btn ghost" data-scrollto="coachfeats">See how it works ↓</button>
-        </div>
+    <div class="shell">
+      <p class="eyebrow">For coaches</p>
+      <h1 class="display">Coaching is your job.<br>Admin shouldn't be.</h1>
+      <p class="lede" style="margin-left:0;max-width:60ch">Sporve runs your scheduling, payments, and client roster so your hours go to the field, not the spreadsheet.</p>
+      <div class="ctarow" style="justify-content:flex-start">
+        <button class="btn" data-becomecoach="1">Start coaching on Sporve</button>
+        <button class="btn ghost" data-scrollto="coachfeats">See how it works ↓</button>
       </div>
-      <div class="frame tall"><div class="fbar"><i></i><i></i><i></i></div>
-        <div class="fbody">
-          <div class="eyebrow">Today</div>
-          <b style="font-size:var(--text-lg)">Apex Performance Club</b>
-          <div class="fstats">
-            <div><span class="num">5</span><span>listings</span></div>
-            <div><span class="num">35</span><span>enrolled</span></div>
-            <div><span class="num">$45</span><span>paid out</span></div>
-          </div>
-          ${["Elite Soccer U12 · 5:00 PM","Junior Tennis · 4:00 PM","Basketball U14 · 4:00 PM"].map(t=>`
-            <div class="frow"><span class="fthumb" style="background:var(--slate-tint)"></span>
-            <span><b>${esc(t)}</b></span></div>`).join("")}
-        </div><p class="fcap">The coach command center</p></div>
     </div>
   </section>
 
   <div id="coachfeats"></div>
-  ${/* id per band so a signed-out click on a coach menu row lands ON the
-        feature it named instead of the top of a generic pitch. */""}
-  ${feats.map(([t,d,link,tab],i)=>`
-  <section class="band ${i%2?"alt":""}" id="coach-${esc(tab)}">
-    <div class="shell split ${i%2?"rev":""}">
-      <div class="splitcopy">
-        <h2>${esc(t)}</h2>
-        <p class="sub">${esc(d)}</p>
-        <button class="tlink" data-coachtab="${tab}">${esc(link)} →</button>
+  ${/* C3: eight structurally identical .split bands — one .map(), one skeleton
+       mockup each, h2s that were nav labels (tell 37) — collapse into three
+       structures. The empty .frame skeletons are gone (tell 43: browser chrome
+       around nothing). The headlines are now CLAIMS; the good sentences were
+       already in the prose underneath. Every coach menu row still lands on an
+       anchor: the four ops features share one list, so their ids sit on its
+       rows. */""}
+  <section class="band alt">
+    <div class="shell" data-rev>
+      <h2>Double-booking isn't possible.</h2>
+      <p class="sub" style="max-width:62ch">The operations layer, in one place — and the
+        constraints live in the database, not in your discipline.</p>
+      <div class="deflist">
+        ${[["listings","Listings","Define what you offer, what it costs, and where you coach. Clinics, privates and camps each carry their own price and capacity.","See how listings work"],
+           ["slots","Scheduling","Set recurring availability once. Families book only real open slots — the seat count is enforced at the database.","Open the schedule"],
+           ["finances","Payments","Families check out in-app. Payouts run automatically, and every booking keeps a receipt, a refund trail, and the policy that applied at purchase.","See payouts"],
+           ["roster","Roster","Every family, session, and note in one place — including which trainer is cleared to work with which athlete.","See the roster"]]
+          .map(([tab,t,d,link])=>`<div class="defrow" id="coach-${esc(tab)}"><b>${esc(t)}</b>
+            <p>${esc(d)} <button class="tlink" data-coachtab="${esc(tab)}">${esc(link)} →</button></p></div>`).join("")}
       </div>
-      <div class="frame"><div class="fbar"><i></i><i></i><i></i></div>
-        <div class="fbody"><div class="eyebrow">${esc(t)}</div>
-          <div class="fskel"></div><div class="fskel s"></div><div class="fskel"></div>
-          <div class="fskel s"></div></div></div>
     </div>
-  </section>`).join("")}
+  </section>
+
+  <section class="band" id="coach-notes">
+    <div class="shell lgrid" data-rev>
+      <div id="coach-media">
+        <h2>The library enforces consent.</h2>
+        <p class="sub" style="margin-top:12px">Photos and clips stay locked to the athletes
+          whose parents have granted it. Consent is per athlete and revocable — the system
+          refuses what a reminder would only discourage.</p>
+        <p class="sub" style="margin-top:10px">Session notes work the same way: write one
+          once and it reaches the right parent, attached to the session it came from.
+          Drafts queue until you send them.</p>
+      </div>
+      <div class="deflist" style="margin-top:0">
+        ${[["Consent","Per athlete, granted by the parent, revocable at any time."],
+           ["Enforcement","Media without consent cannot be attached to an athlete — refused, not flagged."],
+           ["Notes","One note, one session, delivered to the right parent's thread."],
+           ["Drafts","Queue until you send. Nothing parent-visible leaves without you."]]
+          .map(([t,d])=>`<div class="defrow"><b>${esc(t)}</b><p>${esc(d)}</p></div>`).join("")}
+      </div>
+    </div>
+  </section>
+
+  <section class="band dark" id="coach-insights">
+    <div class="shell" data-rev>
+      <div id="coach-dashboard"></div>
+      <h2 style="max-width:22ch">Type what you want. It acts on your real calendar.</h2>
+      <p class="sub" style="margin-top:12px;max-width:62ch">Reschedule, offer a waitlist
+        spot, or message a group by describing it. The assistant reads your actual
+        schedule and roster, drafts the action, and nothing parent-visible sends without
+        your approval. Insights ride along: what families searched for near you, which
+        services fill, and where your pricing sits.</p>
+      <button class="tlink" data-coachtab="dashboard" style="margin-top:16px">Try the assistant →</button>
+    </div>
+  </section>
 
   <section class="band">
     <div class="shell">
-      <h2 class="ctr">Getting started</h2>
-      <div class="steps">
+      <h2>Getting started</h2>
+      <div class="deflist">
         ${[["Create your profile","Add your sports, services, pricing, and where you coach."],
            ["Pass the background check","Run per person. Your listings stay hidden until it clears."],
            ["Open your calendar","Set recurring availability and start taking real bookings."]]
-          .map(([t,d],i)=>`<div class="step3"><span class="stepnum num">${i+1}</span>
-            <b>${esc(t)}</b><p>${esc(d)}</p></div>`).join("")}
+          .map(([t,d],i)=>`<div class="defrow"><b><span class="defnum num">0${i+1}</span>${esc(t)}</b><p>${esc(d)}</p></div>`).join("")}
       </div>
-      <p class="sub ctr" style="margin-top:18px">
+      <p class="sub" style="margin-top:18px;max-width:62ch">
         Time-to-live depends on how fast your background check clears. We don't publish an average yet.</p>
     </div>
   </section>
 
   <section class="band alt">
     <div class="shell foundernote">
-      <div class="eyebrow ctr">A note from the team</div>
+      <div class="eyebrow">A note from the team</div>
       <p>We're not going to show you coach testimonials we don't have. Sporve is pre-launch,
       and the honest version is this: we built the coach side first because every trainer we
       talked to was losing evenings to scheduling texts and chasing payments. If that's your
@@ -6335,7 +6266,7 @@ function coachLandingHTML(){
 
   <section class="band alt">
     <div class="shell faqwrap">
-      <h2 class="ctr">Questions coaches ask</h2>
+      <h2>Questions coaches ask</h2>
       <div class="faq">
         ${faq.map(([q,a],i)=>`<div class="faqitem ${S.faqOpen===i?"on":""}">
           <button class="faqq" data-faq="${i}" aria-expanded="${S.faqOpen===i}">
@@ -9827,8 +9758,8 @@ function pageHTML(id){
 
   <section class="band slate">
     <div class="shell">
-      <h2 class="ctr" data-rev>Two ways in</h2>
-      <p class="sub ctr" data-rev>The same platform families book on is the one coaches run their week on.</p>
+      <h2 data-rev>Two ways in</h2>
+      <p class="sub" data-rev>The same platform families book on is the one coaches run their week on.</p>
       <div class="dual">
         <div class="dpath" data-rev>
           <div class="eyebrow">For parents</div>
