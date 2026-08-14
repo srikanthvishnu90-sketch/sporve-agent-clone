@@ -1675,6 +1675,28 @@ ams=$($B js "
 [ "${ams//\"/}" = "OK" ] && pass "assistant states: rest, talking, maximized; Escape steps one level" \
   || fail "assistant state machine regressed: $ams"
 
+# ── AI disclosure (Claude Usage Policy) ───────────────────────────────────
+# Consumer-facing chatbots must tell users they're talking to AI at the start
+# of each session. Assert the disclosure is present once a conversation exists
+# in BOTH the coach dock (talking + maximized) and the family assistant.
+disc=$($B js "
+(()=>{const bad=[];const re=/talking with|chatting with Sporve's AI|Sporve AI can make mistakes/i;
+ // coach dock, talking
+ S.portal='coach';S.auth={status:'coach'};S.route={name:'dashboard',arg:null};
+ S.chat=[{role:'user',text:'q'},{role:'coach',text:'a'}];S.chatThinking=false;
+ S.aiOpen=true;S.aiMax=false;S.aiHistOpen=false;S.aiThreadHidden=false;render();
+ if(!re.test(document.querySelector('.aidock-panel')?.innerText||''))bad.push('COACH_TALKING');
+ // coach dock, maximized
+ S.aiMax=true;render();
+ if(!re.test(document.querySelector('.aimax-wrap')?.innerText||''))bad.push('COACH_MAX');
+ // family assistant page
+ S.aiMax=false;S.chat=[];S.portal='family';S.auth={status:'guest'};S.route={name:'assistant',arg:null};render();
+ if(!/chatting with Sporve's AI/i.test(document.querySelector('#app main')?.innerText||''))bad.push('FAMILY');
+ S.route={name:'home',arg:null};render();document.body.classList.remove('reg-coach');
+ return bad.length?bad.join(','):'OK'})()" 2>/dev/null)
+[ "${disc//\"/}" = "OK" ] && pass "AI disclosure present in every chat session (usage policy)" \
+  || fail "AI disclosure missing: $disc"
+
 # ── The coach profile renders its blocks, and invents nothing ─────────────
 # Built to the owner's Athletes Untapped reference: pricing ladder, collapsible
 # sections, weekly availability, location. The reference also shows earned

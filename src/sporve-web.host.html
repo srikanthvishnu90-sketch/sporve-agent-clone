@@ -1785,6 +1785,12 @@ img{max-width:100%;display:block}
    UPWARD; same panel, flipped anchor. Anchored to the composer, which is
    the positioning context the X already relies on. */
 .aimax-hist.up{top:auto;bottom:calc(100% + 8px);left:12px}
+/* AI-disclosure captions — slate on the dark panel (§3 literal). #9AA6B2 on
+   the pill/max ground measures >7:1. */
+.aidock-aihint{color:#9AA6B2;font-size:var(--text-sm);text-align:center;
+  margin:2px 12px 10px;line-height:1.4}
+.aimax-aihint{color:#9AA6B2;font-size:var(--text-sm);text-align:center;
+  margin:0 auto 14px;max-width:720px;padding:0 22px}
 @media(max-width:767px){.aimax-wrap{padding:10px}
   .aidock-panel.aimax{height:calc(100vh - 20px)}}
 
@@ -7292,7 +7298,12 @@ function assistantHTML(){
       </form>
     </div>
     <p style="color:var(--faint);font-size:var(--text-sm);text-align:center;margin:-42px 0 60px">
-      Suggestions are matched from Sporve's live catalogue — never invented.</p>
+      ${/* AI-disclosure, Claude Usage Policy — consumer-facing chatbots must
+           tell users they're talking to AI, at the start of each session. This
+           caption is always on screen, so it satisfies "beginning of each
+           session" even on a mid-conversation reload. */""}
+      You're chatting with Sporve's AI assistant — not a person, and it can be
+      wrong. Suggestions are matched from Sporve's live catalogue, never invented.</p>
   </main>`;
 }
 /* ── AI dock ────────────────────────────────────────────────────────
@@ -7487,7 +7498,9 @@ function aiDockHTML(){
             :`<div class="aidock-empty"><span class="mark" style="margin:0 auto 11px">S</span>
                <h3>What can I take off your plate?</h3>
                <p style="color:#9AA6B2;font-size:var(--text-sm);margin-top:6px">
-                 Ask about your schedule, your roster, or tell me what to draft.</p></div>`}
+                 You're chatting with Sporve's AI assistant — not a person, and it can
+                 be wrong. Ask about your schedule or roster, or tell me what to draft;
+                 you approve anything before it's sent.</p></div>`}
           ${S.chatThinking?`<div class="bub them" style="align-self:flex-start;display:flex;gap:5px;align-items:center">
             <i class="dotdot"></i><i class="dotdot" style="animation-delay:.16s"></i><i class="dotdot" style="animation-delay:.32s"></i></div>`:""}
         </div>
@@ -7517,6 +7530,10 @@ function aiDockHTML(){
               <path d="M4 10v4M8 7v10M12 5v14M16 8v8M20 11v2"/></svg></button>
         </div>
       </form>
+      ${/* Persistent AI-disclosure (Claude Usage Policy): always on screen in
+           the maximized session, so a mid-conversation reload still discloses
+           it, not only the fresh-chat empty state. */""}
+      <p class="aimax-aihint">Sporve AI can make mistakes. You approve any message or change before it happens.</p>
     </section></div>${fabHTML(true)}`;
   }
   /* THE WIDGET IS THE BAR. Owner, 2026-08-13: "all that should show on the
@@ -7602,6 +7619,10 @@ function aiDockHTML(){
                stroke-width="2" stroke-linecap="round" aria-hidden="true">
             <path d="M6 6l12 12M18 6L6 18"/></svg></button>
       </form>
+      ${/* AI-disclosure (Claude Usage Policy) shown once a conversation exists
+           — the at-rest bar stays "just the bar" (owner), but the moment it is
+           a live chat session the user is told it's AI. */""}
+      ${convo?`<p class="aidock-aihint">Sporve AI can make mistakes. You approve any message or change first.</p>`:""}
     </section></div>`:""}${fabHTML(open)}`;
 }
 
