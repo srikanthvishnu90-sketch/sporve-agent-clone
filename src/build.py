@@ -139,8 +139,14 @@ else:
 # shipping unreadable text.
 PAGE_SPORT = {
     "what-is": "#2EA136", "background-checks": "#009AA0", "examples": "#009F77",
-    "search": "#DA5A05", "map-search": "#748C00", "instant-booking": "#2384FB",
-    "messaging": "#D54F8A", "bookings-receipts": "#C27000", "saved": "#DA4E77",
+    # search was #DA5A05 and bookings-receipts #C27000 — both inside the 15-45deg
+    # orange band the standing rule bans. As PAGE accents they are chrome, not
+    # sport-context, so the exemption does not apply; the audit caught them as
+    # orange primary CTAs and 64px orange numerals. Swapped within the existing
+    # ramp (Water Polo cyan, Cricket teal); the WCAG derivation below re-checks
+    # the ink/bright variants and fails the build on a miss.
+    "search": "#0096BA", "map-search": "#748C00", "instant-booking": "#2384FB",
+    "messaging": "#D54F8A", "bookings-receipts": "#009D87", "saved": "#DA4E77",
     "athlete-progress": "#9A68E0", "scheduling": "#878500", "payments": "#00A15E",
     "roster": "#0092CA", "session-notes": "#886AF4", "media-consent": "#AB61D3",
     "insights": "#537BFD", "ai-coach": "#7172FA",
