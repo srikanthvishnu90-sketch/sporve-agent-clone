@@ -21,7 +21,7 @@
 <meta name="twitter:description" content="Find coaches, trainers, camps and teams across 20+ sports in Chicagoland.">
 <meta name="twitter:image" content="https://the-sporve-web.vercel.app/og.png">
 <link rel="icon" href="data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%2032%2032'%3E%3Crect%20width='32'%20height='32'%20rx='7'%20fill='%2309090B'/%3E%3Ccircle%20cx='16'%20cy='16'%20r='6'%20fill='white'/%3E%3C/svg%3E">
-<meta name="sporve-build" content="caa690ed19d792a2">
+<meta name="sporve-build" content="c39cea13458b4862">
 </head>
 <body>
 <noscript><h1>Sporve — Every sport. One app.</h1><p>Sporve connects families and athletes with coaches, trainers, camps, and teams across more than 20 sports. Please enable JavaScript to use the app.</p></noscript>
@@ -7374,14 +7374,19 @@ function assistantHTML(){
 function aiContext(){
   if(S.portal!=="coach") return {label:"Sporve", chips:[]};
   const t=S.coachTab||"dashboard";
+  /* Every chip here maps to a REAL coach-command tool — a read the assistant
+     can answer, or a draft it can propose. Removed 2026-08-14: chips that named
+     a capability with no tool behind it ("Summarize this client/thread", "Draft
+     an invoice note", "Suggest a price", "Draft a caption", "What photos am I
+     missing?") — a menu of things the product can't do is the "control that
+     lies" class. The finance/payout chips are also gone while the payment model
+     moves to subscriptions. draft_message is the one with a live send rail;
+     the recap/bulk chips propose a draft the coach dispatches. */
   const MAP={
-    dashboard:["What needs my attention today?","Weekly recap"],
-    roster:   ["Draft reply to parent","Summarize this client","Draft session recap"],
-    inbox:    ["Draft reply to parent","Summarize this thread"],
-    finances: ["Explain this month's payouts","Draft an invoice note"],
-    schedule: ["Fill open slots","Message families about a change"],
-    listings: ["Draft a listing description","Suggest a price"],
-    media:    ["Draft a caption","What photos am I missing?"],
+    dashboard:["What needs my attention today?","Who's booked this week?"],
+    roster:   ["Draft a reply to a parent","Draft a session recap"],
+    inbox:    ["Draft a reply to a parent"],
+    schedule: ["What's on my schedule this week?","Message families about a change"],
   };
   const LABEL={dashboard:"Home",roster:"Clients",inbox:"Messages",finances:"Earnings",
                schedule:"Schedule",listings:"Listings",media:"Media",operations:"Operations",
@@ -7466,10 +7471,14 @@ function aiDockHTML(){
     ? S.chat.map((m,i)=>m.role==="user"
         ? `<div class="bub me" style="max-width:82%">${esc(m.text)}</div>`
         : `<div style="max-width:94%;align-self:flex-start;display:flex;flex-direction:column;gap:8px">
-             ${(m.tools||[]).length?`<div class="aidock-toolsline">Checked ${
-               m.tools.map(t=>({get_schedule:"your schedule",get_bookings:"your bookings",
-                 get_roster:"your roster",whos_booked:"who's booked",get_earnings:"earnings",
-                 get_waitlist:"the waitlist"}[t]||esc(t))).join(", ")}</div>`:""}
+             ${/* Only tools that actually READ data get a "Checked…" line.
+                  get_earnings/get_waitlist return a note, not a query result, so
+                  claiming "Checked earnings/the waitlist" was a false report of a
+                  read that never happened — dropped from the caption (L2). */""}
+             ${(()=>{const LB={get_schedule:"your schedule",get_bookings:"your bookings",
+                 get_roster:"your roster",whos_booked:"who's booked"};
+               const shown=(m.tools||[]).filter(x=>LB[x]);
+               return shown.length?`<div class="aidock-toolsline">Checked ${shown.map(x=>LB[x]).join(", ")}</div>`:"";})()}
              <div class="bub them${m.err?" bub-err":""}">${esc(m.text)}</div>
              ${m.err&&m.retry?`<button class="btn ghost sm" data-airetry="${i}" style="align-self:flex-start">Try again</button>`:""}
              ${m.proposal?propCardHTML(m.proposal,i):""}
