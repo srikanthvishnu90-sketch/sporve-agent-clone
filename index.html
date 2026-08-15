@@ -21,7 +21,7 @@
 <meta name="twitter:description" content="Find coaches, trainers, camps and teams across 20+ sports in Chicagoland.">
 <meta name="twitter:image" content="https://the-sporve-web.vercel.app/og.png">
 <link rel="icon" href="data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%2032%2032'%3E%3Crect%20width='32'%20height='32'%20rx='7'%20fill='%2309090B'/%3E%3Ccircle%20cx='16'%20cy='16'%20r='6'%20fill='white'/%3E%3C/svg%3E">
-<meta name="sporve-build" content="c39cea13458b4862">
+<meta name="sporve-build" content="6d5524d8963dbb33">
 </head>
 <body>
 <noscript><h1>Sporve — Every sport. One app.</h1><p>Sporve connects families and athletes with coaches, trainers, camps, and teams across more than 20 sports. Please enable JavaScript to use the app.</p></noscript>
@@ -7405,8 +7405,9 @@ function aiContext(){
 function propCardHTML(p,i){
   const meta=PROP_META[p.tool]||{label:p.tool.replace(/_/g," "),tab:"dashboard"};
   const isMsgFamily=["draft_message","draft_bulk_message","draft_recap","camp_broadcast","draft_waitlist_offer"].includes(p.tool);
-  const draft=String(p.args&&p.args.body||"");
-  const canSend=p.tool==="draft_message"&&p.args&&p.args.booking_id;
+  const draft=propDraft(p);
+  const disp=PROP_DISPATCH[p.tool];
+  const canSend=!!(disp&&disp.canSend(p));
   if(p.state==="done") return `<div class="propcard done">
     <div class="propcard-head">✓ Done</div>
     <p class="propcard-sub">${esc(meta.label)} — approved and dispatched.</p></div>`;
@@ -7424,7 +7425,7 @@ function propCardHTML(p,i){
       Object.entries(p.args).slice(0,4).map(([k,v])=>esc(k.replace(/_/g," "))+": "+esc(String(v).slice(0,60))).join(" · ")}</p>`:""}
     <div class="propcard-row">
       ${canSend
-        ?`<button class="btn sm" data-approve="${i}"${busy?" disabled":""}>${busy?"Sending…":"Approve & send"}</button>`
+        ?`<button class="btn sm" data-approve="${i}"${busy?" disabled":""}>${busy?esc(disp.busy):esc(disp.verb)}</button>`
         :`${draft?`<button class="btn sm" data-copyprop="${i}">Copy draft</button>`:""}
            <button class="btn ghost sm" data-coachtab="${esc(meta.tab)}">Open ${
              {inbox:"Messages",schedule:"Schedule",listings:"Listings",profile:"Settings",media:"Media",dashboard:"Home"}[meta.tab]||meta.tab}</button>`}
@@ -12866,48 +12867,93 @@ const PROP_META={
   set_profile_image:   {label:"Change your profile photo",  tab:"media"},
   set_gallery_image:   {label:"Add a gallery photo",        tab:"media"},
 };
+
+/* THE LIVE DISPATCH RAILS. A tool listed here can be APPROVED into a real
+   change; every other tool falls back to the honest draft + deep-link. Each
+   entry dispatches through an EXISTING RLS-scoped repo method under the coach's
+   own JWT — never a new mutation path (L-012). Adding a tool is a data entry
+   here plus its repo method, not a rewrite of the card or the handler.
+     canSend  — is the rail usable for THIS proposal (has the ids/args it needs)?
+     verb     — the Approve button label; busy — its in-flight label.
+     run      — (proposal, editedDraftText) => Promise; throws/rejects loudly.
+     done/fail — the confirmation / failure bubble text (fail gets the reason). */
+const PROP_DISPATCH={
+  draft_message:{
+    canSend:p=>!!(p.args&&p.args.booking_id), verb:"Approve & send", busy:"Sending…",
+    run:(p,text)=>{
+      if(!window.SporveCoach||!window.SporveCoach.sendParentMessage)
+        throw new Error("The coach account module didn't load.");
+      return window.SporveCoach.sendParentMessage(p.args.booking_id,text);
+    },
+    done:res=>"Sent"+(res&&res.firstName?" to "+res.firstName+"'s parent":"")+". It's in your Messages thread now.",
+    fail:why=>"That didn't send — "+why+" Nothing reached the parent.",
+  },
+  draft_bio:{
+    /* The coach editing their OWN bio through the existing allowlisted
+       providers PATCH (bio is in EDITABLE). No parent, no money, no consent —
+       the safest possible second rail. */
+    /* Gate on a draft to approve, like draft_message gates on a booking_id —
+       no editable text means nothing to save, so show the deep-link, not an
+       Approve button over an empty card. Clearing the textarea then approving
+       still rejects loudly (run() re-checks). */
+    canSend:p=>!!(window.SporveCoach&&window.SporveCoach.save&&propDraft(p).trim()), verb:"Approve & save", busy:"Saving…",
+    run:(p,text)=>{
+      if(!window.SporveCoach||!window.SporveCoach.save)
+        throw new Error("The coach account module didn't load.");
+      const bio=String(text||"").trim();
+      if(!bio) return Promise.reject(new Error("The bio is empty."));
+      return window.SporveCoach.save({bio});
+    },
+    done:()=>"Saved. Your bio is updated on your profile.",
+    fail:why=>"That didn't save — "+why+" Your bio is unchanged.",
+  },
+};
+/* The editable draft the card shows and the handler dispatches. The model may
+   key parent messages on args.body and a bio draft on args.draft/args.bio, so
+   read any of them — whichever it used becomes the one editable field. */
+function propDraft(p){
+  return String((p.args&&(p.args.body||p.args.draft||p.args.bio||p.args.text))||"");
+}
 function proposalAt(i){
   const m=S.chat[i];
   return (m&&m.role==="coach"&&m.proposal)?m.proposal:null;
 }
 function approveProposal(i){
   const p=proposalAt(i);
-  if(!p||p.state!=="open"||p.tool!=="draft_message") return;
+  if(!p||p.state!=="open") return;
+  const disp=PROP_DISPATCH[p.tool];
+  /* Only a tool with a live rail can be approved into a change. Anything else
+     never rendered an Approve button (propCardHTML gates on the same table),
+     so this is the belt to that brace. */
+  if(!disp||!disp.canSend(p)) return;
   /* The coach may have edited the draft in the card — if the textarea EXISTS
-     its value is the truth, even when that value is empty. `(ta&&ta.value)||…`
-     would silently resurrect the model's original wording the moment a coach
-     cleared the box, which is the opposite of "your edit wins". An emptied
-     draft rejects downstream with "The message is empty." — honest, not
-     helpful-by-substitution. */
+     its value is the truth, even when empty. `(ta&&ta.value)||…` would silently
+     resurrect the model's original wording the moment a coach cleared the box,
+     which is the opposite of "your edit wins". An emptied draft rejects
+     downstream (e.g. "The message is empty."), honest not helpful-by-substitution. */
   const ta=document.getElementById("propEdit"+i);
-  const bodyText=ta?ta.value:String(p.args.body||"");
+  const text=ta?ta.value:propDraft(p);
   const epoch=chatEpoch;
   p.state="sending";render();
   /* Promise.resolve() first, so a SYNCHRONOUS throw (module not loaded,
      unexpected state) lands in the same .catch as a network failure instead
-     of leaving the card stuck on "Sending…". */
-  Promise.resolve().then(()=>{
-    if(!window.SporveCoach||!window.SporveCoach.sendParentMessage)
-      throw new Error("The coach account module didn't load.");
-    return window.SporveCoach.sendParentMessage(p.args.booking_id,bodyText);
-  }).then(res=>{
-    /* The card's own state updates wherever its thread now lives (archived
-       or on screen); the CONFIRMATION bubble only joins the thread the coach
-       is still looking at. */
+     of leaving the card stuck on the busy state. */
+  Promise.resolve().then(()=>disp.run(p,text)).then(res=>{
+    /* The card's own state updates wherever its thread now lives (archived or
+       on screen); the CONFIRMATION bubble only joins the thread the coach is
+       still looking at. */
     p.state="done";
     if(epoch===chatEpoch){
-      S.chat=[...S.chat,{role:"coach",
-        text:"Sent"+(res&&res.firstName?" to "+res.firstName+"'s parent":"")+". It's in your Messages thread now."}];
+      S.chat=[...S.chat,{role:"coach",text:disp.done(res)}];
     }
     render();
   }).catch(e=>{
-    /* Loud, specific, and honest about state: the send REJECTED, so nothing
-       reached the parent. The proposal reopens so the coach can retry. */
+    /* Loud, specific, honest about state: the dispatch REJECTED, so nothing
+       changed. The proposal reopens so the coach can retry. */
     p.state="open";
     if(epoch===chatEpoch){
       const why=((e&&e.message)||"the request was refused").replace(/\.?\s*$/,".");
-      S.chat=[...S.chat,{role:"coach",err:true,
-        text:"That didn't send — "+why+" Nothing reached the parent."}];
+      S.chat=[...S.chat,{role:"coach",err:true,text:disp.fail(why)}];
     }
     render();
   });
