@@ -10,6 +10,7 @@
    ═══════════════════════════════════════════════════════════════════ */
 :root{
   --paper:#FFFFFF;
+  --canvas-dark:#0A0C0F;
   --raise:#F7F8FA;      /* surface-1 — slate-cast, not neutral grey */
   --raise2:#EFF2F5;     /* surface-2 */
   --ink:#000000;
@@ -3546,7 +3547,7 @@ body.reg-coach .navlink{font-size:var(--text-md)}
 .pgband.slate{background:#E9EEF4;border-bottom-color:#CBD5E1}
 .pgband.slate.alt{background:#F1F5F9}
 .pgband.white{background:var(--paper)}
-.pgband.dark{background:#09090B;border-bottom-color:#1C222B}
+.pgband.dark{background:var(--canvas-dark);border-bottom-color:#1C222B}
 .pgband.dark h2,.pgband.dark .pg-serif{color:#fff}
 .pgband.dark p{color:#94A3B8}
 /* On the obsidian band the italic accent must brighten — --ps-ink resolves
@@ -4120,12 +4121,20 @@ body.reg-coach .navlink{font-size:var(--text-md)}
    a sample UI cannot be mistaken for the page's sport voice. */
 .rebuild-page .pg-hero{padding:0}
 .rebuild-page .pg-hero .shell{padding-top:clamp(18px,2.4vh,24px);padding-bottom:clamp(18px,2.4vh,24px)}
+.rebuild-page .pg-hero-inner{display:grid;grid-template-columns:minmax(0,1.12fr) minmax(280px,.88fr);
+  gap:clamp(28px,6vw,88px);align-items:end}
+.rebuild-page .pg-hero-title,.rebuild-page .pg-hero-copy{min-width:0}
 .rebuild-page .pg-h1{max-width:28ch;margin-top:0;text-wrap:balance}
 .rebuild-page .pg-sub{max-width:70ch;margin-top:12px;font-size:clamp(16px,1.4vw,18px);line-height:1.5;text-wrap:pretty}
 .rebuild-page .pg-ctarow{margin-top:20px}
 .rebuild-page .pg-kxrow:hover b{color:var(--ink)}
 .rebuild-page [data-prose]{text-wrap:pretty}
 .rebuild-page .pgband:not(.pg-hero){padding:clamp(48px,7vw,82px) 0}
+.rebuild-page .pg-eyebrow{font-family:ui-monospace,"SF Mono",Menlo,monospace;font-size:var(--text-xs);
+  line-height:1.3;letter-spacing:.16em;text-transform:uppercase;color:var(--faint);margin:0 0 13px}
+.rebuild-page .dark .pg-h1{color:#fff}
+.rebuild-page .pgband [data-prose]{font-size:clamp(14px,1.05vw,15.5px);line-height:1.72}
+.rebuild-page .pg-sub[data-prose]{font-size:clamp(15px,1.28vw,17px);line-height:1.58}
 
 /* R1 — statement + four-step walkthrough. */
 .pg-walkthrough{border-bottom:1px solid var(--rule)}
@@ -4205,26 +4214,227 @@ body.reg-coach .navlink{font-size:var(--text-md)}
 .pg-definition-row{display:grid;grid-template-columns:minmax(180px,.55fr) minmax(0,1.45fr);
   gap:clamp(26px,6vw,84px);padding:25px 0;border-bottom:1px solid var(--rule)}
 .pg-definition-row dt{font-weight:800;font-size:var(--text-lg);letter-spacing:-.015em}
-.pg-definition-row dd{color:var(--muted);font-size:var(--text-base);line-height:1.65}
+.pg-definition-row dd{margin:0;color:var(--muted);font-size:var(--text-base);line-height:1.65}
 
 /* R6 — policy as questions and full answers, never collapsed. */
 .pg-question-ledger{border-top:1px solid var(--rule)}
 .pg-question-row{display:grid;grid-template-columns:minmax(230px,.68fr) minmax(0,1.32fr);
   gap:clamp(32px,7vw,96px);padding:30px 0;border-bottom:1px solid var(--rule)}
 .pg-question-row dt{font-size:clamp(20px,2vw,28px);line-height:1.2;font-weight:800;letter-spacing:-.02em}
-.pg-question-row dd{color:var(--muted);font-size:var(--text-base);line-height:1.7;max-width:70ch}
+.pg-question-row dd{margin:0;color:var(--muted);font-size:var(--text-base);line-height:1.7;max-width:70ch}
+
+/* ══════════════ FOURTEEN PAGE SILHOUETTES ══════════════
+   A recipe names the content job; these rules give every route its own visible
+   composition. The declarations deliberately vary hero geometry, section
+   rhythm, reading direction and artifact position rather than swapping copy
+   inside one universal shell. */
+
+/* 01 — What is Sporv: dark manifesto / six-cell field / dark claim / ledger. */
+.pg-what-is .pg-hero-inner{grid-template-columns:minmax(280px,.78fr) minmax(0,1.22fr);align-items:center}
+.pg-what-is .pg-h1{font-size:clamp(48px,6.5vw,78px);max-width:10ch}
+.pg-what-is .pg-hero-copy{padding-left:clamp(0px,3vw,46px);border-left:1px solid #2A3038}
+.pg-capability-grid{display:grid;grid-template-columns:repeat(3,1fr);border-top:1px solid var(--rule);
+  border-left:1px solid var(--rule)}
+.pg-capability-grid article{min-height:200px;padding:28px;border-right:1px solid var(--rule);border-bottom:1px solid var(--rule)}
+.pg-capability-grid h2{font-family:ui-monospace,"SF Mono",Menlo,monospace;font-size:var(--text-xs);
+  letter-spacing:.14em;text-transform:uppercase;margin-bottom:20px}
+.pg-capability-grid p{color:var(--muted);max-width:38ch}
+.pg-market-claim .shell{display:grid;grid-template-columns:minmax(260px,.9fr) minmax(0,1.1fr);
+  gap:clamp(42px,8vw,120px);align-items:end}
+.pg-market-claim h2{font-size:clamp(34px,4.7vw,62px);line-height:1.02;max-width:14ch}
+.pg-market-claim p{max-width:62ch;color:#fff!important}
+.pg-what-questions .pg-question-row{grid-template-columns:minmax(210px,.5fr) minmax(0,1.5fr)}
+
+/* 02 — Checks: threshold hero / five stages / one honesty interruption / 2×2 questions. */
+.pg-background-checks .pg-hero-inner{grid-template-columns:minmax(0,1.42fr) minmax(300px,.58fr);align-items:center}
+.pg-background-checks .pg-hero .shell{padding-top:14px;padding-bottom:14px}
+.pg-background-checks .pg-h1{font-size:clamp(44px,5vw,64px);max-width:12ch}
+.pg-background-checks [data-layout="walk-five"] .pg-walk-step{grid-template-columns:84px minmax(230px,.72fr) minmax(0,1.28fr)}
+.pg-check-honesty .shell{display:grid;grid-template-columns:minmax(250px,.72fr) minmax(0,1.28fr);
+  gap:clamp(46px,8vw,120px);align-items:start}
+.pg-check-honesty h2{font-size:clamp(34px,4vw,52px);max-width:12ch;line-height:1.06}
+.pg-check-honesty p{color:#fff!important;max-width:62ch;margin-top:22px}
+.pg-check-honesty p:first-child{margin-top:0}
+.pg-check-questions .pg-question-ledger{display:grid;grid-template-columns:repeat(2,1fr);border-left:1px solid var(--rule)}
+.pg-check-questions .pg-question-row{display:block;padding:28px;border-right:1px solid var(--rule);border-bottom:1px solid var(--rule)}
+.pg-check-questions .pg-question-row dt{font-size:var(--text-lg);min-height:48px}
+.pg-check-questions .pg-question-row dd{margin-top:18px}
+
+/* 03 — Search: wide eligibility statement / inverse filter machine / white comparison ledger. */
+.pg-search .pg-hero-inner{grid-template-columns:minmax(0,1.35fr) minmax(340px,.65fr);align-items:center}
+.pg-search .pg-h1{font-size:clamp(44px,5.2vw,68px);max-width:14ch}
+.pg-search-match-grid{display:grid;grid-template-columns:minmax(0,1.03fr) minmax(380px,.97fr);
+  gap:clamp(52px,9vw,132px);align-items:start}
+.pg-search-copy h2{color:#fff;font-size:clamp(30px,3.4vw,46px);line-height:1.08;max-width:17ch}
+.pg-search-copy>p[data-prose]{color:#fff!important;max-width:62ch;margin-top:20px}
+.pg-search-match .pg-mono-ui{background:transparent;border-color:#fff;color:#fff}
+.pg-search-match .pg-ui-head,.pg-search-match .pg-ui-row{border-color:#2A3038}
+.pg-search-match .pg-ui-key,.pg-search-match .pg-flat-figure figcaption{color:#AEB8C4}
+.pg-search-match .pg-ui-value{color:#fff}
+.pg-search-compare .pg-comparison tbody th{font-size:var(--text-base)}
+
+/* 04 — Map: cornered thesis / offset argument / full dark comparison field. */
+.pg-map-search .pg-hero-inner{grid-template-columns:minmax(300px,.68fr) minmax(0,1.32fr);align-items:start}
+.pg-map-search .pg-hero-copy{padding-top:34px;max-width:58ch;margin-left:auto}
+.pg-map-search .pg-h1{max-width:14ch}
+.pg-map-argument .shell{display:flex;justify-content:flex-end}
+.pg-map-argument .pg-argument{width:min(72ch,72%);border-left:1px solid var(--ink);padding-left:clamp(28px,5vw,72px)}
+.pg-map-table .pg-comparison-wrap{border-color:#343A43}
+.pg-map-table .pg-comparison th,.pg-map-table .pg-comparison td{border-color:#343A43}
+.pg-map-table .pg-comparison tbody tr{border-color:#343A43}
+.pg-map-table .pg-comparison thead th{color:#AEB8C4}
+.pg-map-table .pg-comparison tbody th,.pg-map-table .pg-comparison td:last-child{color:#fff}
+.pg-map-table .pg-comparison td{color:#AEB8C4}
+
+/* 05 — Instant booking: compact ticket head / inverse two-column booking record. */
+.pg-instant-booking .pg-hero-inner{grid-template-columns:minmax(0,.92fr) minmax(360px,1.08fr);align-items:center}
+.pg-instant-booking .pg-hero-title{padding-right:clamp(28px,5vw,70px);border-right:1px solid var(--ink)}
+.pg-instant-booking .pg-h1{max-width:12ch}
+.pg-instant-product .pg-r4-grid{grid-template-columns:minmax(330px,.76fr) minmax(420px,1.24fr);align-items:center}
+.pg-instant-product .pg-r4-copy h2{color:#fff}
+.pg-instant-product .pg-r4-copy p{color:#fff!important}
+.pg-instant-product .pg-flat-figure figcaption{color:#C4CDD7}
+
+/* 06 — Messaging: centered question / three parallel essay columns / four-part index. */
+.pg-messaging .pg-hero-inner{display:block;text-align:center}
+.pg-messaging .pg-hero-title{display:flex;flex-direction:column;align-items:center}
+.pg-messaging .pg-hero-copy{max-width:72ch;margin:18px auto 0}.pg-messaging .pg-ctarow{justify-content:center}
+.pg-messaging .pg-h1{max-width:none;font-size:clamp(38px,3.5vw,44px);line-height:1}
+.pg-message-essay .shell{display:block}
+.pg-message-essay h2{max-width:22ch;font-size:clamp(38px,4.8vw,62px);margin-bottom:48px}
+.pg-message-essay .pg-dark-copy{display:grid;grid-template-columns:repeat(3,1fr);gap:0}
+.pg-message-essay .pg-dark-copy p{margin:0;padding:0 clamp(22px,3vw,42px);border-left:1px solid #343A43}
+.pg-message-essay .pg-dark-copy p:first-child{padding-left:0;border-left:0}
+.pg-message-defs .pg-definition-list{display:grid;grid-template-columns:repeat(4,1fr);border-left:1px solid var(--rule)}
+.pg-message-defs .pg-definition-row{display:block;padding:25px;border-right:1px solid var(--rule)}
+.pg-message-defs .pg-definition-row dd{margin-top:18px}
+
+/* 07 — Booking records: three-column receipt head / rail above a three-column essay. */
+.pg-bookings-receipts .pg-hero-inner{grid-template-columns:minmax(240px,.78fr) minmax(280px,.82fr) minmax(230px,.4fr);align-items:start}
+.pg-bookings-receipts .pg-h1{max-width:11ch}
+.pg-hero-receipt{font-family:ui-monospace,"SF Mono",Menlo,monospace;border-top:1px solid var(--ink)}
+.pg-hero-receipt div{display:flex;justify-content:space-between;gap:16px;padding:12px 0;border-bottom:1px solid var(--rule);
+  font-size:var(--text-xs);line-height:1.4}
+.pg-hero-receipt span{color:var(--faint);letter-spacing:.08em}.pg-hero-receipt b{text-align:right}
+.pg-booking-record .pg-essay-stat{display:flex;flex-direction:column;gap:52px}
+.pg-booking-record .pg-stat-rail{order:-1;display:grid;grid-template-columns:repeat(3,1fr)}
+.pg-booking-record .pg-rail-stat{padding:22px 28px;border-right:1px solid var(--rule)}
+.pg-booking-record .pg-rail-stat:first-child{padding-left:0}.pg-booking-record .pg-rail-stat:last-child{border-right:0}
+.pg-booking-record .pg-essay{display:grid;grid-template-columns:repeat(3,1fr);gap:clamp(24px,4vw,54px)}
+.pg-booking-record .pg-essay h2{grid-column:1/-1;max-width:20ch;margin-bottom:0}
+.pg-booking-record .pg-essay p{margin-top:0}
+
+/* 08 — Athlete progress: dark three-part marker / figure before explanation. */
+.pg-athlete-progress .pg-hero-inner{grid-template-columns:minmax(240px,.8fr) minmax(280px,.78fr) minmax(170px,.42fr);align-items:center}
+.pg-athlete-progress .pg-h1{max-width:10ch}
+.pg-hero-progress{display:grid;grid-template-columns:1fr;gap:7px;border-top:1px solid #343A43;border-bottom:1px solid #343A43;
+  padding:18px 0;font-family:ui-monospace,"SF Mono",Menlo,monospace}
+.pg-hero-progress span{color:#AEB8C4;font-size:var(--text-xs);letter-spacing:.1em}
+.pg-hero-progress strong{color:#fff;font-size:clamp(30px,4vw,48px);font-weight:500;line-height:1}
+.pg-progress-product .pg-r4-grid{grid-template-columns:minmax(420px,1.18fr) minmax(320px,.82fr);align-items:center}
+.pg-progress-product .pg-flat-figure{order:-1}
+
+/* 09 — Scheduling: live-week head / four operational steps in a 2×2 board. */
+.pg-scheduling .pg-hero-inner{grid-template-columns:minmax(230px,.76fr) minmax(290px,.78fr) minmax(240px,.46fr);align-items:start}
+.pg-scheduling .pg-h1{max-width:11ch}
+.pg-hero-schedule{font-family:ui-monospace,"SF Mono",Menlo,monospace;border-top:1px solid #343A43}
+.pg-hero-schedule div{display:flex;justify-content:space-between;gap:18px;padding:12px 0;border-bottom:1px solid #343A43;
+  color:#fff;font-size:var(--text-xs)}
+.pg-hero-schedule span{color:#AEB8C4}.pg-hero-schedule b{font-weight:600}
+.pg-scheduling .pg-walkthrough{display:grid;grid-template-columns:repeat(2,1fr);border-left:1px solid var(--rule)}
+.pg-scheduling .pg-walk-step{display:block;padding:32px;border-right:1px solid var(--rule);border-top:1px solid var(--rule)}
+.pg-scheduling .pg-walk-step:first-child{padding-top:32px}.pg-scheduling .pg-walk-step:last-child{padding-bottom:32px}
+.pg-scheduling .pg-walk-step h2{margin-top:22px;max-width:14ch}.pg-scheduling .pg-walk-step p{margin-top:18px}
+
+/* 10 — Payments: calculation in the hero / payout rail read before the essay. */
+.pg-payments .pg-hero-inner{grid-template-columns:minmax(230px,.72fr) minmax(290px,.76fr) minmax(210px,.52fr);align-items:center}
+.pg-payments .pg-h1{max-width:11ch}
+.pg-hero-math{border-left:1px solid #343A43;padding-left:clamp(24px,4vw,52px);font-family:ui-monospace,"SF Mono",Menlo,monospace}
+.pg-hero-math code{display:block;white-space:pre;color:#fff;font-size:clamp(17px,2vw,24px);line-height:1.45}
+.pg-hero-math span{display:block;color:#AEB8C4;font-size:var(--text-xs);letter-spacing:.12em;margin-top:14px}
+.pg-payment-ledger .pg-essay-stat{grid-template-columns:minmax(240px,.58fr) minmax(0,1.42fr)}
+.pg-payment-ledger .pg-stat-rail{order:-1;border-top:0;border-right:1px solid var(--ink);padding-right:clamp(28px,5vw,70px)}
+.pg-payment-ledger .pg-essay{grid-column:2}
+
+/* 11 — Roster: compact index head / full-width table / four-column explanation. */
+.pg-roster .pg-hero-inner{grid-template-columns:minmax(260px,.58fr) minmax(0,1.42fr);align-items:start}
+.pg-roster .pg-hero-title{text-align:right}.pg-roster .pg-h1{margin-left:auto;max-width:11ch}
+.pg-roster .pg-hero-copy{max-width:62ch;border-left:1px solid var(--ink);padding-left:clamp(30px,5vw,72px)}
+.pg-roster-grid{grid-template-columns:1fr;gap:52px}
+.pg-roster-grid .pg-flat-figure{order:-1}
+.pg-roster-grid .pg-r4-copy{display:grid;grid-template-columns:minmax(190px,.8fr) repeat(3,minmax(0,1fr));gap:clamp(20px,3vw,42px)}
+.pg-roster-grid .pg-r4-copy h2{font-size:clamp(25px,2.8vw,38px);margin:0}.pg-roster-grid .pg-r4-copy p{margin:0}
+
+/* 12 — Session notes: marginal title / numbered editorial sequence / paired definitions. */
+.pg-session-notes .pg-hero-inner{grid-template-columns:minmax(0,.72fr) minmax(380px,1.28fr);align-items:start}
+.pg-session-notes .pg-hero-title{padding-top:28px}.pg-session-notes .pg-h1{max-width:10ch}
+.pg-session-notes .pg-hero-copy{border-top:1px solid var(--ink);padding-top:22px}
+.pg-note-essay .shell{grid-template-columns:minmax(220px,.54fr) minmax(0,1.46fr)}
+.pg-note-essay .pg-dark-copy article{display:grid;grid-template-columns:54px minmax(0,1fr);gap:24px;padding:24px 0;border-top:1px solid #343A43}
+.pg-note-essay .pg-dark-copy article:first-child{padding-top:0;border-top:0}
+.pg-note-essay .pg-dark-copy article>span{font-family:ui-monospace,"SF Mono",Menlo,monospace;color:#AEB8C4;font-size:var(--text-xs)}
+.pg-note-essay .pg-dark-copy p{margin:0}
+.pg-note-defs .pg-definition-list{display:grid;grid-template-columns:repeat(2,1fr);border-left:1px solid var(--rule)}
+.pg-note-defs .pg-definition-row{display:block;padding:28px;border-right:1px solid var(--rule)}
+.pg-note-defs .pg-definition-row dd{margin-top:16px}
+
+/* 13 — Consent: right-weighted dark declaration / alternating question measure. */
+.pg-media-consent .pg-hero-inner{grid-template-columns:minmax(280px,.9fr) minmax(0,1.1fr);align-items:end}
+.pg-media-consent .pg-hero-title{grid-column:2;text-align:right}.pg-media-consent .pg-h1{margin-left:auto;max-width:12ch}
+.pg-media-consent .pg-hero-copy{grid-column:1;grid-row:1;border-right:1px solid #343A43;padding-right:clamp(30px,5vw,72px)}
+.pg-consent-questions .pg-question-row{width:78%;grid-template-columns:minmax(210px,.72fr) minmax(0,1.28fr)}
+.pg-consent-questions .pg-question-row:nth-child(even){margin-left:22%}
+
+/* 14 — Insights: dark metric head / right-set thesis / compact evidence table. */
+.pg-insights .pg-hero-inner{grid-template-columns:minmax(260px,.78fr) minmax(370px,1fr) minmax(170px,.4fr);align-items:center}
+.pg-insights .pg-h1{max-width:13ch;font-size:clamp(40px,3.3vw,48px)}
+.pg-hero-metrics{border-top:1px solid #343A43}
+.pg-hero-metrics div{padding:16px 0;border-bottom:1px solid #343A43}
+.pg-hero-metrics strong{display:block;color:#fff;font-family:ui-monospace,"SF Mono",Menlo,monospace;
+  font-size:clamp(28px,3.4vw,44px);line-height:1;font-weight:500}
+.pg-hero-metrics span{display:block;color:#AEB8C4;font-size:var(--text-xs);line-height:1.45;margin-top:8px}
+.pg-insights-argument .shell{display:flex;justify-content:flex-end}.pg-insights-argument .pg-argument{width:min(64ch,62%)}
+.pg-insights-table .pg-comparison tbody th{font-size:var(--text-base)}
+.pg-insights-table .pg-comparison th,.pg-insights-table .pg-comparison td{padding-top:18px;padding-bottom:18px}
+.rebuild-page .pgband.dark [data-prose]{color:#fff!important}
 
 @media(max-width:820px){
+  .rebuild-page .pg-hero-inner{grid-template-columns:1fr!important;gap:16px;align-items:start}
+  .rebuild-page .pg-hero-inner>aside{display:none}
+  .rebuild-page .pg-hero-title,.rebuild-page .pg-hero-copy{grid-column:auto!important;grid-row:auto!important;
+    text-align:left!important;margin-left:0!important;padding-left:0!important;padding-right:0!important;border-left:0!important;border-right:0!important}
+  .rebuild-page .pg-h1{margin-left:0!important}
   .pg-walk-step{grid-template-columns:48px 1fr;gap:12px 18px}
   .pg-walk-step p{grid-column:2}
   .pg-essay-stat,.pg-r4-grid,.pg-dark-essay .shell{grid-template-columns:1fr;gap:42px}
   .pg-r4-grid{grid-template-columns:minmax(0,1fr)}
   .pg-definition-row,.pg-question-row{grid-template-columns:1fr;gap:10px}
+  .pg-capability-grid{grid-template-columns:repeat(2,1fr)}
+  .pg-market-claim .shell,.pg-check-honesty .shell,.pg-search-match-grid{grid-template-columns:1fr;gap:38px}
+  .pg-background-checks [data-layout="walk-five"] .pg-walk-step{grid-template-columns:48px 1fr}
+  .pg-check-questions .pg-question-ledger{grid-template-columns:1fr}
+  .pg-map-argument .pg-argument,.pg-insights-argument .pg-argument{width:100%}
+  .pg-instant-product .pg-r4-grid,.pg-progress-product .pg-r4-grid{grid-template-columns:1fr}
+  .pg-message-essay .pg-dark-copy{grid-template-columns:1fr}
+  .pg-message-essay .pg-dark-copy p{padding:24px 0;border-left:0;border-top:1px solid #343A43}
+  .pg-message-essay .pg-dark-copy p:first-child{padding-top:0;border-top:0}
+  .pg-message-defs .pg-definition-list{grid-template-columns:repeat(2,1fr)}
+  .pg-booking-record .pg-essay{grid-template-columns:1fr}.pg-booking-record .pg-stat-rail{grid-template-columns:1fr}
+  .pg-booking-record .pg-rail-stat{padding-left:0;border-right:0}
+  .pg-scheduling .pg-walkthrough{grid-template-columns:1fr}
+  .pg-payment-ledger .pg-essay-stat{grid-template-columns:1fr}.pg-payment-ledger .pg-essay{grid-column:auto}
+  .pg-payment-ledger .pg-stat-rail{border-right:0;padding-right:0}
+  .pg-roster-grid .pg-r4-copy{grid-template-columns:repeat(2,1fr)}
+  .pg-note-defs .pg-definition-list{grid-template-columns:1fr}
+  .pg-consent-questions .pg-question-row{width:100%;margin-left:0!important;grid-template-columns:1fr;gap:10px}
 }
 @media(max-width:520px){
   .rebuild-page .pg-h1{font-size:clamp(36px,11vw,48px)}
   .pg-walk-step{grid-template-columns:1fr}.pg-walk-step p{grid-column:auto}
+  .pg-background-checks [data-layout="walk-five"] .pg-walk-step{grid-template-columns:1fr}
   .pg-ui-row{grid-template-columns:1fr;gap:4px}
+  .pg-capability-grid,.pg-message-defs .pg-definition-list,.pg-roster-grid .pg-r4-copy{grid-template-columns:1fr}
+  .pg-capability-grid article{min-height:0}
 }
 </style>
 

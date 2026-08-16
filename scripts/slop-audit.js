@@ -144,19 +144,42 @@ window.SLOP_AUDIT = function (root) {
     out.fail.pills.push("FILLER: deprecated product-page tagline in rendered text");
   }
 
-  /* H — strict recipe and copy contract for the fourteen assigned pages.
-     [data-prose] is intentional accounting: it includes explanation and table
-     prose, and excludes navigation, numerals, controls, and sample UI labels. */
+  /* H — strict blueprint, copy and rendered-silhouette contract for the
+     fourteen current product routes. [data-prose] includes explanation and
+     table prose; it excludes navigation, numerals, controls and UI labels. */
   const product = scope.matches("[data-product-page]")
     ? scope : scope.querySelector("[data-product-page]");
   if (product) {
     const id = product.getAttribute("data-page-id") || "unknown";
-    const expected = {
-      "search":"R1", "map-search":"R2", "instant-booking":"R4",
+    const expectedRecipe = {
+      "search":"B03", "map-search":"R2", "instant-booking":"R4",
       "messaging":"R5", "bookings-receipts":"R3", "athlete-progress":"R4",
       "scheduling":"R1", "payments":"R3", "roster":"R4",
       "session-notes":"R5", "media-consent":"R6", "insights":"R2",
-      "what-is":"R3", "background-checks":"R6"
+      "what-is":"B01", "background-checks":"B02"
+    };
+    const expectedComposition = {
+      "what-is":"manifesto-grid-claim-questions",
+      "background-checks":"threshold-head-walk-honesty-questions",
+      "search":"filter-figure-to-comparison",
+      "map-search":"offset-argument-to-dark-table",
+      "instant-booking":"ticket-head-to-inverse-product",
+      "messaging":"centered-question-to-three-column-essay",
+      "bookings-receipts":"receipt-head-to-horizontal-record",
+      "athlete-progress":"progress-head-to-figure-first-record",
+      "scheduling":"calendar-head-to-staggered-walk",
+      "payments":"math-head-to-rail-first-essay",
+      "roster":"compact-head-to-wide-roster",
+      "session-notes":"margin-head-to-numbered-dark-notes",
+      "media-consent":"consent-head-to-staggered-ledger",
+      "insights":"metric-head-to-argument-to-stacked-table"
+    };
+    const expectedRhythm = {
+      "what-is":"D-L-D-L", "background-checks":"L-L-D-L", "search":"L-D-L",
+      "map-search":"L-L-D", "instant-booking":"L-D", "messaging":"L-D-L",
+      "bookings-receipts":"L-L", "athlete-progress":"D-L", "scheduling":"D-L",
+      "payments":"D-L", "roster":"L-L", "session-notes":"L-D-L",
+      "media-consent":"D-L", "insights":"D-L-L"
     };
     const prose = [...product.querySelectorAll("[data-prose]")].filter(visible);
     out.warn.pageWords = prose.reduce((sum, el) => sum + words(el.textContent), 0);
@@ -169,18 +192,99 @@ window.SLOP_AUDIT = function (root) {
     if (standWords < 50 || standWords > 80) {
       out.fail.product.push(id + ": standfirst=" + standWords + " (expected 50–80)");
     }
+    prose.filter((el) => !el.hasAttribute("data-standfirst")).forEach((el) => {
+      const size = parseFloat(getComputedStyle(el).fontSize);
+      if (size > 16.1) out.fail.product.push(id + ": oversized body prose " + path(el) + "=" + size + "px");
+    });
 
     const recipe = product.getAttribute("data-recipe") || "";
-    if (expected[id] !== recipe) {
-      out.fail.product.push(id + ": recipe=" + (recipe || "missing") + " expected=" + expected[id]);
+    const composition = product.getAttribute("data-composition") || "";
+    const declaredRhythm = product.getAttribute("data-rhythm") || "";
+    if (expectedRecipe[id] !== recipe) {
+      out.fail.product.push(id + ": recipe=" + (recipe || "missing") + " expected=" + expectedRecipe[id]);
+    }
+    if (expectedComposition[id] !== composition) {
+      out.fail.product.push(id + ": composition=" + (composition || "missing"));
     }
 
     const sections = [...product.querySelectorAll(":scope > section[data-section]")]
-      .map((sec) => sec.getAttribute("data-section"))
-      .filter((name) => name !== "keep-exploring");
-    out.warn.fingerprint = recipe + ":" + sections.join(">");
-    if (sections.join(">") === "hero") {
+      .filter((sec) => sec.getAttribute("data-section") !== "keep-exploring");
+    const rhythm = sections.map((sec) => sec.classList.contains("dark") ? "D" : "L").join("-");
+    if (rhythm !== expectedRhythm[id] || declaredRhythm !== expectedRhythm[id]) {
+      out.fail.product.push(id + ": rhythm=" + rhythm + " declared=" + declaredRhythm +
+        " expected=" + expectedRhythm[id]);
+    }
+    sections.filter((sec) => sec.classList.contains("dark")).forEach((sec) => {
+      const bg = getComputedStyle(sec).backgroundColor.replace(/\s+/g, "");
+      if (bg !== "rgb(10,12,15)" && bg !== "rgba(10,12,15,1)") {
+        out.fail.product.push(id + ": dark section is not --canvas-dark (" + bg + ")");
+      }
+    });
+
+    /* Geometry, not recipe names, forms the fingerprint. Widths are recorded
+       as percentages of their actual parent so editorially equivalent grids
+       collide even when viewport pixels differ. */
+    const geom = (container) => {
+      if (!container) return "none";
+      const r = container.getBoundingClientRect();
+      const cs = getComputedStyle(container);
+      const kids = [...container.children].filter(visible);
+      const spans = kids.map((el) => {
+        const k = el.getBoundingClientRect();
+        return Math.round(((k.left - r.left) / Math.max(1, r.width)) * 100) + "/" +
+          Math.round((k.width / Math.max(1, r.width)) * 100);
+      }).join(",");
+      const cols = cs.display === "grid"
+        ? cs.gridTemplateColumns.split(" ").filter(Boolean).map((n) => Math.round(parseFloat(n) || 0)).join("/")
+        : "0";
+      return cs.display + ":" + cols + ":" + kids.length + ":" + spans;
+    };
+    const heroInner = product.querySelector(".pg-hero-inner");
+    const bodyGeometry = sections.slice(1, 3).map((sec) => {
+      const inner = sec.querySelector(":scope > .shell") || sec;
+      return (sec.classList.contains("dark") ? "D" : "L") + ":" + geom(inner);
+    }).join("|");
+    out.warn.fingerprint = rhythm + "|H:" + geom(heroInner) + "|B:" + bodyGeometry;
+
+    if (sections.length < 2 || !heroInner ||
+        !heroInner.querySelector(":scope > .pg-hero-title") ||
+        !heroInner.querySelector(":scope > .pg-hero-copy")) {
       out.fail.product.push(id + ": matches deleted hero/whitespace/footer template");
+    }
+
+    const heroEyebrow = product.querySelector(".pg-hero .pg-eyebrow");
+    if (!heroEyebrow || getComputedStyle(heroEyebrow).textTransform !== "uppercase" ||
+        getComputedStyle(heroEyebrow).letterSpacing === "normal") {
+      out.fail.product.push(id + ": hero needs a spaced-caps eyebrow");
+    }
+
+    product.querySelectorAll(".pg-flat-figure").forEach((figure) => {
+      const caption = figure.querySelector("figcaption[data-prose]");
+      if (!caption || !/\bdemo\b/i.test(caption.textContent)) {
+        out.fail.product.push(id + ": every product figure must disclose demo data in its caption");
+      }
+    });
+
+    if (id === "what-is" &&
+        (product.querySelectorAll(".pg-capability-grid > article").length !== 6 ||
+         !product.querySelector("[data-section='market-claim']") ||
+         product.querySelectorAll(".pg-question-row").length !== 3)) {
+      out.fail.product.push(id + ": needs six bordered capabilities, one dark claim, and three closing questions");
+    }
+    if (id === "background-checks" &&
+        (product.querySelectorAll("[data-step-prose]").length !== 5 ||
+         product.querySelectorAll("[data-section='honesty-panel'] p[data-prose]").length !== 2 ||
+         product.querySelectorAll(".pg-question-row").length !== 4 ||
+         product.querySelector("table,figure"))) {
+      out.fail.product.push(id + ": needs five check stages, two honesty paragraphs, four questions, and no table or figure");
+    }
+    if (id === "search") {
+      const heads = [...product.querySelectorAll(".pg-comparison thead th")]
+        .map((el) => el.textContent.trim().toUpperCase()).join("|");
+      if (!product.querySelector("[data-section='filter-figure'] .pg-flat-figure") ||
+          heads !== "THE JOB|ELSEWHERE|ON SPORV") {
+        out.fail.product.push(id + ": needs the dark filter figure and THE JOB / ELSEWHERE / ON SPORV ledger");
+      }
     }
 
     if (recipe === "R1") {
@@ -235,13 +339,13 @@ window.SLOP_AUDIT = function (root) {
       }
     }
 
-    const accent = [...product.querySelectorAll(".pg-h1 em,.pg-cta")].filter(visible);
-    const extraEm = [...product.querySelectorAll("em")].filter((el) => !el.closest(".pg-h1"));
+    const phrase = [...new Set(product.querySelectorAll(".pg-h1 em,.pg-accent-phrase"))];
+    const accent = [...phrase, ...product.querySelectorAll(".pg-cta")].filter(visible);
+    const extraEm = [...product.querySelectorAll("em")].filter((el) => phrase.indexOf(el) === -1);
     out.warn.accent = accent.map(path);
-    if (product.querySelectorAll(".pg-h1 em").length !== 1 ||
-        product.querySelectorAll(".pg-cta").length !== 1 ||
+    if (phrase.length !== 1 || product.querySelectorAll(".pg-cta").length !== 1 ||
         accent.length !== 2 || extraEm.length) {
-      out.fail.product.push(id + ": accent voice must be one H1 italic plus one CTA");
+      out.fail.product.push(id + ": accent voice must be one italic phrase plus one CTA");
     }
   }
 

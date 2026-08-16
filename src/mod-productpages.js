@@ -12,22 +12,31 @@
     "media-consent", "insights"
   ];
 
-  function hero(meta, headline, standfirst) {
-    return "<section class='pgband slate pg-hero' data-section='hero'><div class='shell' data-rev>" +
-      "<h1 class='pg-serif pg-h1'>" + headline + "</h1>" +
-      "<p class='pg-sub' data-prose data-standfirst>" + standfirst + "</p>" +
-      "<div class='pg-ctarow'>" + pageCTA(meta) + "</div>" +
-      "</div></section>";
+  function hero(meta, headline, standfirst, options) {
+    var o = options || {};
+    var tone = o.tone || "white";
+    var layout = o.layout || "split";
+    var eyebrow = o.eyebrow
+      ? "<p class='pg-eyebrow'>" + o.eyebrow + "</p>"
+      : "";
+    return "<section class='pgband " + tone + " pg-hero pg-hero--" + layout +
+      "' data-section='hero' data-layout='hero-" + layout + "'><div class='shell pg-hero-inner' data-rev>" +
+      "<div class='pg-hero-title'>" + eyebrow + "<h1 class='pg-serif pg-h1'>" + headline + "</h1></div>" +
+      "<div class='pg-hero-copy'><p class='pg-sub' data-prose data-standfirst>" + standfirst + "</p>" +
+      "<div class='pg-ctarow'>" + pageCTA(meta) + "</div></div>" +
+      (o.aside || "") + "</div></section>";
   }
 
-  function wrap(id, recipe, body) {
-    var meta = PAGE_META[id];
+  function wrap(id, recipe, composition, rhythm, body) {
     return "<div class='pgroot pg-" + id + " rebuild-page' data-product-page='true' data-page-id='" +
-      id + "' data-recipe='" + recipe + "'>" + body + pageKX(id) + "</div>";
+      id + "' data-recipe='" + recipe + "' data-composition='" + composition +
+      "' data-rhythm='" + rhythm + "'>" + body + pageKX(id) + "</div>";
   }
 
-  function walkthroughSection(steps) {
-    return "<section class='pgband white' data-section='walkthrough'><div class='shell pg-walkthrough'>" +
+  function walkthroughSection(steps, options) {
+    var o = options || {};
+    return "<section class='pgband " + (o.tone || "white") + "' data-section='walkthrough' data-layout='" +
+      (o.layout || "walk-rows") + "'><div class='shell pg-walkthrough'>" +
       steps.map(function (step, index) {
         return "<article class='pg-walk-step'><div class='pg-walk-num'>" +
           String(index + 1).padStart(2, "0") + "</div><h2>" + step[0] +
@@ -36,20 +45,35 @@
   }
 
   function searchPage(meta) {
-    var intro = "Start with the sport your child wants to play, then narrow the real catalogue by age, level, price, format, and distance. Each result is a listing that exists, from a coach whose own check has cleared, with availability the family can inspect. Saving belongs here too: a saved coach is simply a useful search result kept for later comparison.";
-    var steps = [
-      ["Say what the athlete needs",
-       "A parent begins with a sport and an age, because those two facts decide whether a session belongs in the result set at all. Level, format, budget, and distance then narrow the same catalogue; they do not open separate directories. The coach sees the sport, ages, price, location, and session capacity they published, exactly as the family will search them."],
-      ["Filters remove, never invent",
-       "Every filter operates on fields stored with a real listing. Choosing weekends removes sessions on weekdays. Setting a maximum price removes anything above it. Asking for a private lesson removes camps and teams. If nothing matches, Sporv says so and leaves the criteria visible. It never fills an empty result with a coach who missed the request."],
-      ["Verification wins before ranking",
-       "Trust is applied before sport, age, price, distance, or rating can affect order. A coach without a cleared personal background check is removed from bookable search, even when the business they work for is approved. Families see the remaining coach, the check state, the session details, and the price together. A strong profile cannot outrank a missing safety requirement."],
-      ["Keep the result worth returning to",
-       "Saving does not need its own thin destination story. A parent saves a coach from search, returns to the shortlist, and compares that real listing with other results. The saved record points back to current price and availability, so stale facts do not become a second catalogue. If a listing stops being bookable, saving it never makes it bookable again. The shortlist is a view, never an exemption."]
+    var intro = "Sport is only the first gate. Sporv also reads the athlete's age, current level, preferred format, budget, distance, and the coach's published intensity before a result can belong. Families narrow one real catalogue rather than browsing invented recommendations. A saved coach remains a live search result, so changed availability or verification can never be frozen into a misleading shortlist.";
+    var figure = "<figure class='pg-flat-figure pg-filter-figure'><div class='pg-mono-ui' aria-label='Demonstration of family search filters'>" +
+      "<div class='pg-ui-head'><span>FAMILY SEARCH</span><span>DEMO DATA</span></div>" +
+      "<div class='pg-ui-row'><span class='pg-ui-key'>SPORT</span><span class='pg-ui-value'>Baseball</span></div>" +
+      "<div class='pg-ui-row'><span class='pg-ui-key'>ATHLETE AGE</span><span class='pg-ui-value'>9 years</span></div>" +
+      "<div class='pg-ui-row'><span class='pg-ui-key'>LEVEL</span><span class='pg-ui-value'>Developing fundamentals</span></div>" +
+      "<div class='pg-ui-row'><span class='pg-ui-key'>INTENSITY</span><span class='pg-ui-value'>Age-appropriate</span></div>" +
+      "<div class='pg-ui-row'><span class='pg-ui-key'>RESULT</span><span class='pg-ui-value'>6 bookable sessions remain</span></div></div>" +
+      "<figcaption data-prose>This disclosed demo uses fictional filter values to show the mechanism, not catalogue supply. Each row removes listings that do not match; none of the values can create a coach, a session, or a cleared check.</figcaption></figure>";
+    var rows = [
+      ["Respect the age gate", "A broad sport directory leaves the parent to inspect every profile for age fit.", "Age and intensity are stored with the listing. A nine-year-old never sees varsity-intensity training as a valid match."],
+      ["Show real supply", "A recommendation can look relevant while the coach has no dated opening to take.", "Only published services and current availability enter the result, with price, place, format, and capacity still attached."],
+      ["Apply trust first", "A polished profile may rank before anyone verifies the individual who will coach.", "The personal background-check gate runs before relevance. An unchecked coach cannot be rescued by distance, popularity, or business membership."],
+      ["Save without freezing", "A bookmark often preserves an old promise long after the underlying listing changes.", "The shortlist points back to the current record. A coach who stops being bookable stops being bookable there too."]
     ];
-    return wrap("search", "R1", hero(meta,
-      "Search the catalogue, then keep <em>the right coach.</em>", intro) +
-      walkthroughSection(steps));
+    var table = "<section class='pgband white pg-search-compare' data-section='comparison-table' data-layout='compare-ledger'><div class='shell pg-comparison-wrap'>" +
+      "<table class='pg-comparison'><thead><tr><th>The job</th><th>Elsewhere</th><th>On Sporv</th></tr></thead><tbody>" +
+      rows.map(function (row) {
+        return "<tr><th scope='row' data-prose>" + row[0] + "</th><td data-prose>" + row[1] +
+          "</td><td data-prose>" + row[2] + "</td></tr>";
+      }).join("") + "</tbody></table></div></section>";
+    return wrap("search", "B03", "filter-figure-to-comparison", "L-D-L", hero(meta,
+      "Match the athlete, not just <em>the sport.</em>", intro,
+      { tone: "white", layout: "search-gate", eyebrow: "SPORT, AGE, LEVEL, INTENSITY" }) +
+      "<section class='pgband dark pg-search-match' data-section='filter-figure' data-layout='dark-copy-filter'><div class='shell pg-search-match-grid'>" +
+      "<div class='pg-search-copy'><p class='pg-eyebrow'>THE MATCHING RULE</p><h2>A nine-year-old never sees varsity-intensity training.</h2>" +
+      "<p data-prose>A parent starts with facts the coach has already committed to the listing. Sport and age decide eligibility. Level and intensity protect fit. Format, price, distance, and schedule decide whether the session can work in family life. The result set gets smaller as those facts become specific; Sporv never widens it with a convenient near-match.</p>" +
+      "<p data-prose>The coach sees the same fields while publishing, including the ages served and the kind of instruction being offered. That symmetry matters. Search is not interpreting a vague biography after the fact; it is comparing the family's request with structured supply the coach can correct before anyone books.</p>" +
+      "<p data-prose>Verification is a gate, not another ranking signal. If the named coach's personal check is not cleared, the listing cannot enter bookable search. A saved result, a company affiliation, or a short drive cannot weaken that rule.</p></div>" + figure + "</div></section>" + table);
   }
 
   function schedulingPage(meta) {
@@ -64,9 +88,13 @@
       ["Move the week without losing history",
        "Changing future availability does not rewrite a session that was already booked. The existing booking keeps its date, price, participants, and policy snapshot until the coach and family deliberately change or cancel it. That separation protects both sides: the coach can shape next week freely, while a parent can still prove what was agreed for the session already on the books."]
     ];
-    return wrap("scheduling", "R1", hero(meta,
-      "Publish the hours. Families take <em>the real openings.</em>", intro) +
-      walkthroughSection(steps));
+    var week = "<aside class='pg-hero-schedule' aria-label='Example published week'>" +
+      "<div><span>TUE 04:00</span><b>2 openings</b></div><div><span>THU 05:30</span><b>full</b></div>" +
+      "<div><span>SAT 09:00</span><b>4 openings</b></div><div><span>SUN</span><b>closed</b></div></aside>";
+    return wrap("scheduling", "R1", "calendar-head-to-staggered-walk", "D-L", hero(meta,
+      "Publish the hours. Families take <em>the real openings.</em>", intro,
+      { tone: "dark", layout: "calendar", eyebrow: "COACH AVAILABILITY", aside: week }) +
+      walkthroughSection(steps, { tone: "white", layout: "walk-staggered" }));
   }
 
   function mapPage(meta) {
@@ -85,16 +113,17 @@
        "A directory pin can point at a business even when the individual coach or the advertised time has not been verified.",
        "The same personal-check and live-capacity rules govern map results. Location changes presentation; it never weakens who may appear or what may be booked."]
     ];
-    var table = "<section class='pgband white' data-section='comparison-table'><div class='shell pg-comparison-wrap'>" +
+    var table = "<section class='pgband dark pg-map-table' data-section='comparison-table' data-layout='dark-wide-table'><div class='shell pg-comparison-wrap'>" +
       "<table class='pg-comparison'><thead><tr><th>The job</th><th>Elsewhere</th><th>On Sporv</th></tr></thead><tbody>" +
       rows.map(function (row) {
         return "<tr><th scope='row' data-prose>" + row[0] + "</th><td data-prose>" +
           row[1] + "</td><td data-prose>" + row[2] + "</td></tr>";
       }).join("") + "</tbody></table></div></section>";
-    return wrap("map-search", "R2", hero(meta,
+    return wrap("map-search", "R2", "offset-argument-to-dark-table", "L-L-D", hero(meta,
       "A list of coaches does not tell you <em>what a map does.</em>",
-      "Distance is not a detail to check after choosing a coach. It decides whether a Tuesday lesson can become part of family life. Sporv puts real session locations on the map first, then lets sport, age, level, price, and format narrow what remains. Every visible pin still obeys the personal-check and live-availability rules that protect ordinary search.") +
-      "<section class='pgband slate alt' data-section='argument'><div class='shell'><p class='pg-argument' data-prose>" +
+      "Distance is not a detail to check after choosing a coach. It decides whether a Tuesday lesson can become part of family life. Sporv puts real session locations on the map first, then lets sport, age, level, price, and format narrow what remains. Every visible pin still obeys the personal-check and live-availability rules that protect ordinary search.",
+      { tone: "slate", layout: "map-corner", eyebrow: "LOCATION AS A DECISION" }) +
+      "<section class='pgband white pg-map-argument' data-section='argument' data-layout='offset-argument'><div class='shell'><p class='pg-argument' data-prose>" +
       argument + "</p></div></section>" + table);
   }
 
@@ -114,16 +143,20 @@
        "A spreadsheet becomes stale between sessions, and a quiet family disappears until the coach happens to remember them.",
        "The watchlist uses real booking dates to identify a lapse, stays private to the signed-in coach, and never treats seeded sample families as outreach targets."]
     ];
-    var table = "<section class='pgband slate alt' data-section='comparison-table'><div class='shell pg-comparison-wrap'>" +
+    var table = "<section class='pgband slate alt pg-insights-table' data-section='comparison-table' data-layout='stacked-comparison'><div class='shell pg-comparison-wrap'>" +
       "<table class='pg-comparison'><thead><tr><th>The job</th><th>Elsewhere</th><th>On Sporv</th></tr></thead><tbody>" +
       rows.map(function (row) {
         return "<tr><th scope='row' data-prose>" + row[0] + "</th><td data-prose>" +
           row[1] + "</td><td data-prose>" + row[2] + "</td></tr>";
       }).join("") + "</tbody></table></div></section>";
-    return wrap("insights", "R2", hero(meta,
+    var snapshot = "<aside class='pg-hero-metrics' aria-label='Disclosed demo catalogue snapshot'><div><strong>" +
+      PROGRAMS.length + "</strong><span>demo listings in the seeded catalogue</span></div>" +
+      "<div><strong>3</strong><span>traceable stages from visit to paid booking</span></div></aside>";
+    return wrap("insights", "R2", "metric-head-to-argument-to-stacked-table", "D-L-L", hero(meta,
       "A dashboard number should explain <em>what changed.</em>",
-      "Bookings, earnings, search demand, price position, and returning clients already leave records as a coach works. Insights turns those records into a readable view of the business without asking for a second spreadsheet. Every figure is derived, sample figures are labeled, and the client watchlist stays private because business guidance never justifies exposing a family's history.") +
-      "<section class='pgband white' data-section='argument'><div class='shell'><p class='pg-argument' data-prose>" +
+      "Bookings, earnings, search demand, price position, and returning clients already leave records as a coach works. Insights turns those records into a readable view of the business without asking for a second spreadsheet. Every figure is derived, demo figures are labeled, and the client watchlist stays private because business guidance never justifies exposing a family's history.",
+      { tone: "dark", layout: "metrics", eyebrow: "COACH BUSINESS EVIDENCE", aside: snapshot }) +
+      "<section class='pgband white pg-insights-argument' data-section='argument' data-layout='narrow-right-argument'><div class='shell'><p class='pg-argument' data-prose>" +
       argument + "</p></div></section>" + table);
   }
 
@@ -140,11 +173,12 @@
       "<div class='pg-ui-choice'><span>Sat May 16 / 10:30 AM / 60 min</span><span>$45.00</span></div>" +
       "<div class='pg-ui-row'><span class='pg-ui-key'>capacity</span><span class='pg-ui-value'>1 seat held while payment completes</span></div>" +
       "<div class='pg-ui-row'><span class='pg-ui-key'>result</span><span class='pg-ui-value'>confirmed only after the card succeeds</span></div>" +
-      "</div><figcaption data-prose>The figure stays flat because the record is the product: a real coach, one dated opening, the complete price, capacity, and the rule that separates a temporary hold from a confirmed session. It also shows the parent what the coach will receive as a booked athlete, rather than hiding the operational result behind a decorative confirmation screen. Nothing here depends on a callback or manual acceptance after payment.</figcaption></figure>";
-    return wrap("instant-booking", "R4", hero(meta,
+      "</div><figcaption data-prose>This flat figure uses disclosed demo data to explain the record: a fictional coach, one dated opening, the complete price, capacity, and the rule that separates a temporary hold from a confirmed session. It also shows the parent what the coach will receive as a booked athlete, rather than hiding the operational result behind a decorative confirmation screen. Nothing here depends on a callback or manual acceptance after payment.</figcaption></figure>";
+    return wrap("instant-booking", "R4", "ticket-head-to-inverse-product", "L-D", hero(meta,
       "Choose the opening and leave with <em>a confirmed session.</em>",
-      "A bookable time is not an invitation to start a text thread. It is a dated opening the coach published, with a service, duration, place, price, and seat count behind it. Sporv holds the selected seat while payment completes, checks capacity when the booking is written, and confirms only after the charge succeeds, so both sides leave the flow reading the same record.") +
-      "<section class='pgband white' data-section='product-figure'><div class='shell pg-r4-grid'><div class='pg-r4-copy'><h2>The slot, charge, and rule travel together.</h2>" +
+      "A bookable time is not an invitation to start a text thread. It is a dated opening the coach published, with a service, duration, place, price, and seat count behind it. Sporv holds the selected seat while payment completes, checks capacity when the booking is written, and confirms only after the charge succeeds, so both sides leave the flow reading the same record.",
+      { tone: "white", layout: "booking-ticket", eyebrow: "LIVE CAPACITY, PAID CONFIRMATION" }) +
+      "<section class='pgband dark pg-instant-product' data-section='product-figure' data-layout='inverse-copy-figure'><div class='shell pg-r4-grid'><div class='pg-r4-copy'><h2>The slot, charge, and rule travel together.</h2>" +
       copy.map(function (p) { return "<p data-prose>" + p + "</p>"; }).join("") +
       "</div>" + figure + "</div></section>");
   }
@@ -161,11 +195,13 @@
       "<div class='pg-ui-row'><span class='pg-ui-key'>MAY 02</span><span class='pg-ui-value'>Block starts / first three steps sharper</span></div>" +
       "<div class='pg-ui-row'><span class='pg-ui-key'>MAY 16</span><span class='pg-ui-value'>150m rep / held form through the turn</span></div>" +
       "<div class='pg-ui-row'><span class='pg-ui-key'>MAY 30</span><span class='pg-ui-value'>100m / 13.9s / new personal best</span></div>" +
-      "</div><figcaption data-prose>The timeline distinguishes measurement from observation, keeps every entry dated and attributed, and gives the next coach continuity without pretending that one number explains the whole athlete. Parents can read the change over time while the coach prepares the next session from the same evidence. A gap stays a gap; the interface does not manufacture progress for dates when nobody recorded an observation or result.</figcaption></figure>";
-    return wrap("athlete-progress", "R4", hero(meta,
+      "</div><figcaption data-prose>This timeline uses disclosed demo data for a fictional athlete. It distinguishes measurement from observation, keeps every entry dated and attributed, and gives the next coach continuity without pretending that one number explains the whole athlete. Parents can read the change over time while the coach prepares the next session from the same evidence. A gap stays a gap; the interface does not manufacture progress for dates when nobody recorded an observation or result.</figcaption></figure>";
+    var change = "<aside class='pg-hero-progress' aria-label='Demonstration of dated progress'><span>APR 18</span><strong>14.4s</strong><span>MAY 30</span><strong>13.9s</strong></aside>";
+    return wrap("athlete-progress", "R4", "progress-head-to-figure-first-record", "D-L", hero(meta,
       "The coach can change. <em>The record stays.</em>",
-      "Session notes, goals, and measured results accumulate around the athlete who did the work. Parents can read what happened, what the coach noticed, and what comes next without keeping a parallel notebook. Because the record belongs to the athlete's account, changing coaches does not reset the season, while every entry still shows who wrote it and which session produced it.") +
-      "<section class='pgband slate alt' data-section='product-figure'><div class='shell pg-r4-grid'><div class='pg-r4-copy'><h2>A dated account of work, not a score for childhood.</h2>" +
+      "Session notes, goals, and measured results accumulate around the athlete who did the work. Parents can read what happened, what the coach noticed, and what comes next without keeping a parallel notebook. Because the record belongs to the athlete's account, changing coaches does not reset the season, while every entry still shows who wrote it and which session produced it.",
+      { tone: "dark", layout: "progress", eyebrow: "ATHLETE-OWNED HISTORY", aside: change }) +
+      "<section class='pgband white pg-progress-product' data-section='product-figure' data-layout='figure-first-record'><div class='shell pg-r4-grid'><div class='pg-r4-copy'><h2>A dated account of work, not a score for childhood.</h2>" +
       copy.map(function (p) { return "<p data-prose>" + p + "</p>"; }).join("") +
       "</div>" + figure + "</div></section>");
   }
@@ -181,32 +217,43 @@
       "<table class='pg-roster-ui'><thead><tr><th>Athlete</th><th>Sessions</th><th>Last seen</th></tr></thead><tbody>" +
       "<tr><td>Cole S.</td><td>31</td><td>Yesterday</td></tr><tr><td>Mason B.</td><td>24</td><td>2 days</td></tr>" +
       "<tr><td>Ella T.</td><td>12</td><td>5 days</td></tr><tr><td>Ava L.</td><td>8</td><td>1 week</td></tr>" +
-      "</tbody></table></div><figcaption data-prose>The sample table shows the useful minimum at a glance. Names and attendance stay in the signed-in coach view; a public listing never inherits private roster data. Sorting the table changes order, not access, and every row opens the same athlete record rather than a copied profile for that coaching relationship.</figcaption></figure>";
-    return wrap("roster", "R4", hero(meta,
+      "</tbody></table></div><figcaption data-prose>This table uses disclosed demo names and attendance counts to show the useful minimum at a glance. Names and attendance stay in the signed-in coach view; a public listing never inherits private roster data. Sorting the table changes order, not access, and every row opens the same athlete record rather than a copied profile for that coaching relationship.</figcaption></figure>";
+    return wrap("roster", "R4", "compact-head-to-wide-roster", "L-L", hero(meta,
       "Every client becomes <em>one working record.</em>",
-      "Bring the families you already coach, then let new bookings add themselves. The roster joins each athlete to sessions, notes, payment state, messages, and consent without making the coach rebuild those links in a spreadsheet. It is a private operations view: families keep their own accounts and permissions, while public visitors never see the names or histories a coach uses to run the week.") +
-      "<section class='pgband white' data-section='product-figure'><div class='shell pg-r4-grid'><div class='pg-r4-copy'><h2>The book of business, without the duplicate books.</h2>" +
+      "Bring the families you already coach, then let new bookings add themselves. The roster joins each athlete to sessions, notes, payment state, messages, and consent without making the coach rebuild those links in a spreadsheet. It is a private operations view: families keep their own accounts and permissions, while public visitors never see the names or histories a coach uses to run the week.",
+      { tone: "slate", layout: "roster-index", eyebrow: "PRIVATE COACH OPERATIONS" }) +
+      "<section class='pgband white pg-roster-product' data-section='product-figure' data-layout='wide-roster-first'><div class='shell pg-r4-grid pg-roster-grid'><div class='pg-r4-copy'><h2>The book of business, without the duplicate books.</h2>" +
       copy.map(function (p) { return "<p data-prose>" + p + "</p>"; }).join("") +
       "</div>" + figure + "</div></section>");
   }
 
   function whatIsPage(meta) {
-    var sportCount = String(new Set(PROGRAMS.map(function (p) { return p.sport; })).size);
-    var prose = [
-      "For a family, Sporv begins as a catalogue of independent youth-sports coaches, trainers, camps, and teams. Search reads the sport, athlete age, level, format, price, location, and real availability stored on each listing. A family can compare, ask a question, choose an open session, pay, and return later to the same booking for messages, notes, receipts, or a cancellation.",
-      "For a coach, the other side of that booking is the operating system for the week. Listings define the service. Availability creates supply. Checkout fills capacity, adds the athlete to the roster, and starts the payment record. Session notes and consent-aware media continue the relationship after attendance. Payouts and insights are derived from those records instead of requiring a separate reconstruction.",
-      "The marketplace is held together by rules that apply before presentation. Every bookable coach needs their own cleared background check. Parents control athlete and media consent. The cancellation policy saved at purchase governs a later refund. Reviews open after completed sessions. Coaches remain independent professionals, set their own services and prices, and pay Sporv a flat platform fee only when a booking is paid. That shared record also gives support a concrete place to investigate a dispute. The platform can inspect the listing, booking state, policy, payment trail, messages, and safety status that existed at the time instead of asking each side to reconstruct the event from memory. One marketplace does not mean one role; it means the roles meet around evidence both can name. That evidence makes support and safety review possible without turning either party's memory into the system of record."
+    var cells = [
+      ["Marketplace", "Families compare real services by sport, age, level, place, price, format, and dated availability. Coaches publish that supply themselves. An empty match stays empty; Sporv does not pad the catalogue with a coach who missed the request."],
+      ["Verification", "Every person who can accept a booking needs their own cleared background-check state. A company cannot lend its status to staff. A badge that stops being true stops showing, and new booking access stops with it."],
+      ["Booking", "A parent chooses a published opening with duration, place, capacity, and full price attached. Checkout checks the remaining seat again before writing confirmation. A failed payment or a full session never becomes a polite fiction."],
+      ["Payments", "Families pay the listed service price without an added booking fee. The coach sees gross revenue, Sporv's twelve-percent platform fee, and net payout on one record. A refund keeps the original charge and adjustment visible."],
+      ["Messaging", "A question begins from a listing and remains attributed. If the family books, the same thread follows the dated session. Conversation can clarify fit or arrival; it cannot bypass verification, capacity, payment, or confirmation."],
+      ["Progress", "Dated notes, goals, and real measurements stay with the athlete account while retaining each coach's authorship. Parents can read the season without rebuilding it from screenshots, and changing coaches does not erase earlier work."]
     ];
-    var rail = "<aside class='pg-stat-rail' aria-label='Real Sporv platform numbers'>" +
-      "<div class='pg-rail-stat'><span class='pg-rail-value'>" + sportCount + "</span><span class='pg-rail-label'>catalogue sports in the current product data</span></div>" +
-      "<div class='pg-rail-stat'><span class='pg-rail-value'>100%</span><span class='pg-rail-label'>of bookable coaches require a cleared personal check</span></div>" +
-      "<div class='pg-rail-stat'><span class='pg-rail-value'>12%</span><span class='pg-rail-label'>flat coach platform fee on a paid booking</span></div></aside>";
-    return wrap("what-is", "R3", hero(meta,
-      "One marketplace, with rules on <em>both sides.</em>",
-      "Sporv connects families seeking youth-sports coaching with independent professionals who publish real services and availability. Families search, message, book, pay, and keep the record. Coaches manage that same session through schedule, roster, notes, consent, and payout. Safety, capacity, payment, and policy rules hold before either side sees a success state.") +
-      "<section class='pgband white' data-section='essay-stat'><div class='shell pg-essay-stat'><div class='pg-essay'><h2>The booking is the shared object.</h2>" +
-      prose.map(function (p) { return "<p data-prose>" + p + "</p>"; }).join("") +
-      "</div>" + rail + "</div></section>");
+    var questions = [
+      ["Who is Sporv for?", "Families use Sporv to find and manage youth-sports instruction. Independent coaches, trainers, camps, teams, and authorized organizations use the other side to publish supply and operate the sessions they sell."],
+      ["What does it cost?", "Families pay the coach's listed price and no family booking fee. Coaches pay a flat twelve-percent platform fee only on paid booking revenue; gross, fee, net, and later adjustments remain itemized."],
+      ["When will it be near me?", "Search can only show supply that a real coach has published in the chosen area. Coverage grows coach by coach, so Sporv shows an honest empty result and keeps the criteria visible when a local match does not exist yet."]
+    ];
+    return wrap("what-is", "B01", "manifesto-grid-claim-questions", "D-L-D-L", hero(meta,
+      "Every sport. One app.",
+      "Sporv is the shared operating record between a family and an independent youth-sports professional. Families discover a suitable service, ask questions, take an actual opening, pay, and keep the receipt. Coaches publish that supply, manage the athlete, write the follow-up, and receive the payout. Verification, consent, capacity, and policy rules decide what either side is allowed to see or do.",
+      { tone: "dark", layout: "manifesto", eyebrow: "WHAT IS SPORV" }) +
+      "<section class='pgband white pg-capability-section' data-section='capability-grid' data-layout='six-cell-border-grid'><div class='shell pg-capability-grid'>" +
+      cells.map(function (cell) {
+        return "<article><h2>" + cell[0] + "</h2><p data-prose>" + cell[1] + "</p></article>";
+      }).join("") + "</div></section>" +
+      "<section class='pgband dark pg-market-claim' data-section='market-claim' data-layout='claim-band'><div class='shell'><h2 class='pg-serif'>The gossip-and-cash economy, <em class='pg-accent-phrase'>replaced.</em></h2>" +
+      "<p data-prose>One marketplace does not erase the difference between parent and coach. It gives both roles evidence they can name: the listing that was offered, the person who cleared the gate, the opening that was taken, the policy saved at purchase, the messages sent, and the money moved. Support can inspect that record instead of asking two people to reconstruct a season from memory.</p></div></section>" +
+      "<section class='pgband white pg-what-questions' data-section='question-ledger' data-layout='three-question-close'><div class='shell'><dl class='pg-question-ledger'>" +
+      questions.map(function (row) { return "<div class='pg-question-row'><dt>" + row[0] + "</dt><dd data-prose>" + row[1] + "</dd></div>"; }).join("") +
+      "</dl></div></section>");
   }
 
   function bookingsPage(meta) {
@@ -219,10 +266,14 @@
       "<div class='pg-rail-stat'><span class='pg-rail-value'>1</span><span class='pg-rail-label'>record for session, payment, messages, and refund</span></div>" +
       "<div class='pg-rail-stat'><span class='pg-rail-value'>$0</span><span class='pg-rail-label'>family booking fee added to the coach's listed price</span></div>" +
       "<div class='pg-rail-stat'><span class='pg-rail-value'>24h</span><span class='pg-rail-label'>current full-refund threshold, saved at purchase</span></div></aside>";
-    return wrap("bookings-receipts", "R3", hero(meta,
+    var receipt = "<aside class='pg-hero-receipt' aria-label='Disclosed demo booking record'>" +
+      "<div><span>BOOKING</span><b>#S-1842 / DEMO</b></div><div><span>SESSION</span><b>MAY 16 / 09:00</b></div>" +
+      "<div><span>PAID</span><b>$45.00</b></div><div><span>REFUND RULE</span><b>24H SNAPSHOT</b></div></aside>";
+    return wrap("bookings-receipts", "R3", "receipt-head-to-horizontal-record", "L-L", hero(meta,
       "The session and its money stay <em>on one record.</em>",
-      "Every booking keeps the coach, athlete, dated session, price, payment, messages, cancellation terms, receipt, and any refund together. A parent can reopen what was agreed without searching email, and a coach can read the same operational record. The policy is copied onto the booking at purchase, so later listing edits cannot change the terms that protect either side.") +
-      "<section class='pgband slate alt' data-section='essay-stat'><div class='shell pg-essay-stat'><div class='pg-essay'><h2>A receipt is part of the session history.</h2>" +
+      "Every booking keeps the coach, athlete, dated session, price, payment, messages, cancellation terms, receipt, and any refund together. A parent can reopen what was agreed without searching email, and a coach can read the same operational record. The policy is copied onto the booking at purchase, so later listing edits cannot change the terms that protect either side. The adjacent record uses disclosed demo values.",
+      { tone: "white", layout: "receipt", eyebrow: "BOOKINGS AND RECEIPTS", aside: receipt }) +
+      "<section class='pgband slate alt pg-booking-record' data-section='essay-stat' data-layout='horizontal-stat-record'><div class='shell pg-essay-stat'><div class='pg-essay'><h2>A receipt is part of the session history.</h2>" +
       prose.map(function (p) { return "<p data-prose>" + p + "</p>"; }).join("") +
       "</div>" + rail + "</div></section>");
   }
@@ -239,16 +290,21 @@
       "<div class='pg-rail-stat'><span class='pg-rail-value'>$39.60</span><span class='pg-rail-label'>coach net payout before any later refund</span></div></aside>";
     var worked = "<div class='pg-worked-math'><code>gross       $45.00\nfee      ×     .12\n-----------------\nplatform   −$5.40\ncoach net   $39.60</code>" +
       "<p data-prose>A forty-five-dollar lesson produces a five-dollar-and-forty-cent fee and a thirty-nine-dollar-and-sixty-cent coach payout. The same formula applies to every paid booking; there is no tier to infer and no separate invoice after the fact. The rail repeats those exact amounts in the transfer record the coach can reopen later.</p></div>";
-    return wrap("payments", "R3", hero(meta,
+    var formula = "<aside class='pg-hero-math' aria-label='Disclosed demo payout calculation'><code>$45.00\n×   .12\n────────\n− $5.40\n= $39.60</code><span>DEMO BOOKING</span></aside>";
+    return wrap("payments", "R3", "math-head-to-rail-first-essay", "D-L", hero(meta,
       "Gross, fee, and net are <em>shown before payout.</em>",
-      "The parent's charge and the coach's payout are two views of the same paid booking. Families pay the coach's listed price without an added booking fee. Coaches pay one flat platform fee from that revenue, then see the exact gross, fee, and net amounts as the transfer moves. Refunds keep their own trail and return the matching portion of the fee when coach revenue is returned.") +
-      "<section class='pgband white' data-section='essay-stat'><div class='shell pg-essay-stat'><div class='pg-essay'><h2>The arithmetic should fit on four lines.</h2>" +
+      "The parent's charge and the coach's payout are two views of the same paid booking. Families pay the coach's listed price without an added booking fee. Coaches pay one flat platform fee from that revenue, then see the exact gross, fee, and net amounts as the transfer moves. Refunds keep their own trail and return the matching portion of the fee when coach revenue is returned. The adjacent calculation uses disclosed demo values.",
+      { tone: "dark", layout: "payout-math", eyebrow: "PAYMENTS AND PAYOUTS", aside: formula }) +
+      "<section class='pgband white pg-payment-ledger' data-section='essay-stat' data-layout='rail-first-essay'><div class='shell pg-essay-stat'><div class='pg-essay'><h2>The arithmetic should fit on four lines.</h2>" +
       prose.map(function (p) { return "<p data-prose>" + p + "</p>"; }).join("") + worked +
       "</div>" + rail + "</div></section>");
   }
 
-  function definitionSection(rows) {
-    return "<section class='pgband white' data-section='definition-list'><div class='shell'><dl class='pg-definition-list'>" +
+  function definitionSection(rows, options) {
+    var o = options || {};
+    return "<section class='pgband " + (o.tone || "white") + " " + (o.className || "") +
+      "' data-section='definition-list' data-layout='" + (o.layout || "definition-rows") +
+      "'><div class='shell'><dl class='pg-definition-list'>" +
       rows.map(function (row) {
         return "<div class='pg-definition-row'><dt>" + row[0] + "</dt><dd data-prose>" +
           row[1] + "</dd></div>";
@@ -267,12 +323,13 @@
       ["Delivery record", "Sent messages remain attributed and ordered; a draft or failed send is not presented as delivered to the other side."],
       ["Safety route", "Reporting is separate from ordinary replies, and emergencies still belong with local emergency services rather than a marketplace inbox."]
     ];
-    return wrap("messaging", "R5", hero(meta,
+    return wrap("messaging", "R5", "centered-question-to-three-column-essay", "L-D-L", hero(meta,
       "Ask first. Keep the answer <em>with the booking.</em>",
-      "Parents can message a coach before money moves, using the listing as context and without publishing a personal phone number. If they book, the same thread follows the dated session instead of restarting. Messages remain attributed and ordered, while confirmation still depends on capacity and payment. A conversation can explain the service; it cannot quietly bypass the rules that decide whether a session exists.") +
-      "<section class='pgband dark pg-dark-essay' data-section='dark-essay'><div class='shell'><h2>Conversation is part of the record.</h2><div class='pg-dark-copy'>" +
+      "Parents can message a coach before money moves, using the listing as context and without publishing a personal phone number. If they book, the same thread follows the dated session instead of restarting. Messages remain attributed and ordered, while confirmation still depends on capacity and payment. A conversation can explain the service; it cannot quietly bypass the rules that decide whether a session exists.",
+      { tone: "white", layout: "message-question", eyebrow: "MESSAGING" }) +
+      "<section class='pgband dark pg-dark-essay pg-message-essay' data-section='dark-essay' data-layout='three-column-dark-essay'><div class='shell'><h2>Conversation is part of the record.</h2><div class='pg-dark-copy'>" +
       blocks.map(function (p) { return "<p data-prose data-dark-block>" + p + "</p>"; }).join("") +
-      "</div></div></section>" + definitionSection(defs));
+      "</div></div></section>" + definitionSection(defs, { layout: "definition-index", className: "pg-message-defs" }));
   }
 
   function sessionNotesPage(meta) {
@@ -287,16 +344,20 @@
       ["Needs a note", "A queue built from session records, helping the coach find completed work that has no written update yet."],
       ["Progress timeline", "The athlete-level sequence of sent observations and real measurements, preserved across sessions and coaches."]
     ];
-    return wrap("session-notes", "R5", hero(meta,
+    return wrap("session-notes", "R5", "margin-head-to-numbered-dark-notes", "L-D-L", hero(meta,
       "Write once. Send a note that <em>keeps its context.</em>",
-      "A session note names the athlete, the session, what the coach observed, and what should happen next. Coaches can keep a draft, send it to the parent, and see which completed sessions still need an update. Once sent, the note joins the athlete's progress record with its author and date, so useful continuity does not depend on a loose notebook or a screenshot.") +
-      "<section class='pgband dark pg-dark-essay' data-section='dark-essay'><div class='shell'><h2>A note has a source and a destination.</h2><div class='pg-dark-copy'>" +
-      blocks.map(function (p) { return "<p data-prose data-dark-block>" + p + "</p>"; }).join("") +
-      "</div></div></section>" + definitionSection(defs));
+      "A session note names the athlete, the session, what the coach observed, and what should happen next. Coaches can keep a draft, send it to the parent, and see which completed sessions still need an update. Once sent, the note joins the athlete's progress record with its author and date, so useful continuity does not depend on a loose notebook or a screenshot.",
+      { tone: "slate", layout: "note-margin", eyebrow: "SESSION NOTES" }) +
+      "<section class='pgband dark pg-dark-essay pg-note-essay' data-section='dark-essay' data-layout='numbered-note-sequence'><div class='shell'><h2>A note has a source and a destination.</h2><div class='pg-dark-copy'>" +
+      blocks.map(function (p, index) { return "<article><span>0" + (index + 1) + "</span><p data-prose data-dark-block>" + p + "</p></article>"; }).join("") +
+      "</div></div></section>" + definitionSection(defs, { layout: "two-column-definitions", className: "pg-note-defs" }));
   }
 
-  function questionSection(rows) {
-    return "<section class='pgband white' data-section='question-ledger'><div class='shell'><dl class='pg-question-ledger'>" +
+  function questionSection(rows, options) {
+    var o = options || {};
+    return "<section class='pgband " + (o.tone || "white") + " " + (o.className || "") +
+      "' data-section='question-ledger' data-layout='" + (o.layout || "question-rows") +
+      "'><div class='shell'><dl class='pg-question-ledger'>" +
       rows.map(function (row) {
         return "<div class='pg-question-row'><dt>" + row[0] + "</dt><dd data-prose>" +
           row[1] + "</dd></div>";
@@ -304,22 +365,28 @@
   }
 
   function backgroundChecksPage(meta) {
-    var questions = [
-      ["Who is actually checked?",
-       "The individual coach is checked. A facility, club, camp, or company may operate the listing, but its approval never substitutes for the person who will work with the athlete. Each coach supplies the identity information and consent required by the screening process. The record belongs to that person, so one cleared colleague cannot make the rest of a staff bookable."],
-      ["Who decides whether the check cleared?",
-       "An independent screening process returns the result, and Sporv stores the resulting state. A coach or business cannot click its own profile into a cleared condition, write a convincing badge, or publish around a pending result. The product reads the stored safety state before showing bookable supply. Operational review can investigate exceptions; marketing copy cannot create clearance."],
-      ["When can families see and book the coach?",
-       "A coach becomes bookable only after their personal check is recorded as cleared and the rest of the listing requirements are met. Pending and failed states do not enter the bookable result set, map, or coach finder. The family sees the coach and the verification state together. Discovery never outruns the gate simply because a session starts soon."],
-      ["What happens if the cleared state changes?",
-       "The badge is a view of a current stored state, not a permanent award. If the record no longer qualifies as cleared, the badge stops showing and the coach stops passing the bookable-supply check. Existing records still preserve what was booked and when for review, but a saved coach, old link, or business membership cannot restore the right to accept another booking."],
-      ["What can a parent verify for themselves?",
-       "Parents can read the named coach, the background-check state, the listing owner, and the session they are about to book. They should still ask questions, review the service, and report a mismatch between the person listed and the person who arrives. A background check is one enforced gate; it is not a promise about fit, performance, or every future action."]
+    var steps = [
+      ["Invite the person", "The coach receives the screening request in their own name and supplies the identity information and consent the independent vendor requires. A company administrator may begin the invitation, but cannot complete or inherit the check for the person who will coach."],
+      ["Run the vendor check", "The screening vendor compares the submitted identity against the sources included in its service. Sporv receives a state from that process; the coach cannot type a result, design a badge, or approve themselves from the listing editor."],
+      ["Review the result", "A returned result can require operational review before it becomes a product state. Review resolves identity or record questions without turning urgency into clearance. Pending means pending, even when a coach has clients waiting or a business owner asks to publish early."],
+      ["Show a dated badge", "A cleared state makes the named coach eligible for the badge and for bookable supply, subject to the other listing gates. The visible state belongs to that person and date. It never spreads across colleagues, locations, or an organization logo."],
+      ["Re-check the current truth", "The product reads the stored state again when supply is presented. If clearance expires, changes, or is withdrawn, the badge stops showing and new booking access closes. An old link or saved coach cannot preserve a safety claim that is no longer true."]
     ];
-    return wrap("background-checks", "R6", hero(meta,
-      "The person clears the check, <em>not the organization.</em>",
-      "Every coach who can accept a booking must have their own cleared background-check record. A club cannot extend its status to an unchecked staff member, and a coach cannot set the badge themselves. Sporv reads the stored result before the person appears as bookable. If the cleared state stops being true, the badge and access to new bookings stop with it.") +
-      questionSection(questions));
+    var questions = [
+      ["Does a club's check cover its coaches?", "No. Every person who can appear as bookable needs their own stored cleared state. Organization membership changes administration, not the identity that was screened."],
+      ["Can a pending coach take requests?", "No. Pending supply stays outside bookable search and map results. A family can never be asked to treat a future result as though it had already cleared."],
+      ["What does the parent see?", "The family sees the named coach and current verification state beside the service. They should report any mismatch between that person and the person who arrives."],
+      ["What happens to earlier bookings?", "Historical records keep what was booked and when for support and review. They do not restore the coach's right to accept another booking after the safety state changes."]
+    ];
+    return wrap("background-checks", "B02", "threshold-head-walk-honesty-questions", "L-L-D-L", hero(meta,
+      "The check is <em>per person.</em>",
+      "Every coach who can accept a booking must have their own cleared background-check record. A club cannot extend its standing to an unchecked staff member, and a coach cannot set the badge themselves. Sporv reads the stored result before that person appears as bookable, then keeps reading it. If the cleared state stops being true, the badge and access to new bookings stop with it.",
+      { tone: "white", layout: "check-threshold", eyebrow: "HOW BACKGROUND CHECKS WORK" }) +
+      walkthroughSection(steps, { tone: "white", layout: "walk-five" }) +
+      "<section class='pgband dark pg-check-honesty' data-section='honesty-panel' data-layout='two-paragraph-honesty'><div class='shell'><h2>What a check cannot promise</h2><div>" +
+      "<p data-prose>A cleared result is an enforced screening gate, not a guarantee of personality, coaching quality, fit, or every future action. Families should still read the service, ask questions, and decide whether the named professional suits their athlete.</p>" +
+      "<p data-prose>Screening also cannot replace immediate judgment. A parent who sees a different person arrive, unsafe conduct, or an urgent risk should leave the situation and use the appropriate emergency or support route. The badge records a check; it does not ask anyone to ignore new evidence.</p></div></section>" +
+      questionSection(questions, { layout: "compact-parent-questions", className: "pg-check-questions" }));
   }
 
   function mediaConsentPage(meta) {
@@ -335,10 +402,11 @@
       ["Can consent be assumed from a booking?",
        "No. Paying for coaching, attending a session, joining a team, or accepting ordinary service terms does not silently grant media permission. The booking can establish who attended and which family controls the athlete record; consent remains a separate choice. A missing decision stays missing until the family acts, and the coach sees a locked state rather than a default yes."]
     ];
-    return wrap("media-consent", "R6", hero(meta,
+    return wrap("media-consent", "R6", "consent-head-to-staggered-ledger", "D-L", hero(meta,
       "A child's image moves only after <em>the parent's yes.</em>",
-      "Photos and clips are useful for feedback, but a booking is not media consent. The family decides for each athlete, the product records that decision, and the coach sees a locked state until permission exists. Sharing checks every tagged child rather than trusting a blanket team waiver. When consent is revoked, future sharing closes; the interface does not keep treating an old yes as current.") +
-      questionSection(questions));
+      "Photos and clips are useful for feedback, but a booking is not media consent. The family decides for each athlete, the product records that decision, and the coach sees a locked state until permission exists. Sharing checks every tagged child rather than trusting a blanket team waiver. When consent is revoked, future sharing closes; the interface does not keep treating an old yes as current.",
+      { tone: "dark", layout: "consent-line", eyebrow: "MEDIA AND CONSENT" }) +
+      questionSection(questions, { tone: "white", layout: "staggered-consent-ledger", className: "pg-consent-questions" }));
   }
 
   function render(id) {

@@ -1190,6 +1190,11 @@ slop=$($B js "$AUD;
   if(index&&fps[id]===fps[group[index-1]]){
     fails.push(id+'[ADJACENT_FINGERPRINT='+group[index-1]+']');
   }}));
+ const seenFingerprints={};
+ Object.entries(fps).forEach(([id,fp])=>{
+  if(seenFingerprints[fp])fails.push(id+'[DUPLICATE_RENDERED_SILHOUETTE='+seenFingerprints[fp]+']');
+  else seenFingerprints[fp]=id;
+ });
  // the merged 'saved' route must land on Search, never 404
  S.route={name:'page',arg:'saved'};render();
  if(!document.querySelector('[data-product-page][data-page-id="search"]'))fails.push('saved[NO_REDIRECT]');
@@ -1198,7 +1203,7 @@ slop=$($B js "$AUD;
 slopc=${slop//\"/}
 case "$slopc" in
   *"fails:[]"*)
-    pass "product-page audit: 14 pages at 300–500 words; recipes, adjacency, accents, and heroes clean"
+    pass "product-page audit: 14 pages at 300–500 words; unique rendered silhouettes, rhythms, accents, and heroes clean"
     w=$(printf '%s' "$slopc" | grep -o 'wcopy:[0-9]*' | grep -o '[0-9]*')
     d=$(printf '%s' "$slopc" | grep -o 'wdot:[0-9]*' | grep -o '[0-9]*')
     [ "${w:-0}" -gt 0 ] || [ "${d:-0}" -gt 0 ] \
