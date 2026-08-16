@@ -363,6 +363,17 @@
       if (!ready) ready = hydrate();
       return ready;
     },
+    /* Force a fresh fetch — used after a coach PUBLISHES a listing so the new
+       program + its sessions appear immediately in their listings table and in
+       browse, without a page reload. hydrate() short-circuits on `loaded`, so
+       clearing it is what lets the second fetch run and re-fill PROGRAMS /
+       LIVE_SLOTS in place. Resolves live/seed like the first hydrate; never
+       rejects. */
+    reload: function () {
+      loaded = false;
+      ready = hydrate();
+      return ready;
+    },
     get ready() { return ready || Promise.resolve(false); },
     isLive: function () { return loaded; },
     /* Whether this page load INTENDED to go live, independent of whether it

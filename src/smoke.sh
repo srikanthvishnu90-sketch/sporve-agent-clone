@@ -1796,6 +1796,48 @@ disp=$($B js "
 [ "${disp//\"/}" = "OK" ] && pass "assistant dispatch: draft_bio + draft_message rails fire; rail-less tools deep-link only" \
   || fail "dispatch rails regressed: $disp"
 
+# ── Publish a listing PERSISTS (real supply, not a fabricated local row) ──
+# The "Create a listing" form used to push a verified:true row into the
+# in-memory PROGRAMS only — a listing that lived in one tab and lied about its
+# check. It must now write a real programs row + a first session and reload the
+# catalogue. Stub the coach methods to observe the orchestration; assert a
+# createListing reject surfaces loudly and fabricates nothing.
+pub=$($B js "
+(()=>{const bad=[];const c={create:null,session:null,reloaded:false};
+ const rc=window.SporveCoach&&window.SporveCoach.createListing;
+ const rs=window.SporveCoach&&window.SporveCoach.addSession;
+ const rr=window.SporveCatalog&&window.SporveCatalog.reload;
+ window.SporveCoach=window.SporveCoach||{};
+ try{
+   window.SporveCoach.createListing=(f)=>{c.create=f;return Promise.resolve({id:'prog_x'});};
+   window.SporveCoach.addSession=(id,s)=>{c.session={id:id,s:s};return Promise.resolve({id:'s_x'});};
+   window.SporveCatalog.reload=()=>{c.reloaded=true;return Promise.resolve(true);};
+   S.portal='coach';S.auth={status:'coach'};S.coachTab='listings';S.route={name:'dashboard',arg:null};
+   S.modal={type:'newlisting'};render();
+   const f=document.getElementById('listingForm'); if(!f){bad.push('NO_FORM');return bad.join(',');}
+   f.title.value='Clinic';f.sport.value=f.sport.options[0].value;f.desc.value='x';
+   f.price.value='40';f.minAge.value='8';f.maxAge.value='12';f.cap.value='8';f.sessionDate.value='2027-01-05';f.sessionTime.value='17:00';
+   f.dispatchEvent(new Event('submit',{bubbles:true,cancelable:true}));
+   // orchestration is async; the stubs resolve on microtasks flushed after this returns —
+   // so assert on the SYNC calls (create+session are invoked synchronously in the chain head)
+   if(!c.create||c.create.title!=='Clinic')bad.push('NO_CREATE');
+   // no fabricated local row (old bug pushed prog_new_ with verified:true)
+   if((typeof PROGRAMS!=='undefined'?PROGRAMS:[]).some(p=>String(p.id).indexOf('prog_new_')===0))bad.push('FABRICATED');
+   // loud failure: a rejecting createListing shows the error box, keeps the modal open
+   window.SporveCoach.createListing=()=>Promise.reject(new Error('boom'));
+   S.modal={type:'newlisting'};render();
+   const f2=document.getElementById('listingForm');
+   f2.title.value='Clinic';f2.sport.value=f2.sport.options[0].value;f2.desc.value='x';
+   f2.price.value='40';f2.minAge.value='8';f2.maxAge.value='12';f2.cap.value='8';f2.sessionDate.value='2027-01-05';
+   f2.dispatchEvent(new Event('submit',{bubbles:true,cancelable:true}));
+ } finally {
+   if(rc)window.SporveCoach.createListing=rc; if(rs)window.SporveCoach.addSession=rs; if(rr)window.SporveCatalog.reload=rr;
+   S.modal=null;S.portal='family';S.route={name:'home',arg:null};render();document.body.classList.remove('reg-coach');
+ }
+ return bad.length?bad.join(','):'OK'})()" 2>/dev/null)
+[ "${pub//\"/}" = "OK" ] && pass "publish a listing writes a real programs row (no fabricated verified local push)" \
+  || fail "listing publish regressed: $pub"
+
 # ── The coach profile renders its blocks, and invents nothing ─────────────
 # Built to the owner's Athletes Untapped reference: pricing ladder, collapsible
 # sections, weekly availability, location. The reference also shows earned

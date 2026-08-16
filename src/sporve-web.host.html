@@ -9107,8 +9107,17 @@ function modalHTML(){
         <div class="field"><label>Max age</label><input name="maxAge" type="number" value="14" required></div>
         <div class="field"><label>Capacity</label><input name="cap" type="number" value="12" required></div>
       </div>
-      <p style="font-size:var(--text-sm);color:var(--muted)">New listings publish as <b>draft</b> until your background check clears.</p>
-      <button class="btn wide" type="submit" style="margin-top:14px">Create listing</button>
+      ${/* A listing needs a future session to be bookable — a program with no
+           session shows "No upcoming" and a family has nothing to book. So the
+           first session is part of publishing, not a separate step. */""}
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px">
+        <div class="field"><label>First session date</label>
+          <input name="sessionDate" type="date" min="${new Date().toISOString().slice(0,10)}" required></div>
+        <div class="field"><label>Start time</label><input name="sessionTime" type="time" value="17:00"></div>
+      </div>
+      <p style="font-size:var(--text-sm);color:var(--muted)">Your listing goes live now. Families can see it, and can <b>book it once your background check clears</b>.</p>
+      <div id="listingErr" class="err hide" style="margin:8px 0"></div>
+      <button class="btn wide" type="submit" style="margin-top:14px">Publish listing</button>
     </form>`);
 
   /* Edit an existing listing. Same field set as "Create a listing" so a coach
@@ -12200,17 +12209,37 @@ document.querySelectorAll('.sig-ai-coach').forEach(sigAiCoachWire);
   if(nf) nf.onsubmit=e=>{
     e.preventDefault();
     const d=Object.fromEntries(new FormData(nf));
-    const id="prog_new_"+Date.now();
-    PROGRAMS.push({id,biz:SEED.providerProfile.businessName,verified:true,sport:d.sport,
-      title:d.title,desc:d.desc,price:+d.price,model:d.model,rating:0,reviews:0,
-      lng:-87.63,lat:41.88,featured:false,skill:"All Levels",ageGroup:"All Ages",
-      minAge:+d.minAge,maxAge:+d.maxAge,cap:+d.cap,enrolled:0,
-      img:phShot(d.sport),
-      gallery:[phShot(d.sport),phShot(d.sport),phShot(d.sport)],
-      whatsIncluded:["Equipment provided","Professional coaching","Progress report"],
-      address:"Chicago, IL 60601",cancellationPolicy:"moderate"});
-    S.listings=[...S.listings,id];
-    S.modal=null;S.coachTab="listings";render();toast("Listing created");
+    const btn=nf.querySelector('button[type=submit]');
+    const errBox=document.getElementById("listingErr");
+    const fail=msg=>{ if(btn)btn.disabled=false;
+      if(errBox){errBox.textContent=msg;errBox.classList.remove("hide");} else toast(msg); };
+    if(!window.SporveCoach||!window.SporveCoach.createListing) return fail("The coach account module didn't load.");
+    if(btn)btn.disabled=true; if(errBox)errBox.classList.add("hide");
+    /* Persist for real: write the program, then its first session, then reload
+       the catalogue so the listing appears in the coach's table and in browse.
+       The old handler pushed a fabricated verified:true row into the in-memory
+       PROGRAMS only — a listing that lived in one tab and lied about its check.
+       Now it is a real programs row under the coach's JWT; the badge is
+       computed from the provider's real check evidence by the catalogue.
+       Two separate inserts can't be one transaction over PostgREST, so the
+       partial case is handled HONESTLY: once the program exists we close the
+       modal (so a retry can't create a duplicate) and, if only the SESSION
+       failed, say exactly that rather than "nothing was saved". A createListing
+       failure means nothing was written, so that keeps the modal open to retry. */
+    const finish=()=>{
+      const done=()=>{ S.modal=null;S.coachTab="listings";render(); };
+      return (window.SporveCatalog&&window.SporveCatalog.reload)
+        ? window.SporveCatalog.reload().then(done,done) : (done(),Promise.resolve());
+    };
+    window.SporveCoach.createListing({title:d.title,sport:d.sport,desc:d.desc,
+      price:d.price,model:d.model,minAge:d.minAge,maxAge:d.maxAge,cap:d.cap})
+      .then(prog=>{
+        if(!d.sessionDate) return finish().then(()=>toast("Listing published — add a session so families can book it."));
+        return window.SporveCoach.addSession(prog.id,{date:d.sessionDate,startTime:d.sessionTime,capacity:d.cap})
+          .then(()=> finish().then(()=>toast("Listing published")))
+          .catch(()=> finish().then(()=>toast("Listing created — but its first session didn't save. Add one from Schedule.")));
+      })
+      .catch(err=>fail((err&&err.message)||"Could not publish the listing. Nothing was saved."));
   };
 
   /* Edits the live PROGRAMS record in place, so every surface that reads it —

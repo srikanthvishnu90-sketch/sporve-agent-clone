@@ -21,7 +21,7 @@
 <meta name="twitter:description" content="Find coaches, trainers, camps and teams across 20+ sports in Chicagoland.">
 <meta name="twitter:image" content="https://the-sporve-web.vercel.app/og.png">
 <link rel="icon" href="data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%2032%2032'%3E%3Crect%20width='32'%20height='32'%20rx='7'%20fill='%2309090B'/%3E%3Ccircle%20cx='16'%20cy='16'%20r='6'%20fill='white'/%3E%3C/svg%3E">
-<meta name="sporve-build" content="1ab1357d304b0e86">
+<meta name="sporve-build" content="54070f4f975569c7">
 </head>
 <body>
 <noscript><h1>Sporve — Every sport. One app.</h1><p>Sporve connects families and athletes with coaches, trainers, camps, and teams across more than 20 sports. Please enable JavaScript to use the app.</p></noscript>
@@ -9156,8 +9156,17 @@ function modalHTML(){
         <div class="field"><label>Max age</label><input name="maxAge" type="number" value="14" required></div>
         <div class="field"><label>Capacity</label><input name="cap" type="number" value="12" required></div>
       </div>
-      <p style="font-size:var(--text-sm);color:var(--muted)">New listings publish as <b>draft</b> until your background check clears.</p>
-      <button class="btn wide" type="submit" style="margin-top:14px">Create listing</button>
+      ${/* A listing needs a future session to be bookable — a program with no
+           session shows "No upcoming" and a family has nothing to book. So the
+           first session is part of publishing, not a separate step. */""}
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px">
+        <div class="field"><label>First session date</label>
+          <input name="sessionDate" type="date" min="${new Date().toISOString().slice(0,10)}" required></div>
+        <div class="field"><label>Start time</label><input name="sessionTime" type="time" value="17:00"></div>
+      </div>
+      <p style="font-size:var(--text-sm);color:var(--muted)">Your listing goes live now. Families can see it, and can <b>book it once your background check clears</b>.</p>
+      <div id="listingErr" class="err hide" style="margin:8px 0"></div>
+      <button class="btn wide" type="submit" style="margin-top:14px">Publish listing</button>
     </form>`);
 
   /* Edit an existing listing. Same field set as "Create a listing" so a coach
@@ -12249,17 +12258,37 @@ document.querySelectorAll('.sig-ai-coach').forEach(sigAiCoachWire);
   if(nf) nf.onsubmit=e=>{
     e.preventDefault();
     const d=Object.fromEntries(new FormData(nf));
-    const id="prog_new_"+Date.now();
-    PROGRAMS.push({id,biz:SEED.providerProfile.businessName,verified:true,sport:d.sport,
-      title:d.title,desc:d.desc,price:+d.price,model:d.model,rating:0,reviews:0,
-      lng:-87.63,lat:41.88,featured:false,skill:"All Levels",ageGroup:"All Ages",
-      minAge:+d.minAge,maxAge:+d.maxAge,cap:+d.cap,enrolled:0,
-      img:phShot(d.sport),
-      gallery:[phShot(d.sport),phShot(d.sport),phShot(d.sport)],
-      whatsIncluded:["Equipment provided","Professional coaching","Progress report"],
-      address:"Chicago, IL 60601",cancellationPolicy:"moderate"});
-    S.listings=[...S.listings,id];
-    S.modal=null;S.coachTab="listings";render();toast("Listing created");
+    const btn=nf.querySelector('button[type=submit]');
+    const errBox=document.getElementById("listingErr");
+    const fail=msg=>{ if(btn)btn.disabled=false;
+      if(errBox){errBox.textContent=msg;errBox.classList.remove("hide");} else toast(msg); };
+    if(!window.SporveCoach||!window.SporveCoach.createListing) return fail("The coach account module didn't load.");
+    if(btn)btn.disabled=true; if(errBox)errBox.classList.add("hide");
+    /* Persist for real: write the program, then its first session, then reload
+       the catalogue so the listing appears in the coach's table and in browse.
+       The old handler pushed a fabricated verified:true row into the in-memory
+       PROGRAMS only — a listing that lived in one tab and lied about its check.
+       Now it is a real programs row under the coach's JWT; the badge is
+       computed from the provider's real check evidence by the catalogue.
+       Two separate inserts can't be one transaction over PostgREST, so the
+       partial case is handled HONESTLY: once the program exists we close the
+       modal (so a retry can't create a duplicate) and, if only the SESSION
+       failed, say exactly that rather than "nothing was saved". A createListing
+       failure means nothing was written, so that keeps the modal open to retry. */
+    const finish=()=>{
+      const done=()=>{ S.modal=null;S.coachTab="listings";render(); };
+      return (window.SporveCatalog&&window.SporveCatalog.reload)
+        ? window.SporveCatalog.reload().then(done,done) : (done(),Promise.resolve());
+    };
+    window.SporveCoach.createListing({title:d.title,sport:d.sport,desc:d.desc,
+      price:d.price,model:d.model,minAge:d.minAge,maxAge:d.maxAge,cap:d.cap})
+      .then(prog=>{
+        if(!d.sessionDate) return finish().then(()=>toast("Listing published — add a session so families can book it."));
+        return window.SporveCoach.addSession(prog.id,{date:d.sessionDate,startTime:d.sessionTime,capacity:d.cap})
+          .then(()=> finish().then(()=>toast("Listing published")))
+          .catch(()=> finish().then(()=>toast("Listing created — but its first session didn't save. Add one from Schedule.")));
+      })
+      .catch(err=>fail((err&&err.message)||"Could not publish the listing. Nothing was saved."));
   };
 
   /* Edits the live PROGRAMS record in place, so every surface that reads it —
@@ -13996,6 +14025,17 @@ document.addEventListener("click",e=>{
       if (!ready) ready = hydrate();
       return ready;
     },
+    /* Force a fresh fetch — used after a coach PUBLISHES a listing so the new
+       program + its sessions appear immediately in their listings table and in
+       browse, without a page reload. hydrate() short-circuits on `loaded`, so
+       clearing it is what lets the second fetch run and re-fill PROGRAMS /
+       LIVE_SLOTS in place. Resolves live/seed like the first hydrate; never
+       rejects. */
+    reload: function () {
+      loaded = false;
+      ready = hydrate();
+      return ready;
+    },
     get ready() { return ready || Promise.resolve(false); },
     isLive: function () { return loaded; },
     /* Whether this page load INTENDED to go live, independent of whether it
@@ -14413,6 +14453,75 @@ document.addEventListener("click",e=>{
           });
         });
       });
+    },
+
+    /* PUBLISH A BOOKABLE LISTING — the path that turns a coach profile into
+       supply a family can actually find and book.
+       -----------------------------------------------------------------------
+       Until now the "Create a listing" form only pushed a row into the
+       in-memory PROGRAMS array (with a fabricated verified:true), so the
+       listing lived in one browser tab, vanished on reload, and no family
+       could ever see it. This writes the real `programs` row under the coach's
+       own JWT — RLS `programs_insert_owner` already permits it (WITH CHECK the
+       provider is owned by auth.uid()). status='published' so it goes live
+       immediately; booking is still gated server-side by the
+       enforce_booking_provider_verified trigger, so an unverified coach's
+       listing is visible-but-not-bookable, never a safety hole.
+       cancellation_policy is left to its 'flexible' default and NOT exposed —
+       it drives refund math, frozen for the subscription rebuild. */
+    createListing: function (f) {
+      var no = guard(); if (no) return no;
+      if (!provider || !provider.id) {
+        return Promise.reject(new Error("Your coach profile hasn't finished loading — try again in a moment."));
+      }
+      var title = String((f && f.title) || "").trim();
+      var sport = String((f && f.sport) || "").trim();
+      if (!title) return Promise.reject(new Error("A listing needs a title."));
+      if (!sport) return Promise.reject(new Error("Pick a sport for the listing."));
+      var cap = Math.max(1, Math.floor(Number(f.cap) || 1));
+      var body = {
+        provider_id: provider.id,
+        title: title,
+        sport_type: sport,
+        description: String((f.desc) || "").trim(),
+        price: Math.max(0, Number(f.price) || 0),
+        pricing_model: f.model || "single_session",
+        max_capacity: cap,
+        minimum_age: Math.max(0, Math.floor(Number(f.minAge) || 0)),
+        maximum_age: Math.max(0, Math.floor(Number(f.maxAge) || 18)),
+        program_type: "Training",
+        status: "published",
+      };
+      var city = String((f.city) || provider.location || "").trim();
+      if (city) body.city = city;
+      return API.from("programs", "", {
+        method: "POST", headers: { Prefer: "return=representation" }, body: body,
+      }).then(function (rows) {
+        if (!rows || !rows[0]) throw new Error("The listing was not created.");
+        return rows[0];
+      });
+    },
+
+    /* A listing is only BOOKABLE once it has a future session — a program with
+       no sessions renders "No upcoming" and a family has nothing to book. Same
+       owner-scoped rail (RLS sessions_insert_owner joins through the program to
+       the provider's owner_id). */
+    addSession: function (programId, s) {
+      var no = guard(); if (no) return no;
+      if (!programId) return Promise.reject(new Error("No listing to add a session to."));
+      if (!s || !s.date) return Promise.reject(new Error("A session needs a date."));
+      var body = {
+        program_id: programId,
+        start_date: s.date,
+        start_time: s.startTime || null,
+        end_time: s.endTime || null,
+      };
+      var capN = Number(s.capacity);
+      if (isFinite(capN) && capN > 0) body.capacity = Math.floor(capN);
+      if (s.title) body.title = String(s.title).trim();
+      return API.from("sessions", "", {
+        method: "POST", headers: { Prefer: "return=representation" }, body: body,
+      }).then(function (rows) { return (rows && rows[0]) || null; });
     },
 
     current: function () { return provider; },

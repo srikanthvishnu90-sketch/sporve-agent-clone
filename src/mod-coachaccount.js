@@ -406,6 +406,75 @@
       });
     },
 
+    /* PUBLISH A BOOKABLE LISTING — the path that turns a coach profile into
+       supply a family can actually find and book.
+       -----------------------------------------------------------------------
+       Until now the "Create a listing" form only pushed a row into the
+       in-memory PROGRAMS array (with a fabricated verified:true), so the
+       listing lived in one browser tab, vanished on reload, and no family
+       could ever see it. This writes the real `programs` row under the coach's
+       own JWT — RLS `programs_insert_owner` already permits it (WITH CHECK the
+       provider is owned by auth.uid()). status='published' so it goes live
+       immediately; booking is still gated server-side by the
+       enforce_booking_provider_verified trigger, so an unverified coach's
+       listing is visible-but-not-bookable, never a safety hole.
+       cancellation_policy is left to its 'flexible' default and NOT exposed —
+       it drives refund math, frozen for the subscription rebuild. */
+    createListing: function (f) {
+      var no = guard(); if (no) return no;
+      if (!provider || !provider.id) {
+        return Promise.reject(new Error("Your coach profile hasn't finished loading — try again in a moment."));
+      }
+      var title = String((f && f.title) || "").trim();
+      var sport = String((f && f.sport) || "").trim();
+      if (!title) return Promise.reject(new Error("A listing needs a title."));
+      if (!sport) return Promise.reject(new Error("Pick a sport for the listing."));
+      var cap = Math.max(1, Math.floor(Number(f.cap) || 1));
+      var body = {
+        provider_id: provider.id,
+        title: title,
+        sport_type: sport,
+        description: String((f.desc) || "").trim(),
+        price: Math.max(0, Number(f.price) || 0),
+        pricing_model: f.model || "single_session",
+        max_capacity: cap,
+        minimum_age: Math.max(0, Math.floor(Number(f.minAge) || 0)),
+        maximum_age: Math.max(0, Math.floor(Number(f.maxAge) || 18)),
+        program_type: "Training",
+        status: "published",
+      };
+      var city = String((f.city) || provider.location || "").trim();
+      if (city) body.city = city;
+      return API.from("programs", "", {
+        method: "POST", headers: { Prefer: "return=representation" }, body: body,
+      }).then(function (rows) {
+        if (!rows || !rows[0]) throw new Error("The listing was not created.");
+        return rows[0];
+      });
+    },
+
+    /* A listing is only BOOKABLE once it has a future session — a program with
+       no sessions renders "No upcoming" and a family has nothing to book. Same
+       owner-scoped rail (RLS sessions_insert_owner joins through the program to
+       the provider's owner_id). */
+    addSession: function (programId, s) {
+      var no = guard(); if (no) return no;
+      if (!programId) return Promise.reject(new Error("No listing to add a session to."));
+      if (!s || !s.date) return Promise.reject(new Error("A session needs a date."));
+      var body = {
+        program_id: programId,
+        start_date: s.date,
+        start_time: s.startTime || null,
+        end_time: s.endTime || null,
+      };
+      var capN = Number(s.capacity);
+      if (isFinite(capN) && capN > 0) body.capacity = Math.floor(capN);
+      if (s.title) body.title = String(s.title).trim();
+      return API.from("sessions", "", {
+        method: "POST", headers: { Prefer: "return=representation" }, body: body,
+      }).then(function (rows) { return (rows && rows[0]) || null; });
+    },
+
     current: function () { return provider; },
     clear: function () { provider = null; },
 
