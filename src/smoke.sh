@@ -1756,6 +1756,17 @@ disp=$($B js "
    if(!saved.length||saved[0].bio!=='My new bio')bad.push('BIO_RUN');
    PROP_DISPATCH.draft_message.run({args:{booking_id:'b1'}}, 'Hello');
    if(!sent.length||sent[0].id!=='b1'||sent[0].t!=='Hello')bad.push('MSG_RUN');
+   // set_policy: logistics fields dispatch to the right column; cancellation
+   // (money-frozen) never dispatches.
+   PROP_DISPATCH.set_policy.run({args:{policy_type:'what_to_bring'}}, 'Bring water and cleats.');
+   if(!saved.some(x=>x.what_to_bring==='Bring water and cleats.'))bad.push('POLICY_BRING_RUN');
+   PROP_DISPATCH.set_policy.run({args:{policy_type:'service area'}}, 'Within 15 miles of the gym.');
+   if(!saved.some(x=>x.travel_radius==='Within 15 miles of the gym.'))bad.push('POLICY_RADIUS_RUN');
+   // a cancellation-flavoured string is refused, never routed to a logistics field
+   if(PROP_DISPATCH.set_policy.canSend({args:{policy_type:'cancellation'},}))bad.push('POLICY_CANCEL_CANSEND');
+   if(PROP_DISPATCH.set_policy.canSend({args:{policy_type:'cancellation and what to bring'},draft:'x'}))bad.push('POLICY_MIXED_CANSEND');
+   if(!PROP_DISPATCH.set_policy.canSend({args:{policy_type:'what to bring',draft:'x'}}))bad.push('POLICY_BRING_CANSEND');
+   if(PROP_DISPATCH.set_policy.canSend({args:{policy_type:'what_to_bring'}}))bad.push('POLICY_NO_DRAFT_CANSEND');
    // an emptied draft must REJECT, never silently save the model's original
    let bioRej=false; PROP_DISPATCH.draft_bio.run({args:{}},'   ').then(()=>{},()=>{bioRej=true;});
    // canSend gating

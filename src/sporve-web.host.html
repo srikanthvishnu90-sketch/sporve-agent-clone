@@ -12858,12 +12858,46 @@ const PROP_DISPATCH={
     done:()=>"Saved. Your bio is updated on your profile.",
     fail:why=>"That didn't save — "+why+" Your bio is unchanged.",
   },
+  set_policy:{
+    /* Logistics policies only — what to bring, service area — through the same
+       allowlisted providers PATCH. Cancellation policy is EXCLUDED: it drives
+       refunds, which are frozen for the subscription rebuild, so a cancellation
+       proposal falls through to the deep-link instead of dispatching here. */
+    canSend:p=>{const f=policyField(p);
+      return !!(window.SporveCoach&&window.SporveCoach.save&&propDraft(p).trim()&&(f==="what_to_bring"||f==="travel_radius"));},
+    verb:"Approve & save", busy:"Saving…",
+    run:(p,text)=>{
+      if(!window.SporveCoach||!window.SporveCoach.save)
+        throw new Error("The coach account module didn't load.");
+      const f=policyField(p), v=String(text||"").trim();
+      if(f!=="what_to_bring"&&f!=="travel_radius")
+        return Promise.reject(new Error("That policy can't be edited here yet."));
+      if(!v) return Promise.reject(new Error("The policy text is empty."));
+      const patch={}; patch[f]=v; return window.SporveCoach.save(patch);
+    },
+    done:()=>"Saved. Your policy is updated on your profile.",
+    fail:why=>"That didn't save — "+why+" Your policy is unchanged.",
+  },
 };
+/* Which provider field a set_policy proposal targets. Read from whatever key
+   the model used to name the policy; map ONLY the non-money logistics fields.
+   'cancellation' returns its name so canSend can refuse it (money-frozen). */
+function policyField(p){
+  const t=String((p.args&&(p.args.policy_type||p.args.policy||p.args.field||p.args.kind||p.args.name))||"").toLowerCase();
+  /* Money-frozen names are matched FIRST so a mixed string ("cancellation and
+     what to bring", "service cancellation") can never route refund-flavoured
+     text into a logistics field — anything mentioning cancel/refund is refused
+     outright, not redirected. */
+  if(/cancel|refund/.test(t)) return "cancellation";
+  if(/bring/.test(t)) return "what_to_bring";
+  if(/radius|travel|area|distance|service/.test(t)) return "travel_radius";
+  return null;
+}
 /* The editable draft the card shows and the handler dispatches. The model may
    key parent messages on args.body and a bio draft on args.draft/args.bio, so
    read any of them — whichever it used becomes the one editable field. */
 function propDraft(p){
-  return String((p.args&&(p.args.body||p.args.draft||p.args.bio||p.args.text))||"");
+  return String((p.args&&(p.args.body||p.args.draft||p.args.bio||p.args.value||p.args.text))||"");
 }
 function proposalAt(i){
   const m=S.chat[i];

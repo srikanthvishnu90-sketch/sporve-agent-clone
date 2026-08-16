@@ -81,6 +81,11 @@
     "business_name", "bio", "sports", "location", "provider_type",
     "coach_years_coaching", "coach_years_played", "credentials",
     "avatar_url", "logo_url", "faq", "buffer_minutes",
+    /* Logistics policies the coach owns — added 2026-08-15 for the assistant's
+       set_policy port. what_to_bring + travel_radius (service area) are pure
+       logistics. cancellation_policy is DELIBERATELY NOT here: it drives refund
+       math, which is frozen while payments move to the subscription model. */
+    "what_to_bring", "travel_radius",
   ];
 
   function pick(patch) {
