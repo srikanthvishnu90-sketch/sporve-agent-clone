@@ -21,7 +21,7 @@
 <meta name="twitter:description" content="Find coaches, trainers, camps and teams across 20+ sports in Chicagoland.">
 <meta name="twitter:image" content="https://the-sporve-web.vercel.app/og.png">
 <link rel="icon" href="data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%2032%2032'%3E%3Crect%20width='32'%20height='32'%20rx='7'%20fill='%2309090B'/%3E%3Ccircle%20cx='16'%20cy='16'%20r='6'%20fill='white'/%3E%3C/svg%3E">
-<meta name="sporve-build" content="54070f4f975569c7">
+<meta name="sporve-build" content="3d3571fae291601a">
 </head>
 <body>
 <noscript><h1>Sporve — Every sport. One app.</h1><p>Sporve connects families and athletes with coaches, trainers, camps, and teams across more than 20 sports. Please enable JavaScript to use the app.</p></noscript>
@@ -12291,9 +12291,11 @@ document.querySelectorAll('.sig-ai-coach').forEach(sigAiCoachWire);
       .catch(err=>fail((err&&err.message)||"Could not publish the listing. Nothing was saved."));
   };
 
-  /* Edits the live PROGRAMS record in place, so every surface that reads it —
-     the listings tables, the month calendar, the public detail page, search —
-     reflects the change on the next render without any of them being touched. */
+  /* Persists the edit to the real programs row (RLS-scoped to the coach), then
+     reloads the catalogue so every surface that reads it — listings tables, the
+     month calendar, the public detail page, search — reflects the change. The
+     old handler Object.assign'd the in-memory row and toasted success while
+     writing nothing, so an edit vanished on reload and never reached a family. */
   const ef=document.getElementById("editListingForm");
   if(ef) ef.onsubmit=e=>{
     e.preventDefault();
@@ -12302,13 +12304,17 @@ document.querySelectorAll('.sig-ai-coach').forEach(sigAiCoachWire);
     const d=Object.fromEntries(new FormData(ef));
     const err=document.getElementById("editListingErr");
     const cap=+d.cap, minAge=+d.minAge, maxAge=+d.maxAge, price=+d.price;
-    const fail=msg=>{err.textContent=msg;err.classList.remove("hide");};
+    const btn=ef.querySelector('button[type=submit]');
+    const fail=msg=>{if(btn)btn.disabled=false;err.textContent=msg;err.classList.remove("hide");};
     if(cap<p.enrolled) return fail(`Capacity cannot be below the ${p.enrolled} already enrolled.`);
     if(minAge>maxAge) return fail("Minimum age cannot be greater than maximum age.");
     if(price<0) return fail("Price cannot be negative.");
-    Object.assign(p,{title:String(d.title).trim()||p.title,sport:d.sport,
-      desc:String(d.desc||""),price,model:d.model,minAge,maxAge,cap});
-    S.modal=null;render();toast("Listing updated");
+    if(!window.SporveCoach||!window.SporveCoach.updateListing) return fail("The coach account module didn't load.");
+    if(btn)btn.disabled=true; err.classList.add("hide");
+    window.SporveCoach.updateListing(ef.dataset.pid,{title:d.title,sport:d.sport,desc:d.desc,price,model:d.model,minAge,maxAge,cap})
+      .then(()=> (window.SporveCatalog&&window.SporveCatalog.reload)?window.SporveCatalog.reload():Promise.resolve())
+      .then(()=>{S.modal=null;render();toast("Listing updated");})
+      .catch(err2=>fail((err2&&err2.message)||"Could not save the changes. Nothing was changed."));
   };
 
   const tf=document.getElementById("trainerForm");
@@ -14522,6 +14528,36 @@ document.addEventListener("click",e=>{
       return API.from("sessions", "", {
         method: "POST", headers: { Prefer: "return=representation" }, body: body,
       }).then(function (rows) { return (rows && rows[0]) || null; });
+    },
+
+    /* EDIT A LISTING — persist the change, don't just repaint it locally.
+       The edit form used to Object.assign the in-memory PROGRAMS row and toast
+       "Listing updated" while writing nothing to the database, so the edit was
+       gone on reload and never reached a family. This PATCHes the real row;
+       RLS programs_update_owner scopes it to the coach's own listing (a foreign
+       id returns zero rows → we throw rather than claim success). Same field
+       map as createListing. status and cancellation_policy are intentionally
+       NOT editable here (publish-state and refund policy are separate, and
+       cancellation is refund-linked/frozen). */
+    updateListing: function (programId, f) {
+      var no = guard(); if (no) return no;
+      if (!programId) return Promise.reject(new Error("No listing to update."));
+      var body = {};
+      if (f.title != null) body.title = String(f.title).trim();
+      if (f.sport != null) body.sport_type = String(f.sport).trim();
+      if (f.desc != null) body.description = String(f.desc).trim();
+      if (f.price != null) body.price = Math.max(0, Number(f.price) || 0);
+      if (f.model != null) body.pricing_model = f.model;
+      if (f.cap != null) body.max_capacity = Math.max(1, Math.floor(Number(f.cap) || 1));
+      if (f.minAge != null) body.minimum_age = Math.max(0, Math.floor(Number(f.minAge) || 0));
+      if (f.maxAge != null) body.maximum_age = Math.max(0, Math.floor(Number(f.maxAge) || 18));
+      if (!Object.keys(body).length) return Promise.resolve(null);
+      return API.from("programs", "id=eq." + encodeURIComponent(programId), {
+        method: "PATCH", headers: { Prefer: "return=representation" }, body: body,
+      }).then(function (rows) {
+        if (!rows || !rows[0]) throw new Error("The listing wasn't updated — it may not be yours.");
+        return rows[0];
+      });
     },
 
     current: function () { return provider; },

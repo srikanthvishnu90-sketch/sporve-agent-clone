@@ -475,6 +475,36 @@
       }).then(function (rows) { return (rows && rows[0]) || null; });
     },
 
+    /* EDIT A LISTING — persist the change, don't just repaint it locally.
+       The edit form used to Object.assign the in-memory PROGRAMS row and toast
+       "Listing updated" while writing nothing to the database, so the edit was
+       gone on reload and never reached a family. This PATCHes the real row;
+       RLS programs_update_owner scopes it to the coach's own listing (a foreign
+       id returns zero rows → we throw rather than claim success). Same field
+       map as createListing. status and cancellation_policy are intentionally
+       NOT editable here (publish-state and refund policy are separate, and
+       cancellation is refund-linked/frozen). */
+    updateListing: function (programId, f) {
+      var no = guard(); if (no) return no;
+      if (!programId) return Promise.reject(new Error("No listing to update."));
+      var body = {};
+      if (f.title != null) body.title = String(f.title).trim();
+      if (f.sport != null) body.sport_type = String(f.sport).trim();
+      if (f.desc != null) body.description = String(f.desc).trim();
+      if (f.price != null) body.price = Math.max(0, Number(f.price) || 0);
+      if (f.model != null) body.pricing_model = f.model;
+      if (f.cap != null) body.max_capacity = Math.max(1, Math.floor(Number(f.cap) || 1));
+      if (f.minAge != null) body.minimum_age = Math.max(0, Math.floor(Number(f.minAge) || 0));
+      if (f.maxAge != null) body.maximum_age = Math.max(0, Math.floor(Number(f.maxAge) || 18));
+      if (!Object.keys(body).length) return Promise.resolve(null);
+      return API.from("programs", "id=eq." + encodeURIComponent(programId), {
+        method: "PATCH", headers: { Prefer: "return=representation" }, body: body,
+      }).then(function (rows) {
+        if (!rows || !rows[0]) throw new Error("The listing wasn't updated — it may not be yours.");
+        return rows[0];
+      });
+    },
+
     current: function () { return provider; },
     clear: function () { provider = null; },
 

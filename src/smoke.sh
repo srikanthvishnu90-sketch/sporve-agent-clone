@@ -1838,6 +1838,39 @@ pub=$($B js "
 [ "${pub//\"/}" = "OK" ] && pass "publish a listing writes a real programs row (no fabricated verified local push)" \
   || fail "listing publish regressed: $pub"
 
+# ── Edit a listing PERSISTS (PATCH, not a local Object.assign lie) ────────
+# The edit form used to mutate the in-memory row and toast success while
+# writing nothing. It must now PATCH the real programs row and reload. Assert
+# validation still blocks cap<enrolled, and a valid edit calls updateListing.
+edt=$($B js "
+(()=>{const bad=[];const u={patch:null,reloaded:false};
+ const ru=window.SporveCoach&&window.SporveCoach.updateListing;
+ const rr=window.SporveCatalog&&window.SporveCatalog.reload;
+ window.SporveCoach=window.SporveCoach||{};
+ try{
+   window.SporveCoach.updateListing=(id,f)=>{u.patch={id:id,f:f};return Promise.resolve({id:id});};
+   window.SporveCatalog.reload=()=>{u.reloaded=true;return Promise.resolve(true);};
+   S.portal='coach';S.auth={status:'coach'};S.coachTab='listings';S.route={name:'dashboard',arg:null};
+   if(typeof PROGRAMS!=='undefined'&&!PROGRAMS.some(p=>p.id==='tprog'))
+     PROGRAMS.push({id:'tprog',title:'Old',sport:'Soccer',desc:'d',price:40,model:'single_session',minAge:8,maxAge:12,cap:10,enrolled:2,rating:0,reviews:0});
+   S.modal={type:'editlisting',id:'tprog'};render();
+   const f=document.getElementById('editListingForm'); if(!f){bad.push('NO_FORM');return bad.join(',');}
+   f.title.value='New';f.minAge.value='8';f.maxAge.value='12';f.price.value='55';
+   f.cap.value='1'; f.dispatchEvent(new Event('submit',{bubbles:true,cancelable:true}));
+   if(u.patch)bad.push('VALIDATION_BYPASSED');   // cap below enrolled must block
+   f.cap.value='10'; f.dispatchEvent(new Event('submit',{bubbles:true,cancelable:true}));
+   if(!u.patch||u.patch.id!=='tprog'||u.patch.f.title!=='New')bad.push('NO_PATCH');
+   // reload runs on a microtask after updateListing resolves — not observable
+   // synchronously here; the catalogue reload is covered by the browser drive.
+ } finally {
+   const P=(typeof PROGRAMS!=='undefined'?PROGRAMS:[]);const i=P.findIndex(p=>p.id==='tprog');if(i>=0)P.splice(i,1);
+   if(ru)window.SporveCoach.updateListing=ru; if(rr)window.SporveCatalog.reload=rr;
+   S.modal=null;S.portal='family';S.route={name:'home',arg:null};render();document.body.classList.remove('reg-coach');
+ }
+ return bad.length?bad.join(','):'OK'})()" 2>/dev/null)
+[ "${edt//\"/}" = "OK" ] && pass "edit a listing PATCHes the real row; validation holds" \
+  || fail "listing edit regressed: $edt"
+
 # ── The coach profile renders its blocks, and invents nothing ─────────────
 # Built to the owner's Athletes Untapped reference: pricing ladder, collapsible
 # sections, weekly availability, location. The reference also shows earned
