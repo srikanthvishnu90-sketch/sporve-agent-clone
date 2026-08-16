@@ -1192,7 +1192,13 @@ img{max-width:100%;display:block}
    .sporttag/.demochip keep their absolute positioning where they stand alone
    (the featured card uses .demochip solo). Layout only — no colour/type/copy. */
 .cardchips{position:absolute;top:10px;left:10px;right:46px;z-index:2;
-  display:flex;flex-wrap:wrap;gap:6px;align-items:flex-start}
+  display:flex;flex-wrap:wrap;gap:6px;align-items:flex-start;
+  /* The wrapper sits ABOVE the card's full-cover open button, and neither chip
+     carries a handler — so it must be click-transparent, or the ~26px band it
+     spans swallows taps that used to open the card (the verifier measured
+     exactly that regression). pointer-events:none restores full click-through;
+     the heart lives outside this wrapper and keeps its own events. */
+  pointer-events:none}
 .cardchips .sporttag,.cardchips .demochip{position:static;top:auto;left:auto}
 .card .heart svg{width:14px;height:14px}
 .card .row1{display:flex;justify-content:space-between;gap:10px;align-items:baseline}
@@ -6292,7 +6298,7 @@ function coachLandingHTML(){
   const feats=[
     ["Listings","Define what you offer, what it costs, and where you coach. Group clinics, private sessions, and camps each carry their own price and capacity.","See how listings work","listings"],
     ["Scheduling & availability","Set recurring availability once. Families book only real open slots, and the seat count is enforced at the database — double-booking isn't possible.","Open the schedule","slots"],
-    ["Payments & payouts","Families check out in-app. Payouts run automatically and every booking keeps a receipt, a refund trail, and the cancellation policy that applied at purchase.","See payouts","finances"],
+    ["Payments & payouts","Families check out in-app. Payouts run automatically once your bank is connected — a step that opens after your background check clears — and every booking keeps a receipt, a refund trail, and the cancellation policy that applied at purchase.","See payouts","finances"],
     ["Client roster","Every family, session, and note in one place — including which trainer is cleared to work with which athlete.","See the roster","roster"],
     /* The three below existed as menu rows with nowhere to land. Every "For
        coaches" entry in the mega-menu now has a section on this page, because
@@ -6304,7 +6310,7 @@ function coachLandingHTML(){
     ["AI assistant","Reschedule, offer a waitlist spot, or message a group by typing what you want. It only acts on your real calendar.","Try the assistant","dashboard"]];
   const faq=[
     ["How does the background check work?","Every individual clears their own check — not the business. Your listings stay unbookable and hidden from search until yours clears, and an org being approved never vouches for a trainer on its roster."],
-    ["When do I get paid?","Payouts run automatically after a completed session. Each one itemizes gross, the platform fee, and your net."],
+    ["When do I get paid?","Once your background check clears and your bank is connected, payouts run automatically after a completed session. Each one itemizes gross, the platform fee, and your net."],
     ["What does Sporve take?",`A flat ${FEE_PCT}% platform fee, taken only when you get paid and itemized on every payout — gross, fee, and your net on each booking. Joining, listing, and messaging are free.`],
     ["What happens when someone cancels?","The cancellation policy copied onto the booking at purchase governs the refund — not whatever your listing says later. You pick flexible, moderate, or strict per service."],
     ["Who owns the client relationship?","You do. Families you bring keep booking you, and your roster and notes are yours."],
@@ -6342,7 +6348,7 @@ function coachLandingHTML(){
       <div class="deflist">
         ${[["listings","Listings","Define what you offer, what it costs, and where you coach. Clinics, privates and camps each carry their own price and capacity.","See how listings work"],
            ["slots","Scheduling","Set recurring availability once. Families book only real open slots — the seat count is enforced at the database.","Open the schedule"],
-           ["finances","Payments","Families check out in-app. Payouts run automatically, and every booking keeps a receipt, a refund trail, and the policy that applied at purchase.","See payouts"],
+           ["finances","Payments","Families check out in-app. Payouts run automatically once your bank is connected, and every booking keeps a receipt, a refund trail, and the policy that applied at purchase.","See payouts"],
            ["roster","Roster","Every family, session, and note in one place — including which trainer is cleared to work with which athlete.","See the roster"]]
           .map(([tab,t,d,link])=>`<div class="defrow" id="coach-${esc(tab)}"><b>${esc(t)}</b>
             <p>${esc(d)} <button class="tlink" data-coachtab="${esc(tab)}">${esc(link)} →</button></p></div>`).join("")}
@@ -10893,8 +10899,8 @@ if(id==="messaging"){
 
     <section class="pgband dark bleed"><div class="shell" data-rev><div class="db-in">
       <div>
-        <h2 class="pg-serif" style="font-size:clamp(28px,3.4vw,42px);max-width:14ch">Every name it returns, <em>already checked.</em></h2>
-        <p class="pg-sub" style="margin-top:14px">Ask for a martial arts coach and the assistant draws only from the background-checked pool. A pending check is not on the shelf, so it never comes back as a suggestion.</p>
+        <h2 class="pg-serif" style="font-size:clamp(28px,3.4vw,42px);max-width:14ch">Every suggestion, <em>from the real catalogue.</em></h2>
+        <p class="pg-sub" style="margin-top:14px">The assistant only surfaces listings that actually exist on Sporve — never invented names. And whoever it surfaces, no one can take a booking until their own background check has cleared. That rule lives in the database, not in the assistant's good intentions.</p>
       </div>
       <div class="pg-demo wide" aria-hidden="true">
         <span class="dpill"><span class="ddot" style="width:6px;height:6px;background:var(--ps-bright)"></span> Demo data</span>
@@ -10915,14 +10921,14 @@ if(id==="messaging"){
 
     <section class="pgband white"><div class="shell" style="max-width:760px" data-rev>
       <div class="pg-founder">
-        <p class="pg-fnote">An assistant that points a parent at an unchecked martial arts coach is worse than no assistant at all. So it only ever reads from the same background-checked pool the search does. Nothing unverified is on the shelf it draws from.</p>
-        <p class="pg-serif pg-fpull"><em>It cannot hand you an unchecked coach.</em></p>
+        <p class="pg-fnote">An assistant that books a parent onto an unchecked martial arts coach is worse than no assistant at all. So the guarantee doesn't live in the assistant — it lives in the database: no coach can take a booking until their own check has cleared, and the badge only shows with a real completion date behind it.</p>
+        <p class="pg-serif pg-fpull"><em>It cannot book you an unchecked coach.</em></p>
         <div class="pg-fattr">— The Sporve founder</div>
       </div>
     </div></section>
 
     <section class="pgband white"><div class="shell" data-rev>
-      <h2 class="pg-serif" style="font-size:clamp(30px,4.4vw,48px);max-width:15ch">Ask anything — every name <em>is already checked.</em></h2>
+      <h2 class="pg-serif" style="font-size:clamp(30px,4.4vw,48px);max-width:15ch">Ask anything — booking <em>stays gated on the check.</em></h2>
       <div class="pg-ctarow">${pageCTA(meta)}</div>
     </div></section>
     ${pageKX(id)}
