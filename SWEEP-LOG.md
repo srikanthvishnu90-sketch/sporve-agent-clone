@@ -55,3 +55,19 @@ Advisories held open: 40 copy-depth notes, 30 `.psdot` instances.
    names dots-beside-headings a violation, but its svg-only detector cannot
    see a CSS span; they are slate, so legal under colour law. Delete or keep
    is a one-line ruling either way.
+
+## Overlap sweep — 2026-08-16 (owner spec: text-collision elimination)
+
+Instrument: `scripts/overlap-audit.js` (same-anchor stacked-siblings check,
+injected by smoke.sh on every PR; map pins excluded by the same-anchor
+discriminator, designed inset:0 covers excluded structurally).
+
+| Page/surface | Collisions found | Fix | Audit after |
+|---|---|---|---|
+| Listing cards (browse/search/saved/map rails) | 30/30 demo cards: .sporttag vs .demochip, both absolute top:10px left:10px, overlap 46x26px @390 | .cardchips flex overlay row — chips in flow, wrap not stack, heart corner reserved; global classes untouched for solo uses | CLEAN at 390/768/1440 |
+| home / explore / saved / map / companies / coachinfo | 0 further same-anchor collisions | — | CLEAN (smoke sweeps 6 routes) |
+
+Before/after (worst offender): Demo pill fully burying the sport dot + first
+characters on every non-live card at 390px → chips side-by-side with 6px gap,
+wrapping to a second row when narrow. Parked per thesis: general >2px bbox
+sweep (needs allowlist), 60-char name seeds, 200% zoom pass.

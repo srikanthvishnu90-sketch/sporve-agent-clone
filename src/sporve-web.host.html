@@ -1183,6 +1183,17 @@ img{max-width:100%;display:block}
   font-size:var(--text-sm);font-weight:600;letter-spacing:-.01em;color:var(--ink);
 }
 .sporttag i{width:7px;height:7px;border-radius:2px;display:block}
+/* One overlay ROW for the card-media chips (owner spec 2026-08-16). The sport
+   tag and the Demo chip were BOTH position:absolute at top:10px left:10px — the
+   same corner — so the Demo pill buried the sport tag (measured 45×26px at
+   390px, on every non-live card). Here they are siblings in a flex row, in
+   flow, so they can never overlap; the row wraps before it would run under the
+   heart and never truncates a chip. Scoped to .cardchips so the GLOBAL
+   .sporttag/.demochip keep their absolute positioning where they stand alone
+   (the featured card uses .demochip solo). Layout only — no colour/type/copy. */
+.cardchips{position:absolute;top:10px;left:10px;right:46px;z-index:2;
+  display:flex;flex-wrap:wrap;gap:6px;align-items:flex-start}
+.cardchips .sporttag,.cardchips .demochip{position:static;top:auto;left:auto}
 .card .heart svg{width:14px;height:14px}
 .card .row1{display:flex;justify-content:space-between;gap:10px;align-items:baseline}
 /* The provider name -- the landing's "coach name" role: t-display at the card
@@ -5209,8 +5220,10 @@ function cardHTML(p){
   return `<div class="card">
     <div class="shot">
       <img src="${p.img}" alt="${esc(p.title)}" loading="lazy">
-      <span class="sporttag"><i style="background:${sportColor(p.sport)}"></i>${esc(p.sport)}</span>
-      ${isDemo(p)?`<span class="demochip">Demo</span>`:""}
+      <span class="cardchips">
+        <span class="sporttag"><i style="background:${sportColor(p.sport)}"></i>${esc(p.sport)}</span>
+        ${isDemo(p)?`<span class="demochip">Demo</span>`:""}
+      </span>
       <button class="heart ${fav?"on":""}" data-fav="${p.id}" aria-label="${fav?"Remove from saved":"Save"} ${esc(p.title)}">${ICON.heart(fav)}</button>
       <button data-open="${p.id}" style="position:absolute;inset:0;width:100%;height:100%" aria-label="View ${esc(p.title)}"></button>
     </div>

@@ -1177,6 +1177,32 @@ case "$slopc" in
     fail "slop-audit: $slop";;
 esac
 fi
+
+# ── overlap-audit: no same-corner chip collisions (owner spec 2026-08-16) ──
+# scripts/overlap-audit.js, injected like slop-audit. Fails on two absolutely-
+# positioned SIBLINGS stacked at the same anchor whose boxes overlap — the
+# Demo-chip-vs-sport-tag bug (30 cards, 46x26px, before the .cardchips flex
+# row). Map pins overlap by DATA (lat/long), not by CSS anchor, and are
+# excluded by the same-anchor discriminator — the map route is swept to keep
+# that exclusion honest. Clipped-text is an advisory.
+OAUD=$(cat scripts/overlap-audit.js 2>/dev/null)
+if [ -z "$OAUD" ]; then fail "scripts/overlap-audit.js missing"; else
+ovl=$($B js "$OAUD;
+(()=>{const routes=['home','explore','saved','map','companies','coachinfo'];
+ const bad=[];let warn=0;
+ routes.forEach(rt=>{S.portal='family';S.auth={status:'guest'};S.route={name:rt,arg:null};render();
+  const r=window.OVERLAP_AUDIT();
+  if(r.fail.sameCorner.length)bad.push(rt+'['+r.fail.sameCorner.slice(0,2).join(' | ')+']');
+  warn+=r.warn.clipped.length;});
+ S.route={name:'home',arg:null};render();
+ return bad.length?bad.join(' '):'CLEAN w'+warn})()" 2>/dev/null)
+ovlc=${ovl//\"/}
+case "$ovlc" in
+  CLEAN*) pass "overlap-audit: no same-corner chip collisions on 6 routes";;
+  "")     fail "overlap-audit did not return";;
+  *)      fail "overlap-audit: $ovl";;
+esac
+fi
 # Home + explore: zero emoji. Rails are now ALLOWED here: the owner overrode the
 # no-rails §6.4 rule via the six-task spec 2026-08-08; the explore kind bands
 # (.kindrow, T4) are intentional horizontal rows, so a rail no longer fails this
