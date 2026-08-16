@@ -63,6 +63,11 @@ window.SLOP_AUDIT = function (root) {
   /* C — grids with an unfillable first row. */
   scope.querySelectorAll("*").forEach((el) => {
     if (!visible(el)) return;
+    // Site chrome (header/nav/topbar) is functional, not page content — its
+    // grids are not stranded-slot slop. Excluding it also closes a latent CI
+    // flake: SLOP_AUDIT falls back to #app when "#app main" is absent, pulling
+    // the topbar's 3-col shell (2 children) into scope as a false grid FAIL.
+    if (el.closest("header,nav,.topbar")) return;
     const cs = getComputedStyle(el);
     if (cs.display !== "grid") return;
     const cols = cs.gridTemplateColumns.split(" ").filter((c) => c && c !== "0px").length;
@@ -78,23 +83,66 @@ window.SLOP_AUDIT = function (root) {
     out.fail.emoji.push(m + " emoji codepoint(s) in rendered text");
   }
 
-  /* B — copy depth over definition-style items (warn only, see header). */
+  /* B — RETUNED 2026-08-16. The owner's product-pages rebuild spec (LAW 1:
+     300–500 words of real prose per page) is the third consecutive text-first
+     instruction and SUPERSEDES the old ≤180-words-per-page cap for page:*
+     routes — rule B's open ruling resolves as "text-first wins". The upper
+     bound (>100 words per block) is deleted; thin blocks still warn, and the
+     page-level floor lives in out.warn.pageWords below (promoted to FAIL once
+     the prose slices land). Card copy stays terse — that law was always about
+     product cards, not essays. */
   const ITEMS = scope.querySelectorAll(".pg-rproof, .defrow, .deflist > *");
-  const bySection = new Map();
   ITEMS.forEach((it) => {
     if (!visible(it)) return;
     const w = words(it.innerText);
-    if (w && (w < 30 || w > 100)) out.warn.copy.push(path(it) + " (" + w + " words)");
-    const sec = it.closest("section,.band") || scope;
-    if (!bySection.has(sec)) bySection.set(sec, []);
-    bySection.get(sec).push(w);
+    if (w && w < 30) out.warn.copy.push(path(it) + " (" + w + " words)");
   });
-  bySection.forEach((ws, sec) => {
-    const nz = ws.filter(Boolean);
-    if (nz.length > 1 && Math.max(...nz) > 2 * Math.min(...nz)) {
-      out.warn.copy.push(path(sec) + " (siblings " + Math.min(...nz) + "–" + Math.max(...nz) + " words, >2x)");
+
+  /* G — PRODUCT-PAGES REBUILD instruments (2026-08-16). words + fingerprint +
+     accent report as WARN until the prose/recipe slices land page by page;
+     the "built into Sporve" filler FAILS now (already purged). */
+  out.warn.pageWords = 0;
+  out.warn.fingerprint = "";
+  out.warn.accent = [];
+  {
+    // body prose = page text minus figures, mocks, kx nav, heroes' CTA chrome
+    const clone = scope.cloneNode(true);
+    clone.querySelectorAll("[class*='sig-'],.pg-demo,.pg-kx,.pg-figure,.pg-proof,.pg-stats,nav,button").forEach((n) => n.remove());
+    out.warn.pageWords = words(clone.innerText);
+  }
+  out.warn.fingerprint = [...scope.querySelectorAll("section.pgband")].map((sec) => {
+    // ground: "H" for the hero band, else the ground colour. (The old
+    // .replace("pg-hero","H") then .split(" ")[0] silently dropped the H,
+    // because the colour token precedes pg-hero in the class list.)
+    const cls = sec.className;
+    const ground = /\bpg-hero\b/.test(cls) ? "H" : (cls.replace("pgband", "").trim().split(" ")[0] || "w");
+    // self-marker: .pg-figure IS the section, so querySelectorAll (descendants
+    // only) could never see it — read it off the section's own class instead.
+    const selfMark = /\bpg-figure\b/.test(cls) ? "pg-figure" : "";
+    const inner = [selfMark, ...[...sec.querySelectorAll(".pg-rows,.pg-demo,.pg-proof,.pg-stats,.pg-founder,.db-in,.pg-kx,.cmp,.deflist")]
+      .map((e) => e.className.split(" ")[0])].filter(Boolean).join("+");
+    return ground + (inner ? ":" + inner : "");
+  }).join("|");
+  {
+    // editorial accent only — the per-page --ps voice on text, outside figures
+    const chr = (c) => {
+      const m = /rgba?\((\d+),\s*(\d+),\s*(\d+)/.exec(c || "");
+      if (!m) return 0;
+      return Math.max(+m[1], +m[2], +m[3]) - Math.min(+m[1], +m[2], +m[3]);
+    };
+    const ps = getComputedStyle(scope.querySelector(".pgroot") || scope).getPropertyValue("--ps-ink").trim();
+    if (ps) {
+      scope.querySelectorAll("em,.hl,a,button.pg-textlink").forEach((el) => {
+        if (!visible(el) || el.closest("[class*='sig-'],.pg-demo,.pg-figure")) return;
+        const c = getComputedStyle(el).color;
+        const pel = el.parentElement && getComputedStyle(el.parentElement).color;
+        if (c !== pel && chr(c) > 24) out.warn.accent.push(path(el));
+      });
     }
-  });
+  }
+  if (/built into Sporve/i.test(scope.innerText || "")) {
+    out.fail.pills.push("FILLER: 'built into Sporve' in rendered text");
+  }
 
   /* E — the CSS dots the spec's svg detector cannot see. (The .psdot class was
      purged by the 2026-08-16 text-only pass; this stays as the tripwire.) */

@@ -325,3 +325,14 @@ change is reverted); never apply a RED-set change unattended; always end with th
 verified live URL (rule 1); always end with `WHAT I DID — PLAIN ENGLISH` (rule 7).
 Unattended scheduled agents remain **read-only** — they think and report; the
 in-session brain executes.
+
+## Copy law — superseded 2026-08-16 (owner decision, third text-first spec)
+
+The product-pages rebuild spec (LAW 1: 300–500 words of real explanatory prose
+per product page) SUPERSEDES the anti-slop constitution's ≤180-words-per-page
+cap for `page:*` routes, and resolves rule B's open word-count ruling as
+**text-first wins**. Still standing: card bodies stay terse (≤16 words — that
+law was always about product cards), and every claim in the prose must be
+mechanically true of the shipped product. Enforcement: slop-audit rule G
+(pageWords ≥300, composition fingerprint, editorial accent ≤2, zero
+"built into Sporve") — WARN during the rebuild slices, FAIL once pages land.
