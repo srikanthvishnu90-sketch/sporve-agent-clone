@@ -24,3 +24,6 @@ docs/coach-portal-spec.md
 
 # ci-browse daemon handshake file
 .ci-browse-port
+
+# Strix pentest run artifacts (PoC detail stays local)
+strix_runs/

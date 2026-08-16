@@ -273,6 +273,15 @@ full Strix runtime is available (Docker running, Python 3.12+, `LLM_API_KEY`
 set), `pipx install strix-agent` and run it as the deep pass; this mode is the
 always-available static pass and the triage layer over whatever Strix finds.
 
+**The Strix deep pass runs on a cadence, separately from this mode.** Every ~10
+prompts the `clo-nudge.sh` hook counts a marker and injects `STRIX DUE`; the
+in-session agent then runs `bash tools/strix-scan.sh` (read-only, findings-only,
+targets `~/SportsMan-main` + Supabase). Strix is a *separate agent* from Clo —
+Clo's job here is the always-available static triage below and the triage layer
+over whatever the Strix deep pass surfaces in `strix_runs/`. If the runner exits
+2 (Docker/key/install missing — see `docs/strix.md`), this static pass stands in
+and the owner is told setup is pending. Findings are reported, never auto-fixed.
+
 **Authorization.** This is the owner's own codebase — authorized security
 testing. Read and analyse only; never exfiltrate, never test a third party,
 never touch production data.

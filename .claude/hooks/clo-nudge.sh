@@ -15,6 +15,37 @@ payload=$(cat)
 prompt=$(printf '%s' "$payload" | python3 -c 'import sys,json;print(json.load(sys.stdin).get("prompt",""))' 2>/dev/null || echo "")
 len=${#prompt}
 
+# ── Strix cadence: activate the deep security pass every ~10 real prompts ─────
+# Count genuine user prompts only — background-agent notifications and system
+# results also arrive in the user role and must not inflate the count. The hook
+# cannot run a subagent; it injects a STRIX-DUE instruction into the turn and
+# the in-session agent runs tools/strix-scan.sh (read-only, findings-only).
+case "$prompt" in
+  *"<task-notification>"*|*"SYSTEM NOTIFICATION"*|*"hook success:"*) : ;;
+  *)
+    ctr="${CLAUDE_PROJECT_DIR:-.}/.clo-sync/strix-counter"
+    n=$(( $(cat "$ctr" 2>/dev/null || echo 0) + 1 ))
+    printf '%s' "$n" > "$ctr" 2>/dev/null || true
+    if [ $(( n % 10 )) -eq 0 ]; then
+      cat <<EOF
+<system-reminder>
+STRIX DUE — $n user prompts since the cadence started. Per the owner's standing
+instruction (a Strix deep security pass every ~10 prompts), run it now as a
+READ-ONLY step that reports findings and applies nothing:
+
+  bash tools/strix-scan.sh
+
+Strix (usestrix/strix) targets the real attack surface — ~/SportsMan-main +
+Supabase, NOT this static site. If its preconditions are unmet it prints the
+exact setup and exits 2; then run the clo agent in MODE: pentest as the
+always-available static triage and tell the owner Strix setup is still pending.
+Do this alongside the current task; do not skip it silently. See docs/strix.md.
+</system-reminder>
+EOF
+    fi
+  ;;
+esac
+
 [ "$len" -lt 900 ] && exit 0
 
 # Observed firing on a background-agent completion notification, which arrives
