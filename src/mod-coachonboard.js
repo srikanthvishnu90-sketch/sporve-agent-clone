@@ -835,7 +835,10 @@ function onboardView(){
   return `<div class="cw" role="group" aria-label="Coach onboarding">
     <header class="cw-top">
       <span class="cg-wordmark" style="font-size:15px;font-weight:800">Sporve</span>
-      <button class="cw-exit" type="button" data-cob-exit="1">Save &amp; exit</button>
+      <span class="cw-topright">
+        <a class="cw-help" href="mailto:support@sporve.com">Questions?</a>
+        <button class="cw-exit" type="button" data-cob-exit="1">Save &amp; exit</button>
+      </span>
     </header>
 
     <div class="cw-body">

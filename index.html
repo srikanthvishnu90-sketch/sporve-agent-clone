@@ -21,7 +21,7 @@
 <meta name="twitter:description" content="Find coaches, trainers, camps and teams across 20+ sports in Chicagoland.">
 <meta name="twitter:image" content="https://the-sporve-web.vercel.app/og.png">
 <link rel="icon" href="data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%2032%2032'%3E%3Crect%20width='32'%20height='32'%20rx='7'%20fill='%2309090B'/%3E%3Ccircle%20cx='16'%20cy='16'%20r='6'%20fill='white'/%3E%3C/svg%3E">
-<meta name="sporve-build" content="3d3571fae291601a">
+<meta name="sporve-build" content="81955a69e69420e7">
 </head>
 <body>
 <noscript><h1>Sporve — Every sport. One app.</h1><p>Sporve connects families and athletes with coaches, trainers, camps, and teams across more than 20 sports. Please enable JavaScript to use the app.</p></noscript>
@@ -855,10 +855,16 @@ img{max-width:100%;display:block}
    it is only ever used at 500+ weight here. #10B981 is 2.1:1 on white and is
    NEVER used as text: it is a filled dot / check only. */
 :root{
-  --cw-blue:#2563EB; --cw-blue-alt:#007AFF;
+  /* PALETTE (owner spec 2026-08-16): white / ink / slate + sport tags ONLY —
+     zero new colours, zero orange, slate for accents/selection. The earlier
+     (2026-08-12) chrome used Airbnb blue #2563EB + emerald #10B981; that is
+     reversed here. --cw-blue now IS the Sporve slate accent (--slate-deep
+     #3E566E, white text 8:1 AA), and the done/check state uses the same slate
+     rather than a second colour. */
+  --cw-blue:#3E566E; --cw-blue-alt:#3E566E;
   --cw-ink:#111827;  --cw-ink2:#1F2937;
   --cw-muted:#6B7280; --cw-border:#E5EAF1;
-  --cw-surface:#F8FAFC; --cw-white:#FFFFFF; --cw-green:#10B981;
+  --cw-surface:#F8FAFC; --cw-white:#FFFFFF; --cw-green:#3E566E;
   --cw-r-sm:14px; --cw-r-md:16px; --cw-r-lg:20px; --cw-r-xl:28px; --cw-r-card:24px;
 }
 
@@ -873,15 +879,25 @@ img{max-width:100%;display:block}
   display:grid;grid-template-rows:72px 1fr auto;color:var(--cw-ink)}
 .cw-top{display:flex;align-items:center;gap:14px;padding:0 clamp(16px,4vw,32px);
   background:var(--cw-white);border-bottom:1px solid var(--cw-border)}
-.cw-top .cw-exit{margin-left:auto;background:none;border:0;color:var(--cw-ink);
+.cw-topright{margin-left:auto;display:flex;align-items:center;gap:6px}
+.cw-topright .cw-exit{margin-left:0}
+.cw-top .cw-exit{background:none;border:0;color:var(--cw-ink);
   font-weight:700;font-size:15px;cursor:pointer;text-decoration:underline;
   min-height:44px;padding:0 8px}
+/* "Questions?" pill (owner spec) — a real destination, not decoration. */
+.cw-help{display:inline-flex;align-items:center;min-height:36px;padding:0 14px;
+  border:1px solid var(--cw-border);border-radius:999px;background:var(--cw-white);
+  color:var(--cw-ink);font-weight:700;font-size:14px;text-decoration:none;cursor:pointer}
+.cw-help:hover{border-color:#CBD5E1}
 .cw-body{overflow-y:auto;overscroll-behavior:contain;padding:clamp(24px,5vw,56px) clamp(16px,4vw,32px)}
 .cw-wrap{max-width:1120px;margin:0 auto;display:grid;gap:64px;align-items:start}
 @media(min-width:768px){.cw-wrap{grid-template-columns:48% 52%}}
-.cw-h1{font-size:30px;font-weight:800;line-height:1.15;letter-spacing:-.02em;
-  color:var(--cw-ink);margin:10px 0 0}
-@media(max-width:767px){.cw-h1{font-size:24px}}
+/* The question voice: Instrument Serif (owner choice 2026-08-16, replacing the
+   spec's retired Syne). It is a single-weight display serif, so the weight is
+   400 and the size carries the emphasis. */
+.cw-h1{font-family:var(--display);font-size:34px;font-weight:400;line-height:1.1;
+  letter-spacing:-.01em;color:var(--cw-ink);margin:10px 0 0}
+@media(max-width:767px){.cw-h1{font-size:27px}}
 .cw-sub{font-size:15px;font-weight:500;color:var(--cw-muted);margin:12px 0 0}
 
 /* Select card. Border IS the selected signal on single-select — no checkmark
@@ -893,7 +909,7 @@ img{max-width:100%;display:block}
   transition:border-color .14s,background .14s}
 .cw-card:hover{border-color:#CBD5E1}
 .cw-card[aria-pressed="true"]{border:2px solid var(--cw-blue);
-  background:rgba(37,99,235,.04);padding:15px}
+  background:var(--slate-tint);padding:15px}
 .cw-card[aria-pressed="true"] svg{color:var(--cw-blue)}
 .cw-card-t{font-size:15px;font-weight:700}
 .cw-card-m{font-size:12px;font-weight:600;color:var(--cw-muted)}
@@ -917,7 +933,7 @@ img{max-width:100%;display:block}
 .cw-next{margin-left:auto;background:var(--cw-blue);color:var(--cw-white);
   border:0;border-radius:var(--cw-r-lg);font-size:15px;font-weight:800;
   padding:0 28px;min-height:48px;cursor:pointer;transition:background .14s}
-.cw-next:hover:not(:disabled){background:#1D4FD8}
+.cw-next:hover:not(:disabled){background:#33475C}
 /* Disabled, never hidden — a hidden button reads as a broken screen. */
 .cw-next:disabled{background:var(--cw-border);color:var(--cw-muted);cursor:not-allowed}
 @media(max-width:767px){.cw-next{width:100%;margin-left:0}.cw-row{flex-wrap:wrap}}
@@ -21043,7 +21059,10 @@ function onboardView(){
   return `<div class="cw" role="group" aria-label="Coach onboarding">
     <header class="cw-top">
       <span class="cg-wordmark" style="font-size:15px;font-weight:800">Sporve</span>
-      <button class="cw-exit" type="button" data-cob-exit="1">Save &amp; exit</button>
+      <span class="cw-topright">
+        <a class="cw-help" href="mailto:support@sporve.com">Questions?</a>
+        <button class="cw-exit" type="button" data-cob-exit="1">Save &amp; exit</button>
+      </span>
     </header>
 
     <div class="cw-body">

@@ -1871,6 +1871,29 @@ edt=$($B js "
 [ "${edt//\"/}" = "OK" ] && pass "edit a listing PATCHes the real row; validation holds" \
   || fail "listing edit regressed: $edt"
 
+# ── Coach onboarding wizard palette (owner spec 2026-08-16) ──────────────
+# White/ink/slate + sport tags only — zero new colours. The chrome was built
+# to an earlier spec in Airbnb blue (#2563EB); this asserts it's slate now, the
+# question is Instrument Serif, and the Questions? pill is a real link.
+cob=$($B js "
+(()=>{const bad=[];
+ S.portal='coach';S.auth={status:'coach'};S.route={name:'onboard',arg:null};S.coachTab='onboard';
+ S.onboard=S.onboard||{};S.onboard.step=1;S.onboard.sports=['Soccer'];render();
+ const cw=document.querySelector('.cw'); if(!cw){return 'NO_WIZARD';}
+ const BLUE=['rgb(37, 99, 235)','rgb(0, 122, 255)','rgb(16, 185, 129)','rgb(29, 79, 216)'];
+ let blue=0; cw.querySelectorAll('*').forEach(el=>{const cs=getComputedStyle(el);
+   [cs.color,cs.backgroundColor,cs.borderTopColor,cs.outlineColor].forEach(c=>{if(BLUE.indexOf(c)>=0)blue++;});});
+ if(blue)bad.push('BLUE_'+blue);
+ const nx=cw.querySelector('.cw-next');
+ if(nx&&!nx.disabled&&getComputedStyle(nx).backgroundColor!=='rgb(62, 86, 110)')bad.push('NEXT_NOT_SLATE');
+ if(getComputedStyle(cw.querySelector('.cw-seg i')).backgroundColor!=='rgb(62, 86, 110)')bad.push('SEG_NOT_SLATE');
+ if(!/Instrument/.test(getComputedStyle(cw.querySelector('.cw-h1')).fontFamily))bad.push('H1_NOT_SERIF');
+ const h=cw.querySelector('.cw-help'); if(!h||!/^mailto:/.test(h.getAttribute('href')||''))bad.push('NO_QUESTIONS');
+ S.onboard.sports=[];S.route={name:'home',arg:null};S.portal='family';render();document.body.classList.remove('reg-coach');
+ return bad.length?bad.join(','):'OK'})()" 2>/dev/null)
+[ "${cob//\"/}" = "OK" ] && pass "coach onboarding wizard: slate accent (no Airbnb blue), serif question, Questions pill" \
+  || fail "onboarding palette regressed: $cob"
+
 # ── The coach profile renders its blocks, and invents nothing ─────────────
 # Built to the owner's Athletes Untapped reference: pricing ladder, collapsible
 # sections, weekly availability, location. The reference also shows earned
