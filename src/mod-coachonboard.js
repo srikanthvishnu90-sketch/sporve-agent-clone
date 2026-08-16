@@ -471,7 +471,7 @@ function sportsStep(d, err){
       }).join("")}
     </div>
   </fieldset>
-  <p class="num" style="color:var(--faint);font-size:var(--text-sm);margin-top:12px">${d.sports.length} of ${sports.length} selected</p>
+  <p class="num" style="color:#57606E;font-size:var(--text-sm);margin-top:12px">${d.sports.length} of ${sports.length} selected</p>
   ${d.sports.length ? `<div class="cob-chips" style="margin-top:10px">
     ${d.sports.map(s => `<span class="pill" style="background:${sportColor(s)}1A;color:${sportColor(s)}">${sportGlyph(s)} ${esc(s)}</span>`).join("")}
   </div>` : ""}

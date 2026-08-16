@@ -36,7 +36,7 @@
    ═══════════════════════════════════════════════════════════════════════ */
 window.SLOP_AUDIT = function (root) {
   const scope = root || document.querySelector("#app main") || document.getElementById("app") || document.body;
-  const out = { fail: { icons: [], grids: [], emoji: [] }, warn: { copy: [], psdot: [] } };
+  const out = { fail: { icons: [], grids: [], emoji: [], shapes: [], pills: [] }, warn: { copy: [], psdot: [] } };
 
   const path = (el) => {
     const bits = [];
@@ -96,8 +96,52 @@ window.SLOP_AUDIT = function (root) {
     }
   });
 
-  /* E — the CSS dots the spec's svg detector cannot see. */
+  /* E — the CSS dots the spec's svg detector cannot see. (The .psdot class was
+     purged by the 2026-08-16 text-only pass; this stays as the tripwire.) */
   out.warn.psdot = [...scope.querySelectorAll(".psdot")].filter(visible).map(path);
+
+  /* F — text-only pass (2026-08-16), FAILING as of 2026-08-16 (census reached zero after the purge; the allowlist below is the ratified set): (i) a colored geometric shape ≤24px sitting next to text — a
+     dot/square/swatch doing a label's job; (ii) a pill-styled element outside
+     the sanctioned set. Sanctioned: sport tags on product cards (.sporttag,
+     and .pill inside a listing/product card) and STATE-ENCODING chips (the
+     verification badge, consent, booking/payment status — functional chips
+     inside the product app, per the spec's own carve-out). Detection is by
+     COMPUTED style, not class name, because the sanctioned sport tag itself
+     uses class="pill". */
+  const chroma = (c) => {
+    const m = /rgba?\((\d+),\s*(\d+),\s*(\d+)/.exec(c || "");
+    if (!m) return 0;
+    const r = +m[1], g = +m[2], b = +m[3];
+    return Math.max(r, g, b) - Math.min(r, g, b);
+  };
+  
+  scope.querySelectorAll("*").forEach((el) => {
+    if (!visible(el)) return;
+    const cs = getComputedStyle(el);
+    const r = el.getBoundingClientRect();
+    // (i) tiny colored shape with no text of its own, beside sibling text
+    if (r.width > 0 && r.width <= 24 && r.height > 0 && r.height <= 24 &&
+        !el.textContent.trim() && el.children.length === 0 &&
+        chroma(cs.backgroundColor) > 24 &&
+        el.parentElement && el.parentElement.textContent.trim() &&
+        /* FUNCTIONAL exclusions, not style ones: .sc-legend keys MAP colour to
+           meaning (a legend is information, not decoration); .py-steps/.sbc-rail
+           nodes are DIAGRAM geometry; .sbc-mark is the allowlisted verified
+           badge; .cal/.mapcanvas are data-positioned. */
+        !el.closest(".sporttag,.cardchips,.pin,svg,.sc-legend,.py-steps,.sbc-rail,.sbc-mark,.mapcanvas,.cal-grid")) {
+      out.fail.shapes.push(path(el));
+    }
+    // (ii) pill-shaped label outside the sanctioned set
+    const br = parseFloat(cs.borderRadius) || 0;
+    if (br >= 99 && el.textContent.trim() && r.height > 0 && r.height <= 34 &&
+        (cs.backgroundColor !== "rgba(0, 0, 0, 0)" || cs.borderTopWidth !== "0px") &&
+        !el.matches("button,a,input,select,kbd") &&
+        /* .ac-chiprow: sport chips in the ai-coach mock — the sanctioned sport
+           tag in demo form. */
+        !el.closest(".card,.pickcard,.detail,.sporttag,.sf-badge,[data-qdecide],.panel,.modal,.aidock-panel,.aimax-wrap,.cw,.ac-chiprow")) {
+      out.fail.pills.push(path(el) + " '" + el.textContent.trim().slice(0, 24) + "'");
+    }
+  });
 
   return out;
 };

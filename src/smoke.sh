@@ -124,6 +124,10 @@ done
 # it is ratcheted instead of gated: the number may fall, never rise. Blocking
 # on it today would stop every unrelated change until someone fixes 16 old
 # defects, which is how a check gets deleted rather than satisfied.
+# Baseline 2 = the two ACCEPTED pre-existing pairs on trust (.pill.warn
+# "Verification pending" #B87800 on its warm tint, 3.30:1 — the warn palette
+# is established across the app; re-inking it is its own change, not a ride-
+# along). Anything above 2 is a regression.
 FAMILY_CONTRAST_BASELINE=2
 # Fail closed. If the audit file is missing or the harness returns nothing,
 # `${n:-0}` would coerce empty to zero and every assertion below would report
@@ -1155,18 +1159,18 @@ slop=$($B js "$AUD;
  const fails=[];let wcopy=0,wdot=0;
  routes.forEach(([name,arg])=>{S.route={name,arg};render();
   const r=window.SLOP_AUDIT();
-  const f=r.fail.icons.length+r.fail.grids.length+r.fail.emoji.length;
+  const f=r.fail.icons.length+r.fail.grids.length+r.fail.emoji.length+(r.fail.shapes||[]).length+(r.fail.pills||[]).length;
   if(f)fails.push((arg||name)+'['+
     (r.fail.icons.length?'icons:'+r.fail.icons.slice(0,2).join('|'):'')+
     (r.fail.grids.length?' grids:'+r.fail.grids.slice(0,2).join('|'):'')+
-    (r.fail.emoji.length?' emoji:'+r.fail.emoji[0]:'')+']');
+    (r.fail.emoji.length?' emoji:'+r.fail.emoji[0]:'')+((r.fail.shapes||[]).length?' shapes:'+r.fail.shapes[0]:'')+((r.fail.pills||[]).length?' pills:'+r.fail.pills[0]:'')+']');
   wcopy+=r.warn.copy.length;wdot+=r.warn.psdot.length;});
  S.route={name:'explore',arg:null};render();
  return JSON.stringify({fails,wcopy,wdot})})()" 2>/dev/null)
 slopc=${slop//\"/}
 case "$slopc" in
   *"fails:[]"*)
-    pass "slop-audit: 19 pages clean on icons, grids, emoji"
+    pass "slop-audit: 19 pages clean on icons, grids, emoji, shapes, pills"
     w=$(printf '%s' "$slopc" | grep -o 'wcopy:[0-9]*' | grep -o '[0-9]*')
     d=$(printf '%s' "$slopc" | grep -o 'wdot:[0-9]*' | grep -o '[0-9]*')
     [ "${w:-0}" -gt 0 ] || [ "${d:-0}" -gt 0 ] && \
