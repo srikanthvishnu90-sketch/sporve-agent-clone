@@ -220,7 +220,7 @@ function reviewsFor(programId){
           : `<span class="pill slate">Attend a session to review</span>`;
   const why=
     el.ok?`You attended a session here — your review will carry a verified-booking mark.`
-    :el.why==="guest"?`Only families with a completed booking on Sporve can review a program.`
+    :el.why==="guest"?`Only families with a completed booking on Sporv can review a program.`
     :el.why==="already"?`One review per family, per program. Message the coach for anything else.`
     :`Reviews open after your athlete has attended a session with ${esc(p.biz)}. It keeps the ratings worth reading.`;
 
@@ -258,7 +258,7 @@ function reviewsFor(programId){
     :`<div class="rv-agg rv-agg-empty">
         <div><div class="rv-score num">—</div>${starRow(0)}
           <div class="num rv-sub">No written reviews yet</div></div>
-        <p class="rv-none">This program carries a catalogue rating of ${p.rating} from ${p.reviews} historical ratings, but nobody has written a review on Sporve yet. Families who complete a session here can be the first.</p>
+        <p class="rv-none">This program carries a catalogue rating of ${p.rating} from ${p.reviews} historical ratings, but nobody has written a review on Sporv yet. Families who complete a session here can be the first.</p>
       </div>`}
     <p class="rv-note">${why}</p>
   </section>`;
@@ -278,7 +278,7 @@ function reviewModal(){
   const el=eligibility(p.id);
   if(!el.ok) return wrap("Write a review",`
     <p class="rv-gate">${el.why==="guest"
-      ?"Log in to your Sporve account first — reviews are tied to a completed booking."
+      ?"Log in to your Sporv account first — reviews are tied to a completed booking."
       :el.why==="already"?"You've already reviewed this program."
       :`Your athlete hasn't attended a session with ${esc(p.biz)} yet. Reviews open once a booked session is complete.`}</p>
     <button class="btn wide" data-close="1">Close</button>`);
@@ -540,7 +540,7 @@ function goalsView(){
         <span class="eyebrow">New goal</span>
         <h3 style="margin:6px 0 16px">What are you training toward?</h3>
         ${goalForm("goalForm")}
-        <p class="rv-fine">Plans only ever cite listings that exist on Sporve and meet our verification requirements.</p>
+        <p class="rv-fine">Plans only ever cite listings that exist on Sporv and meet our verification requirements.</p>
       </section>
       <div class="rv-goals">
         ${goals.length?goals.map(planCard).join("")

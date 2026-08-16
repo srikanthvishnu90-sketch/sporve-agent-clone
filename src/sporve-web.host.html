@@ -1,9 +1,9 @@
-<noscript><h1>Sporve — Every sport. One app.</h1><p>Sporve connects families and athletes with coaches, trainers, camps, and teams across more than 20 sports. Please enable JavaScript to use the app.</p></noscript>
+<noscript><h1>Sporv — Every sport. One app.</h1><p>Sporv connects families and athletes with coaches, trainers, camps, and teams across more than 20 sports. Please enable JavaScript to use the app.</p></noscript>
 
 <style>
 /*__FONTFACE__*/
 /* ═══════════════════════════════════════════════════════════════════
-   SPORVE WEB — light counterpart to the dark mobile app.
+   SPORV WEB — light counterpart to the dark mobile app.
    Ground/ink inverted per spec; slate #223140 — web-darkened per owner
    request (2026-08-07) from the app's #475569; sport chroma verbatim from
    sport_colors.dart (the only chromatic layer, accent-only).
@@ -319,8 +319,8 @@ img{max-width:100%;display:block}
 .topbar .brand .mark,.footbase .mark{display:none}
 /* Header wordmark carries the slate brand colour as a literal on black; the
    footer keeps the token so it tracks the footer ground. */
-.topbar .wordmark{text-transform:uppercase;color:#8FA3BC;font-size:var(--text-lg)}
-/* Real Sporve logo, recolored to the slate token (#8FA3BC) with a transparent
+.topbar .wordmark{text-transform:uppercase;color:#8FA3BC;font-size:var(--text-lg);font-weight:600}
+/* Real Sporv logo, recolored to the slate token (#8FA3BC) with a transparent
    ground so it integrates into the black bar instead of sitting in a white box.
    §3: it is now the LEFT home link (inside .brand), so no left margin. */
 .navlogo{height:28px;width:auto;flex:0 0 auto;display:block;opacity:.95}
@@ -808,7 +808,7 @@ img{max-width:100%;display:block}
 /* ── coach entry gate (split-screen: login left, welcome video right) ── */
 /* ═══ COACH ONBOARDING FLOW — owner palette spec, 2026-08-12 ═══════════════
    The owner supplied these and asked for them literally. Recording what that
-   changes, because the spec claimed they were "pulled from the existing Sporve
+   changes, because the spec claimed they were "pulled from the existing Sporv
    components so this drops in without a restyle" and none of the eight were in
    the repo:
 
@@ -817,7 +817,7 @@ img{max-width:100%;display:block}
                               approximating what is already here.
 
    They are therefore SCOPED to this flow (.coachgate / .cw-*), which is what
-   the spec itself describes — "this flow inherits Sporve's existing design
+   the spec itself describes — "this flow inherits Sporv's existing design
    language". They do not leak into the marketplace, so the accent orange and
    the new baby blue are untouched everywhere else. Widening them to the whole
    app is a one-line change if that is what is wanted; it is not what the spec
@@ -832,7 +832,7 @@ img{max-width:100%;display:block}
   /* PALETTE (owner spec 2026-08-16): white / ink / slate + sport tags ONLY —
      zero new colours, zero orange, slate for accents/selection. The earlier
      (2026-08-12) chrome used Airbnb blue #2563EB + emerald #10B981; that is
-     reversed here. --cw-blue now IS the Sporve slate accent (--slate-deep
+     reversed here. --cw-blue now IS the Sporv slate accent (--slate-deep
      #3E566E, white text 8:1 AA), and the done/check state uses the same slate
      rather than a second colour. */
   --cw-blue:#3E566E; --cw-blue-alt:#3E566E;
@@ -842,8 +842,8 @@ img{max-width:100%;display:block}
   --cw-r-sm:14px; --cw-r-md:16px; --cw-r-lg:20px; --cw-r-xl:28px; --cw-r-card:24px;
 }
 
-/* The micro-label. The spec calls this Sporve's signature type treatment and
-   the thing that makes the flow read as Sporve, so it is one class reused by
+/* The micro-label. The spec calls this Sporv's signature type treatment and
+   the thing that makes the flow read as Sporv, so it is one class reused by
    every eyebrow and field label rather than re-declared per component. */
 .cw-micro{font-size:9px;font-weight:900;text-transform:uppercase;
   letter-spacing:.3em;color:var(--cw-muted);display:block}
@@ -3018,7 +3018,7 @@ h2.ctr{margin-bottom:10px}
 /* ═══════════════════════════════════════════════════════════════════
    LANDING — Amboras-pattern layer.
    Structure, motion and interaction borrowed from amboras.app; every
-   colour resolves to an existing Sporve token. Nothing new is introduced
+   colour resolves to an existing Sporv token. Nothing new is introduced
    to the palette: --paper/--raise/--raise2 grounds, --ink/--muted/--faint
    text, --accent (#C2410C) for the one accent, --rule for hairlines.
    ═══════════════════════════════════════════════════════════════════ */
@@ -4112,6 +4112,120 @@ body.reg-coach .navlink{font-size:var(--text-md)}
   .pg-kxrow b{min-width:0}
 }
 @media(prefers-reduced-motion:reduce){.pg-hero [data-rev],.pgband [data-rev]{opacity:1;transform:none}}
+
+/* ══════════════ TEXT-FIRST PRODUCT PAGE RECIPES ══════════════
+   These are the six compositions named in the product-page rebuild. Page
+   colour has two editorial jobs only: the italic phrase in the H1 and the
+   single primary CTA. Product figures are deliberately neutral so a state in
+   a sample UI cannot be mistaken for the page's sport voice. */
+.rebuild-page .pg-hero{padding:0}
+.rebuild-page .pg-hero .shell{padding-top:clamp(18px,2.4vh,24px);padding-bottom:clamp(18px,2.4vh,24px)}
+.rebuild-page .pg-h1{max-width:28ch;margin-top:0;text-wrap:balance}
+.rebuild-page .pg-sub{max-width:70ch;margin-top:12px;font-size:clamp(16px,1.4vw,18px);line-height:1.5;text-wrap:pretty}
+.rebuild-page .pg-ctarow{margin-top:20px}
+.rebuild-page .pg-kxrow:hover b{color:var(--ink)}
+.rebuild-page [data-prose]{text-wrap:pretty}
+.rebuild-page .pgband:not(.pg-hero){padding:clamp(48px,7vw,82px) 0}
+
+/* R1 — statement + four-step walkthrough. */
+.pg-walkthrough{border-bottom:1px solid var(--rule)}
+.pg-walk-step{display:grid;grid-template-columns:72px minmax(180px,.72fr) minmax(0,1.28fr);
+  gap:clamp(20px,4vw,54px);padding:32px 0;border-top:1px solid var(--rule);align-items:start}
+.pg-walk-step:first-child{border-top:0;padding-top:0}
+.pg-walk-step:last-child{padding-bottom:0}
+.pg-walk-num{font-family:ui-monospace,"SF Mono",Menlo,monospace;font-size:var(--text-sm);
+  letter-spacing:.08em;color:var(--faint);padding-top:4px}
+.pg-walk-step h2{font-size:clamp(22px,2.4vw,32px);line-height:1.12;letter-spacing:-.025em}
+.pg-walk-step p{max-width:68ch;color:var(--muted);font-size:var(--text-base);line-height:1.68}
+
+/* R2 — one argument followed by a prose comparison table. */
+.pg-argument{max-width:72ch;font-size:clamp(19px,2vw,24px);line-height:1.58;letter-spacing:-.015em}
+.pg-argument strong{color:var(--ink)}
+.pg-comparison-wrap{overflow-x:auto;border-top:1px solid var(--rule);border-bottom:1px solid var(--rule)}
+.pg-comparison{width:100%;min-width:780px;border-collapse:collapse;table-layout:fixed}
+.pg-comparison th,.pg-comparison td{padding:22px 24px;text-align:left;vertical-align:top;border-right:1px solid var(--rule)}
+.pg-comparison th:last-child,.pg-comparison td:last-child{border-right:0}
+.pg-comparison thead th{font-family:ui-monospace,"SF Mono",Menlo,monospace;font-size:var(--text-xs);
+  letter-spacing:.1em;text-transform:uppercase;color:var(--faint);font-weight:600}
+.pg-comparison tbody tr{border-top:1px solid var(--rule)}
+.pg-comparison tbody th{font-size:var(--text-lg);line-height:1.25;letter-spacing:-.015em}
+.pg-comparison td{color:var(--muted);font-size:var(--text-base);line-height:1.62}
+.pg-comparison td:last-child{color:var(--ink)}
+
+/* R3 — essay beside a rail of real, bare numerals. */
+.pg-essay-stat{display:grid;grid-template-columns:minmax(0,1.55fr) minmax(250px,.65fr);
+  gap:clamp(48px,8vw,112px);align-items:start}
+.pg-essay h2{font-size:clamp(28px,3.4vw,44px);max-width:17ch;line-height:1.1;letter-spacing:-.025em;margin-bottom:24px}
+.pg-essay p{max-width:68ch;color:var(--muted);font-size:var(--text-base);line-height:1.72;margin-top:18px}
+.pg-stat-rail{border-top:1px solid var(--rule)}
+.pg-rail-stat{padding:24px 0;border-bottom:1px solid var(--rule)}
+.pg-rail-value{display:block;font-family:ui-monospace,"SF Mono",Menlo,monospace;
+  font-size:clamp(36px,5vw,64px);line-height:1;letter-spacing:-.04em;color:var(--ink)}
+.pg-rail-label{display:block;color:var(--muted);font-size:var(--text-sm);line-height:1.45;margin-top:9px}
+.pg-worked-math{margin-top:28px;border-top:1px solid var(--rule);border-bottom:1px solid var(--rule);padding:20px 0}
+.pg-worked-math code{display:block;font-family:ui-monospace,"SF Mono",Menlo,monospace;
+  white-space:pre-wrap;color:var(--ink);line-height:1.8;font-size:var(--text-sm)}
+.pg-worked-math p{margin-top:14px}
+
+/* R4 — argument left, one flat, captioned product artifact right. */
+.pg-r4-grid{display:grid;grid-template-columns:minmax(0,.92fr) minmax(380px,1.08fr);
+  gap:clamp(44px,7vw,96px);align-items:start}
+.pg-r4-copy h2{font-size:clamp(28px,3.4vw,44px);line-height:1.1;letter-spacing:-.025em;max-width:16ch}
+.pg-r4-copy p{color:var(--muted);font-size:var(--text-base);line-height:1.72;margin-top:20px;max-width:66ch}
+.pg-flat-figure{margin:0;min-width:0}
+.pg-mono-ui{font-family:ui-monospace,"SF Mono",Menlo,monospace;border-top:1px solid var(--ink);
+  border-bottom:1px solid var(--ink);background:var(--paper);padding:0}
+.pg-ui-head{display:flex;justify-content:space-between;gap:20px;padding:18px 0;border-bottom:1px solid var(--rule);
+  font-size:var(--text-sm);font-weight:700}
+.pg-ui-head span:last-child{color:var(--muted);font-weight:500}
+.pg-ui-row{display:grid;grid-template-columns:minmax(110px,.7fr) minmax(0,1.3fr);gap:22px;
+  padding:16px 0;border-bottom:1px solid var(--rule);font-size:var(--text-sm);line-height:1.5}
+.pg-ui-row:last-child{border-bottom:0}
+.pg-ui-key{color:var(--faint)}
+.pg-ui-value{color:var(--ink);font-weight:600}
+.pg-ui-choice{display:flex;justify-content:space-between;gap:16px;align-items:center;padding:16px 0;
+  border-bottom:1px solid var(--rule);font-size:var(--text-sm)}
+.pg-ui-choice[aria-current="true"]{font-weight:800}
+.pg-ui-choice:last-child{border-bottom:0}
+.pg-flat-figure figcaption{color:var(--muted);font-size:var(--text-sm);line-height:1.62;margin-top:16px;max-width:60ch}
+.pg-roster-ui{width:100%;border-collapse:collapse;font-family:ui-monospace,"SF Mono",Menlo,monospace;font-size:var(--text-sm)}
+.pg-roster-ui th,.pg-roster-ui td{text-align:left;padding:15px 0;border-bottom:1px solid var(--rule)}
+.pg-roster-ui th{color:var(--faint);font-weight:500}.pg-roster-ui td{color:var(--ink)}
+.pg-roster-ui th:not(:first-child),.pg-roster-ui td:not(:first-child){text-align:right}
+
+/* R5 — dark essay, then a light definition list. */
+.pg-dark-essay{background:var(--canvas-dark)}
+.pg-dark-essay .shell{display:grid;grid-template-columns:minmax(220px,.62fr) minmax(0,1.38fr);
+  gap:clamp(48px,8vw,118px);align-items:start}
+.pg-dark-essay h2{color:#fff;font-size:clamp(30px,3.8vw,48px);line-height:1.08;letter-spacing:-.025em;max-width:13ch}
+.pg-dark-copy{columns:1}
+.pg-dark-copy p{color:#fff!important;font-size:var(--text-base);line-height:1.75;margin-top:24px;max-width:70ch}
+.pg-dark-copy p:first-child{margin-top:0}
+.pg-definition-list{border-top:1px solid var(--rule)}
+.pg-definition-row{display:grid;grid-template-columns:minmax(180px,.55fr) minmax(0,1.45fr);
+  gap:clamp(26px,6vw,84px);padding:25px 0;border-bottom:1px solid var(--rule)}
+.pg-definition-row dt{font-weight:800;font-size:var(--text-lg);letter-spacing:-.015em}
+.pg-definition-row dd{color:var(--muted);font-size:var(--text-base);line-height:1.65}
+
+/* R6 — policy as questions and full answers, never collapsed. */
+.pg-question-ledger{border-top:1px solid var(--rule)}
+.pg-question-row{display:grid;grid-template-columns:minmax(230px,.68fr) minmax(0,1.32fr);
+  gap:clamp(32px,7vw,96px);padding:30px 0;border-bottom:1px solid var(--rule)}
+.pg-question-row dt{font-size:clamp(20px,2vw,28px);line-height:1.2;font-weight:800;letter-spacing:-.02em}
+.pg-question-row dd{color:var(--muted);font-size:var(--text-base);line-height:1.7;max-width:70ch}
+
+@media(max-width:820px){
+  .pg-walk-step{grid-template-columns:48px 1fr;gap:12px 18px}
+  .pg-walk-step p{grid-column:2}
+  .pg-essay-stat,.pg-r4-grid,.pg-dark-essay .shell{grid-template-columns:1fr;gap:42px}
+  .pg-r4-grid{grid-template-columns:minmax(0,1fr)}
+  .pg-definition-row,.pg-question-row{grid-template-columns:1fr;gap:10px}
+}
+@media(max-width:520px){
+  .rebuild-page .pg-h1{font-size:clamp(36px,11vw,48px)}
+  .pg-walk-step{grid-template-columns:1fr}.pg-walk-step p{grid-column:auto}
+  .pg-ui-row{grid-template-columns:1fr;gap:4px}
+}
 </style>
 
 <div id="app"></div>
@@ -4450,7 +4564,7 @@ const DEMO_CATALOGUE = PROGRAMS.slice();
    It was two: this list took `list[0].verified` -- the FIRST listing deciding
    for the whole business, i.e. one program vouching for an operator, which is
    the exact inverse of the FAQ sentence "an approved business cannot vouch for
-   an individual on Sporve" (HANDOFF defect #11). The landing separately used
+   an individual on Sporv" (HANDOFF defect #11). The landing separately used
    an every() roll-up. Two implementations of one trust rule is how the
    contradiction comes back, so there is now one.
 
@@ -4750,7 +4864,7 @@ const S={
   cmdAction:"",
   cmdDraft:"",
   cmdSending:false,
-  aiModel:"Sporve AI",
+  aiModel:"Sporv AI",
   cmdModelOpen:false,
   cmdError:"",
   /* A parsed action awaiting the coach's confirmation. Nothing the model
@@ -4929,7 +5043,7 @@ function coachPublicState(){
 /* Where Google sends the visitor back to.
    ---------------------------------------------------------------------------
    ALWAYS this page's own origin, computed at call time — never a constant, and
-   never another Sporve property. The reported symptom was a coach signing in
+   never another Sporv property. The reported symptom was a coach signing in
    with Google and landing on the WAITLIST at sporve.vercel.app, which is a
    different product with no relationship to this site.
 
@@ -5353,7 +5467,7 @@ function phScene(sport,seed){
    "No matching programs right now." forever.
 
    This is the owner's ask answered without reintroducing that: three cards that
-   describe what Sporve carries, each with a sample image, rather than three
+   describe what Sporv carries, each with a sample image, rather than three
    grids pretending to hold listings. The distinction matters more now than it
    did last week — a family can actually pay on this page, so a filler listing
    is not a placeholder, it is an offer that cannot be honoured.
@@ -5476,7 +5590,7 @@ function whereRows(){
   PROGRAMS.forEach(p=>{const a=(p.address||"").split(",")[0].trim();if(a)c[a]=(c[a]||0)+1;});
   const rows=Object.keys(c).sort((a,b)=>c[b]-c[a]).slice(0,8).map(a=>({
     key:"where:"+a,title:a,color:"#2563EB",sub:c[a]+" coaches here"}));
-  return rows.length?rows:[{key:"where:Chicago",title:"Chicago",color:"#2563EB",sub:"Where Sporve is live today"}];
+  return rows.length?rows:[{key:"where:Chicago",title:"Chicago",color:"#2563EB",sub:"Where Sporv is live today"}];
 }
 function whenRows(){
   return [
@@ -5781,7 +5895,7 @@ function kindBandHTML(id,title,sub,type,full){
 function topbarHTML(){
   const u=S.auth.user;
   return `<header class="topbar"><div class="shell topbar-in">
-    <button class="brand" data-nav="explore" aria-label="Sporve home"><img class="navlogo" src="data:image/png;base64,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" alt="Sporve" width="99" height="24"></button>
+    <button class="brand" data-nav="explore" aria-label="Sporv home"><span class="wordmark">Sporv</span></button>
     ${/* Column 2 of the 1fr auto 1fr grid: the centred menu group. Rendered
           for families only, but the wrapper is always present so the grid
           keeps three columns and the group stays geometrically centred. */""}
@@ -5838,7 +5952,7 @@ function pricingHTML(){
   /* Anti-slop C4: this page was TWO PANEL CARDS side by side — tell #17
      (everything wrapped in a card), tell #18 (equal padding, no hierarchy).
      Now the constitution's B3 comparison table: THE JOB / ELSEWHERE / ON
-     SPORVE, hairline rules, prose cells, zero cards. The page carries one
+     SPORV, hairline rules, prose cells, zero cards. The page carries one
      claim, one table, one line of small print. The only number on it is
      FEE_PCT, which is the number the checkout actually charges. */
   const rows=[
@@ -5877,11 +5991,11 @@ function pricingHTML(){
     <div class="pr-stats" role="list">
       <div role="listitem"><b class="num">${FEE_PCT}%</b><span>platform fee, only on a paid booking</span></div>
       <div role="listitem"><b class="num">$0</b><span>to join, list, browse, and message</span></div>
-      <div role="listitem"><b class="num">$0</b><span>background checks — run at Sporve's cost</span></div>
+      <div role="listitem"><b class="num">$0</b><span>background checks — run at Sporv's cost</span></div>
     </div>
     <div class="cmp-wrap">
-      <table class="cmp" aria-label="What Sporve costs, compared">
-        <thead><tr><th>The job</th><th>Elsewhere</th><th>On Sporve</th></tr></thead>
+      <table class="cmp" aria-label="What Sporv costs, compared">
+        <thead><tr><th>The job</th><th>Elsewhere</th><th>On Sporv</th></tr></thead>
         <tbody>${rows.map(([a,b,c])=>`<tr><th scope="row">${esc(a)}</th><td>${esc(b)}</td><td>${c}</td></tr>`).join("")}</tbody>
       </table>
     </div>
@@ -5910,7 +6024,7 @@ function notFoundHTML(name){
 function productMenuHTML(){
   /* §9.1: every bold menu row lands on its OWN marketing page (page:<id>), not
      an app view — this is the only path by which the 17 pages are reachable. */
-  const about=[["What is Sporve?","page:what-is"],
+  const about=[["What is Sporv?","page:what-is"],
     ["How background checks work","page:background-checks"]];
   const fam=[["Search by sport & age","page:search"],["Map search","page:map-search"],
     ["Instant booking","page:instant-booking"],
@@ -5951,9 +6065,9 @@ function productMenuHTML(){
    already on a group text and a Venmo history. */
 function coachesMenuHTML(){
   const rows=[
-    ["Start coaching on Sporve","From profile to first booking. Your listings go live the moment your background check clears.","becomecoach"],
-    ["Bring your existing clients","Move your current families in from a group text, a spreadsheet, or Venmo history. They book you on Sporve from day one.","import"],
-    ["Works with how you run","Your calendar, your policies, your prices. Sporve handles the admin around them.","coachfeatures"]];
+    ["Start coaching on Sporv","From profile to first booking. Your listings go live the moment your background check clears.","becomecoach"],
+    ["Bring your existing clients","Move your current families in from a group text, a spreadsheet, or Venmo history. They book you on Sporv from day one.","import"],
+    ["Works with how you run","Your calendar, your policies, your prices. Sporv handles the admin around them.","coachfeatures"]];
   return `<div class="productmenu" role="menu" aria-label="Coaches"><div class="shell cmgrid">
     <div class="pmcol">
       <div class="eyebrow">Made for the way you coach</div>
@@ -5964,7 +6078,7 @@ function coachesMenuHTML(){
     <div class="pmcol cmtalk">
       <div class="eyebrow">Talk to us</div>
       <h3>See the coach side first</h3>
-      <p>Book a call with the Sporve team — see the coach side end-to-end
+      <p>Book a call with the Sporv team — see the coach side end-to-end
          before you commit to anything.</p>
       ${/* ghost, not filled. This lives in the Coaches mega-menu, which is in
             the DOM on every route -- so a filled accent here spent the page's
@@ -6064,7 +6178,7 @@ function heroCarouselHTML(){
     <span class="amq-price">${money(p.price)} <span>${esc(modelLabel(p.model))}</span></span>
   </button>`;
   const set=cards.map(card).join("");
-  return `<div class="amq" role="region" aria-label="Programs on Sporve">
+  return `<div class="amq" role="region" aria-label="Programs on Sporv">
     <div class="amq-track">${set}<span aria-hidden="true" inert style="display:contents">${set}</span></div>
   </div>`;
 }
@@ -6132,7 +6246,7 @@ function peekRowHTML(){
            the same condition that drives the header — one source of truth, so
            the badge and the banner can never disagree. */""}
       ${useCoaches?"":`<p class="demobanner">These are sample listings that show how
-        Sporve works. Real verified coaches are onboarding now —
+        Sporv works. Real verified coaches are onboarding now —
         <button class="lnk" data-nav="coachinfo">join the waitlist</button> to be first.</p>`}
     </div>
     <div class="peekrow" role="list">${items.map(card).join("")}</div>
@@ -6184,10 +6298,10 @@ function landingHTML(){
 
   <section class="band alt">
     <div class="shell" data-rev>
-      <h2>What changes with Sporve</h2>
+      <h2>What changes with Sporv</h2>
       <div class="cmp-wrap" style="margin-top:18px">
         <table class="cmp" aria-label="Finding a coach, compared">
-          <thead><tr><th>The job</th><th>Elsewhere</th><th>On Sporve</th></tr></thead>
+          <thead><tr><th>The job</th><th>Elsewhere</th><th>On Sporv</th></tr></thead>
           <tbody>
             <tr><th scope="row">Finding a coach</th>
               <td>Group-chat threads, a flyer at the gym, a friend of a friend.</td>
@@ -6207,10 +6321,10 @@ function landingHTML(){
   <section class="band dark">
     <div class="shell lgrid">
       <div data-rev>
-        <div class="eyebrow" style="color:var(--accent-on-dark)">What's on Sporve today</div>
+        <div class="eyebrow" style="color:var(--accent-on-dark)">What's on Sporv today</div>
         <h2 style="margin-top:12px">The rules every listing runs on.</h2>
         <p class="sub" style="margin-top:14px">
-          The catalogue below is sample inventory, shown so you can see how Sporve
+          The catalogue below is sample inventory, shown so you can see how Sporv
           works — every demo card is labelled. Real coaches are onboarding now, and
           these are the rules they clear before a listing goes live.</p>
         <div class="lchecks">
@@ -6276,7 +6390,7 @@ function landingHTML(){
 function faqSectionHTML(){
   const faqs=[
     ["Is every coach really background-checked?",
-     "Yes, and per person rather than per business. An approved business cannot vouch for an individual on Sporve — each coach clears their own check, and an unverified coach never appears in search, in results, or in anything the assistant suggests."],
+     "Yes, and per person rather than per business. An approved business cannot vouch for an individual on Sporv — each coach clears their own check, and an unverified coach never appears in search, in results, or in anything the assistant suggests."],
     ["What does it cost a family?",
      "You pay the coach's price for the session. There is no booking fee and no membership. Browsing, messaging a coach, saving coaches and managing your athletes are all free."],
     ["Can I message a coach before I book?",
@@ -6317,7 +6431,7 @@ function coachLandingHTML(){
   const faq=[
     ["How does the background check work?","Every individual clears their own check — not the business. Your listings stay unbookable and hidden from search until yours clears, and an org being approved never vouches for a trainer on its roster."],
     ["When do I get paid?","Once your background check clears and your bank is connected, payouts run automatically after a completed session. Each one itemizes gross, the platform fee, and your net."],
-    ["What does Sporve take?",`A flat ${FEE_PCT}% platform fee, taken only when you get paid and itemized on every payout — gross, fee, and your net on each booking. Joining, listing, and messaging are free.`],
+    ["What does Sporv take?",`A flat ${FEE_PCT}% platform fee, taken only when you get paid and itemized on every payout — gross, fee, and your net on each booking. Joining, listing, and messaging are free.`],
     ["What happens when someone cancels?","The cancellation policy copied onto the booking at purchase governs the refund — not whatever your listing says later. You pick flexible, moderate, or strict per service."],
     ["Who owns the client relationship?","You do. Families you bring keep booking you, and your roster and notes are yours."],
     ["Can I leave and take my data?","Yes. Request an export at any time. Deletion is reviewed as a case so financial and safety records required by law are retained, and everything else is removed."]];
@@ -6330,9 +6444,9 @@ function coachLandingHTML(){
     <div class="shell">
       <p class="eyebrow">For coaches</p>
       <h1 class="display">Coaching is your job.<br>Admin shouldn't be.</h1>
-      <p class="lede" style="margin-left:0;max-width:60ch">Sporve runs your scheduling, payments, and client roster so your hours go to the field, not the spreadsheet.</p>
+      <p class="lede" style="margin-left:0;max-width:60ch">Sporv runs your scheduling, payments, and client roster so your hours go to the field, not the spreadsheet.</p>
       <div class="ctarow" style="justify-content:flex-start">
-        <button class="btn" data-becomecoach="1">Start coaching on Sporve</button>
+        <button class="btn" data-becomecoach="1">Start coaching on Sporv</button>
         <button class="btn ghost" data-scrollto="coachfeats">See how it works ↓</button>
       </div>
     </div>
@@ -6413,11 +6527,11 @@ function coachLandingHTML(){
   <section class="band alt">
     <div class="shell foundernote">
       <div class="eyebrow">A note from the team</div>
-      <p>We're not going to show you coach testimonials we don't have. Sporve is pre-launch,
+      <p>We're not going to show you coach testimonials we don't have. Sporv is pre-launch,
       and the honest version is this: we built the coach side first because every trainer we
       talked to was losing evenings to scheduling texts and chasing payments. If that's your
       week, the product is already built and you can look at all of it before you commit to anything.</p>
-      <p class="sig">— The Sporve team, Chicago</p>
+      <p class="sig">— The Sporv team, Chicago</p>
     </div>
   </section>
 
@@ -6433,7 +6547,7 @@ function coachLandingHTML(){
       <h2>What it costs</h2>
       <div class="cmp-wrap" style="margin-top:18px">
         <table class="cmp" aria-label="Coach fees, compared">
-          <thead><tr><th>The job</th><th>Elsewhere</th><th>On Sporve</th></tr></thead>
+          <thead><tr><th>The job</th><th>Elsewhere</th><th>On Sporv</th></tr></thead>
           <tbody>
             <tr><th scope="row">Getting paid</th>
               <td>Chasing parents after practice, card readers, invoices.</td>
@@ -6443,7 +6557,7 @@ function coachLandingHTML(){
               <td>Joining, listing and messaging are free. No monthly fee, no per-listing fee.</td></tr>
             <tr><th scope="row">The background check</th>
               <td>Billed to you, or skipped.</td>
-              <td>Run at Sporve's cost. Never billed to you, never optional.</td></tr>
+              <td>Run at Sporv's cost. Never billed to you, never optional.</td></tr>
           </tbody>
         </table>
       </div>
@@ -6467,7 +6581,7 @@ function coachLandingHTML(){
   <section class="band finalcta">
     <div class="shell ctr">
       <h2>Your calendar is waiting.</h2>
-      <div class="ctarow"><button class="btn" data-becomecoach="1">Start coaching on Sporve</button></div>
+      <div class="ctarow"><button class="btn" data-becomecoach="1">Start coaching on Sporv</button></div>
     </div>
   </section>`;
 }
@@ -6714,7 +6828,7 @@ function productHTML(){
   <section class="band alt" style="padding:64px 0 56px">
     <div class="shell">
       <div class="eyebrow" data-rev>The product</div>
-      <h1 style="margin-top:16px;max-width:16ch" data-rev>Everything Sporve does.</h1>
+      <h1 style="margin-top:16px;max-width:16ch" data-rev>Everything Sporv does.</h1>
       <p class="lede" style="margin:16px 0 0;max-width:58ch;text-align:left" data-rev>One product, two
         sides. The platform families book on is the same one coaches run their week on — and the
         rules below hold in both.</p>
@@ -6934,14 +7048,14 @@ function detailHTML(id){
         <div style="display:flex;gap:11px"><span style="color:var(--warn);flex:0 0 auto">${ICON.shield}</span><div>
           <h3 style="color:var(--warn)">Background check in progress</h3>
           <p style="color:var(--ink-2);margin-top:5px;font-size:var(--text-base)">
-            ${esc(p.biz)} has not completed Sporve's per-person background check yet.
+            ${esc(p.biz)} has not completed Sporv's per-person background check yet.
             Booking stays open, but the verified badge appears only once the check clears.</p>
         </div></div></div>`}
       ${window.MOD_REVIEWS&&window.MOD_REVIEWS.reviewsFor?window.MOD_REVIEWS.reviewsFor(p.id):""}
       <div style="display:flex;justify-content:space-between;align-items:center;gap:16px;
                   margin-top:34px;padding-top:22px;border-top:1px solid var(--rule);flex-wrap:wrap">
         <p style="color:var(--muted);font-size:var(--text-sm);max-width:46ch">
-          Something concerning about this program? Reports go to Sporve's safety team.
+          Something concerning about this program? Reports go to Sporv's safety team.
           If anyone is in immediate danger, contact local authorities first.</p>
         <button class="btn ghost sm" data-report="${p.id}">Report this program</button>
       </div>
@@ -6962,7 +7076,7 @@ function detailHTML(id){
       </div>
       <div style="margin-top:18px">
         <div class="linerow"><span>${money(p.price)} × 1 session</span><span class="num">${money(p.price)}</span></div>
-        <div class="linerow"><span>Sporve's ${FEE_PCT}% (paid by the coach)</span><span class="num">−${money(Math.round(p.price*FEE_RATE))}</span></div>
+        <div class="linerow"><span>Sporv's ${FEE_PCT}% (paid by the coach)</span><span class="num">−${money(Math.round(p.price*FEE_RATE))}</span></div>
         <div class="linerow total"><span>Total</span><span class="num">${money(p.price)}</span></div>
       </div>
       ${spots>0
@@ -6981,7 +7095,7 @@ function detailHTML(id){
    Bookings & receipts, Messaging, Athlete progress -- rendered a bare
    sign-in wall to anyone not logged in. Measured: ~2,030 characters of
    page including all the chrome, against 9,302 for explore and 5,796 for
-   the product index. A parent evaluating Sporve clicked a menu row that
+   the product index. A parent evaluating Sporv clicked a menu row that
    named a feature and got a login box that described nothing.
 
    This is the family-side twin of the coach-menu defect: the surfaces a
@@ -7099,7 +7213,7 @@ function savedHTML(){
 
 function profileHTML(){
   if(!isVerified()) return `${subnavHTML()}<main class="shell"><div class="empty">
-    <div class="big">${PICON.users}</div><h2>Log in to Sporve</h2>
+    <div class="big">${PICON.users}</div><h2>Log in to Sporv</h2>
     <p style="margin-top:8px">Manage your athletes, bookings, and messages.</p>
     <button class="btn" data-signin="1" style="margin-top:20px">Log in or sign up</button></div></main>`;
   const u=S.auth.user;
@@ -7322,7 +7436,7 @@ function assistantHTML(){
             <span class="mark" style="width:46px;height:46px;font-size:24px;margin:0 auto 15px">S</span>
             <h2>What are you training for?</h2>
             <p style="color:var(--muted);margin-top:8px">
-              I only recommend listings that exist on Sporve and have cleared a background check.</p>
+              I only recommend listings that exist on Sporv and have cleared a background check.</p>
             <div style="display:flex;flex-wrap:wrap;gap:8px;justify-content:center;margin-top:22px">
               ${["My 11-year-old wants to make the soccer team",
                  "Beginner swimming near Chicago under $60",
@@ -7343,8 +7457,8 @@ function assistantHTML(){
            tell users they're talking to AI, at the start of each session. This
            caption is always on screen, so it satisfies "beginning of each
            session" even on a mid-conversation reload. */""}
-      You're chatting with Sporve's AI assistant — not a person, and it can be
-      wrong. Suggestions are matched from Sporve's live catalogue, never invented.</p>
+      You're chatting with Sporv's AI assistant — not a person, and it can be
+      wrong. Suggestions are matched from Sporv's live catalogue, never invented.</p>
   </main>`;
 }
 /* ── AI dock ────────────────────────────────────────────────────────
@@ -7364,7 +7478,7 @@ function assistantHTML(){
    The chip is not decoration: it tells the coach what context the assistant
    is working from, so a wrong answer is diagnosable rather than mysterious. */
 function aiContext(){
-  if(S.portal!=="coach") return {label:"Sporve", chips:[]};
+  if(S.portal!=="coach") return {label:"Sporv", chips:[]};
   const t=S.coachTab||"dashboard";
   /* Every chip here maps to a REAL coach-command tool — a read the assistant
      can answer, or a draft it can propose. Removed 2026-08-14: chips that named
@@ -7488,7 +7602,7 @@ function aiDockHTML(){
          <span class="mark" style="margin:0 auto 11px">S</span>
          <h3>What are you training for?</h3>
          <p style="color:var(--muted);font-size:var(--text-sm);margin-top:6px">
-           I only suggest real Sporve listings that have cleared a background check.</p>
+           I only suggest real Sporv listings that have cleared a background check.</p>
          <div style="display:flex;flex-direction:column;gap:7px;margin-top:15px">
            ${["Beginner swimming near Chicago under $60",
               "Advanced basketball for a 14-year-old",
@@ -7502,7 +7616,7 @@ function aiDockHTML(){
     return `<div class="aipill">
       <button class="aidock-strip" data-aiexpand="1" aria-expanded="false">
         <span class="aidock-ctxchip">${esc(aiContext().label)}</span>
-        <span class="aidock-striptext">Ask Sporve, or draft a reply…</span>
+        <span class="aidock-striptext">Ask Sporv, or draft a reply…</span>
         <kbd class="aidock-kbd">⌘K</kbd>
       </button>
     </div>${fabHTML(true)}`;
@@ -7514,7 +7628,7 @@ function aiDockHTML(){
      askCoach() — this is a bigger window onto the same conversation, never a
      second chat implementation. */
   if(open&&S.aiMax){
-    return `<div class="aimax-wrap"><section class="aidock-panel talking aimax" role="dialog" aria-label="Sporve AI">
+    return `<div class="aimax-wrap"><section class="aidock-panel talking aimax" role="dialog" aria-label="Sporv AI">
       <div class="aimax-head">
         <div class="aimax-histwrap">
           <button type="button" class="aimax-ic" data-aihist="1"
@@ -7537,7 +7651,7 @@ function aiDockHTML(){
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
                  stroke-width="2" stroke-linecap="round" aria-hidden="true">
               <path d="M10 4v6H4M4 10l6-6M14 20v-6h6M20 14l-6 6"/></svg></button>
-          <button type="button" class="aimax-ic" data-aiclose="1" aria-label="Close Sporve AI">
+          <button type="button" class="aimax-ic" data-aiclose="1" aria-label="Close Sporv AI">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
                  stroke-width="2" stroke-linecap="round" aria-hidden="true">
               <path d="M6 6l12 12M18 6L6 18"/></svg></button>
@@ -7549,7 +7663,7 @@ function aiDockHTML(){
             :`<div class="aidock-empty"><span class="mark" style="margin:0 auto 11px">S</span>
                <h3>What can I take off your plate?</h3>
                <p style="color:#9AA6B2;font-size:var(--text-sm);margin-top:6px">
-                 You're chatting with Sporve's AI assistant — not a person, and it can
+                 You're chatting with Sporv's AI assistant — not a person, and it can
                  be wrong. Ask about your schedule or roster, or tell me what to draft;
                  you approve anything before it's sent.</p></div>`}
           ${S.chatThinking?`<div class="bub them" style="align-self:flex-start;display:flex;gap:5px;align-items:center">
@@ -7558,7 +7672,7 @@ function aiDockHTML(){
       </div>
       <form class="aidock-compose aimax-compose" id="aiDockForm">
         <input id="aiDockInput" class="aidock-input" placeholder="Write a message…"
-               aria-label="Message Sporve AI" autocomplete="off">
+               aria-label="Message Sporv AI" autocomplete="off">
         <div class="aidock-row">
           <button type="button" class="aidock-ic" data-aiattach="1" aria-label="Add an attachment">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
@@ -7584,14 +7698,14 @@ function aiDockHTML(){
       ${/* Persistent AI-disclosure (Claude Usage Policy): always on screen in
            the maximized session, so a mid-conversation reload still discloses
            it, not only the fresh-chat empty state. */""}
-      <p class="aimax-aihint">Sporve AI can make mistakes. You approve any message or change before it happens.</p>
+      <p class="aimax-aihint">Sporv AI can make mistakes. You approve any message or change before it happens.</p>
     </section></div>${fabHTML(true)}`;
   }
   /* THE WIDGET IS THE BAR. Owner, 2026-08-13: "all that should show on the
      screen is the exact layout and format of [the reference] at the bottom of
      the screen, outside of that and an X button, that's it."
 
-     Removed: the "Sporve AI / Real listings only" header, the empty state (S
+     Removed: the "Sporv AI / Real listings only" header, the empty state (S
      mark, "What are you training for?", three suggestion buttons) and the
      context-chip row. They were 380px of furniture wrapped around a 100px
      control, and the owner has now twice reported not being able to see the
@@ -7607,7 +7721,7 @@ function aiDockHTML(){
      ending it, and the same buttons bring it back. */
   const convo=S.chat.length||S.chatThinking;
   const showThread=convo&&!S.aiThreadHidden;
-  return `${open?`<div class="aipill"><section class="aidock-panel${showThread?" talking":""}" role="dialog" aria-label="Sporve AI helper">
+  return `${open?`<div class="aipill"><section class="aidock-panel${showThread?" talking":""}" role="dialog" aria-label="Sporv AI helper">
       ${showThread?`
       <div class="aidock-scroll" id="aidockScroll">
         ${thread}
@@ -7621,7 +7735,7 @@ function aiDockHTML(){
              last turn from a different screenshot and it was wrong — the field
              has to be able to hold a sentence without sharing its line. */""}
         <input id="aiDockInput" class="aidock-input" placeholder="Write a message…"
-               aria-label="Message Sporve AI" autocomplete="off">
+               aria-label="Message Sporv AI" autocomplete="off">
         <div class="aidock-row">
           <button type="button" class="aidock-ic" data-aiattach="1" aria-label="Add an attachment">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
@@ -7648,7 +7762,7 @@ function aiDockHTML(){
              past one) exists — the at-rest bar stays exactly the bar (owner:
              "minimizing would be the initial thing"). */""}
         ${convo?`<button type="button" class="aidock-x aidock-maxbtn"
-          data-aimaximize="1" aria-label="Maximize Sporve AI" title="Maximize">
+          data-aimaximize="1" aria-label="Maximize Sporv AI" title="Maximize">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
                stroke-width="2" stroke-linecap="round" aria-hidden="true">
             <path d="M14 4h6v6M20 4l-7 7M10 20H4v-6M4 20l7-7"/></svg></button>` :""}
@@ -7665,7 +7779,7 @@ function aiDockHTML(){
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
                stroke-width="1.8" stroke-linecap="round" aria-hidden="true">
             <circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg></button>`:""}
-        <button type="button" class="aidock-x" data-aiclose="1" aria-label="Close Sporve AI">
+        <button type="button" class="aidock-x" data-aiclose="1" aria-label="Close Sporv AI">
           <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor"
                stroke-width="2" stroke-linecap="round" aria-hidden="true">
             <path d="M6 6l12 12M18 6L6 18"/></svg></button>
@@ -7673,7 +7787,7 @@ function aiDockHTML(){
       ${/* AI-disclosure (Claude Usage Policy) shown once a conversation exists
            — the at-rest bar stays "just the bar" (owner), but the moment it is
            a live chat session the user is told it's AI. */""}
-      ${convo?`<p class="aidock-aihint">Sporve AI can make mistakes. You approve any message or change first.</p>`:""}
+      ${convo?`<p class="aidock-aihint">Sporv AI can make mistakes. You approve any message or change first.</p>`:""}
     </section></div>`:""}${fabHTML(open)}`;
 }
 
@@ -7688,8 +7802,8 @@ function aiDockHTML(){
 function fabHTML(open){
   return `<div class="aidock">
     <button class="aidock-fab" data-aitoggle="1" aria-expanded="${open}"
-            aria-label="${open?"Collapse":"Open"} Sporve AI helper"
-            title="${open?"Collapse":"Open"} Sporve AI">
+            aria-label="${open?"Collapse":"Open"} Sporv AI helper"
+            title="${open?"Collapse":"Open"} Sporv AI">
       <span class="aidock-fab-mark">S</span>
     </button>
   </div>`;
@@ -7930,11 +8044,11 @@ function coachHTML(){
       ${/* A5 — one row, not three. The avatar initials derive from the coach's
            OWN business name; "AP" was a hardcoded literal that said Apex to
            every coach. "View public profile" moves into the menu. */""}
-      ${/* Sporve's own touch #4 — the existing wordmark asset at the top of the
+      ${/* Sporv's own touch #4 — the existing wordmark asset at the top of the
            sidebar, not recreated or restyled. The references are light-themed;
            the dark surface plus this mark is what makes the density read as
-           Sporve rather than as Stripe. */""}
-      <div class="railmark">Sporve</div>
+           Sporv rather than as Stripe. */""}
+      <div class="railmark">Sporv</div>
       <button class="railhead" data-railmenu="1" aria-expanded="${!!S.railMenu}" aria-haspopup="menu"
               title="Workspace">
         <span class="avatar" style="width:24px;height:24px;font-size:10px">${
@@ -8044,7 +8158,7 @@ function payoutsPanelHTML(){
     ? `<p class="pay-ok">${ICON.shield} Payouts are active. Families can book and pay you.</p>`
     : `<p class="pay-warn">${started
         ? "Stripe still needs a few details before it will release payments. Until then a family cannot check out with you."
-        : "You cannot take bookings until Stripe has your bank details. Sporve never sees them."}</p>
+        : "You cannot take bookings until Stripe has your bank details. Sporv never sees them."}</p>
        <button class="btn" data-connectpayouts="1"${busy?" disabled":""}>
          ${busy?"Opening Stripe…":(started?"Finish payout setup":"Connect payouts")}</button>`;
   return `<section class="panel paypanel">
@@ -8052,7 +8166,7 @@ function payoutsPanelHTML(){
       <span class="pill ${live?"gold":"warn"}">${live?"Active":started?"Incomplete":"Not connected"}</span></div>
     ${body}
     ${S.connectError?`<div class="err" role="alert" style="margin-top:10px">${esc(S.connectError)}</div>`:""}
-    <p class="pay-fine">Sporve takes ${FEE_PCT}% of each booking. The rest reaches your account
+    <p class="pay-fine">Sporv takes ${FEE_PCT}% of each booking. The rest reaches your account
       through Stripe, which holds your bank details — not us.</p>
   </section>`;
 }
@@ -8098,7 +8212,7 @@ function dashboardHTML(){
     ["Create an event",PICON.spark],["View all actions",PICON.list]
   ];
   /* The multi-model picker was removed (fabricated capability — the models were
-     wired to nothing). The bar is a single non-interactive "Sporve AI" chip. */
+     wired to nothing). The bar is a single non-interactive "Sporv AI" chip. */
   const statusLine=live
     ? `${todays.length} session${todays.length===1?"":"s"} tomorrow, ${q.filter(x=>x.decide).length} awaiting your decision.`
     : `You're ${gs.total-gs.done} step${gs.total-gs.done===1?"":"s"} from going live.`;
@@ -8120,7 +8234,7 @@ function dashboardHTML(){
     </section>
     ${/* Honesty doctrine: these figures are seeded, not measured. They only
          ever appear alongside a label that says so — a coach must never be
-         shown a number Sporve did not actually count. */""}
+         shown a number Sporv did not actually count. */""}
     <p class="lastdays num">All channels · Last 30 days${live
       ? ` <span class="pill gold" style="margin-left:8px">Demo data</span>`:""}</p>
 
@@ -8130,11 +8244,11 @@ function dashboardHTML(){
       <p class="dashcontext">${esc(statusLine)}</p>
     </section>
 
-    ${/* The fixed "Ask Sporve anything" command bar was removed at the owner's
+    ${/* The fixed "Ask Sporv anything" command bar was removed at the owner's
          request: the global AI dock (bottom-right, every screen) is now the
          single entry point, and two AI inputs stacked on one page read as two
          different assistants. S.cmdLog below is untouched. */""}
-    ${S.cmdLog&&S.cmdLog.length?`<div class="cmdlog" aria-label="Recent Sporve AI activity">
+    ${S.cmdLog&&S.cmdLog.length?`<div class="cmdlog" aria-label="Recent Sporv AI activity">
         <div class="eyebrow">Activity log</div>
         ${S.cmdLog.slice(0,4).map(l=>`<div class="cmdlogrow"><span>${esc(l.text)}</span>
           <span class="num">${esc(l.at)}</span></div>`).join("")}
@@ -8249,7 +8363,7 @@ function dashboardHTML(){
         <h3>Bring your existing clients</h3>
         <p style="color:var(--muted);font-size:var(--text-base);margin-top:7px">
           Already coaching families off-platform? Invite them and their bookings, payments,
-          and session history run through Sporve from now on.</p>
+          and session history run through Sporv from now on.</p>
         <button class="btn sm" data-import="1" style="margin-top:14px">Import clients</button>
       </div>
     </section>
@@ -8605,7 +8719,7 @@ function coachBody(t){
       rebook_nudge:"Rebooking nudge"};
     return `<div class="sec-head" style="margin-top:18px"><h1>Approvals</h1></div>
       <p style="color:var(--muted);margin-bottom:16px;max-width:64ch">
-        Messages Sporve drafted for you. Nothing is sent until you approve it.</p>
+        Messages Sporv drafted for you. Nothing is sent until you approve it.</p>
       ${q.length?`<div style="display:flex;flex-direction:column;gap:10px">
         ${q.map(m=>`<div class="panel" style="display:flex;flex-direction:column;gap:8px">
           <div style="display:flex;align-items:center;gap:9px">
@@ -8634,12 +8748,12 @@ function coachBody(t){
                 <button class="btn ghost sm" data-qdecide="redraft:${esc(m.id)}">Send back to draft</button>
                </div>`
             : `<div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
-                <span style="color:var(--muted);font-size:var(--text-xs)">Sporve is still drafting this.</span>
+                <span style="color:var(--muted);font-size:var(--text-xs)">Sporv is still drafting this.</span>
                 <button class="btn ghost sm" data-qdecide="reject:${esc(m.id)}">Skip</button>
                </div>`}
         </div>`).join("")}
       </div>`:`<div class="empty"><h3>Nothing waiting</h3>
-        <p style="margin-top:6px">Sporve drafts reminders, recaps and rebooking nudges after
+        <p style="margin-top:6px">Sporv drafts reminders, recaps and rebooking nudges after
           sessions. They will appear here for your approval before anything is sent.</p></div>`}`;
   }
 
@@ -8729,7 +8843,7 @@ function coachBody(t){
       <div class="panel" style="background:var(--raise);border:0;margin-top:6px">
         <div class="eyebrow">Server-controlled</div>
         <p style="font-size:var(--text-base);color:var(--ink-2);margin-top:7px">
-          Verification status, background-check status, and payout fields are set by Sporve — a business can never mark itself verified.</p>
+          Verification status, background-check status, and payout fields are set by Sporv — a business can never mark itself verified.</p>
         ${/* derived, not asserted — these were hardcoded literals that would
              read "Verified / cleared / connected" for a brand-new coach, and
              contradicted gettingStarted() computing from the same fields */""}
@@ -8829,7 +8943,7 @@ function modalHTML(){
   if(m.type==="bookcall") return wrap("Book a call",`
     <p style="color:var(--muted);margin-bottom:18px;font-size:var(--t-small)">
       See the coach side end-to-end before you commit to anything. Tell us when
-      suits and someone from Sporve will reply by email.</p>
+      suits and someone from Sporv will reply by email.</p>
     <form id="bookcallForm">
       <div class="field"><label>Your name</label><input name="name" placeholder="Marcus Reyes" required></div>
       <div class="field"><label>Email address</label><input name="email" type="email" placeholder="you@example.com" required></div>
@@ -8857,7 +8971,7 @@ function modalHTML(){
       <span class="mark au-mark">S</span>
       <h2>Log in or sign up</h2>
       <p>${S.portal==="coach"
-        ? "Publish listings, take bookings, and get paid through Sporve."
+        ? "Publish listings, take bookings, and get paid through Sporv."
         : "Book sessions, message coaches, and manage your athletes."}</p>
     </div>
     <form id="authIdForm" class="au-form">
@@ -8896,7 +9010,7 @@ function modalHTML(){
       <div class="field"><label>Password</label><input name="password" type="password" placeholder="Min. 8 characters" required></div>
       <label style="display:flex;gap:11px;align-items:flex-start;cursor:pointer;margin:6px 0 4px">
         <input type="checkbox" name="privacy" required style="width:17px;height:17px;margin-top:2px;flex:0 0 auto;accent-color:var(--slate-ink)">
-        <span style="font-size:var(--text-sm);color:var(--muted)">I have read Sporve's <button type="button" class="lnk" data-foot="info:privacy" style="font-size:inherit;font-weight:700">Privacy Policy</button> and <button type="button" class="lnk" data-foot="info:terms" style="font-size:inherit;font-weight:700">Terms of Service</button>.</span></label>
+        <span style="font-size:var(--text-sm);color:var(--muted)">I have read Sporv's <button type="button" class="lnk" data-foot="info:privacy" style="font-size:inherit;font-weight:700">Privacy Policy</button> and <button type="button" class="lnk" data-foot="info:terms" style="font-size:inherit;font-weight:700">Terms of Service</button>.</span></label>
       <div id="signupErr" class="err hide" style="margin:8px 0"></div>
       <button class="btn wide" type="submit" style="margin-top:12px">Continue →</button>
     </form>`);
@@ -8935,7 +9049,7 @@ function modalHTML(){
       <div class="field"><label>Birth year</label>
         ${/* [CRITICAL-PATH: consent] 13+ ONLY. This offered 2022-2008 — ages 4 to
              18 — and wrote date_of_birth to the athletes table behind a single
-             unverified checkbox. Sporve's OWN published privacy notice says the
+             unverified checkbox. Sporv's OWN published privacy notice says the
              opposite: "During the current beta, adults must not submit personal
              information about a child under 13" and "Youth profiles will remain
              unavailable for production use until the required parent notice and
@@ -8956,7 +9070,7 @@ function modalHTML(){
         <select name="skill"><option value="">Not sure yet</option>
           ${["beginner","developing","intermediate","advanced"].map(l=>`<option value="${l}">${l[0].toUpperCase()+l.slice(1)}</option>`).join("")}</select></div>
       <p style="font-size:var(--text-base);line-height:1.47;color:var(--ink-2);margin:4px 0 16px">
-        I'm this child's parent or legal guardian and I consent to Sporve collecting this
+        I'm this child's parent or legal guardian and I consent to Sporv collecting this
         information to match and book training. You can download or delete it anytime from Profile.</p>
       <label style="display:flex;gap:11px;align-items:flex-start;cursor:pointer;margin-bottom:6px">
         <input type="checkbox" name="consent" style="width:17px;height:17px;margin-top:2px;flex:0 0 auto;accent-color:var(--slate-ink)">
@@ -8998,7 +9112,7 @@ function modalHTML(){
   if(m.type==="demo"){
     return wrap("This is a demo listing",`
       <p style="color:var(--muted);font-size:var(--text-sm);line-height:1.6">
-        This listing is sample inventory — it shows how Sporve works, but there is
+        This listing is sample inventory — it shows how Sporv works, but there is
         no real coach behind it and it cannot be booked.</p>
       <p style="color:var(--muted);font-size:var(--text-sm);line-height:1.6;margin-top:10px">
         Want real coaches near you? Real verified coaches are onboarding now.</p>
@@ -9048,7 +9162,7 @@ function modalHTML(){
           <select name="tier"><option>Standard</option><option>Premium (+$15)</option></select></div>
         <div style="border-top:1px solid var(--rule);margin-top:6px;padding-top:8px">
           <div class="linerow"><span>${esc(p.title)}</span><span class="num">${money(p.price)}</span></div>
-          <div class="linerow"><span>Sporve's 12% (paid by the coach)</span><span class="num">−${money(fee)}</span></div>
+          <div class="linerow"><span>Sporv's 12% (paid by the coach)</span><span class="num">−${money(fee)}</span></div>
           <div class="linerow total"><span>Total</span><span class="num">${money(p.price)}</span></div>
         </div>
         <button class="btn wide" type="submit" style="margin-top:14px">Confirm booking</button>
@@ -9254,7 +9368,7 @@ function modalHTML(){
       <div class="panel" style="background:var(--warn-tint);border:0">
         <p style="font-size:var(--text-base);color:var(--ink-2)">
           The invited trainer starts with <b>no background check</b>. They become bookable only after
-          Sporve clears their own check — your business can't verify them.</p></div>
+          Sporv clears their own check — your business can't verify them.</p></div>
       <button class="btn wide" type="submit" style="margin-top:16px">Send invite</button>
     </form>`);
 
@@ -9321,7 +9435,7 @@ function modalHTML(){
         <div class="field"><label>Password</label><input name="password" type="password" placeholder="Min. 8 characters" required></div>
         <label style="display:flex;gap:11px;align-items:flex-start;cursor:pointer;margin:6px 0 4px">
           <input type="checkbox" name="privacy" required style="width:17px;height:17px;margin-top:2px;flex:0 0 auto;accent-color:var(--slate-ink)">
-          <span style="font-size:var(--text-sm);color:var(--muted)">I have read Sporve's <button type="button" class="lnk" data-foot="info:privacy" style="font-size:inherit;font-weight:700">Privacy Policy</button> and <button type="button" class="lnk" data-foot="info:terms" style="font-size:inherit;font-weight:700">Terms of Service</button>.</span></label>
+          <span style="font-size:var(--text-sm);color:var(--muted)">I have read Sporv's <button type="button" class="lnk" data-foot="info:privacy" style="font-size:inherit;font-weight:700">Privacy Policy</button> and <button type="button" class="lnk" data-foot="info:terms" style="font-size:inherit;font-weight:700">Terms of Service</button>.</span></label>
         <div id="signupErr" class="err hide" style="margin:8px 0"></div>
         <button class="btn wide" type="submit" style="margin-top:12px">Create account →</button>
         <button class="btn ghost wide" type="button" data-onbback="1" style="margin-top:9px">Back</button>
@@ -9331,13 +9445,13 @@ function modalHTML(){
   if(m.type==="importclients") return wrap("Import your clients",`
     <p style="color:var(--muted);margin-bottom:18px">
       Paste the families you already coach. Each gets a branded invite from you —
-      once they accept, their bookings, payments, and session history run through Sporve.</p>
+      once they accept, their bookings, payments, and session history run through Sporv.</p>
     <form id="importForm">
       <div class="field"><label>Names and emails, one per line</label>
         <textarea name="rows" rows="6" placeholder="Dana Rivera, dana@example.com
 Marcus Chen, marcus@example.com"></textarea></div>
       <div class="field"><label>Message they'll receive</label>
-        <textarea name="note" rows="3">Hi — I've moved my scheduling and payments to Sporve. Same sessions, same me; you'll just book and pay in one place from now on.</textarea></div>
+        <textarea name="note" rows="3">Hi — I've moved my scheduling and payments to Sporv. Same sessions, same me; you'll just book and pay in one place from now on.</textarea></div>
       <div id="importErr" class="err hide" style="margin:8px 0"></div>
       <button class="btn wide" type="submit">Send invites</button>
       <p style="text-align:center;color:var(--faint);font-size:var(--text-sm);margin-top:11px">
@@ -9483,7 +9597,7 @@ function bootModules(){
 
    They EXISTED all along and this site linked to none of them: the entire Legal
    page was three sentences, and the signup checkbox forced visitors to confirm
-   "I have read Sporve's Privacy Policy" where that phrase was a <b> with no
+   "I have read Sporv's Privacy Policy" where that phrase was a <b> with no
    destination. A consent tick-box pointing at nothing is not consent, and a
    marketplace handling children's data with no published terms is not a legal
    position anyone can defend.
@@ -9498,17 +9612,17 @@ function bootModules(){
    code was changed to match rather than the other way round. */
 const INFO={
   privacy:{title:"Privacy & Security",sections:[
-    {h:"1. What we collect",b:"The information we collect depends on how you use the Services: • Waitlist information: name, email address, ZIP code, athlete/parent/coach role, sports interests, consent status, and submission source. • Account information: name, email address, password credentials handled by our authentication provider, account role, and optional phone number. • Profile and marketplace information: adult profile details, uploaded media, provider business information, sports, qualifications, service area, listings, pricing, availability, and verification status. • Activity information: searches, saved programs, bookings, messages, session notes, support requests, notification preferences, and feature interactions. • Payment records: if payments are activated, our payment processor handles card or bank details. Sporve may receive transaction identifiers, payment status, payout status, and limited billing details, but not full card numbers. • Technical information: IP address, browser or device type, approximate location derived from IP, diagnostic logs, and local browser storage used to keep a session or selected account role working. If youth-profile features are activated after an appropriate consent process is introduced, a parent or guardian may choose to provide a child’s name, date of birth, sports interests, profile image, relevant medical notes, and emergency contact details. Do not provide that information in the current beta."},
+    {h:"1. What we collect",b:"The information we collect depends on how you use the Services: • Waitlist information: name, email address, ZIP code, athlete/parent/coach role, sports interests, consent status, and submission source. • Account information: name, email address, password credentials handled by our authentication provider, account role, and optional phone number. • Profile and marketplace information: adult profile details, uploaded media, provider business information, sports, qualifications, service area, listings, pricing, availability, and verification status. • Activity information: searches, saved programs, bookings, messages, session notes, support requests, notification preferences, and feature interactions. • Payment records: if payments are activated, our payment processor handles card or bank details. Sporv may receive transaction identifiers, payment status, payout status, and limited billing details, but not full card numbers. • Technical information: IP address, browser or device type, approximate location derived from IP, diagnostic logs, and local browser storage used to keep a session or selected account role working. If youth-profile features are activated after an appropriate consent process is introduced, a parent or guardian may choose to provide a child’s name, date of birth, sports interests, profile image, relevant medical notes, and emergency contact details. Do not provide that information in the current beta."},
     {h:"2. How we use information",b:"We use information to provide and secure the Services; create and authenticate accounts; operate the waitlist; match families with providers; support listings, bookings, messages, notifications, payments, and customer support; verify providers and investigate safety concerns; improve performance and usability; prevent fraud and abuse; and comply with legal obligations. We also use information to provide the optional AI features described below. AI output can be inaccurate and should be checked against the provider listing, booking record, or other source before anyone relies on it."},
-    {h:"3. AI features and automated processing",b:"Sporve currently uses Anthropic’s API for language tasks such as interpreting a coach search, generating constrained explanations for authorized listing results, answering supported marketplace questions, and drafting provider messages or session summaries. Sporve uses OpenAI’s API to create numerical embeddings that help compare search text with provider listings. The separate provider-match ranking described below does not call a language model. Depending on the feature you choose, the information sent for processing may include a search query; sport, age, budget, approximate location, and marketplace preferences; provider profile and listing facts; booking-policy text; recent message excerpts and a provider’s writing samples; or a child’s first name and the session notes a provider asks Sporve to summarize. Do not enter medical details, government identifiers, emergency information, or other sensitive information into an AI prompt. Do not use Sporve AI for medical advice, emergency help, or as a substitute for a qualified coach. Sporve applies marketplace-eligibility rules before match ranking, restricts returned listings to the eligible set, and orders matches with a deterministic comparison of current rating evidence, distance, price fit, and availability. Names, biographies, credentials, and profile-writing style do not affect that score. Sporve requires a person to review substantive AI-generated drafts before sharing them. For customer-facing coach answers, Sporve reloads current listing facts from its database and allows AI to select only from authorized listing identifiers; price, rating, availability, and policy text are rendered from server-controlled sources. AI does not independently book a session, send a provider draft, determine provider verification, or make a medical or legal decision. The central AI audit log is designed to store request and response hashes, sizes, model, token usage, cost, and latency rather than raw prompt text. Product records needed to provide the feature—such as messages, notes, or generated drafts—may remain in Sporve’s systems under this policy. The search parser also caches normalized search text and location hints to avoid repeated processing; users should treat search text as stored account activity and keep sensitive information out of it. If you choose to send in-app AI feedback, Sporve stores the AI feature name, release version, feedback category, helpfulness choice, and any optional comment you type. The feedback tool does not attach your prompt, the AI response, message history, name, or email address. To limit abuse without placing an account identifier in the feedback record, Sporve converts the authenticated account ID into a private keyed hash. Keep names, contact details, medical information, private messages, and AI conversation text out of the optional comment. Our operational retention schedule clears optional comments after 90 days and deletes the remaining structured feedback after 180 days."},
+    {h:"3. AI features and automated processing",b:"Sporv currently uses Anthropic’s API for language tasks such as interpreting a coach search, generating constrained explanations for authorized listing results, answering supported marketplace questions, and drafting provider messages or session summaries. Sporv uses OpenAI’s API to create numerical embeddings that help compare search text with provider listings. The separate provider-match ranking described below does not call a language model. Depending on the feature you choose, the information sent for processing may include a search query; sport, age, budget, approximate location, and marketplace preferences; provider profile and listing facts; booking-policy text; recent message excerpts and a provider’s writing samples; or a child’s first name and the session notes a provider asks Sporv to summarize. Do not enter medical details, government identifiers, emergency information, or other sensitive information into an AI prompt. Do not use Sporv AI for medical advice, emergency help, or as a substitute for a qualified coach. Sporv applies marketplace-eligibility rules before match ranking, restricts returned listings to the eligible set, and orders matches with a deterministic comparison of current rating evidence, distance, price fit, and availability. Names, biographies, credentials, and profile-writing style do not affect that score. Sporv requires a person to review substantive AI-generated drafts before sharing them. For customer-facing coach answers, Sporv reloads current listing facts from its database and allows AI to select only from authorized listing identifiers; price, rating, availability, and policy text are rendered from server-controlled sources. AI does not independently book a session, send a provider draft, determine provider verification, or make a medical or legal decision. The central AI audit log is designed to store request and response hashes, sizes, model, token usage, cost, and latency rather than raw prompt text. Product records needed to provide the feature—such as messages, notes, or generated drafts—may remain in Sporv’s systems under this policy. The search parser also caches normalized search text and location hints to avoid repeated processing; users should treat search text as stored account activity and keep sensitive information out of it. If you choose to send in-app AI feedback, Sporv stores the AI feature name, release version, feedback category, helpfulness choice, and any optional comment you type. The feedback tool does not attach your prompt, the AI response, message history, name, or email address. To limit abuse without placing an account identifier in the feedback record, Sporv converts the authenticated account ID into a private keyed hash. Keep names, contact details, medical information, private messages, and AI conversation text out of the optional comment. Our operational retention schedule clears optional comments after 90 days and deletes the remaining structured feedback after 180 days."},
     {h:"4. How we share information",b:"We may share information only as needed for the Services: • Service providers that support hosting, authentication and database services (including Supabase), email delivery, security, analytics, push notifications, payment processing, or optional AI features (including Anthropic and OpenAI). • Other marketplace users when a booking or conversation requires a family and provider to see relevant profile, scheduling, or message information. • Professional advisers or authorities when reasonably necessary to protect safety, enforce our terms, comply with law, or respond to a valid legal request. • A successor organization as part of a merger, financing, acquisition, or sale, subject to appropriate confidentiality protections. We do not sell personal information or share it for cross-context behavioral advertising. We do not use information about children for targeted advertising."},
-    {h:"5. Children’s privacy",b:"Sporve is designed for adults arranging youth-sports services; it is not intended for children to create accounts or submit information directly. Children under 13 may not use the Services on their own. During the current beta, adults must not submit personal information about a child under 13. Before enabling collection of personal information from a child under 13, Sporve will provide a parent or legal guardian with direct notice and use a method designed to obtain verifiable parental consent. A parent may request access to, correction of, or deletion of a child’s information, or refuse further collection, by emailing hello@sporve.com . We will verify the requester’s identity and relationship to the child before acting. If we learn that we collected personal information from a child under 13 without the required consent, we will disable access to that information and delete it as required. Please contact us immediately if you believe this has occurred."},
+    {h:"5. Children’s privacy",b:"Sporv is designed for adults arranging youth-sports services; it is not intended for children to create accounts or submit information directly. Children under 13 may not use the Services on their own. During the current beta, adults must not submit personal information about a child under 13. Before enabling collection of personal information from a child under 13, Sporv will provide a parent or legal guardian with direct notice and use a method designed to obtain verifiable parental consent. A parent may request access to, correction of, or deletion of a child’s information, or refuse further collection, by emailing hello@sporve.com . We will verify the requester’s identity and relationship to the child before acting. If we learn that we collected personal information from a child under 13 without the required consent, we will disable access to that information and delete it as required. Please contact us immediately if you believe this has occurred."},
     {h:"6. Retention",b:"We keep information only for as long as reasonably necessary for the purpose collected, including providing an account, completing transactions, meeting safety and recordkeeping needs, resolving disputes, and complying with law. Waitlist information is kept until launch communications are complete or you ask us to remove it. When information is no longer needed, we delete or de-identify it using reasonable measures. Any future child information will be retained only for the specific service purpose and not indefinitely."},
     {h:"7. Your choices and privacy rights",b:"You may ask to access, correct, or delete your personal information, receive a portable copy where applicable, withdraw consent, or opt out of marketing messages. You can also unsubscribe using a link in a marketing email. Account-related and safety messages may still be sent when necessary to provide the Services. To make a request, email hello@sporve.com . We may need to verify your identity before responding. Depending on where you live, you may have additional rights and may appeal a decision by replying to our response. We will not discriminate against you for exercising a privacy right."},
     {h:"8. Security",b:"We use administrative, technical, and organizational safeguards designed to protect information, including access controls and encrypted network connections. No system can guarantee absolute security. Use a unique password and contact us if you believe your account or information has been compromised."},
-    {h:"9. Data locations and external services",b:"Sporve and its service providers may process information in the United States and other locations where they operate. External sites and services have their own privacy practices; this policy does not govern information you provide directly to them."},
+    {h:"9. Data locations and external services",b:"Sporv and its service providers may process information in the United States and other locations where they operate. External sites and services have their own privacy practices; this policy does not govern information you provide directly to them."},
     {h:"10. Changes to this policy",b:"We may update this policy as the Services change. We will post the revised version here and update the date above. If a change materially affects how we use information already collected, we will provide additional notice and request consent when required."},
-    {h:"11. Contact",b:"Sporve is the operator responsible for this privacy notice. For privacy questions, parental requests, or complaints, email hello@sporve.com . You can also use the Contact page ."}
+    {h:"11. Contact",b:"Sporv is the operator responsible for this privacy notice. For privacy questions, parental requests, or complaints, email hello@sporve.com . You can also use the Contact page ."}
   ]},
   /* The ported terms.html turned out to be an ATTORNEY OUTLINE — every section
      read "This section must state that…  [PLACEHOLDER — attorney to complete]".
@@ -9517,9 +9631,9 @@ const INFO={
      the operative facts the product actually enforces, labelled as interim —
      which is true, verifiable, and not pretending to be counsel's work. */
   terms:{title:"Terms of Service (interim)",sections:[
-    {h:"These terms are being finalized",b:"Sporve's full Terms of Service are being completed with counsel. Until they are published, the statements below describe how the service actually operates today, and they are the terms we hold ourselves to. Questions: support@sporve.com."},
-    {h:"Coaches are independent professionals",b:"Coaches, trainers, camps and teams on Sporve are independent professionals, not Sporve employees. Sporve is the marketplace that connects you and processes payment."},
-    {h:"The platform fee",b:"Sporve charges coaches a flat 12% platform fee, taken only when a booking is paid, and itemized on every payout as gross, fee, and net. Families pay the coach's listed price; Sporve adds no booking fee for families."},
+    {h:"These terms are being finalized",b:"Sporv's full Terms of Service are being completed with counsel. Until they are published, the statements below describe how the service actually operates today, and they are the terms we hold ourselves to. Questions: support@sporve.com."},
+    {h:"Coaches are independent professionals",b:"Coaches, trainers, camps and teams on Sporv are independent professionals, not Sporv employees. Sporv is the marketplace that connects you and processes payment."},
+    {h:"The platform fee",b:"Sporv charges coaches a flat 12% platform fee, taken only when a booking is paid, and itemized on every payout as gross, fee, and net. Families pay the coach's listed price; Sporv adds no booking fee for families."},
     {h:"Background checks",b:"A coach can take a booking only after clearing an individual background check with a recorded completion date. The system refuses bookings for anyone without one — this is enforced in the booking path, not just stated here."},
     {h:"Accounts and children",b:"An adult opens the account. Athlete profiles are limited to ages 13-18 until a verifiable parental-consent process is live, matching our published privacy notice."},
   ]},
@@ -9529,8 +9643,8 @@ const INFO={
      that exists today. If the code and this page ever disagree, the page is
      wrong and the code's answer is what a family receives. */
   refund:{title:"Cancellations & Refunds",sections:[
-    {h:"The window",b:"Listings on Sporve currently use the flexible policy: cancel 24 hours or more before the session starts and you are refunded in full to your card. Inside 24 hours, no refund is due. The policy shown at booking is saved onto your booking at that moment, so a later change by the coach cannot alter what you agreed to."},
-    {h:"How the amount is decided",b:"When you request a refund, Sporve computes it from the policy saved on your booking, the time remaining before the session, what you actually paid, and anything already refunded. The amount is decided by the system, not typed in by anyone — including us."},
+    {h:"The window",b:"Listings on Sporv currently use the flexible policy: cancel 24 hours or more before the session starts and you are refunded in full to your card. Inside 24 hours, no refund is due. The policy shown at booking is saved onto your booking at that moment, so a later change by the coach cannot alter what you agreed to."},
+    {h:"How the amount is decided",b:"When you request a refund, Sporv computes it from the policy saved on your booking, the time remaining before the session, what you actually paid, and anything already refunded. The amount is decided by the system, not typed in by anyone — including us."},
     {h:"How money comes back",b:"Refunds are issued through Stripe to the card you paid with. Your booking shows the refund once Stripe confirms it. If nothing is due, the request screen tells you why instead of leaving the request open."},
     {h:"Disputes and mistakes",b:"If a session did not happen, a coach did not show, or something else went wrong, email support@sporve.com with the booking reference. A person reviews it. During beta that mailbox is the record — keep your copy."},
   ]},
@@ -9540,15 +9654,15 @@ const INFO={
     {h:"Contact us",b:"Email support@sporve.com. Response times are not guaranteed."},
   ]},
   legal:{title:"Legal",sections:[
-    {h:"Terms of Service",b:"By using Sporve you agree to book in good faith and follow each coach's policies. Sporve is a marketplace connecting families with independent coaches."},
+    {h:"Terms of Service",b:"By using Sporv you agree to book in good faith and follow each coach's policies. Sporv is a marketplace connecting families with independent coaches."},
     {h:"Privacy Policy",b:"We process personal data to provide the service and protect athletes. You may request deletion of your account at any time."},
-    {h:"Licenses",b:"Sporve is built with open-source software. Component licenses are available on request."},
+    {h:"Licenses",b:"Sporv is built with open-source software. Component licenses are available on request."},
   ]},
   accessibility:{title:"Accessibility",sections:[
-    {h:"Our commitment",b:"Sporve is built to be usable by everyone, including people who rely on assistive technology. We aim to meet WCAG 2.1 Level AA across the site, and we treat accessibility as part of the work, not an afterthought."},
+    {h:"Our commitment",b:"Sporv is built to be usable by everyone, including people who rely on assistive technology. We aim to meet WCAG 2.1 Level AA across the site, and we treat accessibility as part of the work, not an afterthought."},
     {h:"What we do",b:"Text meets a 4.5:1 contrast minimum, checked programmatically against every background it sits on. Every interactive control is reachable and operable by keyboard, with a visible focus state. Motion is decorative only: it respects your reduced-motion setting, and the site is fully readable with animation and JavaScript turned off. Images carry text alternatives, and page structure uses real headings and landmarks."},
     {h:"Known limitations",b:"This is a pre-launch product and some flows are still being refined. A few seeded demo components are labelled as demo data rather than fully described to assistive technology yet. If you hit a barrier, it is a bug to us — please tell us and we will fix it."},
-    {h:"Report a problem",b:"If any part of Sporve is hard to use with a screen reader, keyboard, or other assistive technology, email support@sporve.com with the page and what happened. We read every message and prioritise access issues."},
+    {h:"Report a problem",b:"If any part of Sporv is hard to use with a screen reader, keyboard, or other assistive technology, email support@sporve.com with the page and what happened. We read every message and prioritise access issues."},
   ]},
 };
 /* ── About & Support ───────────────────────────────────────────────
@@ -9626,11 +9740,11 @@ function notifSettingsHTML(){
     ["progress","Progress updates","When a coach sends a recap about your athlete"],
     ["waitlist","Waitlist offers","When a spot opens on a program you're waiting for"],
     ["payment","Payments and receipts","Charges, refunds, and payout receipts"],
-    ["marketing","Product news","Occasional updates about new Sporve features"],
+    ["marketing","Product news","Occasional updates about new Sporv features"],
   ];
   return `${subnavHTML()}<main class="shell" style="padding-bottom:70px">
     <div class="sec-head"><div><h1>Notifications</h1>
-      <p style="color:var(--muted);margin-top:4px">Choose how Sporve reaches you. Safety notices are always delivered.</p></div></div>
+      <p style="color:var(--muted);margin-top:4px">Choose how Sporv reaches you. Safety notices are always delivered.</p></div></div>
     <div class="panel" style="max-width:760px;padding:0">
       <div class="notifhead"><span>Notification</span><span>Email</span><span>Text</span><span>Push</span></div>
       ${rows.map(([k,t,d])=>`<div class="notifrow">
@@ -9682,8 +9796,8 @@ const FOOT_COLS=[
     ["Messaging a coach","page:messaging"],
     ["Media & consent","page:media-consent"],
   ]],
-  ["Sporve",[
-    ["What is Sporve?","page:what-is"],
+  ["Sporv",[
+    ["What is Sporv?","page:what-is"],
     ["Become a coach","nav:coachinfo"],
     ["Pricing","nav:pricing"],
     ["Privacy & security","info:privacy"],
@@ -9704,7 +9818,7 @@ function closeZoneHTML(){
     <div class="shell">
       <div class="foot-grid">${cols}
         <div class="foot-col foot-brand">
-          <span class="wordmark">sporve</span>
+          <span class="wordmark">sporv</span>
           <p class="foot-blurb">Every sport. One app. Find coaches, trainers,
             camps and teams — and no one takes a booking here until they have
             cleared a background check.</p>
@@ -9712,12 +9826,12 @@ function closeZoneHTML(){
         </div>
       </div>
       <div class="closer-base">
-        <span>© 2026 Sporve Inc. · Chicago, IL</span>
+        <span>© 2026 Sporv Inc. · Chicago, IL</span>
         ${/* The independent-contractor disclosure. A marketplace that does not
              employ the people it lists has to say so, plainly, where a parent
              can find it — this is the line the brief asked for. */""}
-        <span>Sporve is a marketplace connecting families with independent
-          coaches; coaches are independent professionals, not Sporve employees.</span>
+        <span>Sporv is a marketplace connecting families with independent
+          coaches; coaches are independent professionals, not Sporv employees.</span>
       </div>
     </div></footer>`;
 }
@@ -9731,7 +9845,7 @@ function closeZoneHTML(){
    scaffold hero + cross-links so every route resolves and the link graph has
    no orphan while the pages fan out. */
 const PAGE_META={
-  "what-is":{t:"What is Sporve?",d:"The marketplace — search, book, and pay for youth coaching in one account.",sport:"Soccer",cta:"explore",ctaL:"Find a coach",kx:["background-checks","search"]},
+  "what-is":{t:"What is Sporv?",d:"The marketplace — search, book, and pay for youth coaching in one account.",sport:"Soccer",cta:"explore",ctaL:"Find a coach",kx:["background-checks","search"]},
   "background-checks":{t:"How background checks work",d:"Per-person checks with a dated record — no one takes a booking unverified.",sport:"Swimming",cta:"trust",ctaL:"See the trust center",kx:["what-is","media-consent"]},
   "search":{t:"Search by sport & age",d:"Filter by sport, age, level, and budget — results only from the real catalogue.",sport:"Basketball",cta:"explore",ctaL:"Start searching",kx:["map-search","instant-booking","messaging"]},
   "map-search":{t:"Map search",d:"See coaches as places — distance is part of every family's decision.",sport:"Cycling",cta:"map",ctaL:"Open the map",kx:["search","instant-booking","bookings-receipts"]},
@@ -9754,13 +9868,13 @@ function pageCTA(meta){
   return `<button class="pg-cta" data-nav="${esc(meta.cta)}">${esc(meta.ctaL)} →</button>`;
 }
 function pageEyebrow(meta){
-  /* Spaced-caps text only — the "Built into Sporve" filler link died with the
-     rebuild spec's grep-zero rule, and its accent tint with the two-accent law. */
+  /* Spaced-caps text only — the retired filler link and its accent tint are
+     both absent under the rebuild's text and two-accent rules. */
   return `<span class="pg-eyebrow">${esc(meta.t)}</span>`;
 }
 function pageKX(id){
   const meta=PAGE_META[id];
-  return `<section class="pgband white"><div class="shell" style="max-width:760px" data-rev>
+  return `<section class="pgband white" data-section="keep-exploring"><div class="shell" style="max-width:760px" data-rev>
     <div class="eyebrow" style="color:var(--faint)">Keep exploring</div>
     <div class="pg-kx" style="margin-top:16px">
       ${meta.kx.map(k=>{const m=PAGE_META[k];return `<button class="pg-kxrow" data-nav="page:${k}">
@@ -10003,6 +10117,12 @@ function pageHTML(id){
   if(id==="saved") id="search";
   const meta=PAGE_META[id];
   if(!meta) return notFoundHTML("page:"+id);
+  /* The assigned pages live in an isolated module so their prose and recipe
+     fingerprints can be audited without parsing this host's legacy examples.
+     The old branches below remain only as a no-module recovery path. */
+  if(window.SporvProductPages&&window.SporvProductPages.has(id)){
+    return window.SporvProductPages.render(id);
+  }
   const open=isVerified()?`<button class="pg-textlink" data-nav="${meta.cta.indexOf('coachtab:')===0?'explore':meta.cta}">Open in app →</button>`:"";
   const cls=`pgroot pg-${id}`;
   if(id==="background-checks"){
@@ -10013,7 +10133,7 @@ function pageHTML(id){
       <div class="pg-heroL">
         ${pageEyebrow(meta)}
         <h1 class="pg-serif pg-h1">The person is checked, <em>not the pool.</em></h1>
-        <p class="pg-sub">Every coach on Sporve clears their own background check before the first whistle — the person who stands on the pool deck, never the swim club that lists them.</p>
+        <p class="pg-sub">Every coach on Sporv clears their own background check before the first whistle — the person who stands on the pool deck, never the swim club that lists them.</p>
         <div class="pg-ctarow">${pageCTA(meta)}${open||`<button class="pg-textlink" data-nav="page:media-consent">How consent works →</button>`}</div>
       </div>
       </div></section>
@@ -10022,7 +10142,7 @@ function pageHTML(id){
 
     <section class="pgband white"><div class="shell" data-rev><div class="pg-rows">
       ${[["01","One check per person","Every coach clears their <span class=\"hl\">own background check</span>. A swim club can never vouch for an individual in their place."],
-         ["02","Only Sporve sets the flag","The business submits identity; an independent check clears it. A club cannot mark itself checked — <span class=\"hl\">only Sporve</span> does."],
+         ["02","Only Sporv sets the flag","The business submits identity; an independent check clears it. A club cannot mark itself checked — <span class=\"hl\">only Sporv</span> does."],
          ["03","Pending stays hidden","A coach is bookable only after the check clears. A pending profile <span class=\"hl\">never appears</span> in search, results, or the assistant."]]
         .map(([n,b,p])=>`<div class="pg-row"><div class="pg-rnum">${esc(n)}</div><div class="pg-rclaim"><b>${esc(b)}</b></div><div class="pg-rproof">${p}</div></div>`).join("")}
     </div></div></section>
@@ -10045,7 +10165,7 @@ function pageHTML(id){
              number in it is computed or enforced. 100% background-checked IS
              enforced now: provider_safety_cleared() refuses any booking whose
              provider lacks a real completed check. */""}
-        ${[["100%","of bookable coaches, background-checked"],[String(new Set(PROGRAMS.map(p=>p.sport)).size),"sports live on Sporve today"],["$0","to browse, save, and message"]]
+        ${[["100%","of bookable coaches, background-checked"],[String(new Set(PROGRAMS.map(p=>p.sport)).size),"sports live on Sporv today"],["$0","to browse, save, and message"]]
           .map(([n,l])=>`<div class="pg-stat"><div class="n" data-count="${esc(n)}">${esc(n)}</div><div class="l">${esc(l)}</div></div>`).join("")}
       </div>
     </div></section>
@@ -10089,7 +10209,7 @@ function pageHTML(id){
         <p class="pg-sub" style="margin-top:14px">Type what you need. Every result is a background-checked coach with a real open slot — the same catalogue the search, the map, and the assistant all read from.</p>
       </div>
       <div class="pg-demo wide" aria-hidden="true">
-        <span class="demonote">The listings below are sample data that show how Sporve works. Real verified coaches are onboarding now.</span>
+        <span class="demonote">The listings below are sample data that show how Sporv works. Real verified coaches are onboarding now.</span>
         <div class="dq">soccer coach · U12 · within 10 mi of Chicago</div>
         <div class="drow"><div><div class="dname">Coral Reef FC — U12 Development</div>
             <div class="dmeta"><span class="dchk">Background-checked</span> · Intermediate · ages 9–12</div></div>
@@ -10114,7 +10234,7 @@ function pageHTML(id){
 
     <section class="pgband slate"><div class="shell" data-rev>
       <div class="pg-stats">
-        ${[[String(new Set(PROGRAMS.map(p=>p.sport)).size),"sports live on Sporve today"],["100%","of bookable coaches, background-checked"],["$0","to browse, message, and save"]]
+        ${[[String(new Set(PROGRAMS.map(p=>p.sport)).size),"sports live on Sporv today"],["100%","of bookable coaches, background-checked"],["$0","to browse, message, and save"]]
           .map(([n,l])=>`<div class="pg-stat"><div class="n" data-count="${esc(n)}">${esc(n)}</div><div class="l">${esc(l)}</div></div>`).join("")}
       </div>
     </div></section>
@@ -10189,7 +10309,7 @@ function pageHTML(id){
         <div class="dpath" data-rev data-rev-d="1">
           <div class="eyebrow">For coaches</div>
           <h3>Run your week, get paid on time</h3>
-          <p>Your calendar, your policies, your prices. Sporve handles the admin around them.</p>
+          <p>Your calendar, your policies, your prices. Sporv handles the admin around them.</p>
           <ul class="dlist">
             ${["Free to join and list","Bring the families you already coach",
                "Checkout and automatic payouts","Roster, notes, media and insights"]
@@ -10223,10 +10343,10 @@ if(id==="search"){
     <section class="pgband dark bleed"><div class="shell" data-rev><div class="db-in">
       <div>
         <h2 class="pg-serif" style="font-size:clamp(28px,3.4vw,42px);max-width:14ch">Your filters, real coaches <em>back.</em></h2>
-        <p class="pg-sub" style="margin-top:14px">Set the sport, age, and level; Sporve returns background-checked basketball coaches with open slots. Save the search and it runs again whenever a new coach lists near you.</p>
+        <p class="pg-sub" style="margin-top:14px">Set the sport, age, and level; Sporv returns background-checked basketball coaches with open slots. Save the search and it runs again whenever a new coach lists near you.</p>
       </div>
       <div class="pg-demo wide" aria-hidden="true">
-        <span class="demonote">The listings below are sample data that show how Sporve works. Real verified coaches are onboarding now.</span>
+        <span class="demonote">The listings below are sample data that show how Sporv works. Real verified coaches are onboarding now.</span>
         <div class="drow"><div><div class="dname">West Loop Hoops — U12 Skills</div>
             <div class="dmeta"><span class="dchk">Background-checked</span> · Intermediate · ages 9–12</div></div>
           <span class="dprice">$40</span></div>
@@ -10241,9 +10361,9 @@ if(id==="search"){
 
     <section class="pgband white"><div class="shell" style="max-width:760px" data-rev>
       <div class="pg-founder">
-        <p class="pg-fnote">I built search first because it is where every parent starts, and the old way — ten tabs and no idea who had been checked — wasted the weeks before a season. On Sporve the filters only ever return background-checked basketball coaches with a slot you can actually book. Saved searches mean you set it once and hear back when the right coach lists near you.</p>
+        <p class="pg-fnote">I built search first because it is where every parent starts, and the old way — ten tabs and no idea who had been checked — wasted the weeks before a season. On Sporv the filters only ever return background-checked basketball coaches with a slot you can actually book. Saved searches mean you set it once and hear back when the right coach lists near you.</p>
         <p class="pg-serif pg-fpull"><em>Find the coach, not the phone tag.</em></p>
-        <div class="pg-fattr">— The Sporve founder</div>
+        <div class="pg-fattr">— The Sporv founder</div>
       </div>
     </div></section>
 
@@ -10275,7 +10395,7 @@ if(id==="map-search"){
         <p class="pg-sub" style="margin-top:14px">Every pin is a background-checked cycling coach with a real open slot, sorted by how close the ride starts to you. See who is a short drive away before you narrow by age or level.</p>
       </div>
       <div class="pg-demo wide" aria-hidden="true">
-        <span class="demonote">The listings below are sample data that show how Sporve works. Real verified coaches are onboarding now.</span>
+        <span class="demonote">The listings below are sample data that show how Sporv works. Real verified coaches are onboarding now.</span>
         <div class="drow"><div><div class="dname">Flatirons Junior Cycling — Skills Ride</div>
             <div class="dmeta"><span class="dchk">Background-checked</span> · 1.2 mi · ages 10–14</div></div>
           <span class="dprice">$32</span></div>
@@ -10292,7 +10412,7 @@ if(id==="map-search"){
       <div class="pg-founder">
         <p class="pg-fnote">A list of coaches does not tell you what a map does — which ride actually starts near your house. So the map came early: every pin is a background-checked cycling coach, placed where the session really is, sorted by the drive. You see what is close before you filter, not after.</p>
         <p class="pg-serif pg-fpull"><em>Distance is the first filter that matters.</em></p>
-        <div class="pg-fattr">— The Sporve founder</div>
+        <div class="pg-fattr">— The Sporv founder</div>
       </div>
     </div></section>
 
@@ -10371,7 +10491,7 @@ if(id==="messaging"){
         <p class="pg-sub" style="margin-top:14px">Message any background-checked volleyball coach for free and the replies land here. Book, and this exact thread attaches to the booking — so nothing said before the first serve gets lost.</p>
       </div>
       <div class="pg-demo wide" aria-hidden="true">
-        <span class="demonote">The listings below are sample data that show how Sporve works. Real verified coaches are onboarding now.</span>
+        <span class="demonote">The listings below are sample data that show how Sporv works. Real verified coaches are onboarding now.</span>
         <div class="drow"><div><div class="dname">Barton Springs Volleyball</div>
             <div class="dmeta"><span class="dchk">Coach reply</span> · U13 setting has room Tuesdays — want a tryout first?</div></div>
           <span class="dprice">2m</span></div>
@@ -10388,7 +10508,7 @@ if(id==="messaging"){
       <div class="pg-founder">
         <p class="pg-fnote">Parents kept telling me the scariest part was paying before they had ever talked to the coach. So messaging is free and comes first, and when you do book, the thread does not reset — it attaches to the booking so every promise about levels or timing is still there. The volleyball coach sees the same history you do.</p>
         <p class="pg-serif pg-fpull"><em>The conversation is part of the booking, not a step before it.</em></p>
-        <div class="pg-fattr">— The Sporve founder</div>
+        <div class="pg-fattr">— The Sporv founder</div>
       </div>
     </div></section>
 
@@ -10473,7 +10593,7 @@ if(id==="messaging"){
         <p class="pg-sub" style="margin-top:14px">Goals, session notes, and personal bests stack up in order on the athlete's timeline. Any coach they train with reads the same track record — nothing resets when the coach changes.</p>
       </div>
       <div class="pg-demo wide" aria-hidden="true">
-        <span class="demonote">The listings below are sample data that show how Sporve works. Real verified coaches are onboarding now.</span>
+        <span class="demonote">The listings below are sample data that show how Sporv works. Real verified coaches are onboarding now.</span>
         <div class="drow"><div><div class="dname">Baseline 100m</div>
             <div class="dmeta">Apr 18 · time trial logged</div></div>
           <span class="dprice">14.4s</span></div>
@@ -10530,7 +10650,7 @@ if(id==="messaging"){
         <p class="pg-sub" style="margin-top:14px">Only the tennis slots you open are ever bookable. The moment a family takes one it leaves the grid — no double-booked court, no callback to chase.</p>
       </div>
       <div class="pg-demo wide" aria-hidden="true">
-        <span class="demonote">The listings below are sample data that show how Sporve works. Real verified coaches are onboarding now.</span>
+        <span class="demonote">The listings below are sample data that show how Sporv works. Real verified coaches are onboarding now.</span>
         <div class="drow"><div><div class="dname">Tuesday · 4:00pm</div>
             <div class="dmeta">Private tennis lesson · 60 min · <span class="dchk">Bookable</span></div></div>
           <span class="dprice">$60</span></div>
@@ -10547,7 +10667,7 @@ if(id==="messaging"){
       <div class="pg-founder">
         <p class="pg-fnote">I built scheduling after watching tennis coaches lose their evenings to text threads about open times. A coach should set the court hours once and get back to the lesson. The calendar does the chasing, not you.</p>
         <p class="pg-serif pg-fpull"><em>Set the hours once, coach the rest.</em></p>
-        <div class="pg-fattr">— The Sporve founder</div>
+        <div class="pg-fattr">— The Sporv founder</div>
       </div>
     </div></section>
 
@@ -10567,7 +10687,7 @@ if(id==="messaging"){
       <div class="pg-heroL">
         ${pageEyebrow(meta)}
         <h1 class="pg-serif pg-h1">Book the lesson, <em>pay in one swing.</em></h1>
-        <p class="pg-sub">Every golf lesson checks out inside the app. The parent pays once, Sporve's flat 12% platform fee comes off the top, and the coach's payout lands automatically — with a receipt and a refund trail on every booking.</p>
+        <p class="pg-sub">Every golf lesson checks out inside the app. The parent pays once, Sporv's flat 12% platform fee comes off the top, and the coach's payout lands automatically — with a receipt and a refund trail on every booking.</p>
         <div class="pg-ctarow">${pageCTA(meta)}${open||`<button class="pg-textlink" data-nav="page:bookings-receipts">Where the receipt lives →</button>`}</div>
       </div>
       </div></section>
@@ -10577,7 +10697,7 @@ if(id==="messaging"){
     <section class="pgband white"><div class="shell" data-rev>
       <div class="pg-rows">
         ${[["01","One flow to book and pay","Pick a golf slot and pay in the same tap. The card is charged when the booking confirms, not on some callback that never comes."],
-           ["02","A flat fee, shown up front","Sporve takes a <span class=\"hl\">flat 12% platform fee</span> on every booking — the same on a $30 clinic or a $90 private lesson. No tiers, no fine print."],
+           ["02","A flat fee, shown up front","Sporv takes a <span class=\"hl\">flat 12% platform fee</span> on every booking — the same on a $30 clinic or a $90 private lesson. No tiers, no fine print."],
            ["03","Payouts land on their own","Once the golf lesson is played, the coach's payout releases to their account automatically. Every booking keeps a receipt and a refund trail."]]
           .map(([n,b,p])=>`<div class="pg-row"><div class="pg-rnum">${esc(n)}</div><div class="pg-rclaim"><b>${esc(b)}</b></div><div class="pg-rproof">${p}</div></div>`).join("")}
       </div>
@@ -10588,7 +10708,7 @@ if(id==="messaging"){
       <div class="pg-proof" style="margin-top:22px">
         <div><span class="k">booking</span> Doral Junior Golf — short game clinic</div>
         <div><span class="k">session</span> $45.00 · paid in app</div>
-        <div><span class="k">fee</span>     $5.40 · Sporve flat 12% platform fee</div>
+        <div><span class="k">fee</span>     $5.40 · Sporv flat 12% platform fee</div>
         <div><span class="k">payout</span>  <span class="hl">$39.60</span> · to the coach, automatic</div>
         <div><span class="k">refund</span>  full trail kept on every booking</div>
       </div>
@@ -10629,7 +10749,7 @@ if(id==="messaging"){
         <p class="pg-sub" style="margin-top:14px">Import the hockey families you already train and let new bookings join on their own. Notes, sessions, and payouts all attach to the same athlete.</p>
       </div>
       <div class="pg-demo wide" aria-hidden="true">
-        <span class="demonote">The listings below are sample data that show how Sporve works. Real verified coaches are onboarding now.</span>
+        <span class="demonote">The listings below are sample data that show how Sporv works. Real verified coaches are onboarding now.</span>
         <div class="drow"><div><div class="dname">The Okafor family — Devin, 11</div>
             <div class="dmeta">Hockey · Tuesdays · <span class="dchk">Imported</span></div></div>
           <span class="dprice">$45</span></div>
@@ -10644,9 +10764,9 @@ if(id==="messaging"){
 
     <section class="pgband white"><div class="shell" style="max-width:760px" data-rev>
       <div class="pg-founder">
-        <p class="pg-fnote">Most coaches already have a book of business — a notebook, a group text, a phone full of hockey families. Day one on Sporve should not be an empty list. Import who you have, and every new booking joins the roster on its own.</p>
+        <p class="pg-fnote">Most coaches already have a book of business — a notebook, a group text, a phone full of hockey families. Day one on Sporv should not be an empty list. Import who you have, and every new booking joins the roster on its own.</p>
         <p class="pg-serif pg-fpull"><em>Your book of business, on day one.</em></p>
-        <div class="pg-fattr">— The Sporve founder</div>
+        <div class="pg-fattr">— The Sporv founder</div>
       </div>
     </div></section>
 
@@ -10780,7 +10900,7 @@ if(id==="messaging"){
         <p class="pg-sub" style="margin-top:14px">Bookings, earnings after fees, and returning rowers — each one tracked over time from your real sessions. No spreadsheet to keep; the numbers add themselves up.</p>
       </div>
       <div class="pg-demo wide" aria-hidden="true">
-        <span class="demonote">The listings below are sample data that show how Sporve works. Real verified coaches are onboarding now.</span>
+        <span class="demonote">The listings below are sample data that show how Sporv works. Real verified coaches are onboarding now.</span>
         <div class="drow"><div><div class="dname">Bookings this month</div>
             <div class="dmeta"><span class="dchk">up 18%</span> vs last month · rowing</div></div>
           <span class="dprice">42</span></div>
@@ -10804,7 +10924,7 @@ if(id==="messaging"){
 
     <section class="pgband slate"><div class="shell" data-rev>
       <div class="pg-stats">
-        ${[["$0","extra — insights come with your account"],["100%","of your payouts, tracked after fees"],[String(new Set(PROGRAMS.map(p=>p.sport)).size),"sports on Sporve today"]]
+        ${[["$0","extra — insights come with your account"],["100%","of your payouts, tracked after fees"],[String(new Set(PROGRAMS.map(p=>p.sport)).size),"sports on Sporv today"]]
           .map(([n,l])=>`<div class="pg-stat"><div class="n" data-count="${esc(n)}">${esc(n)}</div><div class="l">${esc(l)}</div></div>`).join("")}
       </div>
     </div></section>
@@ -10835,10 +10955,10 @@ if(id==="messaging"){
     <section class="pgband dark bleed"><div class="shell" data-rev><div class="db-in">
       <div>
         <h2 class="pg-serif" style="font-size:clamp(28px,3.4vw,42px);max-width:14ch">Every suggestion, <em>from the real catalogue.</em></h2>
-        <p class="pg-sub" style="margin-top:14px">The assistant only surfaces listings that actually exist on Sporve — never invented names. And whoever it surfaces, no one can take a booking until their own background check has cleared. That rule lives in the database, not in the assistant's good intentions.</p>
+        <p class="pg-sub" style="margin-top:14px">The assistant only surfaces listings that actually exist on Sporv — never invented names. And whoever it surfaces, no one can take a booking until their own background check has cleared. That rule lives in the database, not in the assistant's good intentions.</p>
       </div>
       <div class="pg-demo wide" aria-hidden="true">
-        <span class="demonote">The listings below are sample data that show how Sporve works. Real verified coaches are onboarding now.</span>
+        <span class="demonote">The listings below are sample data that show how Sporv works. Real verified coaches are onboarding now.</span>
         <div class="drow"><div><div class="dname">Sensei Marisol Vega — Karate</div>
             <div class="dmeta">Martial Arts · ages 6–12 · <span class="dchk">Background-checked</span></div></div>
           <span class="dprice">$40</span></div>
@@ -10855,7 +10975,7 @@ if(id==="messaging"){
       <div class="pg-founder">
         <p class="pg-fnote">An assistant that books a parent onto an unchecked martial arts coach is worse than no assistant at all. So the guarantee doesn't live in the assistant — it lives in the database: no coach can take a booking until their own check has cleared, and the badge only shows with a real completion date behind it.</p>
         <p class="pg-serif pg-fpull"><em>It cannot book you an unchecked coach.</em></p>
-        <div class="pg-fattr">— The Sporve founder</div>
+        <div class="pg-fattr">— The Sporv founder</div>
       </div>
     </div></section>
 
@@ -10881,7 +11001,7 @@ if(id==="messaging"){
 
 /* Coach entry gate. "Become a coach" lands here first: an Airbnb-style split —
    login/sign-up on the left (or a Continue screen if already signed in), the
-   "Welcome to Sporve" video on the right. Full-screen (render() omits topbar/
+   "Welcome to Sporv" video on the right. Full-screen (render() omits topbar/
    footer for this route). Colour law: black ground, white/slate literals. */
 function startCoachOnboarding(){
   S.portal="coach";S.signupRole="coach";
@@ -10904,7 +11024,7 @@ function coachGateHTML(){
       <p class="cg-fine">Not you? <button type="button" data-cg-signout="1">Use a different account</button></p>`
   : `
       <h1 class="cg-h1">Log in or sign up</h1>
-      <p class="cg-sub">Coach on Sporve — set your availability, take bookings, and get paid, all in one place.</p>
+      <p class="cg-sub">Coach on Sporv — set your availability, take bookings, and get paid, all in one place.</p>
       ${/* A real account needs a password and a business name — the single
            "phone or email" box could never create one, because the form behind
            it fabricated a session from the seed rather than calling GoTrue.
@@ -10927,7 +11047,7 @@ function coachGateHTML(){
   return `<div class="coachgate">
     <div class="cg-left">
       <button class="cg-back" type="button" data-cg-back="1">&larr; Back</button>
-      <div class="cg-wordmark"><svg class="cg-logomark" width="26" height="26" viewBox="0 0 32 32" aria-hidden="true"><rect width="32" height="32" rx="7" fill="#14181D"/><circle cx="16" cy="16" r="6" fill="#F7F9FF"/></svg>Sporve</div>
+      <div class="cg-wordmark"><svg class="cg-logomark" width="26" height="26" viewBox="0 0 32 32" aria-hidden="true"><rect width="32" height="32" rx="7" fill="#14181D"/><circle cx="16" cy="16" r="6" fill="#F7F9FF"/></svg>Sporv</div>
       ${left}
     </div>
     <div class="cg-right">
@@ -10938,9 +11058,9 @@ function coachGateHTML(){
                     poster="/video/hero-poster.jpg">
                <source src="/video/hero.webm" type="video/webm">
                <source src="/video/hero.mp4"  type="video/mp4"></video>
-           NO `loop` here (the coach gate holds the final "Welcome to Sporve"
+           NO `loop` here (the coach gate holds the final "Welcome to Sporv"
            frame). The .cg-welcome fallback shows until the files land. */""}
-      <div class="cg-welcome"><span class="cg-type">Welcome to Sporve</span></div>
+      <div class="cg-welcome"><span class="cg-type">Welcome to Sporv</span></div>
     </div>
   </div>`;
 }
@@ -11032,7 +11152,7 @@ function render(){
   app.classList.toggle("reg-serious",seriousRoute);
   /* The marketing surface gets the two-grotesque register: the four tabs AND
      every page reachable from their menus.
-     `page` covers all 16 PAGE_META mini-pages — What is Sporve, How background
+     `page` covers all 16 PAGE_META mini-pages — What is Sporv, How background
      checks work, Search by sport & age, Instant booking, Payments & payouts and
      the rest — which is what the owner meant by "all of the pages in these
      tabs". My first pass listed only the four parents, so a reader clicking any
@@ -11418,7 +11538,7 @@ document.querySelectorAll('.sig-ai-coach').forEach(sigAiCoachWire);
        through a sign-up they did not need, to reach a booking that cannot
        exist. The cheapest correct answer comes first.
        The card still opens its detail page — the sample inventory is there to
-       show how Sporve works, which is Part 2's own premise — but the money
+       show how Sporv works, which is Part 2's own premise — but the money
        path stops here and offers the waitlist instead. */
     const prog=PROGRAMS.find(x=>x.id===id);
     if(isDemo(prog)){ S.modal={type:"demo"}; render(); return; }
@@ -11557,7 +11677,7 @@ document.querySelectorAll('.sig-ai-coach').forEach(sigAiCoachWire);
     const input=document.getElementById("cmdField");if(input) input.focus();
   });
   $("[data-attach]").forEach(b=>b.onclick=()=>toast("Attachments are available when a conversation has a family or session context"));
-  $("[data-cmdhist]").forEach(b=>b.onclick=()=>toast(S.cmdLog&&S.cmdLog.length?"Recent Sporve AI activity is shown below":"No Sporve AI activity yet"));
+  $("[data-cmdhist]").forEach(b=>b.onclick=()=>toast(S.cmdLog&&S.cmdLog.length?"Recent Sporv AI activity is shown below":"No Sporv AI activity yet"));
   $("[data-voice]").forEach(b=>b.onclick=()=>
     toast("Voice input needs a microphone permission this demo doesn't request"));
   $("[data-qact]").forEach(b=>b.onclick=()=>{
@@ -11879,7 +11999,7 @@ document.querySelectorAll('.sig-ai-coach').forEach(sigAiCoachWire);
   $("[data-cancelbooking]").forEach(b=>b.onclick=()=>{
     const id=b.dataset.cancelbooking;
     if(!window.confirm("Cancel this booking? Your slot is released immediately. "+
-       "Any refund follows the coach's cancellation policy and is handled by Sporve support.")) return;
+       "Any refund follows the coach's cancellation policy and is handled by Sporv support.")) return;
     b.disabled=true; b.textContent="Cancelling…";
     window.SporveBooking.cancel(id,"cancelled by parent")
       .then(()=>hydrateBookings())
@@ -11998,7 +12118,7 @@ document.querySelectorAll('.sig-ai-coach').forEach(sigAiCoachWire);
     if(!d.first||!d.last||!d.email||!d.password) return show("Please fill out all the fields.");
     if(!/^[\w.+-]+@[\w-]+\.[\w.-]+$/.test(d.email)) return show("Please enter a valid email address.");
     if(d.password.length<8) return show("Password must be at least 8 characters.");
-    if(!d.privacy) return show("Please acknowledge Sporve's Privacy Policy to continue.");
+    if(!d.privacy) return show("Please acknowledge Sporv's Privacy Policy to continue.");
     /* Real signup. mailer_autoconfirm is FALSE on this project, so this does
        NOT sign anyone in — Supabase emails a confirmation link. The old code
        toasted "Account created" and flipped to verified, which with a real
@@ -12085,7 +12205,7 @@ document.querySelectorAll('.sig-ai-coach').forEach(sigAiCoachWire);
         S.athletes=S.athletes.map(x=>x===local?local:x);
         render(); toast("Child added");
       }).catch(e=>{
-        toast((e&&e.message)||"Saved here, but we could not reach Sporve");
+        toast((e&&e.message)||"Saved here, but we could not reach Sporv");
       });
     } else {
       toast("Child added — sign in to save it to your account");
@@ -12295,7 +12415,7 @@ document.querySelectorAll('.sig-ai-coach').forEach(sigAiCoachWire);
         /* Deliberately says "if that address has an account". recover() resolves
            identically either way, so this copy must not imply the address was
            found — otherwise the form becomes an account-enumeration oracle. */
-        toast("If that address has a Sporve account, a reset code is on its way");
+        toast("If that address has a Sporv account, a reset code is on its way");
       });
     }else{
       if(!d.token||!d.token.trim()) return show("Please enter the code from your email.");
@@ -12615,7 +12735,7 @@ async function submitCommand(text){
        this fix exists to remove: grep shows NO template reads it, so the
        message would have been "displayed" to nobody. A value written and never
        read is not an error state, it is a comment. */
-    toast("Sporve AI is unreachable — using the basic command matcher, so check the result");
+    toast("Sporv AI is unreachable — using the basic command matcher, so check the result");
   }
   if(!a||!a.action||a.action==="unknown"){ runCommand(q); return; }
   applyAction(a,q);
@@ -13014,7 +13134,7 @@ document.addEventListener("error",e=>{
       <rect width="600" height="400" fill="url(#g)"/>
       <text x="300" y="212" text-anchor="middle" font-family="Arial,sans-serif"
             font-size="34" font-weight="800" letter-spacing="6"
-            fill="${c}" fill-opacity=".55">SPORVE</text>
+            fill="${c}" fill-opacity=".55">SPORV</text>
     </svg>`);
 },true);
 

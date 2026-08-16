@@ -49,7 +49,7 @@ const hasnt   = n => plural(n, "hasn't", "haven't");
 
 /* ── product rules, stated once and referenced everywhere ────────── */
 const RULE = {
-  featurePhotos: 5,     // Sporve's listing guideline: 5+ profile photos
+  featurePhotos: 5,     // Sporv's listing guideline: 5+ profile photos
   introMin: 30,         // intro video runs 30–60 seconds
   introMax: 60,
   facilityMin: 2,
@@ -329,7 +329,7 @@ function strength(){
     { w: 15, met: act >= RULE.actionMin,
       next: "Add " + countOf(need(act, RULE.actionMin), "action shot") + " from a session — every athlete in one needs profile consent." },
     { w: 20, met: photos >= RULE.featurePhotos,
-      next: "Sporve's listing guideline asks for " + RULE.featurePhotos + " or more profile photos. You have " +
+      next: "Sporv's listing guideline asks for " + RULE.featurePhotos + " or more profile photos. You have " +
         photos + " — add " + countOf(need(photos, RULE.featurePhotos), "more") + "." },
   ];
   const pct = steps.reduce((n, s) => n + (s.met ? s.w : 0), 0);
@@ -604,10 +604,10 @@ function slotCard(sl){
   const ok = have >= sl.need && (sl.key !== "intro_video" || introOk());
   const hint = sl.key === "intro_video"
     ? (have === 0
-        ? `Nothing on file. Sporve asks for ${RULE.introMin}–${RULE.introMax} seconds.`
+        ? `Nothing on file. Sporv asks for ${RULE.introMin}–${RULE.introMax} seconds.`
         : introOk()
           ? `On file — ${items[0].durationSec}s, inside the ${RULE.introMin}–${RULE.introMax} second window.`
-          : `On file, but it runs ${items[0].durationSec}s. Sporve asks for ${RULE.introMin}–${RULE.introMax} seconds.`)
+          : `On file, but it runs ${items[0].durationSec}s. Sporv asks for ${RULE.introMin}–${RULE.introMax} seconds.`)
     : short === 0
       ? `Complete — ${countOf(have, "on file")}.`
       : `${have} of ${sl.need} on file. Add ${countOf(short, "more")}.`;
@@ -759,7 +759,7 @@ function mediaView(){
     <div data-rev>
       <div class="md-secline"><div>
         <h2>Profile media</h2>
-        <p>What families see on your listing. Sporve asks for ${RULE.featurePhotos} photos; you have
+        <p>What families see on your listing. Sporv asks for ${RULE.featurePhotos} photos; you have
           <span class="num">${photos}</span>${shortPhotos
             ? `, so add <span class="num">${shortPhotos}</span> more.`
             : `, which meets it.`}</p>
@@ -917,7 +917,7 @@ function consentModal(){
   const cc = consentCounts();
   return wrap("Media consent", `
     <div class="md-note warn" style="margin-bottom:18px">
-      <b>Only a parent can grant this.</b> Consent is set by the family in their own Sporve app, against a
+      <b>Only a parent can grant this.</b> Consent is set by the family in their own Sporv app, against a
       named athlete. You can see what they chose and ask them to reconsider — there is no control here, and no
       code path in this app, that lets a coach answer on a family's behalf.</div>
 

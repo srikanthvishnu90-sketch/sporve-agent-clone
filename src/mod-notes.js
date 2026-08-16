@@ -824,7 +824,7 @@ function writeNoteModal(){
       <button class="btn wide" type="submit">${existing ? "Save changes" : "Save note"}</button>
       <button class="btn ghost wide" type="button" id="ntVoice" style="margin-top:9px">Draft from voice memo</button>
       <p class="nt-hint" style="margin-top:9px;margin-bottom:0">The draft button does not record you. It fills
-        the fields with a labelled example you must rewrite — Sporve has no transcription in this build.</p>
+        the fields with a labelled example you must rewrite — Sporv has no transcription in this build.</p>
     </form>`);
 }
 
@@ -862,7 +862,7 @@ function progressReportModal(){
              so there is nothing here to send. Write the notes first and this page fills itself in.`
           : `There were no completed sessions that month either, so there is nothing to report.`}
       </div>
-      <p class="nt-hint" style="margin-top:14px;margin-bottom:0">Sporve will not compose a summary out of
+      <p class="nt-hint" style="margin-top:14px;margin-bottom:0">Sporv will not compose a summary out of
         sessions it has no record of.</p>`);
   }
 

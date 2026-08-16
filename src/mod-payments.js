@@ -1,6 +1,6 @@
 "use strict";
 /* ═══════════════════════════════════════════════════════════════════
-   MOD_PAYMENTS — money for Sporve Web.
+   MOD_PAYMENTS — money for Sporv Web.
 
    Four real backend flows, mirrored exactly on the client:
      · checkout        review → payment method → confirm, 12% platform fee
@@ -291,7 +291,7 @@
     }
     const gross = Math.round(Number(p.price) * 100) + tierExtraCents(tier);
     const fee = feeOn(gross);
-    /* deducted incidence: the family is charged the coach's price. The fee is Sporve's
+    /* deducted incidence: the family is charged the coach's price. The fee is Sporv's
        share of that price, not a surcharge, so it is itemized but never added to total. */
     return { gross, fee, total: gross, creditValue: 0 };
   }
@@ -341,7 +341,7 @@
             ? sumRow("Paid with", "1 session credit")
             : sumRow("Paid with", esc(r.method))}
           ${sumRow("Session price", usd(r.grossCents))}
-          ${sumRow(`Sporve's ${FEE_PCT}% (paid by the coach)`, "−" + usd(r.feeCents))}
+          ${sumRow(`Sporv's ${FEE_PCT}% (paid by the coach)`, "−" + usd(r.feeCents))}
           ${sumRow("Charged", usd(r.totalCents), "total")}
         </div>
         <p class="pm-fine">Cancellation policy on this booking: <b>${esc(POLICIES[r.policy].label)}</b> —
@@ -385,10 +385,10 @@
             ${sumRow(`${esc(p.title)} · ${esc(modelLabel(p.model))}`, money(p.price))}
             ${tierExtraCents(d.tier) ? sumRow("Premium tier", usd(tierExtraCents(d.tier))) : ""}
             ${sumRow("Session price", usd(t.gross))}
-            ${sumRow(`Sporve's ${FEE_PCT}% (paid by the coach)`, "−" + usd(t.fee))}
+            ${sumRow(`Sporv's ${FEE_PCT}% (paid by the coach)`, "−" + usd(t.fee))}
             ${sumRow("Total", usd(t.total), "total")}
           </div>
-          <p class="pm-fine">You pay the coach's price. The ${FEE_PCT}% fee is Sporve's share of it,
+          <p class="pm-fine">You pay the coach's price. The ${FEE_PCT}% fee is Sporv's share of it,
             deducted from the coach's earnings and never added to your total.
             ${esc(POLICIES[p.cancellationPolicy] ? POLICIES[p.cancellationPolicy].label : "Moderate")}
             cancellation applies and is copied onto the booking when you pay.</p>
@@ -422,7 +422,7 @@
           </label>`).join("") : `
           <div class="pm-note">
             <h3>No card on file</h3>
-            <p>Add one to pay for this session. Sporve stores the brand, the last four digits, and
+            <p>Add one to pay for this session. Sporv stores the brand, the last four digits, and
                the expiry — never the full card number.</p>
           </div>`}
 
@@ -430,7 +430,7 @@
 
         <div class="pm-sum pm-gap">
           ${sumRow("Session price", usd(t.gross))}
-          ${sumRow(`Sporve's ${FEE_PCT}% (paid by the coach)`, "−" + usd(t.fee))}
+          ${sumRow(`Sporv's ${FEE_PCT}% (paid by the coach)`, "−" + usd(t.fee))}
           ${sumRow("Total", usd(t.total), "total")}
         </div>
 
@@ -454,7 +454,7 @@
       </div>
       <div class="pm-sum pm-gap">
         ${sumRow("Session price", usd(t.gross))}
-        ${sumRow(`Sporve's ${FEE_PCT}% (paid by the coach)`, "−" + usd(t.fee))}
+        ${sumRow(`Sporv's ${FEE_PCT}% (paid by the coach)`, "−" + usd(t.fee))}
         ${sumRow(d.useCredit ? "Charged today" : "Total", usd(t.total), "total")}
       </div>
       ${d.useCredit ? `<p class="pm-fine">Nothing is charged today — a credit you already paid for covers
@@ -647,8 +647,8 @@
         ${byCredit
           ? sumRow("Credit value on this booking", usd(basis))
           : sumRow("Session price paid", usd(ch.gross))}
-        ${(!byCredit && ch.fee != null) ? sumRow(`Sporve's ${FEE_PCT}% (from the coach)`, "−" + usd(ch.fee)) : ""}
-        ${(!byCredit && ch.fee == null) ? `<div class="pm-sum-row"><span>Sporve's fee</span><span class="pm-meta">not recorded on this booking</span></div>` : ""}
+        ${(!byCredit && ch.fee != null) ? sumRow(`Sporv's ${FEE_PCT}% (from the coach)`, "−" + usd(ch.fee)) : ""}
+        ${(!byCredit && ch.fee == null) ? `<div class="pm-sum-row"><span>Sporv's fee</span><span class="pm-meta">not recorded on this booking</span></div>` : ""}
         ${(!byCredit && ch.itemized) ? sumRow("Charged", usd(ch.total)) : ""}
       </div>
 
@@ -665,14 +665,14 @@
         : `
           <div class="pm-math-row"><span>Session price ${usd(ch.gross)} × ${esc(band.pct)}%</span><span class="num">${usd(refundGross)}</span></div>
           ${ch.fee != null
-            ? `<div class="pm-math-row"><span>Sporve gives back its ${FEE_PCT}% too — ${usd(ch.fee)} × ${esc(band.pct)}% — to the coach, not to you</span><span class="num">−${usd(refundFee)}</span></div>`
-            : `<div class="pm-math-row"><span>Sporve's fee</span><span class="pm-meta">nothing recorded, so nothing returned</span></div>`}
+            ? `<div class="pm-math-row"><span>Sporv gives back its ${FEE_PCT}% too — ${usd(ch.fee)} × ${esc(band.pct)}% — to the coach, not to you</span><span class="num">−${usd(refundFee)}</span></div>`
+            : `<div class="pm-math-row"><span>Sporv's fee</span><span class="pm-meta">nothing recorded, so nothing returned</span></div>`}
           <div class="pm-math-row pm-math-sep"><span><b>Refund to ${esc(b.cardLast4 ? cardLabel({ brand: b.cardBrand, last4: b.cardLast4 }) : "your original payment method")}</b></span>
             <span class="num"><b>${usd(refundTotal)}</b></span></div>`}
       </div>
 
       <p class="pm-fine">${refundTotal > 0 || creditReturn
-        ? "Sporve returns its fee in the same proportion as the session price — we don't keep a fee on money we give back."
+        ? "Sporv returns its fee in the same proportion as the session price — we don't keep a fee on money we give back."
         : "This cancellation returns nothing. Cancelling is still recorded, and the seat is released to the waitlist."}</p>
 
       <div id="pmCancelErr" class="err hide"></div>
@@ -781,7 +781,7 @@
         <div id="pmCardErr" class="err hide"></div>
         <button class="btn wide pm-gap" type="submit">Save card</button>
         ${m.returnTo ? `<button class="btn ghost wide pm-gap" type="button" data-pm-cardback="1">Back to checkout</button>` : ""}
-        <p class="pm-fine">Sporve keeps the network, the last four digits, and the expiry. The full
+        <p class="pm-fine">Sporv keeps the network, the last four digits, and the expiry. The full
           card number is never stored here and is never shown back to you.</p>
       </form>`);
   }
@@ -790,7 +790,7 @@
     const digits = String(d.number || "").replace(/\D/g, "");
     if (!digits) return "Enter the card number.";
     const brand = brandOf(digits);
-    if (!brand) return "We don't recognize that card network. Sporve takes Visa, Mastercard, Amex, and Discover.";
+    if (!brand) return "We don't recognize that card network. Sporv takes Visa, Mastercard, Amex, and Discover.";
     const spec = BRANDS[brand];
     if (digits.length !== spec.digits) return `A ${spec.label} card has ${spec.digits} digits — you entered ${digits.length}.`;
     if (!luhnOK(digits)) return "That card number fails its checksum. Check for a mistyped digit.";
@@ -885,7 +885,7 @@
         <div class="pm-math">
           <div class="eyebrow">How ${usd(ch.total)} divides</div>
           <div class="pm-math-row"><span>Session price</span><span class="num">${usd(ch.gross)}</span></div>
-          ${ch.fee != null ? `<div class="pm-math-row"><span>Sporve's ${FEE_PCT}% (paid by the coach)</span><span class="num">−${usd(ch.fee)}</span></div>` : ""}
+          ${ch.fee != null ? `<div class="pm-math-row"><span>Sporv's ${FEE_PCT}% (paid by the coach)</span><span class="num">−${usd(ch.fee)}</span></div>` : ""}
           <div class="pm-math-row pm-math-sep"><span>Their half</span><span class="num">${usd(half)}</span></div>
           <div class="pm-math-row"><span>Your half${mine !== half ? " (carries the odd cent)" : ""}</span><span class="num">${usd(mine)}</span></div>
           <div class="pm-math-row on"><span><b>Together</b></span><span class="num"><b>${usd(mine + half)}</b></span></div>
@@ -958,7 +958,7 @@
             <div class="pm-math-row"><span>${pack.sessions} × ${money(pp.price)} at list price</span><span class="num">${usd(full)}</span></div>
             <div class="pm-math-row"><span>Pack discount (${esc(pack.discountPct)}%)</span><span class="num">−${usd(off)}</span></div>
             <div class="pm-math-row pm-math-sep"><span>Pack price</span><span class="num">${usd(gross)}</span></div>
-            <div class="pm-math-row"><span>Sporve's ${FEE_PCT}% (paid by the coach)</span><span class="num">−${usd(fee)}</span></div>
+            <div class="pm-math-row"><span>Sporv's ${FEE_PCT}% (paid by the coach)</span><span class="num">−${usd(fee)}</span></div>
             <div class="pm-math-row on"><span><b>Charged today</b></span><span class="num"><b>${usd(gross)}</b></span></div>
             <div class="pm-math-row pm-math-sep"><span>Effective price per session</span>
               <span class="num">${usd(perCents)}${per === perCents ? "" : " (rounded)"}</span></div>
@@ -968,7 +968,7 @@
           <div id="pmPackErr" class="err hide"></div>
           <button class="btn pm-gap" type="submit">Buy ${pack.sessions} sessions for ${usd(gross)}</button>
           <p class="pm-fine">Credits are held against this listing and pay for one session each at checkout.
-            The discount is applied to the coach's price; Sporve's fee is taken from the discounted
+            The discount is applied to the coach's price; Sporv's fee is taken from the discounted
             total, not the list price.</p>
         </form>`;
     }
@@ -977,7 +977,7 @@
       <div class="sec-head"><div>
         <p class="eyebrow">Payments</p>
         <h1>Wallet</h1>
-        <p class="pm-lede">Your cards, every charge and refund with Sporve's ${FEE_PCT}% itemized so you can
+        <p class="pm-lede">Your cards, every charge and refund with Sporv's ${FEE_PCT}% itemized so you can
           see it comes out of the coach's side, and any session credits you have bought.
           Every row here corresponds to money that actually moved.</p>
       </div></div>
@@ -987,7 +987,7 @@
           <div class="d">${list.length ? esc(cardLabel(defaultCard())) + " is default" : "None yet"}</div></div>
         <div class="stat"><div class="k">Net charged</div><div class="v num">${usd(netCharged)}</div>
           <div class="d">${rows.length} transaction${rows.length === 1 ? "" : "s"}, refunds included</div></div>
-        <div class="stat"><div class="k">Sporve's share</div><div class="v num">${usd(feesPaid)}</div>
+        <div class="stat"><div class="k">Sporv's share</div><div class="v num">${usd(feesPaid)}</div>
           <div class="d">${FEE_PCT}% of each booking, paid by the coach</div></div>
         <div class="stat"><div class="k">Session credits</div><div class="v num">${creditTotal}</div>
           <div class="d">${creditRows.length ? "across " + creditRows.length + " listing" + (creditRows.length === 1 ? "" : "s") : "No packs bought"}</div></div>
@@ -1007,7 +1007,7 @@
             <button class="pm-remove" data-pm-remove="${esc(c.id)}"
               aria-label="Remove ${esc(cardLabel(c))}">Remove</button>
           </div>`).join("")
-          : `<p class="pm-none">No card on file. Sporve stores the network, the last four digits, and the
+          : `<p class="pm-none">No card on file. Sporv stores the network, the last four digits, and the
               expiry — never the full number.</p>`}
       </section>
 
@@ -1018,7 +1018,7 @@
             <thead><tr><th>Date</th><th>Description</th><th>Method</th><th>Gross</th>
               <th>Fee</th><th>Net to coach</th><th>Charged</th><th>Status</th></tr></thead>
             <tbody>${txRows}</tbody></table></div>
-          <p class="pm-fine"><b>Gross</b> is the coach's price. <b>Fee</b> is Sporve's ${FEE_PCT}%,
+          <p class="pm-fine"><b>Gross</b> is the coach's price. <b>Fee</b> is Sporv's ${FEE_PCT}%,
             taken from the coach's side. <b>Net to coach</b> is gross minus the fee.
             <b>Charged</b> is what left your card — the coach's price, with no fee added.
             Refunds are the same four numbers with the sign flipped.</p>`
@@ -1251,7 +1251,7 @@
         } else {
           brandEl.textContent = digits.length < 6
             ? "Keep typing — the network needs the first digits"
-            : "Not a network Sporve takes";
+            : "Not a network Sporv takes";
           brandEl.classList.remove("on");
         }
       };

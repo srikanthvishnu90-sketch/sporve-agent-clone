@@ -96,7 +96,7 @@
     var img = (typeof phShot === "function") ? phShot(sport) : "";
     return {
       id: r.id,
-      biz: pv.business_name || "Sporve provider",
+      biz: pv.business_name || "Sporv provider",
       /* THE BADGE NOW REQUIRES EVIDENCE, NOT A FLAG.
          `background_check_status='verified'` alone was true for 20 providers
          with background_check_completed_at NULL — every badge on production

@@ -39,9 +39,9 @@ const STEPS = [
   ["Identity",        "Who you are",              "The legal name here is the name that goes to the screening partner. The business name is what families read on your listings."],
   ["Sports",          "What you coach",           "Pick every sport you actually coach. Each one becomes a filter families can find you through."],
   ["Services",        "Services & capacity",      "A service is one thing a family can book. Capacity is the honest ceiling — how many athletes you can coach at once without the session getting worse."],
-  ["Pricing",         "Pricing",                  "You set the price. Sporve's platform fee comes out at checkout; the take-home figure beside each service is what actually reaches your account."],
+  ["Pricing",         "Pricing",                  "You set the price. Sporv's platform fee comes out at checkout; the take-home figure beside each service is what actually reaches your account."],
   ["Availability",    "Availability",             "The days and the window you can coach. Exact session times come later, from your schedule — this is the outer boundary."],
-  ["Background check","Background check",         "Every person who coaches on Sporve must clear their own check before listings go live. This step collects your consent and the identifiers needed for screening."],
+  ["Background check","Background check",         "Every person who coaches on Sporv must clear their own check before listings go live. This step collects your consent and the identifiers needed for screening."],
   ["Review",          "Review & submit",          "Everything you entered, read back. Fix anything that is wrong before it goes in."],
 ];
 const LAST = STEPS.length - 1;
@@ -177,7 +177,7 @@ function checkIdentity(d){
   if (isBlank(d.businessName))
     return { field: "businessName", msg: "Enter a business or academy name. Coaching under your own name? Use that." };
   if (isBlank(d.phone))
-    return { field: "phone", msg: "Enter a phone number families and the Sporve safety team can reach you on." };
+    return { field: "phone", msg: "Enter a phone number families and the Sporv safety team can reach you on." };
   if (trim(d.phone).length > 20)
     return { field: "phone", msg: "That is " + trim(d.phone).length + " characters long. A phone number, punctuation included, fits in 20." };
   if (!PHONE_RE.test(trim(d.phone)))
@@ -224,7 +224,7 @@ function checkServices(d){
     if (!isFinite(mins))
       return { field: "minutes-" + s.id, msg: "Service " + n + " needs a session length in minutes." };
     if (mins < 10)
-      return { field: "minutes-" + s.id, msg: "Service " + n + " runs " + mins + " minutes. Ten minutes is the shortest session Sporve will list." };
+      return { field: "minutes-" + s.id, msg: "Service " + n + " runs " + mins + " minutes. Ten minutes is the shortest session Sporv will list." };
     if (mins > 600)
       return { field: "minutes-" + s.id, msg: "Service " + n + " runs longer than ten hours. Split a multi-day camp into its own service instead." };
   }
@@ -270,7 +270,7 @@ function checkBackground(d){
   if (age < 0)
     return { field: "dob", msg: "That date of birth is in the future." };
   if (age < 18)
-    return { field: "dob", msg: "Coaches on Sporve have to be 18 or older. That date of birth makes you " + age + "." };
+    return { field: "dob", msg: "Coaches on Sporv have to be 18 or older. That date of birth makes you " + age + "." };
   if (age > 100)
     return { field: "dob", msg: "That date of birth reads as " + age + " years old. Check it." };
   if (isBlank(d.ssn4))
@@ -278,7 +278,7 @@ function checkBackground(d){
   if (!/^\d{4}$/.test(trim(d.ssn4)))
     return { field: "ssn4", msg: "That has to be exactly four digits — the last four, not the whole number." };
   if (!d.consent)
-    return { field: "consent", msg: "Sporve cannot run a background check on you without your consent. Tick the box to authorize it." };
+    return { field: "consent", msg: "Sporv cannot run a background check on you without your consent. Tick the box to authorize it." };
   return null;
 }
 function checkReview(d){
@@ -431,7 +431,7 @@ function identityStep(d, err){
       <input id="cobBiz" data-cob-in="businessName" value="${esc(d.businessName)}" placeholder="e.g. ${esc(SEED.providerProfile.businessName)}">
     </div>
   </div>
-  <p class="cob-help">Families see the business name. Only Sporve and the screening partner see the legal name.</p>
+  <p class="cob-help">Families see the business name. Only Sporv and the screening partner see the legal name.</p>
 
   <div class="${fieldCls(err, "phone")}" data-cob-field="phone">
     <label for="cobPhone">Phone number</label>
@@ -531,7 +531,7 @@ function servicesStep(d, err){
             data-cob-svcin="${esc(s.id)}|minutes" value="${esc(s.minutes)}">
         </div>
       </div>
-      <p class="cob-help">${esc(formatRow(s.format)[2])} Capacity is the number Sporve enforces at checkout —
+      <p class="cob-help">${esc(formatRow(s.format)[2])} Capacity is the number Sporv enforces at checkout —
         once it is reached the service stops taking bookings and opens a waitlist.</p>
     </div>`).join("")}
 
@@ -572,7 +572,7 @@ function pricingStep(d, err){
       </div>
       <div class="cob-take">
         <p class="cob-takenote">${esc(modelRow(s.model)[2])}
-          Sporve's fee is taken at checkout and itemized on every payout — never billed to you separately.</p>
+          Sporv's fee is taken at checkout and itemized on every payout — never billed to you separately.</p>
         <div class="cob-takefig">
           <b class="num" data-cob-net="${esc(s.id)}">${ok ? money(netOf(p)) : "—"}</b>
           <span>you keep${ok ? ", after " + money(feeOn(p)) + " fee" : " — enter a price"}</span>
@@ -636,7 +636,7 @@ function backgroundStep(d, err){
     <p><b>It runs on a person, not on a business.</b> The screening partner checks the individual named above —
       an identity match, then criminal and sex-offender registry records.</p>
     <p><b>An approved business never vouches for an individual.</b>
-      ${esc(SEED.providerProfile.businessName)} is an approved business on Sporve, and every single coach working
+      ${esc(SEED.providerProfile.businessName)} is an approved business on Sporv, and every single coach working
       under it must still clear their own check. Being invited by an approved academy grants nothing.</p>
     <p><b>You cannot mark yourself as checked.</b> This form collects consent and identifiers.
       The result is written by the screening partner, and nothing you enter here can set it.</p>
@@ -663,12 +663,12 @@ function backgroundStep(d, err){
   <p class="cob-help">${age != null && age >= 0
     ? `That date of birth makes you <span class="num">${age}</span>.`
     : "Coaches must be 18 or older."}
-    Sporve stores the last four digits only — never a full Social Security number.</p>
+    Sporv stores the last four digits only — never a full Social Security number.</p>
 
   <label class="cob-consent ${d.consent ? "on" : ""} ${err && err.field === "consent" ? "cob-bad" : ""}"
     data-cob-field="consent">
     <input type="checkbox" data-cob-consent="1" ${d.consent ? "checked" : ""}>
-    <span>I authorize Sporve's screening partner to run an identity verification and criminal background
+    <span>I authorize Sporv's screening partner to run an identity verification and criminal background
       check on <b>${esc(d.legalName || "me")}</b>, and I confirm the date of birth and SSN digits above are mine.
       I understand a false statement here ends the application.</span>
   </label>
@@ -808,7 +808,7 @@ function onboardView(){
   const st = STEPS[i];
 
   /* ═══ Owner visual spec, 2026-08-12 ═══════════════════════════════════════
-     Airbnb's STRUCTURE, Sporve's look: fixed 72px header, independently
+     Airbnb's STRUCTURE, Sporv's look: fixed 72px header, independently
      scrolling middle, fixed footer with the progress bar sitting directly
      above the Back/Next row.
 
@@ -834,7 +834,7 @@ function onboardView(){
 
   return `<div class="cw" role="group" aria-label="Coach onboarding">
     <header class="cw-top">
-      <span class="cg-wordmark" style="font-size:15px;font-weight:800">Sporve</span>
+      <span class="cg-wordmark" style="font-size:15px;font-weight:800">Sporv</span>
       <span class="cw-topright">
         <a class="cw-help" href="mailto:support@sporve.com">Questions?</a>
         <button class="cw-exit" type="button" data-cob-exit="1">Save &amp; exit</button>
@@ -888,7 +888,7 @@ function verifyIdModal(){
     ["Ongoing monitoring", "The check is re-run periodically. Verification is a state you keep, not a badge you earn once."],
   ];
   return wrap("What gets checked", `
-    <p style="color:var(--muted);margin-bottom:18px">Run by Sporve's screening partner on
+    <p style="color:var(--muted);margin-bottom:18px">Run by Sporv's screening partner on
       <b style="color:var(--ink)">${esc(d.legalName || "the individual coach")}</b> — the person, not the business.</p>
     ${rows.map(([h, b]) => `<div class="linerow" style="display:block">
       <b style="display:block;color:var(--ink)">${esc(h)}</b>
@@ -897,13 +897,13 @@ function verifyIdModal(){
     <div class="panel" style="background:var(--warn-tint);border:0;margin-top:18px">
       <p style="font-size:var(--text-sm);color:var(--ink-2);line-height:1.55">
         Three things this form can never do: mark you verified, approve your business, or publish a listing.
-        Those are written by Sporve after the partner returns a result — which is why every field on the
+        Those are written by Sporv after the partner returns a result — which is why every field on the
         previous step is stored as <span class="num">pending</span> no matter what you type.</p>
     </div>
     <div class="panel" style="background:var(--raise);border:0;margin-top:12px">
       <div class="eyebrow">Cost and timing</div>
       <p style="font-size:var(--text-sm);color:var(--ink-2);line-height:1.55;margin-top:8px">
-        Sporve pays for the check. Results usually return in 2–5 business days; a record that needs a
+        Sporv pays for the check. Results usually return in 2–5 business days; a record that needs a
         court clerk to confirm it can take longer.</p>
     </div>
     <button class="btn wide" data-close="1" style="margin-top:18px">Back to the form</button>`);
@@ -982,7 +982,7 @@ function submitApplication(){
 
      Only the fields the coach owns are sent. `status`, `verification_status`
      and `background_check_status` are deliberately NOT included: they are the
-     approval decision, they belong to Sporve, and a client that names those
+     approval decision, they belong to Sporv, and a client that names those
      columns is one typo from a coach approving themselves. The server defaults
      (pending / unverified / none) stand until a human moves them.
 
@@ -1000,7 +1000,7 @@ function submitApplication(){
     }).then(() => {
       toast("Application saved to your account");
     }).catch(() => {
-      toast("Saved on this device, but we could not reach Sporve — reopen to retry");
+      toast("Saved on this device, but we could not reach Sporv — reopen to retry");
     });
   }
 

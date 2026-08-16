@@ -335,4 +335,4 @@ cap for `page:*` routes, and resolves rule B's open word-count ruling as
 law was always about product cards), and every claim in the prose must be
 mechanically true of the shipped product. Enforcement: slop-audit rule G
 (pageWords ≥300, composition fingerprint, editorial accent ≤2, zero
-"built into Sporve") — WARN during the rebuild slices, FAIL once pages land.
+the deprecated product-page filler label) — WARN during the rebuild slices, FAIL once pages land.

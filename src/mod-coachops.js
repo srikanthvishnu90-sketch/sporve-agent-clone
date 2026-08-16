@@ -1,6 +1,6 @@
 "use strict";
 /* ═══════════════════════════════════════════════════════════════════
-   MOD_COACHOPS — coach operations for the Sporve web portal.
+   MOD_COACHOPS — coach operations for the Sporv web portal.
    Four tabs that mount inside the existing coach dash (left rail +
    body): Policies, Waitlist, Recurring slots, Automated messages.
 
@@ -208,12 +208,12 @@ function seedMessages(){
     session_reminder_2h:
       "{{program_title}} starts in about two hours — {{session_time}} today. See {{athlete_first_name}} on the field.",
     post_session_recap:
-      "Great work today from {{athlete_first_name}} at {{program_title}}. Your full session note is in the Sporve app. — {{coach_name}}",
+      "Great work today from {{athlete_first_name}} at {{program_title}}. Your full session note is in the Sporv app. — {{coach_name}}",
     waitlist_offer:
       "A spot just opened in {{program_title}} on {{session_date}} at {{session_time}}. " +
       "It is held for {{athlete_first_name}} for the next 24 hours — accept in the app to claim it.",
     payment_receipt:
-      "Payment received for {{program_title}} ({{session_date}}). Your receipt is in the Sporve app under Bookings. — {{coach_name}}",
+      "Payment received for {{program_title}} ({{session_date}}). Your receipt is in the Sporv app under Bookings. — {{coach_name}}",
     cancellation_notice:
       "{{program_title}} on {{session_date}} at {{session_time}} has been cancelled. " +
       "Refunds follow the cancellation policy shown on the listing. — {{coach_name}}",

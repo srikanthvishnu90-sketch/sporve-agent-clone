@@ -1,6 +1,6 @@
 "use strict";
 /* ═══════════════════════════════════════════════════════════════════
-   MOD_SAFETY — Trust & Safety for Sporve Web.
+   MOD_SAFETY — Trust & Safety for Sporv Web.
 
    Three real backend flows, mirrored exactly on the client:
      · safety reports   (7 categories, 10–4000 char details, 10/day quota)
@@ -25,7 +25,7 @@
   const CATEGORY_LABEL = Object.fromEntries(CATEGORIES);
 
   const PRIVACY_TYPES = [
-    ["access",     "Access my data",   "See what Sporve holds about you and your athletes."],
+    ["access",     "Access my data",   "See what Sporv holds about you and your athletes."],
     ["export",     "Export my data",   "Get a machine-readable copy you can take elsewhere."],
     ["correction", "Correct my data",  "Fix something that is wrong or out of date."],
     ["deletion",   "Delete my data",   "Opens a reviewed case — not an instant delete."],
@@ -159,7 +159,7 @@
     return wrap("Report a safety concern", `
       <div class="sf-note sf-note-warn">
         <b>If anyone is in immediate danger, call local emergency services first.</b>
-        <p>Sporve reviews every report, but we are not an emergency service.</p>
+        <p>Sporv reviews every report, but we are not an emergency service.</p>
       </div>
 
       <form id="sfReportForm" novalidate>
@@ -296,7 +296,7 @@
 
         <button class="btn wide" type="submit">Submit request</button>
         <p class="sf-fine">Your booking's cancellation policy decides this, not a review queue:
-          Sporve checks the policy saved when you booked and how long is left before the session,
+          Sporv checks the policy saved when you booked and how long is left before the session,
           then refunds what it allows straight to your card. If nothing is due, we tell you why.</p>
       </form>`);
   }
@@ -305,7 +305,7 @@
   function privacyModal() {
     return wrap("Make a privacy request", `
       <form id="sfPrivacyForm" novalidate>
-        <p class="sf-lede">Choose what you want to happen to the data Sporve holds about you and
+        <p class="sf-lede">Choose what you want to happen to the data Sporv holds about you and
           the athletes on your account.</p>
 
         <div class="sf-choices" role="radiogroup" aria-label="Request type">
@@ -357,12 +357,12 @@
      The page said the opposite of what the database enforces. */
   const POLICY = [
     ["Each person clears their own", "A background check is required before a coach can be booked."],
-    ["Sporve sets the badge",        "An organization cannot verify its own staff."],
+    ["Sporv sets the badge",        "An organization cannot verify its own staff."],
     ["Pending is shown",             "Uncleared listings read Verification pending — visible, but not bookable until the check clears."],
     ["Checks are re-run",            "A badge that stops being true stops showing."],
   ];
   const RULES = [
-    ["Reports go to safety@sporve.com", "During beta a report opens an email to Sporve's safety address. Send it, and keep your copy — that email IS the record."],
+    ["Reports go to safety@sporve.com", "During beta a report opens an email to Sporv's safety address. Send it, and keep your copy — that email IS the record."],
     ["Refunds are reviewed",   "Full refund, partial refund, or a written denial."],
     ["Deletion is a case",     "Payment and safety records stay under legal hold. We write back."],
   ];
@@ -608,19 +608,19 @@
          status, and the surrounding copy told a parent a human reads it.
 
          A parent reporting that a coach behaved unsafely toward their child
-         believed Sporve was investigating. Sporve never knew.
+         believed Sporv was investigating. Sporv never knew.
 
          Until safety_reports exists with a triage path, the honest surface is
          email: the report opens a pre-filled message to safety@sporve.com, and
          the sent mail — held by the parent, not by us — is the record. The local
          entry is kept ONLY as the parent's own copy and is labelled as such; it
-         no longer claims a case number Sporve is holding. Deleting the false
+         no longer claims a case number Sporv is holding. Deleting the false
          claim is hours of work; building the triage system is weeks, and the
          claim must not survive the wait. */
       (function mailTheReport(){
         try{
           var body =
-            "A safety report was started on Sporve.\n\n"+
+            "A safety report was started on Sporv.\n\n"+
             "Category: "+(CATEGORY_LABEL[category]||category)+"\n"+
             (providerId?("Provider: "+providerId+"\n"):"")+
             (bookingId?("Booking: "+bookingId+"\n"):"")+

@@ -170,7 +170,7 @@
     recover: function (email) {
       /* Resolves the SAME way whether or not the address exists. GoTrue already
          behaves this way; surfacing a difference here would turn the form into
-         an account-enumeration oracle — "this email has a Sporve account" is
+         an account-enumeration oracle — "this email has a Sporv account" is
          exactly the fact a stranger should not be able to test. */
       return post("/auth/v1/recover", { email: String(email || "").trim() })
         .then(function () { return true; })

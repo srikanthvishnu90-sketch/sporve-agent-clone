@@ -103,7 +103,7 @@ const COMPANIES = [
   {
     id:"sunset", name:"Sunset Field Athletics", verified:false,
     tagline:"Open grass, five sports, golden hour",
-    bio:"Baseball, softball, flag football, lacrosse and cricket on shared fields in Hyde Park. The widest age spread of any operator on Sporve.",
+    bio:"Baseball, softball, flag football, lacrosse and cricket on shared fields in Hyde Park. The widest age spread of any operator on Sporv.",
     hood:"Hyde Park, Chicago", founded:2019, coaches:8, seed:"sunset",
     look:"Open grass at golden hour — long lenses, chalk lines, dust. Warm and wide.",
   },
@@ -1037,7 +1037,7 @@ function teamSheet(p, m){
         <tr class="co-tot"><td>All-in, per athlete</td><td>${usd(total)}</td></tr>
       </tbody>
     </table>
-    <div class="co-note"><b>The advertised figure is the dues line only.</b> Sporve shows the whole number
+    <div class="co-note"><b>The advertised figure is the dues line only.</b> Sporv shows the whole number
       because kit, tournaments and travel land on you regardless.${meta.aid ? " Financial aid is available — ask before tryouts, not after." : ""}</div>`)}
 
   ${athleteBlock(p, m)}

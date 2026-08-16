@@ -17,12 +17,9 @@
         · .sbc-mark — the verified-badge-with-date pill on trust (the one
           icon the spec names as REQUIRED to stay).
         · .trust-badge svg — same badge where it appears inline on cards.
-   B. COPY DEPTH — WARNS, does not fail. The spec's 40–80-word floor
-      contradicts the standing house law (card bodies ≤16 words, ≤180 words
-      per page, owner-ratified in the anti-slop constitution) and its own
-      8-word exemplar sentence. Until the owner adjudicates which law wins,
-      this rule reports drift (body <30 or >100 words; siblings >2x apart)
-      without blocking a PR on it.
+   B. PRODUCT-PAGE COPY — FAILS outside 300–500 marked prose words. Hero
+      standfirsts fail outside 50–80 words; recipe-specific block ranges are
+      also enforced where length is part of the composition.
    C. STRUCTURE — FAILS. A declared n-column grid whose visible children
       cannot fill its first row is a stranded-slot layout.
    D. EMOJI — FAILS. Any emoji codepoint in rendered text.
@@ -36,7 +33,10 @@
    ═══════════════════════════════════════════════════════════════════════ */
 window.SLOP_AUDIT = function (root) {
   const scope = root || document.querySelector("#app main") || document.getElementById("app") || document.body;
-  const out = { fail: { icons: [], grids: [], emoji: [], shapes: [], pills: [] }, warn: { copy: [], psdot: [] } };
+  const out = {
+    fail: { icons: [], grids: [], emoji: [], shapes: [], pills: [], product: [], brand: [] },
+    warn: { copy: [], psdot: [], pageWords: 0, fingerprint: "", accent: [] }
+  };
 
   const path = (el) => {
     const bits = [];
@@ -98,9 +98,8 @@ window.SLOP_AUDIT = function (root) {
     if (w && w < 30) out.warn.copy.push(path(it) + " (" + w + " words)");
   });
 
-  /* G — PRODUCT-PAGES REBUILD instruments (2026-08-16). words + fingerprint +
-     accent report as WARN until the prose/recipe slices land page by page;
-     the "built into Sporve" filler FAILS now (already purged). */
+  /* G — legacy census retained for non-rebuilt marketing routes. The assigned
+     product pages replace these advisory values with strict metrics below. */
   out.warn.pageWords = 0;
   out.warn.fingerprint = "";
   out.warn.accent = [];
@@ -140,8 +139,114 @@ window.SLOP_AUDIT = function (root) {
       });
     }
   }
-  if (/built into Sporve/i.test(scope.innerText || "")) {
-    out.fail.pills.push("FILLER: 'built into Sporve' in rendered text");
+  const filler = new RegExp(["built", "into", "Sporv(?:e)?"].join("\\s+"), "i");
+  if (filler.test(scope.innerText || "")) {
+    out.fail.pills.push("FILLER: deprecated product-page tagline in rendered text");
+  }
+
+  /* H — strict recipe and copy contract for the fourteen assigned pages.
+     [data-prose] is intentional accounting: it includes explanation and table
+     prose, and excludes navigation, numerals, controls, and sample UI labels. */
+  const product = scope.matches("[data-product-page]")
+    ? scope : scope.querySelector("[data-product-page]");
+  if (product) {
+    const id = product.getAttribute("data-page-id") || "unknown";
+    const expected = {
+      "search":"R1", "map-search":"R2", "instant-booking":"R4",
+      "messaging":"R5", "bookings-receipts":"R3", "athlete-progress":"R4",
+      "scheduling":"R1", "payments":"R3", "roster":"R4",
+      "session-notes":"R5", "media-consent":"R6", "insights":"R2",
+      "what-is":"R3", "background-checks":"R6"
+    };
+    const prose = [...product.querySelectorAll("[data-prose]")].filter(visible);
+    out.warn.pageWords = prose.reduce((sum, el) => sum + words(el.textContent), 0);
+    if (out.warn.pageWords < 300 || out.warn.pageWords > 500) {
+      out.fail.product.push(id + ": prose=" + out.warn.pageWords + " (expected 300–500)");
+    }
+
+    const standfirst = product.querySelector("[data-standfirst]");
+    const standWords = standfirst ? words(standfirst.textContent) : 0;
+    if (standWords < 50 || standWords > 80) {
+      out.fail.product.push(id + ": standfirst=" + standWords + " (expected 50–80)");
+    }
+
+    const recipe = product.getAttribute("data-recipe") || "";
+    if (expected[id] !== recipe) {
+      out.fail.product.push(id + ": recipe=" + (recipe || "missing") + " expected=" + expected[id]);
+    }
+
+    const sections = [...product.querySelectorAll(":scope > section[data-section]")]
+      .map((sec) => sec.getAttribute("data-section"))
+      .filter((name) => name !== "keep-exploring");
+    out.warn.fingerprint = recipe + ":" + sections.join(">");
+    if (sections.join(">") === "hero") {
+      out.fail.product.push(id + ": matches deleted hero/whitespace/footer template");
+    }
+
+    if (recipe === "R1") {
+      const blocks = [...product.querySelectorAll("[data-step-prose]")];
+      if (blocks.length !== 4) out.fail.product.push(id + ": R1 needs four numbered steps");
+      blocks.forEach((el, index) => {
+        const count = words(el.textContent);
+        if (count < 50 || count > 80) {
+          out.fail.product.push(id + ": step " + (index + 1) + "=" + count + " (expected 50–80)");
+        }
+      });
+    }
+    if (recipe === "R2") {
+      const table = product.querySelector(".pg-comparison");
+      const heads = table
+        ? [...table.querySelectorAll("thead th")].map((el) => el.textContent.trim().toUpperCase())
+        : [];
+      if (!product.querySelector(".pg-argument") || !table ||
+          table.querySelectorAll("tbody tr").length < 3 ||
+          heads.join("|") !== "THE JOB|ELSEWHERE|ON SPORV") {
+        out.fail.product.push(id + ": R2 requires argument plus THE JOB / ELSEWHERE / ON SPORV table");
+      }
+    }
+    if (recipe === "R3") {
+      const paras = product.querySelectorAll(".pg-essay > p[data-prose]");
+      if (paras.length < 2 || paras.length > 3 || !product.querySelector(".pg-stat-rail")) {
+        out.fail.product.push(id + ": R3 requires two or three essay paragraphs plus a stat rail");
+      }
+    }
+    if (recipe === "R4" &&
+        (!product.querySelector(".pg-r4-grid") || !product.querySelector(".pg-flat-figure") ||
+         !product.querySelector(".pg-flat-figure figcaption[data-prose]"))) {
+      out.fail.product.push(id + ": R4 requires argument left and one captioned flat figure right");
+    }
+    if (recipe === "R5") {
+      const blocks = [...product.querySelectorAll("[data-dark-block]")];
+      if (blocks.length < 2 ||
+          !product.querySelector("[data-section='dark-essay'] + [data-section='definition-list']")) {
+        out.fail.product.push(id + ": R5 requires a dark essay followed by a light definition list");
+      }
+      blocks.forEach((el, index) => {
+        const count = words(el.textContent);
+        if (count < 70 || count > 90) {
+          out.fail.product.push(id + ": dark block " + (index + 1) + "=" + count + " (expected 70–90)");
+        }
+      });
+    }
+    if (recipe === "R6") {
+      const questions = product.querySelectorAll(".pg-question-row");
+      if (questions.length < 4 || questions.length > 6) {
+        out.fail.product.push(id + ": R6 needs four to six answered questions");
+      }
+    }
+
+    const accent = [...product.querySelectorAll(".pg-h1 em,.pg-cta")].filter(visible);
+    const extraEm = [...product.querySelectorAll("em")].filter((el) => !el.closest(".pg-h1"));
+    out.warn.accent = accent.map(path);
+    if (product.querySelectorAll(".pg-h1 em").length !== 1 ||
+        product.querySelectorAll(".pg-cta").length !== 1 ||
+        accent.length !== 2 || extraEm.length) {
+      out.fail.product.push(id + ": accent voice must be one H1 italic plus one CTA");
+    }
+  }
+
+  if (/\bSporve\b/.test(scope.innerText || "")) {
+    out.fail.brand.push("LEGACY BRAND: visible copy still uses the former spelling");
   }
 
   /* E — the CSS dots the spec's svg detector cannot see. (The .psdot class was

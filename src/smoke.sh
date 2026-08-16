@@ -719,7 +719,7 @@ if curl -sI "http://127.0.0.1:$CSPPORT/index.html" | grep -qi "^content-security
   # on the waitlist at sporve.vercel.app — a different product. The allow-list
   # that causes that lives in GoTrue, but this asserts the half we control:
   # the client must never ask to be sent anywhere but its own origin, and no
-  # foreign Sporve property may appear in the built page.
+  # foreign Sporv property may appear in the built page.
   oa=$($B js "(function(){
     if(typeof oauthReturnUrl!=='function') return 'NOHELPER';
     var u=oauthReturnUrl();
@@ -731,7 +731,7 @@ if curl -sI "http://127.0.0.1:$CSPPORT/index.html" | grep -qi "^content-security
     return 'OK';
   })()" 2>/dev/null | tr -d '\r')
   case "$(printf '%s' "$oa" | tr -d '[:space:]')" in
-    OK)         pass "auth: Google sign-in returns to this origin, never another Sporve property" ;;
+    OK)         pass "auth: Google sign-in returns to this origin, never another Sporv property" ;;
     WAITLIST)   fail "auth: the OAuth URL points at sporve.vercel.app — a coach would land on the waitlist" ;;
     FOREIGN:*)  fail "auth: the OAuth return URL is not this origin (${oa#*FOREIGN:})" ;;
     NOTENCODED) fail "auth: this origin is not in the OAuth redirect_to — GoTrue will fall back to SITE_URL" ;;
@@ -1121,6 +1121,7 @@ c=$(grep -o '"coach-assistant"' index.html 2>/dev/null | wc -l | tr -d ' '); c=$
 # 'saved' was merged into 'search' (rebuild spec) — its route redirects, so it
 # leaves the per-page sweeps; the redirect itself is asserted in the rebuild block.
 PAGES="what-is background-checks search map-search instant-booking messaging bookings-receipts athlete-progress scheduling payments roster session-notes media-consent insights ai-coach"
+ASSIGNED_PAGES="what-is background-checks search map-search instant-booking messaging bookings-receipts athlete-progress scheduling payments roster session-notes media-consent insights"
 # Reset the portal EXPLICITLY before reloading. This used to be implicit: a
 # reload wiped S back to defaults, so the coach checks above could not leak
 # into the marketing-page checks below. Session persistence deliberately ends
@@ -1148,52 +1149,95 @@ elif [ -z "$(printf '%s' "$sweepc" | tr -d '[:space:]')" ]; then
 else fail "§9 sweep: $sweep"; fi
 
 # ── slop-audit: the enforcement instrument (owner spec 2026-08-14) ────────
-# scripts/slop-audit.js is injected into the live page and evaluated on all
-# 19 product pages (16 PAGE_META mini-pages + trust, pricing, coachinfo).
-# Rules A (icons), C (stranded grids), D (emoji) FAIL the build; rule B
-# (copy depth) and .psdot WARN pending the owner's ruling on the 40–80-word
-# floor vs the standing ≤180-word page cap. pr-checks.yml runs this file on
-# every PR, which is what wires the auditor into CI.
+# scripts/slop-audit.js is injected into the live page and evaluated on every
+# assigned product page plus the remaining marketing routes. Copy, recipe
+# structure, accents, deleted-template matches, and hero height all fail here;
+# pr-checks.yml runs this exact smoke suite on every pull request.
 AUD=$(cat scripts/slop-audit.js 2>/dev/null)
 if [ -z "$AUD" ]; then fail "scripts/slop-audit.js missing"; else
 slop=$($B js "$AUD;
-(()=>{const routes='$PAGES'.split(' ').map(id=>['page',id]).concat([['trust',null],['pricing',null],['coachinfo',null]]);
- const fails=[];let wcopy=0,wdot=0;const thin=[],dups=[],acc=[],tall=[],fps={};
+(()=>{const assigned='$ASSIGNED_PAGES'.split(' ');
+ const assignedSet=new Set(assigned);
+ const navGroups=[
+  ['what-is','background-checks'],
+  ['search','map-search','instant-booking','messaging','bookings-receipts','athlete-progress'],
+  ['scheduling','payments','roster','session-notes','media-consent','insights']];
+ const routes='$PAGES'.split(' ').map(id=>['page',id]).concat([['trust',null],['pricing',null],['coachinfo',null]]);
+ const fails=[];let wcopy=0,wdot=0;const fps={};
  routes.forEach(([name,arg])=>{S.route={name,arg};render();
   const r=window.SLOP_AUDIT();
-  const f=r.fail.icons.length+r.fail.grids.length+r.fail.emoji.length+(r.fail.shapes||[]).length+(r.fail.pills||[]).length;
+  const f=r.fail.icons.length+r.fail.grids.length+r.fail.emoji.length+
+    (r.fail.shapes||[]).length+(r.fail.pills||[]).length+
+    (r.fail.product||[]).length+(r.fail.brand||[]).length;
   if(f)fails.push((arg||name)+'['+
     (r.fail.icons.length?'icons:'+r.fail.icons.slice(0,2).join('|'):'')+
     (r.fail.grids.length?' grids:'+r.fail.grids.slice(0,2).join('|'):'')+
-    (r.fail.emoji.length?' emoji:'+r.fail.emoji[0]:'')+((r.fail.shapes||[]).length?' shapes:'+r.fail.shapes[0]:'')+((r.fail.pills||[]).length?' pills:'+r.fail.pills[0]:'')+']');
+    (r.fail.emoji.length?' emoji:'+r.fail.emoji[0]:'')+
+    ((r.fail.shapes||[]).length?' shapes:'+r.fail.shapes[0]:'')+
+    ((r.fail.pills||[]).length?' pills:'+r.fail.pills[0]:'')+
+    ((r.fail.product||[]).length?' product:'+r.fail.product.join('|'):'')+
+    ((r.fail.brand||[]).length?' brand:'+r.fail.brand.join('|'):'')+']');
   wcopy+=r.warn.copy.length;wdot+=r.warn.psdot.length;
-  if((r.warn.pageWords||0)<300)thin.push((arg||name)+':'+r.warn.pageWords);
-  if(r.warn.fingerprint){if(fps[r.warn.fingerprint])dups.push((arg||name)+'='+fps[r.warn.fingerprint]);fps[r.warn.fingerprint]=(arg||name);}
-  if((r.warn.accent||[]).length>2)acc.push((arg||name)+':'+r.warn.accent.length);
-  const hh=document.querySelector('.pg-hero');
-  if(hh&&hh.getBoundingClientRect().height>0.45*window.innerHeight+1)tall.push(arg||name);});
+  if(arg&&assignedSet.has(arg)){
+    fps[arg]=r.warn.fingerprint||'';
+    const hh=document.querySelector('.pg-hero');
+    if(!hh||hh.getBoundingClientRect().height>0.45*window.innerHeight+1){
+      fails.push(arg+'[HERO_OVER_45VH]');
+    }
+  }});
+ navGroups.forEach(group=>group.forEach((id,index)=>{
+  if(!fps[id])fails.push(id+'[NO_FINGERPRINT]');
+  if(index&&fps[id]===fps[group[index-1]]){
+    fails.push(id+'[ADJACENT_FINGERPRINT='+group[index-1]+']');
+  }}));
  // the merged 'saved' route must land on Search, never 404
  S.route={name:'page',arg:'saved'};render();
- if(document.querySelector('#app').innerText.indexOf('Search by sport')<0)fails.push('saved[NO_REDIRECT]');
+ if(!document.querySelector('[data-product-page][data-page-id="search"]'))fails.push('saved[NO_REDIRECT]');
  S.route={name:'explore',arg:null};render();
- return JSON.stringify({fails,wcopy,wdot,thin:thin.length,dups:dups.length,acc:acc.length,tallHeroes:tall.length,thinL:thin.slice(0,4),dupsL:dups.slice(0,3),accL:acc.slice(0,4)})})()" 2>/dev/null)
+ return JSON.stringify({fails,wcopy,wdot,pages:Object.keys(fps).length})})()" 2>/dev/null)
 slopc=${slop//\"/}
 case "$slopc" in
   *"fails:[]"*)
-    pass "slop-audit: 18 pages clean on icons, grids, emoji, shapes, pills"
+    pass "product-page audit: 14 pages at 300–500 words; recipes, adjacency, accents, and heroes clean"
     w=$(printf '%s' "$slopc" | grep -o 'wcopy:[0-9]*' | grep -o '[0-9]*')
     d=$(printf '%s' "$slopc" | grep -o 'wdot:[0-9]*' | grep -o '[0-9]*')
-    t=$(printf '%s' "$slopc" | grep -o 'thin:[0-9]*' | grep -o '[0-9]*')
-    du=$(printf '%s' "$slopc" | grep -o 'dups:[0-9]*' | grep -o '[0-9]*')
-    ac=$(printf '%s' "$slopc" | grep -o 'acc:[0-9]*' | grep -o '[0-9]*')
-    th=$(printf '%s' "$slopc" | grep -o 'tallHeroes:[0-9]*' | grep -o '[0-9]*')
-    printf "  \033[33mWARN\033[0m  %s\n" "rebuild census: thin-pages(<300w)=${t:-0} dup-fingerprints=${du:-0} accent>2=${ac:-0} tall-heroes(>45vh)=${th:-0} thin-blocks=${w:-0} (WARN until prose slices land)";;
+    [ "${w:-0}" -gt 0 ] || [ "${d:-0}" -gt 0 ] \
+      && printf "  \033[33mWARN\033[0m  %s\n" "legacy thin-blocks=${w:-0} psdots=${d:-0}" || true;;
   "")
     fail "slop-audit did not return";;
   *)
     fail "slop-audit: $slop";;
 esac
 fi
+
+# Static filler tripwire: construct the pattern so the retired sentence never
+# appears in this auditor and a repository-wide search can honestly return zero.
+filler_pattern='built[[:space:]]+into[[:space:]]+Sporv(e)?'
+filler_hits=$(rg -n -i "$filler_pattern" --glob '!.git/**' --glob '!.clo-sync/**' . 2>/dev/null || true)
+[ -z "$filler_hits" ] && pass "deprecated product-page filler is absent repository-wide" \
+  || fail "deprecated product-page filler remains: $filler_hits"
+
+# The visible rebrand is broader than one header screenshot. Sweep primary
+# routes, every assigned page, accessible labels, metadata, and both wordmarks.
+brand=$($B js "
+(()=>{const old=new RegExp('Sporv'+'e');const bad=[];
+ const inspect=label=>{
+  const app=document.querySelector('#app');
+  if(old.test(app?.innerText||''))bad.push(label+':TEXT');
+  const attrs=[...(app?.querySelectorAll('[aria-label],[alt]')||[])];
+  if(attrs.some(el=>old.test((el.getAttribute('aria-label')||'')+' '+(el.getAttribute('alt')||''))))bad.push(label+':A11Y');};
+ '$ROUTES'.split(' ').forEach(name=>{S.portal='family';S.auth={status:'guest'};S.route={name,arg:null};render();inspect(name);});
+ '$ASSIGNED_PAGES'.split(' ').forEach(id=>{S.route={name:'page',arg:id};render();inspect('page:'+id);});
+ S.route={name:'home',arg:null};render();
+ const top=document.querySelector('.topbar .wordmark')?.textContent.trim().toUpperCase();
+ S.route={name:'explore',arg:null};render();
+ const foot=document.querySelector('.close-zone .wordmark')?.textContent.trim().toUpperCase();
+ if(top!=='SPORV')bad.push('HEADER_LOGO:'+top);
+ if(foot!=='SPORV')bad.push('FOOTER_LOGO:'+foot);
+ if(old.test(document.title)||old.test(document.querySelector('meta[name=description]')?.content||''))bad.push('HEAD');
+ return bad.length?bad.join(','):'OK'})()" 2>/dev/null)
+[ "${brand//\"/}" = "OK" ] && pass "Sporv rebrand: header, footer, metadata, routes, and accessible labels clean" \
+  || fail "visible brand rename incomplete: $brand"
 
 # ── overlap-audit: no same-corner chip collisions (owner spec 2026-08-16) ──
 # scripts/overlap-audit.js, injected like slop-audit. Fails on two absolutely-
@@ -1269,22 +1313,27 @@ t1=$($B js "
 return bad.length?bad.join(' '):'CLEAN'})()" 2>/dev/null)
 [ "$(printf '%s' "${t1//\"/}" | tr -d '[:space:]')" = "CLEAN" ] && pass "17 heroes: horizontal, 40–54px, ≤3 lines, ≥55% width" || fail "§1 type: $t1"
 
-# §4/§5 — every page owns exactly its own sig-<id>; no page shows a foreign one.
+# §4/§5 — every assigned page is rendered by the recipe module, and every
+# Keep Exploring destination carries explanatory copy rather than a filler tag.
 sm=$($B js "
-(()=>{const ids='$PAGES'.split(' ');let own=0,leak=[];
+(()=>{const ids='$ASSIGNED_PAGES'.split(' ');let own=0,leak=[];
 ids.forEach(id=>{S.route={name:'page',arg:id};render();const a=document.querySelector('#app');
- if(!a.querySelector('.sig-'+id))leak.push(id+':own-missing');
+ const root=a.querySelector('[data-product-page][data-page-id=\"'+id+'\"]');
+ if(!root)leak.push(id+':recipe-root-missing');
  else own++;
- ids.forEach(o=>{if(o!==id&&a.querySelector('.sig-'+o))leak.push(id+':has-'+o)})});
+ const rows=[...a.querySelectorAll('.pg-kxrow')];
+ if(!rows.length||rows.some(row=>(row.querySelector('span')?.textContent.trim().length||0)<18)){
+   leak.push(id+':thin-keep-exploring');
+ }});
 return leak.length?leak.join(' '):('OK '+own)})()" 2>/dev/null)
 case "$(printf '%s' "${sm//\"/}")" in
-  *OK\ 15*) pass "15 unique signatures: each present on its own page, zero foreign leaks";;
-  *) fail "§5 signatures: $sm";;
+  *OK\ 14*) pass "14 recipe pages render; every Keep Exploring row has real destination copy";;
+  *) fail "recipe/KX coverage: $sm";;
 esac
 
 # 100-point #88 — the <head> is finished (title in head, OG image, favicon).
 head=$(awk 'BEGIN{p=1} /<\/head>/{print; exit} p' index.html)
-{ printf '%s' "$head" | grep -q '<title>Sporve' && printf '%s' "$head" | grep -q 'og:image' && printf '%s' "$head" | grep -q 'rel="icon"'; } \
+{ printf '%s' "$head" | grep -q '<title>Sporv' && printf '%s' "$head" | grep -q 'og:image' && printf '%s' "$head" | grep -q 'rel="icon"'; } \
   && pass "#88 head finished (title · og:image · favicon)" || fail "#88 head incomplete"
 # 100-point #58 — zero exclamation marks in rendered copy across routes + pages.
 ex=$($B js "
@@ -1430,7 +1479,7 @@ foot=$($B js "
  S.route={name:'explore',arg:null};render();
  if(bad.length) return 'UNRESOLVED_'+bad.join('/');
  if(!document.querySelector('.foot-mail')) return 'NO_SUPPORT_EMAIL';
- if(!/independent professionals, not Sporve employees/.test(document.body.innerText)) return 'NO_DISCLOSURE';
+ if(!/independent professionals, not Sporv employees/.test(document.body.innerText)) return 'NO_DISCLOSURE';
  return 'OK'})()" 2>/dev/null)
 [ "${foot//\"/}" = "OK" ] && pass "every footer link resolves to a distinct page" \
   || fail "footer link graph broken: $foot"
@@ -1575,7 +1624,7 @@ $B goto "file://$(pwd)/index.html" >/dev/null 2>&1
 # ── The real legal documents must be published and reachable ──────────────
 # The published privacy notice (11 sections), terms (7) and refund policy (4)
 # existed in sporve-landing all along while this site linked to NONE of them: the
-# Legal page was three sentences, and signup forced "I have read Sporve's
+# Legal page was three sentences, and signup forced "I have read Sporv's
 # Privacy Policy" where that phrase was a <b> with no destination. A consent
 # tick-box pointing at nothing is not consent.
 lgl=$($B js "
@@ -1749,7 +1798,7 @@ ams=$($B js "
 # of each session. Assert the disclosure is present once a conversation exists
 # in BOTH the coach dock (talking + maximized) and the family assistant.
 disc=$($B js "
-(()=>{const bad=[];const re=/talking with|chatting with Sporve's AI|Sporve AI can make mistakes/i;
+(()=>{const bad=[];const re=/talking with|chatting with Sporv's AI|Sporv AI can make mistakes/i;
  // coach dock, talking
  S.portal='coach';S.auth={status:'coach'};S.route={name:'dashboard',arg:null};
  S.chat=[{role:'user',text:'q'},{role:'coach',text:'a'}];S.chatThinking=false;
@@ -1760,7 +1809,7 @@ disc=$($B js "
  if(!re.test(document.querySelector('.aimax-wrap')?.innerText||''))bad.push('COACH_MAX');
  // family assistant page
  S.aiMax=false;S.chat=[];S.portal='family';S.auth={status:'guest'};S.route={name:'assistant',arg:null};render();
- if(!/chatting with Sporve's AI/i.test(document.querySelector('#app main')?.innerText||''))bad.push('FAMILY');
+ if(!/chatting with Sporv's AI/i.test(document.querySelector('#app main')?.innerText||''))bad.push('FAMILY');
  S.route={name:'home',arg:null};render();document.body.classList.remove('reg-coach');
  return bad.length?bad.join(','):'OK'})()" 2>/dev/null)
 [ "${disc//\"/}" = "OK" ] && pass "AI disclosure present in every chat session (usage policy)" \
@@ -1987,8 +2036,8 @@ cp=$($B js "
 # ── A safety surface may not promise what no code delivers ────────────────
 # [CRITICAL-PATH: child safety] mod-safety.js has ZERO network calls, yet it
 # minted case numbers ("SR-0001") and told parents "Reports reach a person —
-# read by Sporve's safety team". A parent reporting a coach's conduct toward
-# their child believed Sporve was investigating; Sporve never knew. Until a real
+# read by Sporv's safety team". A parent reporting a coach's conduct toward
+# their child believed Sporv was investigating; Sporv never knew. Until a real
 # safety_reports table with triage exists, the claim must not exist either.
 safe=$($B js "
 (()=>{const src=[...document.querySelectorAll('script')].map(s=>s.textContent).join('');
@@ -2003,7 +2052,7 @@ safe=$($B js "
 
 # ── The Add-a-child form may never offer an under-13 ──────────────────────
 # [CRITICAL-PATH: consent] It offered birth years 2022-2008 — ages 4 to 18 — and
-# wrote date_of_birth behind one unverified checkbox, while Sporve's own
+# wrote date_of_birth behind one unverified checkbox, while Sporv's own
 # published privacy notice states adults must not submit information about a
 # child under 13 during beta. COPPA penalties are per child, per violation.
 # Lower MIN_ATHLETE_AGE only when a real verifiable-consent flow ships.
