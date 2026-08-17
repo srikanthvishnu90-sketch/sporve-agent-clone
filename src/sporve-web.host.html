@@ -4939,8 +4939,13 @@ function ptypeOf(p){
 const TODAY="2026-08-03";
 
 /* ── platform fee: the single source of truth ──────────────────────────
-   Flat 12%, deducted from the coach (owner decision 2026-08-06; incidence
-   2026-08-10). See docs/decisions/2026-08-10-fee-incidence.md.
+   ZERO (owner decision 2026-08-17 — the subscription pivot). Sporv now takes
+   0% of bookings; revenue is the provider subscription (free / Pro $34.99 /
+   Enterprise $149, defined in the plan_entitlements table server-side). The
+   flat 12% era (2026-08-06 → 2026-08-17) is history: bookings paid then carry
+   their RECORDED fee in the ledger and keep rendering it truthfully — a
+   recorded fee is never recomputed from this constant (see the webhook note
+   in the backend repo).
 
    This lives here, at the top level of the host script, because every module
    is inlined AFTER it inside its own IIFE and therefore resolves these names
@@ -4950,9 +4955,9 @@ const TODAY="2026-08-03";
    three times because it was authored in five places. Read these; do not
    redeclare them, and do not write the bare decimal anywhere.
 
-   src/smoke.sh enforces both halves: no stray fee literal, and every rendered
-   percentage equal to FEE_PCT. */
-const FEE_PCT = 12;
+   src/smoke.sh enforces both halves: no stray fee literal, and rendered rates
+   limited to FEE_PCT and the 100% coaches keep. */
+const FEE_PCT = 0;
 const FEE_RATE = FEE_PCT / 100;
 function dayAfter(n){
   const d=new Date(TODAY+"T12:00:00Z");
@@ -6219,10 +6224,10 @@ function pricingHTML(){
      "Card checkout. The coach's price is the price — no fee added for families."],
     ["Getting paid, as a coach",
      "Chasing parents after practice.",
-     `Automatic payout, minus a flat ${FEE_PCT}% platform fee, itemized on every payout — gross, fee, net.`],
+     `Automatic payout of the full amount — Sporv takes ${FEE_PCT}% of bookings. You keep every dollar families pay.`],
     ["Running the season, as a coach",
      "Spreadsheets, screenshots, a shoebox of notes.",
-     "Roster, schedule, session notes and messages in one place. Listing is free."],
+     "Roster, schedule, session notes and messages in one place. Free to start; Pro is $34.99 a month."],
   ];
   return `<main class="shell">
     ${/* C4, tell 9: the top-level answer to "what does this cost" was set one
@@ -6232,15 +6237,15 @@ function pricingHTML(){
          single constant checkout charges; it is never retyped as prose. */""}
     <div class="pr-head">
       <p class="eyebrow">Pricing</p>
-      <h1 class="display">${FEE_PCT}%, and only<br>when you're paid.</h1>
-      <p class="lede" style="margin-left:0;max-width:58ch">Families pay the coach's
-        listed price and nothing on top. Coaches pay one flat fee per paid booking,
-        itemized on every payout.</p>
+      <h1 class="display">Coaches keep 100%.<br>The software is the product.</h1>
+      <p class="lede" style="margin-left:0;max-width:58ch">Sporv takes ${FEE_PCT}% of
+        bookings. Families pay the coach's listed price and nothing on top; coaches
+        run their business on a flat subscription — free to start, Pro when it grows.</p>
     </div>
     <div class="pr-stats" role="list">
-      <div role="listitem"><b class="num">${FEE_PCT}%</b><span>platform fee, only on a paid booking</span></div>
-      <div role="listitem"><b class="num">$0</b><span>to join, list, browse, and message</span></div>
-      <div role="listitem"><b class="num">$0</b><span>background checks — run at Sporv's cost</span></div>
+      <div role="listitem"><b class="num">${FEE_PCT}%</b><span>of a booking taken by Sporv — coaches keep 100%</span></div>
+      <div role="listitem"><b class="num">$34.99</b><span>a month for Pro — unlimited AI, up to 3 people</span></div>
+      <div role="listitem"><b class="num">$0</b><span>to join, list, browse, and message — the Free plan is real</span></div>
     </div>
     <div class="cmp-wrap">
       <table class="cmp" aria-label="What Sporv costs, compared">
@@ -6249,7 +6254,9 @@ function pricingHTML(){
       </table>
     </div>
     <p class="cmp-fine">Joining, listing, browsing and messaging are free on both sides.
-      The ${FEE_PCT}% is taken from a paid booking and from nothing else.</p>
+      Pro is $34.99 a month; Enterprise — a multi-player workspace for larger
+      operations, $149 a month — is in development, by early access only.
+      No plan takes a percentage of a booking.</p>
     <div class="cmp-ctas">
       <button class="btn" data-becomecoach="1">Become a coach</button>
       <button class="btn ghost" data-nav="explore">Find a coach</button>
@@ -6679,8 +6686,8 @@ function coachLandingHTML(){
     ["AI assistant","Reschedule, offer a waitlist spot, or message a group by typing what you want. It only acts on your real calendar.","Try the assistant","dashboard"]];
   const faq=[
     ["How does the background check work?","Every individual clears their own check — not the business. Your listings stay unbookable and hidden from search until yours clears, and an org being approved never vouches for a trainer on its roster."],
-    ["When do I get paid?","Once your background check clears and your bank is connected, payouts run automatically after a completed session. Each one itemizes gross, the platform fee, and your net."],
-    ["What does Sporv take?",`A flat ${FEE_PCT}% platform fee, taken only when you get paid and itemized on every payout — gross, fee, and your net on each booking. Joining, listing, and messaging are free.`],
+    ["When do I get paid?","Once your background check clears and your bank is connected, payouts run automatically after a completed session. The full booking amount is yours; every payout is itemized."],
+    ["What does Sporv take?",`${FEE_PCT}% of bookings — you keep 100% of what families pay. Sporv is a flat software subscription instead: free to start, $34.99 a month for Pro. Joining, listing, and messaging are free.`],
     ["What happens when someone cancels?","The cancellation policy copied onto the booking at purchase governs the refund — not whatever your listing says later. You pick flexible, moderate, or strict per service."],
     ["Who owns the client relationship?","You do. Families you bring keep booking you, and your roster and notes are yours."],
     ["Can I leave and take my data?","Yes. Request an export at any time. Deletion is reviewed as a case so financial and safety records required by law are retained, and everything else is removed."]];
@@ -6785,10 +6792,11 @@ function coachLandingHTML(){
   </section>
 
   ${/* Anti-slop C3, plus a factual correction. This was a centred CARD
-       (tell #17) around the display word "Tiered" — and "Tiered" is FALSE:
-       the fee is a flat ${FEE_PCT}%, the owner's stated decision and the number
-       stripe-create-checkout actually charges. A fee section is the one place
-       a wrong word is a contract problem, not a style problem.
+       (tell #17) around the display word "Tiered" — and "Tiered" is FALSE.
+       Since 2026-08-17 the model is subscription: FEE_PCT is 0, the owner's
+       stated decision and what stripe-create-checkout actually charges
+       (PLATFORM_FEE_BPS=0). A fee section is the one place a wrong word is a
+       contract problem, not a style problem.
        Now a coach-scoped B3 table: the money questions a coach actually asks,
        hairline rows, the real number, no card. */""}
   <section class="band">
@@ -6799,11 +6807,11 @@ function coachLandingHTML(){
           <thead><tr><th>The job</th><th>Elsewhere</th><th>On Sporv</th></tr></thead>
           <tbody>
             <tr><th scope="row">Getting paid</th>
-              <td>Chasing parents after practice, card readers, invoices.</td>
-              <td>Automatic payout on every paid booking, minus a flat ${FEE_PCT}% — itemized as gross, fee, net.</td></tr>
-            <tr><th scope="row">Being listed</th>
-              <td>A directory fee, a subscription, ads.</td>
-              <td>Joining, listing and messaging are free. No monthly fee, no per-listing fee.</td></tr>
+              <td>A percentage of every booking, skimmed before it reaches you.</td>
+              <td>Automatic payout of the full amount — Sporv takes ${FEE_PCT}% of bookings. You keep every dollar families pay.</td></tr>
+            <tr><th scope="row">Running the software</th>
+              <td>A directory fee plus a cut of the work itself.</td>
+              <td>A flat subscription and nothing from bookings. Free to start; Pro is $34.99 a month when the business grows.</td></tr>
             <tr><th scope="row">The background check</th>
               <td>Billed to you, or skipped.</td>
               <td>Run at Sporv's cost. Never billed to you, never optional.</td></tr>
@@ -7037,7 +7045,7 @@ function productHTML(){
   const co=[
     [PICON.home,"Command centre","Your day, your roster, and your revenue on one screen.","tab:dashboard"],
     [PICON.calendar,"Scheduling & availability","Set availability once; families book only what is genuinely open.","tab:slots"],
-    [PICON.card,"Payments & payouts","In-app checkout, automatic payouts, the platform fee itemised.","tab:finances"],
+    [PICON.card,"Payments & payouts","In-app checkout, automatic payouts, every payout itemised.","tab:finances"],
     [PICON.users,"Client roster","Every family, session, and note in one place.","tab:roster"],
     [PICON.list,"Listings","Define what you offer, what it costs, and where you coach.","tab:listings"],
     [PICON.camera,"Media library","Photos and video with per-athlete consent enforced, not requested.","tab:media"],
@@ -7102,8 +7110,8 @@ function productHTML(){
     <div class="shell">
       <div class="prodsec" data-rev>
         <h2>For coaches and programs</h2>
-        <p class="sub">Free to join and list. The platform fee is taken only when you get paid,
-          and itemised on every payout.</p>
+        <p class="sub">Free to join and list. Sporv takes 0% of your bookings —
+          the software is a flat subscription, and every payout is itemised.</p>
       </div>
       <div class="prodgrid" data-rev>${co.map(r=>card(r[0],r[1],r[2],r[3])).join("")}</div>
     </div>
@@ -7325,7 +7333,7 @@ function detailHTML(id){
       </div>
       <div style="margin-top:18px">
         <div class="linerow"><span>${money(p.price)} × 1 session</span><span class="num">${money(p.price)}</span></div>
-        <div class="linerow"><span>Sporv's ${FEE_PCT}% (paid by the coach)</span><span class="num">−${money(Math.round(p.price*FEE_RATE))}</span></div>
+        <div class="linerow"><span>Booking fee</span><span class="num">$0 — the coach's price is the price</span></div>
         <div class="linerow total"><span>Total</span><span class="num">${money(p.price)}</span></div>
       </div>
       ${spots>0
@@ -8416,7 +8424,7 @@ function payoutsPanelHTML(){
       <span class="pill ${live?"gold":"warn"}">${live?"Active":started?"Incomplete":"Not connected"}</span></div>
     ${body}
     ${S.connectError?`<div class="err" role="alert" style="margin-top:10px">${esc(S.connectError)}</div>`:""}
-    <p class="pay-fine">Sporv takes ${FEE_PCT}% of each booking. The rest reaches your account
+    <p class="pay-fine">Sporv takes ${FEE_PCT}% of your bookings — you keep the full amount. It reaches your account
       through Stripe, which holds your bank details — not us.</p>
   </section>`;
 }
@@ -8572,7 +8580,7 @@ function dashboardHTML(){
              this file and smoke fails if any surface hardcodes it again. */
           const g=isCoachGuest()?0:gAll,f=Math.round(g*FEE_RATE);
           return `<div class="num" style="font-size:var(--text-2xl);font-weight:700;letter-spacing:-.03em;margin-top:6px">${veil(money(g-f))}</div>
-          <div class="num" style="color:var(--muted);font-size:var(--text-sm)">${isCoachGuest()?"Sign in to see payouts":money(g)+" gross · "+money(f)+" platform fee"}</div>
+          <div class="num" style="color:var(--muted);font-size:var(--text-sm)">${isCoachGuest()?"Sign in to see payouts":(f>0?money(g)+" gross · "+money(f)+" platform fee":money(g)+" gross · you keep 100%")}</div>
           <div class="payflow">
             ${[["Pending",money(0)],["In transit",money(0)],["Paid out",money(g-f)]]
               .map(([k,v],i)=>`<div class="payst ${i===2?"on":""}"><span class="eyebrow">${k}</span>
@@ -9413,7 +9421,7 @@ function modalHTML(){
           <select name="tier"><option>Standard</option><option>Premium (+$15)</option></select></div>
         <div style="border-top:1px solid var(--rule);margin-top:6px;padding-top:8px">
           <div class="linerow"><span>${esc(p.title)}</span><span class="num">${money(p.price)}</span></div>
-          <div class="linerow"><span>Sporv's 12% (paid by the coach)</span><span class="num">−${money(fee)}</span></div>
+          <div class="linerow"><span>Booking fee for families</span><span class="num">$0</span></div>
           <div class="linerow total"><span>Total</span><span class="num">${money(p.price)}</span></div>
         </div>
         <button class="btn wide" type="submit" style="margin-top:14px">Confirm booking</button>
@@ -9884,7 +9892,7 @@ const INFO={
   terms:{title:"Terms of Service (interim)",sections:[
     {h:"These terms are being finalized",b:"Sporv's full Terms of Service are being completed with counsel. Until they are published, the statements below describe how the service actually operates today, and they are the terms we hold ourselves to. Questions: support@sporve.com."},
     {h:"Coaches are independent professionals",b:"Coaches, trainers, camps and teams on Sporv are independent professionals, not Sporv employees. Sporv is the marketplace that connects you and processes payment."},
-    {h:"The platform fee",b:"Sporv charges coaches a flat 12% platform fee, taken only when a booking is paid, and itemized on every payout as gross, fee, and net. Families pay the coach's listed price; Sporv adds no booking fee for families."},
+    {h:"What Sporv charges",b:"Sporv takes 0% of bookings — coaches keep 100% of what families pay. Coaches run their business on a flat subscription (free to start; Pro is $34.99 a month). Families pay the coach's listed price; Sporv adds no booking fee for families. Bookings paid during the earlier 12% era keep their recorded fee on their receipts."},
     {h:"Background checks",b:"A coach can take a booking only after clearing an individual background check with a recorded completion date. The system refuses bookings for anyone without one — this is enforced in the booking path, not just stated here."},
     {h:"Accounts and children",b:"An adult opens the account. Athlete profiles are limited to ages 13-18 until a verifiable parental-consent process is live, matching our published privacy notice."},
   ]},
@@ -10106,7 +10114,7 @@ const PAGE_META={
   "saved":{t:"Saved coaches",d:"Shortlist coaches and compare before you book.",sport:"Boxing",cta:"saved",ctaL:"Open saved",kx:["search","map-search","athlete-progress"]},
   "athlete-progress":{t:"Athlete progress",d:"A timeline of sessions and notes, one athlete at a time.",sport:"Track & Field",cta:"timeline",ctaL:"See progress",kx:["what-is","search","session-notes"]},
   "scheduling":{t:"Scheduling & availability",d:"Your calendar and open slots — capacity enforced at the database.",sport:"Tennis",cta:"coachtab:slots",ctaL:"Open scheduling",kx:["payments","roster","instant-booking"]},
-  "payments":{t:"Payments & payouts",d:"Checkout in-app; payouts itemized as gross, fee, and net.",sport:"Golf",cta:"coachtab:finances",ctaL:"See payouts",kx:["bookings-receipts","scheduling","roster"]},
+  "payments":{t:"Payments & payouts",d:"Checkout in-app; the full booking amount reaches the coach.",sport:"Golf",cta:"coachtab:finances",ctaL:"See payouts",kx:["bookings-receipts","scheduling","roster"]},
   "roster":{t:"Client roster",d:"Every family you coach — bookings, notes, and consent in one place.",sport:"Hockey",cta:"coachtab:roster",ctaL:"Open the roster",kx:["scheduling","session-notes","payments"]},
   "session-notes":{t:"Session notes",d:"Notes tied to the athlete and the session, shared with the parent.",sport:"Fencing",cta:"coachtab:notes",ctaL:"See session notes",kx:["roster","media-consent","athlete-progress"]},
   "media-consent":{t:"Media & consent",d:"Photos shared only with recorded consent, per child.",sport:"Gymnastics",cta:"coachtab:media",ctaL:"See media & consent",kx:["session-notes","background-checks","roster"]},
@@ -10270,8 +10278,8 @@ function sig_payments(){ return `<div class="sig-payments" data-step="2">
   <div class="py-status">In transit · arrives Tue</div>
   <div class="py-lines">
     <div class="py-line"><span class="py-lab">Session</span><span class="py-amt">$45.00</span></div>
-    <div class="py-line"><span class="py-lab">Platform fee <span class="py-fee">12%</span></span><span class="py-amt">&minus;$5.40</span></div>
-    <div class="py-line py-total"><span class="py-lab">Your payout</span><span class="py-amt">$39.60</span></div>
+    <div class="py-line"><span class="py-lab">Platform fee <span class="py-fee">0%</span></span><span class="py-amt">&minus;$0.00</span></div>
+    <div class="py-line py-total"><span class="py-lab">Your payout</span><span class="py-amt">$45.00</span></div>
   </div>
   <button class="py-adv" type="button">Advance state</button>
 </div>`; }
@@ -10931,14 +10939,14 @@ if(id==="messaging"){
   }
   if(id==="payments"){
     /* Recipe α, Golf. S1 hero(split) → S3 pg-rows(white) → S5 pg-proof(slate)
-       → S7 pg-stats(slate) → S8 close(white). No dark band. Flat 12% fee only.
+       → S7 pg-stats(slate) → S8 close(white). No dark band. 0% fee era.
        Athletic register: lesson, swing, round, tee. Accents wear Golf via --ps. */
     return `<div class="${cls}">
     <section class="pgband slate pg-hero split"><div class="shell" data-rev>
       <div class="pg-heroL">
         ${pageEyebrow(meta)}
         <h1 class="pg-serif pg-h1">Book the lesson, <em>pay in one swing.</em></h1>
-        <p class="pg-sub">Every golf lesson checks out inside the app. The parent pays once, Sporv's flat 12% platform fee comes off the top, and the coach's payout lands automatically — with a receipt and a refund trail on every booking.</p>
+        <p class="pg-sub">Every golf lesson checks out inside the app. The parent pays once, the coach keeps all of it — Sporv takes 0% of bookings — and the payout lands automatically, with a receipt and a refund trail on every booking.</p>
         <div class="pg-ctarow">${pageCTA(meta)}${open||`<button class="pg-textlink" data-nav="page:bookings-receipts">Where the receipt lives →</button>`}</div>
       </div>
       </div></section>
@@ -10948,7 +10956,7 @@ if(id==="messaging"){
     <section class="pgband white"><div class="shell" data-rev>
       <div class="pg-rows">
         ${[["01","One flow to book and pay","Pick a golf slot and pay in the same tap. The card is charged when the booking confirms, not on some callback that never comes."],
-           ["02","A flat fee, shown up front","Sporv takes a <span class=\"hl\">flat 12% platform fee</span> on every booking — the same on a $30 clinic or a $90 private lesson. No tiers, no fine print."],
+           ["02","Nothing skimmed off a booking","Sporv takes <span class=\"hl\">0% of every booking</span> — the same on a $30 clinic or a $90 private lesson. The software is a flat subscription; the lesson money is the coach's."],
            ["03","Payouts land on their own","Once the golf lesson is played, the coach's payout releases to their account automatically. Every booking keeps a receipt and a refund trail."]]
           .map(([n,b,p])=>`<div class="pg-row"><div class="pg-rnum">${esc(n)}</div><div class="pg-rclaim"><b>${esc(b)}</b></div><div class="pg-rproof">${p}</div></div>`).join("")}
       </div>
@@ -10959,15 +10967,15 @@ if(id==="messaging"){
       <div class="pg-proof" style="margin-top:22px">
         <div><span class="k">booking</span> Doral Junior Golf — short game clinic</div>
         <div><span class="k">session</span> $45.00 · paid in app</div>
-        <div><span class="k">fee</span>     $5.40 · Sporv flat 12% platform fee</div>
-        <div><span class="k">payout</span>  <span class="hl">$39.60</span> · to the coach, automatic</div>
+        <div><span class="k">fee</span>     $0.00 · Sporv takes 0% of bookings</div>
+        <div><span class="k">payout</span>  <span class="hl">$45.00</span> · to the coach, automatic</div>
         <div><span class="k">refund</span>  full trail kept on every booking</div>
       </div>
     </div></section>
 
     <section class="pgband slate"><div class="shell" data-rev>
       <div class="pg-stats">
-        ${[["12%","flat platform fee on every booking"],["100%","of bookable coaches, background-checked"],["$0","to browse, save, and message"]]
+        ${[["100%","of every booking kept by the coach"],["100%","of bookable coaches, background-checked"],["$0","to browse, save, and message"]]
           .map(([n,l])=>`<div class="pg-stat"><div class="n" data-count="${esc(n)}">${esc(n)}</div><div class="l">${esc(l)}</div></div>`).join("")}
       </div>
     </div></section>
@@ -11583,7 +11591,7 @@ try{
 }catch(_e){}
 try{
 (function(){var r=document.querySelector('.sig-payments');if(!r)return;
-  var states=['Pending · not yet released','In transit · arrives Tue','Paid · $39.60 deposited'];
+  var states=['Pending · not yet released','In transit · arrives Tue','Paid · $45.00 deposited'];
   var st=r.querySelector('.py-status');var b=r.querySelector('.py-adv');
   function apply(){st.textContent=states[(parseInt(r.dataset.step,10)||1)-1];}
   b.addEventListener('click',function(){r.dataset.step=(parseInt(r.dataset.step,10)%3)+1;apply();});

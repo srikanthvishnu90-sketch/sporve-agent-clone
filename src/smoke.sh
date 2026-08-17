@@ -1141,20 +1141,29 @@ hardcoded=$(grep -nE "\*\s*0\.12\b" src/sporve-web.host.html src/mod-*.js 2>/dev
 [ "$redecl" -eq 0 ] && pass "fee: no module re-declares the rate" \
   || fail "fee: a module re-declares the rate — it shadows the host and will drift"
 
+# Subscription era (owner decision 2026-08-17): the only percentages allowed
+# near fee context are FEE_PCT itself (0 — "0% of bookings") and 100 ("coaches
+# keep 100%"). A stray 12 — or any other rate — anywhere near the word "fee"
+# is the drift this exists to catch. \d{1,3} with a lookbehind so "100%" reads
+# as 100, not a phantom "00".
 feep=$($B js "
 (()=>{const pcts=new Set();
- const scan=()=>{const t=document.getElementById('app').innerText;const re=/(\d{1,2})%/g;let m;
+ const scan=()=>{const t=document.getElementById('app').innerText;const re=/(?<!\d)(\d{1,3})%/g;let m;
    while((m=re.exec(t))){const c=t.slice(Math.max(0,m.index-45),m.index+30).toLowerCase();
-     if(c.includes('fee')||c.includes('sporve'))pcts.add(m[1])}};
+     if(c.includes('fee')||c.includes('sporve')||c.includes('booking'))pcts.add(m[1])}};
  S.auth={status:'verified'};S.portal='family';
  ['wallet','pricing','coachinfo','bookings'].forEach(r=>{try{S.route={name:r,arg:null};render();scan()}catch(e){}});
+ /* Product pages too — the sig-payments figure shipped a rendered '12%' that
+    the route list above never visited. Money copy lives on pages as well. */
+ ['payments','instant-booking','bookings-receipts','insights'].forEach(id=>{try{S.route={name:'page',arg:id};render();scan()}catch(e){}});
  S.portal='coach';['dashboard','finances','listings'].forEach(t=>{try{S.coachTab=t;render();scan()}catch(e){}});
  const a=[...pcts];
  if(typeof FEE_PCT==='undefined')return 'NOFEECONST';
  if(!a.length)return 'NONE';
- return a.length===1&&a[0]===String(FEE_PCT)?'OK:'+a[0]:'MIXED:'+a.join(',')})()" 2>/dev/null | tr -d '"\r')
+ const ok=a.every(p=>p===String(FEE_PCT)||p==='100');
+ return ok?'OK:'+a.sort().join('+'):'MIXED:'+a.join(',')})()" 2>/dev/null | tr -d '\"\r')
 case "$feep" in
-  OK:*)        pass "fee: every rendered percentage is ${feep#OK:}%" ;;
+  OK:*)        pass "fee: rendered rates are exactly {${feep#OK:}} — FEE_PCT and the 100% coaches keep" ;;
   NOFEECONST)  fail "fee: FEE_PCT is not defined in the host — the single source is gone" ;;
   NONE)        fail "fee: no fee percentage rendered anywhere — the check has gone blind" ;;
   *)           fail "fee: rendered percentages disagree — $feep" ;;

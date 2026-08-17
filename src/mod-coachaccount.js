@@ -84,7 +84,8 @@
     /* Logistics policies the coach owns — added 2026-08-15 for the assistant's
        set_policy port. what_to_bring + travel_radius (service area) are pure
        logistics. cancellation_policy is DELIBERATELY NOT here: it drives refund
-       math, which is frozen while payments move to the subscription model. */
+       math, and refunds are Sporv's published policy, not a field a coach can
+       retype (reconciled 2026-08-17 — see createListing). */
     "what_to_bring", "travel_radius",
   ];
 
@@ -94,6 +95,49 @@
       if (EDITABLE.indexOf(k) >= 0 && patch[k] !== undefined) out[k] = patch[k];
     });
     return out;
+  }
+
+  /* THE PLANS — one declaration, read by the billing tab and by the onboarding
+     wizard's plan step (mod-coachonboard.js reads SporveCoach.plans()), so a
+     price can never disagree with itself across two files.
+
+     `buyable` is the honesty flag. Enterprise has a price and no product: the
+     multi-player workspace it names is not built, billing-create-checkout
+     rejects it server-side, and nothing here may offer a way to pay for it. */
+  var PLANS = {
+    free: {
+      id: "free", name: "Free", price: "$0", per: "",
+      adds: "Three AI actions a month, one seat.", buyable: true,
+    },
+    pro: {
+      id: "pro", name: "Sporv Pro", price: "$34.99", per: "/mo",
+      adds: "Unlimited AI actions and up to three seats.", buyable: true,
+    },
+    enterprise: {
+      id: "enterprise", name: "Sporv Enterprise", price: "$149", per: "/mo",
+      adds: "Multi-player workspace, in development.", buyable: false,
+    },
+  };
+
+  /* The statuses that actually grant the paid plan. `canceled` and `incomplete`
+     are deliberately absent: one is a plan that ended, the other a checkout
+     that never finished, and calling either of them Pro would be the product
+     telling a coach they bought something they did not. */
+  var ENTITLING = ["active", "trialing", "past_due"];
+
+  function prettyDay(iso) {
+    if (!iso) return null;
+    var t = Date.parse(iso);
+    if (!isFinite(t)) return null;
+    return new Date(t).toLocaleDateString("en-US",
+      { month: "long", day: "numeric", year: "numeric" });
+  }
+
+  /* Where Stripe sends the coach back. The app routes on the query string
+     (?connect=done, ?booking=…), not on a hash, so this matches that
+     convention; the billing tab's own wire() reads ?billing= and scrubs it. */
+  function backUrl(mark) {
+    return window.location.origin + window.location.pathname + "?billing=" + mark;
   }
 
   var ACCOUNT = {
@@ -114,10 +158,16 @@
        id: the session is the source of truth for who you are. */
     load: function () {
       if (!uid()) { provider = null; return Promise.resolve(null); }
+      /* plan / plan_status / plan_period_end are SERVER-COMPUTED: the Stripe
+         webhook projects them onto this row and a trigger refuses a client
+         write, so they are safe to read and pointless to send. They are
+         selected here rather than in a second query because the billing tab
+         must never be able to render a plan the row does not state. */
       return API.from("providers",
         "select=id,business_name,bio,sports,location,provider_type,status," +
         "verification_status,background_check_status,background_check_completed_at," +
         "onboarding_completed,stripe_account_id,stripe_charges_enabled," +
+        "plan,plan_status,plan_period_end," +
         "coach_years_coaching,coach_years_played,credentials,avatar_url,logo_url" +
         "&owner_id=eq." + encodeURIComponent(uid()) + "&limit=1"
       ).then(function (rows) {
@@ -419,8 +469,11 @@
        immediately; booking is still gated server-side by the
        enforce_booking_provider_verified trigger, so an unverified coach's
        listing is visible-but-not-bookable, never a safety hole.
-       cancellation_policy is left to its 'flexible' default and NOT exposed —
-       it drives refund math, frozen for the subscription rebuild. */
+       cancellation_policy is left to its 'flexible' default and NOT exposed.
+       RECONCILED 2026-08-17 with the subscription model: Sporv takes 0% of a
+       booking from this date, so a refund returns the whole of what the family
+       paid, while a booking recorded before it keeps the fee it was actually
+       charged — history is reported, never recomputed. */
     createListing: function (f) {
       var no = guard(); if (no) return no;
       if (!provider || !provider.id) {
@@ -484,7 +537,7 @@
        id returns zero rows → we throw rather than claim success). Same field
        map as createListing. status and cancellation_policy are intentionally
        NOT editable here (publish-state and refund policy are separate, and
-       cancellation is refund-linked/frozen). */
+       cancellation is refund-linked — see the reconciliation on createListing). */
     updateListing: function (programId, f) {
       var no = guard(); if (no) return no;
       if (!programId) return Promise.reject(new Error("No listing to update."));
@@ -504,6 +557,82 @@
         if (!rows || !rows[0]) throw new Error("The listing wasn't updated — it may not be yours.");
         return rows[0];
       });
+    },
+
+    /* THE PLAN, READ OFF THE ROW AND NOWHERE ELSE.
+       -----------------------------------------------------------------------
+       Every string this returns is a restatement of three server-owned
+       columns. There is no branch that infers a plan from a redirect, a
+       query parameter or a click — a coach who cancels in Stripe's portal is
+       on the free plan the moment the webhook says so, and not before.
+
+       Returns {id, status, entitled, ends, label, plan}: `entitled` is what the
+       UI gates on, `label` is what it prints. */
+    plan: function () {
+      var p = provider || {};
+      var id = PLANS[p.plan] ? p.plan : "free";
+      var status = String(p.plan_status || "none");
+      var ends = prettyDay(p.plan_period_end);
+      var paid = id !== "free";
+      var entitled = paid && ENTITLING.indexOf(status) >= 0;
+      var name = PLANS[id].name;
+      var label = "Free plan";
+      if (entitled) {
+        if (status === "trialing") label = name + " — trial ends " + (ends || "soon");
+        else if (status === "past_due") label = name + " — payment failed" +
+          (ends ? "; access until " + ends : "");
+        else label = name + (ends ? " — renews " + ends : "");
+      } else if (paid && status === "canceled") {
+        label = "Free plan — " + name + " canceled" + (ends ? "; period ends " + ends : "");
+      } else if (paid && status === "incomplete") {
+        label = "Free plan — " + name + " checkout not finished";
+      }
+      return { id: id, status: status, entitled: entitled, ends: ends,
+               label: label, plan: PLANS[id] };
+    },
+
+    plans: function () { return PLANS; },
+
+    /* BUY A PLAN. The function decides everything that matters — that the
+       caller is a coach, that the plan is on sale, that they are not already
+       paying for it — and rejects with a message written to be shown. So this
+       sends three fields and follows a link; it never renders its own idea of
+       why a purchase was refused. */
+    startCheckout: function (planId) {
+      var no = guard(); if (no) return no;
+      var p = PLANS[planId];
+      if (!p || !p.buyable || planId === "free") {
+        return Promise.reject(new Error("That plan isn't on sale yet."));
+      }
+      /* A SYNCHRONOUS throw here is the bug connectPayouts already shipped
+         once: it happens before the promise exists, so the caller's .catch
+         never runs and the button sits on "Opening Stripe…" forever. */
+      if (!API.fn) return Promise.reject(new Error("The billing module didn't load."));
+      return API.fn("billing-create-checkout", {
+        plan: planId,
+        successUrl: backUrl("done"),
+        cancelUrl: backUrl("cancelled"),
+      }).then(function (r) {
+        if (!r || !r.checkoutUrl) throw new Error("Stripe did not return a checkout page.");
+        window.location.href = r.checkoutUrl;
+        return r;
+      });
+    },
+
+    /* CARD, CANCEL AND INVOICES ARE STRIPE'S SCREENS, NOT OURS. Rebuilding
+       them here would mean holding card state in this client and writing our
+       own cancel path beside the webhook that already owns plan_status. A 409
+       here means the coach has no billing history yet, and the function says
+       so in words. */
+    openBillingPortal: function () {
+      var no = guard(); if (no) return no;
+      if (!API.fn) return Promise.reject(new Error("The billing module didn't load."));
+      return API.fn("billing-portal", { returnUrl: backUrl("portal") })
+        .then(function (r) {
+          if (!r || !r.portalUrl) throw new Error("Stripe did not return a billing page.");
+          window.location.href = r.portalUrl;
+          return r;
+        });
     },
 
     current: function () { return provider; },
@@ -532,4 +661,157 @@
   };
 
   window.SporveCoach = ACCOUNT;
+
+  /* ═══════════════════ THE BILLING TAB ═══════════════════
+     WHY IT IS A MODULE VIEW AND NOT A BLOCK BOLTED INTO SETTINGS. The host
+     dispatches a coach tab through coachBody(t), whose first line is
+     `const mv=modView(t); if(mv) return mv();` — so a module that registers
+     views.billing owns that tab outright, with no host edit. The host already
+     tells a coach who hits the AI quota that "the upgrade lives in Account →
+     Billing"; until now that sentence pointed at a surface that did not exist.
+
+     Everything printed here restates provider.plan / plan_status /
+     plan_period_end. Nothing in this file can change a plan: the two buttons
+     hand the coach to Stripe, Stripe tells the webhook, the webhook writes the
+     row, and the next load() is when this page changes its mind. A plan
+     inferred from a redirect is a plan the coach did not necessarily buy. */
+  var CSS = `
+.cb-head{display:flex;justify-content:space-between;align-items:flex-start;gap:16px;margin:18px 0 6px;flex-wrap:wrap}
+.cb-lede{color:var(--muted);font-size:var(--text-base);max-width:64ch;margin-top:5px}
+.cb-two{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,360px);gap:20px;align-items:start;margin-top:16px}
+.cb-plan{display:block;font-size:var(--text-lg);font-weight:600;letter-spacing:-.02em;margin-top:10px}
+.cb-note{color:var(--ink-2);font-size:var(--text-base);margin-top:6px;max-width:52ch}
+.cb-fine{color:var(--muted);font-size:var(--text-sm);line-height:1.55;margin-top:8px;max-width:52ch}
+.cb-fine a{color:var(--slate-ink)}
+.cb-acts{display:flex;gap:10px;flex-wrap:wrap;margin-top:16px}
+.cb-row{margin-top:14px}
+@media(max-width:900px){.cb-two{grid-template-columns:1fr}}
+`;
+
+  function billingView() {
+    /* Same gate the host applies to every private coach tab. Billing states a
+       renewal date and a card — it belongs to the account, not to a visitor
+       looking around the portal. */
+    if (typeof isCoachGuest === "function" && isCoachGuest() &&
+        typeof coachLockHTML === "function") {
+      return coachLockHTML("Billing", "your plan, its renewal date and the card Stripe holds");
+    }
+    var st = ACCOUNT.plan();
+    var free = PLANS.free, pro = PLANS.pro, ent = PLANS.enterprise;
+    return `
+    <div class="cb-head"><div>
+      <h2>Billing</h2>
+      <p class="cb-lede">Your plan, what it includes, and the card Stripe holds. Sporv takes no
+        share of a booking.</p>
+    </div></div>
+
+    <div class="cb-two">
+      <div class="panel">
+        <p class="eyebrow">Current plan</p>
+        <b class="cb-plan">${esc(st.label)}</b>
+        <p class="cb-note">${esc(st.entitled ? st.plan.adds : free.adds)}</p>
+        ${provider ? "" : `<p class="cb-fine">Your coach profile has not loaded yet, so this reads
+          from nothing — reopen the tab in a moment.</p>`}
+        <div class="cb-acts">
+          ${st.entitled
+            ? `<button class="btn" data-cb-portal="1">Manage billing</button>`
+            : `<button class="btn" data-cb-buy="pro">Upgrade to ${esc(pro.name)}</button>`}
+        </div>
+        <p class="cb-fine">${st.entitled
+          ? "Card, invoices and cancellation open in Stripe's billing portal."
+          : esc(pro.price + pro.per + ". " + pro.adds)}</p>
+        <p class="err hide cb-row" data-cb-err role="alert"></p>
+      </div>
+
+      <div class="panel">
+        <p class="eyebrow">Plans</p>
+        <div class="linerow cb-row"><span>${esc(free.name)}</span>
+          <span class="num">${esc(free.price)}</span></div>
+        <p class="cb-fine">${esc(free.adds)}</p>
+        <div class="linerow cb-row"><span>${esc(pro.name)}</span>
+          <span class="num">${esc(pro.price + pro.per)}</span></div>
+        <p class="cb-fine">${esc(pro.adds)}</p>
+        <p class="cb-fine">${esc(ent.price + ent.per)} Enterprise (multi-player workspace) is in
+          development — <a href="mailto:support@sporve.com?subject=Enterprise%20early%20access">contact
+          Sporv for early access</a>.</p>
+      </div>
+    </div>`;
+  }
+
+  function cbErr(msg) {
+    var el = document.querySelector("[data-cb-err]");
+    if (!el) return;
+    el.textContent = msg || "";
+    if (msg) el.classList.remove("hide"); else el.classList.add("hide");
+  }
+
+  function cbBusy(btn, on, label) {
+    if (!btn) return;
+    btn.disabled = on;
+    if (on) { btn.dataset.cbLabel = btn.textContent; btn.textContent = label; }
+    else if (btn.dataset.cbLabel) { btn.textContent = btn.dataset.cbLabel; }
+  }
+
+  /* COMING BACK FROM STRIPE. Read once per page load, then scrubbed, so a
+     refresh does not replay it and a shared link does not carry it. The mark
+     decides the WORDING only — the plan itself is re-read from the row, and
+     the success wording never claims the plan changed, because the webhook may
+     land a second after the browser does. */
+  var returnRead = false;
+  function readReturn() {
+    if (returnRead || typeof window === "undefined") return;
+    returnRead = true;
+    var q;
+    try { q = new URLSearchParams(window.location.search); } catch (e) { return; }
+    var mark = q.get("billing");
+    if (!mark) return;
+    try { history.replaceState(null, "", window.location.pathname); } catch (e) {}
+    if (!AUTH.isSignedIn || !AUTH.isSignedIn()) return;
+    ACCOUNT.load().then(function (pv) {
+      if (typeof S === "undefined") return;
+      S.coachProvider = pv; S.portal = "coach"; S.coachTab = "billing";
+      render();
+      var st = ACCOUNT.plan();
+      if (mark === "cancelled") toast("Checkout cancelled — nothing was charged");
+      else if (mark === "portal") toast(st.label);
+      else toast(st.entitled ? st.label
+        : "Stripe has your payment — your plan changes the moment it confirms");
+    }).catch(function () {});
+  }
+
+  function wireBilling() {
+    if (typeof document === "undefined") return;
+    readReturn();
+    document.querySelectorAll("[data-cb-buy]").forEach(function (b) {
+      b.onclick = function () {
+        cbErr("");
+        cbBusy(b, true, "Opening Stripe…");
+        ACCOUNT.startCheckout(b.dataset.cbBuy).catch(function (err) {
+          cbBusy(b, false);
+          /* The function's own message is the only accurate account of what
+             was refused — "you already have an active plan", "that plan isn't
+             purchasable yet". Replacing it with a house string would hide the
+             reason from the one person who has to act on it. */
+          cbErr((err && err.message) || "Could not open Stripe checkout.");
+        });
+      };
+    });
+    document.querySelectorAll("[data-cb-portal]").forEach(function (b) {
+      b.onclick = function () {
+        cbErr("");
+        cbBusy(b, true, "Opening Stripe…");
+        ACCOUNT.openBillingPortal().catch(function (err) {
+          cbBusy(b, false);
+          cbErr((err && err.message) || "Could not open the billing portal.");
+        });
+      };
+    });
+  }
+
+  window.MOD_COACHBILLING = {
+    css: CSS,
+    tabs: { billing: "Billing" },
+    views: { billing: billingView },
+    wire: wireBilling,
+  };
 })();

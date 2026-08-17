@@ -25,21 +25,27 @@
 const TODAY = new Date(2026, 7, 3);          // Mon 3 Aug 2026
 const TODAY_ISO = "2026-08-03";
 
-/* ── platform economics ────────────────────────────────────────────
-   PLACEHOLDER RATE. The Flutter app computes a TIERED fee server-side from
-   program price; this flat rate is a stand-in for the arithmetic only. No
-   user-facing string states a percentage — see PART 8.7. Replace with the
-   real tier table when it is exported here, then render the table. */
-/* FEE_RATE comes from the host — see the single-source block there. */
-const feeOn = n => Math.round(Number(n) * FEE_RATE);
-const netOf = n => Number(n) - feeOn(n);
+/* ── platform economics, 2026-08-17 ────────────────────────────────
+   Sporv charges the COACH a subscription, not a cut of a booking. So this
+   wizard no longer does fee arithmetic at all: the price a family pays is the
+   money that reaches the coach, and the only thing to choose is a plan.
+
+   The plan names and prices are NOT declared here. They come from
+   SporveCoach.plans() (mod-coachaccount.js), which is the one place they are
+   written, so a price cannot drift between the wizard and the billing tab. If
+   that module is absent the step still renders — it just states the free plan
+   and sends the coach to Billing, rather than inventing a number. */
+const plans = () => (window.SporveCoach && window.SporveCoach.plans
+  ? window.SporveCoach.plans() : null);
+const planPrice = id => { const p = plans(); return p && p[id] ? p[id].price + p[id].per : null; };
+const planName  = id => { const p = plans(); return p && p[id] ? p[id].name : (id === "pro" ? "Pro" : "Free"); };
 
 /* ── steps ───────────────────────────────────────────────────────── */
 const STEPS = [
   ["Identity",        "Who you are",              "The legal name here is the name that goes to the screening partner. The business name is what families read on your listings."],
   ["Sports",          "What you coach",           "Pick every sport you actually coach. Each one becomes a filter families can find you through."],
   ["Services",        "Services & capacity",      "A service is one thing a family can book. Capacity is the honest ceiling — how many athletes you can coach at once without the session getting worse."],
-  ["Pricing",         "Pricing",                  "You set the price. Sporv's platform fee comes out at checkout; the take-home figure beside each service is what actually reaches your account."],
+  ["Pricing",         "Pricing and your plan",    "You set the price and you keep all of it. Sporv charges you a plan, not a share of a booking — start free and change it whenever you want."],
   ["Availability",    "Availability",             "The days and the window you can coach. Exact session times come later, from your schedule — this is the outer boundary."],
   ["Background check","Background check",         "Every person who coaches on Sporv must clear their own check before listings go live. This step collects your consent and the identifiers needed for screening."],
   ["Review",          "Review & submit",          "Everything you entered, read back. Fix anything that is wrong before it goes in."],
@@ -143,6 +149,9 @@ const BLANK = {
   sports: [],
   services: [{ id: "svc_1", name: "", format: "private", capacity: 1, minutes: 60, price: "", model: "single_session" }],
   days: [], startTime: "16:00", endTime: "19:00",
+  /* free until the coach says otherwise — a wizard that arrives pre-set to the
+     paid plan is a charge nobody chose */
+  plan: "free",
   consent: false, dob: "", ssn4: "",
   submittedAt: null, profile: null, drafts: [],
 };
@@ -154,6 +163,9 @@ function draft(){
   if (!Array.isArray(d.sports)) d.sports = [];
   if (!Array.isArray(d.days)) d.days = [];
   if (!Array.isArray(d.drafts)) d.drafts = [];
+  /* an older draft in sessionStorage has no plan key, and any value that is not
+     "pro" resolves to free — the safe side of the only field here that costs money */
+  if (d.plan !== "pro") d.plan = "free";
   if (!Array.isArray(d.services) || !d.services.length) d.services = [newService()];
   d.services.forEach((s, i) => {
     if (!s.id) s.id = "svc_" + (i + 1);
@@ -367,6 +379,14 @@ const CSS = `
 .cob-consent.on{border-color:var(--slate);background:var(--slate-tint)}
 .cob-consent input{width:18px;height:18px;margin:1px 0 0;flex:0 0 auto;accent-color:var(--slate)}
 .cob-consent span{font-size:var(--text-sm);color:var(--ink-2);line-height:1.5}
+.cob-plans{display:flex;flex-direction:column;gap:10px}
+.cob-plan{display:flex;gap:12px;align-items:flex-start;padding:15px;border:1.5px solid var(--rule);
+  border-radius:var(--r-m);cursor:pointer;transition:border-color .14s,background .14s}
+.cob-plan:hover{border-color:var(--rule-strong);background:var(--raise)}
+.cob-plan.on{border-color:var(--slate);background:var(--slate-tint)}
+.cob-plan input{width:18px;height:18px;margin:1px 0 0;flex:0 0 auto;accent-color:var(--slate)}
+.cob-plan b{display:block;font-size:var(--text-base);font-weight:600;letter-spacing:-.015em}
+.cob-plan span span{display:block;font-size:var(--text-sm);color:var(--muted);line-height:1.5;margin-top:2px}
 .cob-truth{border:1px solid var(--rule-strong);border-radius:var(--r-l);padding:18px 20px;background:var(--raise);margin-bottom:20px}
 .cob-truth h4{margin:0 0 4px;font-size:var(--text-base);letter-spacing:-.015em}
 .cob-truth p{font-size:var(--text-sm);color:var(--ink-2);line-height:1.58;margin-top:9px}
@@ -543,7 +563,7 @@ function servicesStep(d, err){
 function pricingStep(d, err){
   const priced = d.services.filter(s => !isBlank(s.price) && isFinite(Number(s.price)) && Number(s.price) >= 0);
   const gross = priced.reduce((t, s) => t + Number(s.price), 0);
-  const fee = priced.reduce((t, s) => t + feeOn(s.price), 0);
+  const proPrice = planPrice("pro");
   return `
   ${d.services.map((s, i) => {
     const p = isBlank(s.price) ? null : Number(s.price);
@@ -572,10 +592,10 @@ function pricingStep(d, err){
       </div>
       <div class="cob-take">
         <p class="cob-takenote">${esc(modelRow(s.model)[2])}
-          Sporv's fee is taken at checkout and itemized on every payout — never billed to you separately.</p>
+          Sporv takes no share of this price.</p>
         <div class="cob-takefig">
-          <b class="num" data-cob-net="${esc(s.id)}">${ok ? money(netOf(p)) : "—"}</b>
-          <span>you keep${ok ? ", after " + money(feeOn(p)) + " fee" : " — enter a price"}</span>
+          <b class="num" data-cob-net="${esc(s.id)}">${ok ? money(p) : "—"}</b>
+          <span>you keep${ok ? ", all of it" : " — enter a price"}</span>
         </div>
       </div>
     </div>`;
@@ -584,11 +604,31 @@ function pricingStep(d, err){
   <div class="panel" style="background:var(--raise);border:0;margin-top:4px">
     <div class="eyebrow">If one of each sold at list price</div>
     <div class="linerow"><span>Families pay</span><span class="num" data-cob-gross>${money(gross)}</span></div>
-    <div class="linerow"><span>Platform fee</span><span class="num" data-cob-fee>−${money(fee)}</span></div>
-    <div class="linerow total"><span>Reaches your account</span><span class="num" data-cob-nettotal>${money(gross - fee)}</span></div>
+    <div class="linerow total"><span>Reaches your account</span><span class="num" data-cob-nettotal>${money(gross)}</span></div>
   </div>
-  <p class="cob-help" style="margin-top:14px">Payment processing is settled by Stripe on top of this;
-    these figures are the marketplace fee only.</p>`;
+  <p class="cob-help" style="margin-top:14px">Stripe settles its own payment-processing charge on top of
+    this. Sporv is not part of that number.</p>
+
+  ${/* THE PLAN CHOICE — the step that used to explain a commission.
+       Free is pre-selected and stays selected unless the coach changes it: an
+       upsell that defaults to the paid tier is how someone finds a charge they
+       did not choose. Nothing here takes a payment; see submittedHTML(). */""}
+  <fieldset style="border:0;padding:0;margin:26px 0 0" data-cob-field="plan">
+    <legend class="eyebrow" style="padding:0;margin-bottom:11px">Your plan</legend>
+    <div class="cob-plans">
+      ${[["free", "Start free", "Three AI actions a month, one seat. No card."],
+         ["pro",  planName("pro") + (proPrice ? " — " + proPrice : ""),
+                  "Unlimited AI actions and up to three seats."]]
+        .map(([k, label, note]) => `
+        <label class="cob-plan ${d.plan === k ? "on" : ""}">
+          <input type="radio" name="cobplan" value="${k}" data-cob-plan="${k}"
+            ${d.plan === k ? "checked" : ""}>
+          <span style="min-width:0"><b>${esc(label)}</b><span>${esc(note)}</span></span>
+        </label>`).join("")}
+    </div>
+    <p class="cob-help" style="margin-top:12px">Either way you keep every dollar a family pays. Pro is
+      charged after you submit, from your account page, and you can change plan any time.</p>
+  </fieldset>`;
 }
 
 function availabilityStep(d, err){
@@ -696,7 +736,7 @@ function rbHead(title, step){
 function reviewStep(d, err){
   const priced = d.services.filter(s => !isBlank(s.price) && isFinite(Number(s.price)));
   const gross = priced.reduce((t, s) => t + Number(s.price), 0);
-  const fee = priced.reduce((t, s) => t + feeOn(s.price), 0);
+  const proPrice = planPrice("pro");
   const bgSteps = [["Consent given", !!d.consent], ["Submitted to partner", false],
     ["Screening", false], ["Result", false]];
   return `
@@ -725,12 +765,13 @@ function reviewStep(d, err){
   </div>
 
   <div class="cob-rb">
-    ${rbHead("Pricing", 3)}
+    ${rbHead("Pricing and your plan", 3)}
     ${d.services.map(s => line(s.name || "Untitled service",
       `<span class="num">${money(Number(s.price))}</span> <span style="font-weight:500;color:var(--muted)">${esc(MODEL_UNIT[s.model] || s.model)}</span>`)).join("")}
-    <div class="linerow"><span>Platform fee across one of each</span>
-      <span class="num">−${money(fee)}</span></div>
-    <div class="linerow total"><span>You keep</span><span class="num">${money(gross - fee)}</span></div>
+    <div class="linerow total"><span>You keep, across one of each</span><span class="num">${money(gross)}</span></div>
+    ${line("Plan", d.plan === "pro"
+      ? esc(planName("pro") + (proPrice ? ", " + proPrice : "") + " — starts after you submit")
+      : "Free")}
   </div>
 
   <div class="cob-rb">
@@ -781,7 +822,21 @@ function submittedHTML(d){
       <div class="linerow"><span>Background check</span><span><b><span class="pill warn">${esc(p.backgroundCheck || "pending")}</span></b></span></div>
       <div class="linerow"><span>Verification</span><span><b><span class="pill slate">${esc(p.verification || "unverified")}</span></b></span></div>
       <div class="linerow"><span>Draft listings</span><span><b class="num">${(d.drafts || []).length}</b></span></div>
+      <div class="linerow"><span>Plan</span><span><b>${d.plan === "pro"
+        ? esc(planName("pro") + (planPrice("pro") ? " — " + planPrice("pro") : "") + ", not started yet")
+        : "Free"}</b></span></div>
       <div class="linerow total"><span>Visible to families</span><span><b>None, until the check clears</b></span></div>
+      ${/* The plan the coach picked on step 4, now that there is a coach row
+           for the checkout to belong to. Free needs no action and gets a
+           sentence, not a button. */""}
+      ${d.plan === "pro" ? `
+        <p class="cob-help" style="margin:18px 0 10px">You chose ${esc(planName("pro"))}. Nothing has been
+          charged — Stripe takes the payment, and your plan changes when it confirms.</p>
+        <button class="btn" data-cob-buypro="1">Start ${esc(planName("pro"))}${
+          planPrice("pro") ? " — " + esc(planPrice("pro")) : ""}</button>
+        <p class="err hide" data-cob-buyerr role="alert" style="margin-top:10px"></p>`
+      : `<p class="cob-help" style="margin:18px 0 0">You are on the free plan. Pro is one button in
+          Account → Billing whenever you want it.</p>`}
       <div class="cob-lock" style="margin:20px 0 0">
         <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"
           stroke-linecap="round" aria-hidden="true"><rect x="4" y="10" width="16" height="11" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/></svg>
@@ -963,7 +1018,7 @@ function submitApplication(){
     minutes: intOf(s.minutes),
     price: Number(trim(s.price)),
     model: s.model,
-    netPerSale: netOf(Number(trim(s.price))),
+    netPerSale: Number(trim(s.price)),   // no marketplace fee — net is the price
     availability: { days: d.days.slice(), start: d.startTime, end: d.endTime },
     status: "draft",                // never "published"
     published: false,
@@ -1050,18 +1105,16 @@ function sync(){
     if (net){
       const p = isBlank(s.price) ? null : Number(trim(s.price));
       const ok = p != null && isFinite(p) && p >= 0;
-      net.textContent = ok ? money(netOf(p)) : "—";
+      net.textContent = ok ? money(p) : "—";
       const cap = net.parentNode && net.parentNode.querySelector ? net.parentNode.querySelector("span") : null;
-      if (cap) cap.textContent = ok ? "you keep, after " + money(feeOn(p)) + " fee" : "you keep — enter a price";
+      if (cap) cap.textContent = ok ? "you keep, all of it" : "you keep — enter a price";
     }
   });
 
   const priced = d.services.filter(s => !isBlank(s.price) && isFinite(Number(trim(s.price))) && Number(trim(s.price)) >= 0);
   const gross = priced.reduce((t, s) => t + Number(trim(s.price)), 0);
-  const fee = priced.reduce((t, s) => t + feeOn(trim(s.price)), 0);
   const g = document.querySelector("[data-cob-gross]"); if (g) g.textContent = money(gross);
-  const f = document.querySelector("[data-cob-fee]"); if (f) f.textContent = "−" + money(fee);
-  const n = document.querySelector("[data-cob-nettotal]"); if (n) n.textContent = money(gross - fee);
+  const n = document.querySelector("[data-cob-nettotal]"); if (n) n.textContent = money(gross);
 
   const sp = document.querySelector("[data-cob-span]");
   if (sp){
@@ -1186,6 +1239,35 @@ function wire(){
     cur.days = on ? cur.days.filter(x => x !== k)
       : WD.map(w => w[0]).filter(x => x === k || cur.days.indexOf(x) >= 0);   // keeps Mon→Sun order
     render();
+  });
+
+  /* The plan choice is recorded, not charged. render() rather than sync()
+     because the selected card's outline is part of the step's markup. */
+  q("[data-cob-plan]").forEach(r => r.onchange = () => {
+    draft().plan = r.dataset.cobPlan === "pro" ? "pro" : "free";
+    render();
+  });
+
+  /* THE ONE PLACE THIS WIZARD CAN START A PAYMENT, and it is after the
+     application is in. Two reasons it is not on the pricing step: Stripe
+     Checkout is a full navigation away from a half-finished wizard, and
+     billing-create-checkout refuses a caller who is not yet a coach — which,
+     before submit, is every one of them. */
+  q("[data-cob-buypro]").forEach(b => b.onclick = () => {
+    const err = document.querySelector("[data-cob-buyerr]");
+    if (err){ err.textContent = ""; err.classList.add("hide"); }
+    if (!window.SporveCoach || !window.SporveCoach.startCheckout){
+      if (err){ err.textContent = "Billing isn't available in this session — upgrade from your account page."; err.classList.remove("hide"); }
+      return;
+    }
+    b.disabled = true;
+    const was = b.textContent;
+    b.textContent = "Opening Stripe…";
+    window.SporveCoach.startCheckout("pro").catch(e => {
+      b.disabled = false; b.textContent = was;
+      /* the function's own words — it is the only thing that knows why */
+      if (err){ err.textContent = (e && e.message) || "Could not open Stripe checkout."; err.classList.remove("hide"); }
+    });
   });
 
   q("[data-cob-consent]").forEach(cb => cb.onchange = () => {

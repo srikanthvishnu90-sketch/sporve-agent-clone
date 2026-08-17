@@ -2,9 +2,16 @@
 /* ═══════════════════════════════════════════════════════════════════
    MOD_PAYMENTS — money for Sporv Web.
 
+   THE FEE ERA CHANGED (2026-08, subscription pivot). Sporv charged a flat 12%
+   of every booking; it now charges providers a subscription and takes 0% of a
+   booking, so FEE_PCT is 0 and new checkouts show no fee line at all. The 12%
+   is not deleted from this file, it is demoted to HISTORY: a fee recorded on a
+   past booking or ledger row is still rendered, at the rate it was actually
+   charged. Derived fees follow the constant; recorded fees follow the record.
+
    Four real backend flows, mirrored exactly on the client:
-     · checkout        review → payment method → confirm, 12% platform fee
-                       itemized, card validated (Luhn + IIN brand + expiry)
+     · checkout        review → payment method → confirm, platform fee itemized
+                       only when non-zero, card validated (Luhn + IIN + expiry)
      · cancellation    refund follows the policy SNAPSHOTTED onto the booking
                        at purchase, never the listing's current policy
      · wallet          payment methods (last-4 only), transaction ledger with
@@ -12,8 +19,8 @@
      · split pay       one booking across two guardians, cents reconciled
 
    Money is held in INTEGER CENTS everywhere and only formatted at the edge.
-   The host's money() renders whole dollars; a 12% fee is rarely whole, so
-   amounts computed here print through usd() at two decimals. Nothing here
+   The host's money() renders whole dollars; a percentage fee is rarely whole,
+   so amounts computed here print through usd() at two decimals. Nothing here
    invents a movement of money: every figure shown comes from a row in
    S.transactions that a user action actually wrote.
 
@@ -140,6 +147,33 @@
   };
   const feeOn = cents => Math.round(cents * FEE_PCT / 100);
   const pctOf = (cents, pct) => Math.round(cents * pct / 100);
+
+  /* ── fee truth has two paths, and they must never be crossed ──────────
+     DERIVED — feeOn() prices a NEW booking off the host's FEE_PCT. Under the
+     subscription model that constant is 0, so feeOn() returns 0 and every fee
+     line below drops out: a "$0.00 platform fee" row is noise, not disclosure.
+     All of it is written against the constant, never against a hardcoded 0, so
+     if FEE_PCT is ever non-zero again the rows itemize themselves with no edit.
+
+     RECORDED — a fee already written onto a booking or a ledger row is history.
+     It is never recomputed and never hidden. A booking that was charged 12% has
+     to keep saying 12% forever, whatever FEE_PCT reads today, so the label for a
+     recorded fee cannot interpolate the live constant. recordedPct() reads the
+     rate back OUT of the two numbers that were stored, and returns it only when
+     it reproduces the stored cents exactly; otherwise the row says "fee" and
+     asserts no percentage it cannot prove. Zero and unknown stay distinct: a
+     recorded 0 means no fee was taken, null means nothing was ever captured. */
+  const feeLive = () => Number(FEE_PCT) > 0;
+  function recordedPct(feeCents, grossCents) {
+    const f = Math.abs(Number(feeCents) || 0), g = Math.abs(Number(grossCents) || 0);
+    if (!f || !g) return null;
+    const pct = Math.round(f * 100 / g);
+    return Math.round(g * pct / 100) === f ? pct : null;
+  }
+  const feeLabel = (feeCents, grossCents, tail) => {
+    const pct = recordedPct(feeCents, grossCents);
+    return `Sporv's ${pct == null ? "fee" : pct + "%"} ${tail}`;
+  };
 
   /* ── dates ──────────────────────────────────────────────────────────── */
   function sessionStart(dateStr, startTime) {
@@ -291,8 +325,9 @@
     }
     const gross = Math.round(Number(p.price) * 100) + tierExtraCents(tier);
     const fee = feeOn(gross);
-    /* deducted incidence: the family is charged the coach's price. The fee is Sporv's
-       share of that price, not a surcharge, so it is itemized but never added to total. */
+    /* deducted incidence: the family is charged the coach's price. Any fee is Sporv's
+       share of that price, not a surcharge, so it is itemized but never added to total.
+       Under the subscription model fee is 0 and the total is the coach's price exactly. */
     return { gross, fee, total: gross, creditValue: 0 };
   }
 
@@ -341,7 +376,7 @@
             ? sumRow("Paid with", "1 session credit")
             : sumRow("Paid with", esc(r.method))}
           ${sumRow("Session price", usd(r.grossCents))}
-          ${sumRow(`Sporv's ${FEE_PCT}% (paid by the coach)`, "−" + usd(r.feeCents))}
+          ${r.feeCents ? sumRow(feeLabel(r.feeCents, r.grossCents, "(paid by the coach)"), "−" + usd(r.feeCents)) : ""}
           ${sumRow("Charged", usd(r.totalCents), "total")}
         </div>
         <p class="pm-fine">Cancellation policy on this booking: <b>${esc(POLICIES[r.policy].label)}</b> —
@@ -385,11 +420,14 @@
             ${sumRow(`${esc(p.title)} · ${esc(modelLabel(p.model))}`, money(p.price))}
             ${tierExtraCents(d.tier) ? sumRow("Premium tier", usd(tierExtraCents(d.tier))) : ""}
             ${sumRow("Session price", usd(t.gross))}
-            ${sumRow(`Sporv's ${FEE_PCT}% (paid by the coach)`, "−" + usd(t.fee))}
+            ${t.fee ? sumRow(`Sporv's ${FEE_PCT}% (paid by the coach)`, "−" + usd(t.fee)) : ""}
             ${sumRow("Total", usd(t.total), "total")}
           </div>
-          <p class="pm-fine">You pay the coach's price. The ${FEE_PCT}% fee is Sporv's share of it,
-            deducted from the coach's earnings and never added to your total.
+          <p class="pm-fine">${t.fee
+            ? `You pay the coach's price. The ${FEE_PCT}% fee is Sporv's share of it,
+               deducted from the coach's earnings and never added to your total.`
+            : `You pay the coach's price. Sporv takes 0% of the booking — the coach keeps
+               every dollar and pays for the software by subscription.`}
             ${esc(POLICIES[p.cancellationPolicy] ? POLICIES[p.cancellationPolicy].label : "Moderate")}
             cancellation applies and is copied onto the booking when you pay.</p>
 
@@ -430,7 +468,7 @@
 
         <div class="pm-sum pm-gap">
           ${sumRow("Session price", usd(t.gross))}
-          ${sumRow(`Sporv's ${FEE_PCT}% (paid by the coach)`, "−" + usd(t.fee))}
+          ${t.fee ? sumRow(`Sporv's ${FEE_PCT}% (paid by the coach)`, "−" + usd(t.fee)) : ""}
           ${sumRow("Total", usd(t.total), "total")}
         </div>
 
@@ -454,7 +492,7 @@
       </div>
       <div class="pm-sum pm-gap">
         ${sumRow("Session price", usd(t.gross))}
-        ${sumRow(`Sporv's ${FEE_PCT}% (paid by the coach)`, "−" + usd(t.fee))}
+        ${t.fee ? sumRow(`Sporv's ${FEE_PCT}% (paid by the coach)`, "−" + usd(t.fee)) : ""}
         ${sumRow(d.useCredit ? "Charged today" : "Total", usd(t.total), "total")}
       </div>
       ${d.useCredit ? `<p class="pm-fine">Nothing is charged today — a credit you already paid for covers
@@ -647,7 +685,10 @@
         ${byCredit
           ? sumRow("Credit value on this booking", usd(basis))
           : sumRow("Session price paid", usd(ch.gross))}
-        ${(!byCredit && ch.fee != null) ? sumRow(`Sporv's ${FEE_PCT}% (from the coach)`, "−" + usd(ch.fee)) : ""}
+        ${/* RECORDED fee: labelled at the rate this booking actually paid, never at the
+             live FEE_PCT — a 12% booking stays a 12% booking after the rate went to 0.
+             A recorded 0 prints nothing; only a missing capture says "not recorded". */""}
+        ${(!byCredit && ch.fee) ? sumRow(feeLabel(ch.fee, ch.gross, "(from the coach)"), "−" + usd(ch.fee)) : ""}
         ${(!byCredit && ch.fee == null) ? `<div class="pm-sum-row"><span>Sporv's fee</span><span class="pm-meta">not recorded on this booking</span></div>` : ""}
         ${(!byCredit && ch.itemized) ? sumRow("Charged", usd(ch.total)) : ""}
       </div>
@@ -664,15 +705,19 @@
             <span class="num">${creditReturn ? "1 credit" : usd(refundGross)}</span></div>`
         : `
           <div class="pm-math-row"><span>Session price ${usd(ch.gross)} × ${esc(band.pct)}%</span><span class="num">${usd(refundGross)}</span></div>
-          ${ch.fee != null
-            ? `<div class="pm-math-row"><span>Sporv gives back its ${FEE_PCT}% too — ${usd(ch.fee)} × ${esc(band.pct)}% — to the coach, not to you</span><span class="num">−${usd(refundFee)}</span></div>`
-            : `<div class="pm-math-row"><span>Sporv's fee</span><span class="pm-meta">nothing recorded, so nothing returned</span></div>`}
+          ${ch.fee
+            ? `<div class="pm-math-row"><span>Sporv gives back its ${recordedPct(ch.fee, ch.gross) == null ? "fee" : recordedPct(ch.fee, ch.gross) + "%"} too — ${usd(ch.fee)} × ${esc(band.pct)}% — to the coach, not to you</span><span class="num">−${usd(refundFee)}</span></div>`
+            : ch.fee == null
+              ? `<div class="pm-math-row"><span>Sporv's fee</span><span class="pm-meta">nothing recorded, so nothing returned</span></div>`
+              : ""}
           <div class="pm-math-row pm-math-sep"><span><b>Refund to ${esc(b.cardLast4 ? cardLabel({ brand: b.cardBrand, last4: b.cardLast4 }) : "your original payment method")}</b></span>
             <span class="num"><b>${usd(refundTotal)}</b></span></div>`}
       </div>
 
-      <p class="pm-fine">${refundTotal > 0 || creditReturn
-        ? "Sporv returns its fee in the same proportion as the session price — we don't keep a fee on money we give back."
+      <p class="pm-fine">${(refundTotal > 0 || creditReturn)
+        ? (ch.fee
+            ? "Sporv returns its fee in the same proportion as the session price — we don't keep a fee on money we give back."
+            : "The refund is the session price alone. Sporv took no fee on this booking, so there is none to return.")
         : "This cancellation returns nothing. Cancelling is still recorded, and the seat is released to the waitlist."}</p>
 
       <div id="pmCancelErr" class="err hide"></div>
@@ -885,7 +930,7 @@
         <div class="pm-math">
           <div class="eyebrow">How ${usd(ch.total)} divides</div>
           <div class="pm-math-row"><span>Session price</span><span class="num">${usd(ch.gross)}</span></div>
-          ${ch.fee != null ? `<div class="pm-math-row"><span>Sporv's ${FEE_PCT}% (paid by the coach)</span><span class="num">−${usd(ch.fee)}</span></div>` : ""}
+          ${ch.fee ? `<div class="pm-math-row"><span>${feeLabel(ch.fee, ch.gross, "(paid by the coach)")}</span><span class="num">−${usd(ch.fee)}</span></div>` : ""}
           <div class="pm-math-row pm-math-sep"><span>Their half</span><span class="num">${usd(half)}</span></div>
           <div class="pm-math-row"><span>Your half${mine !== half ? " (carries the odd cent)" : ""}</span><span class="num">${usd(mine)}</span></div>
           <div class="pm-math-row on"><span><b>Together</b></span><span class="num"><b>${usd(mine + half)}</b></span></div>
@@ -958,7 +1003,7 @@
             <div class="pm-math-row"><span>${pack.sessions} × ${money(pp.price)} at list price</span><span class="num">${usd(full)}</span></div>
             <div class="pm-math-row"><span>Pack discount (${esc(pack.discountPct)}%)</span><span class="num">−${usd(off)}</span></div>
             <div class="pm-math-row pm-math-sep"><span>Pack price</span><span class="num">${usd(gross)}</span></div>
-            <div class="pm-math-row"><span>Sporv's ${FEE_PCT}% (paid by the coach)</span><span class="num">−${usd(fee)}</span></div>
+            ${fee ? `<div class="pm-math-row"><span>Sporv's ${FEE_PCT}% (paid by the coach)</span><span class="num">−${usd(fee)}</span></div>` : ""}
             <div class="pm-math-row on"><span><b>Charged today</b></span><span class="num"><b>${usd(gross)}</b></span></div>
             <div class="pm-math-row pm-math-sep"><span>Effective price per session</span>
               <span class="num">${usd(perCents)}${per === perCents ? "" : " (rounded)"}</span></div>
@@ -968,8 +1013,11 @@
           <div id="pmPackErr" class="err hide"></div>
           <button class="btn pm-gap" type="submit">Buy ${pack.sessions} sessions for ${usd(gross)}</button>
           <p class="pm-fine">Credits are held against this listing and pay for one session each at checkout.
-            The discount is applied to the coach's price; Sporv's fee is taken from the discounted
-            total, not the list price.</p>
+            ${fee
+              ? `The discount is applied to the coach's price; Sporv's fee is taken from the discounted
+                 total, not the list price.`
+              : `The discount is applied to the coach's price, and the coach keeps all of it —
+                 Sporv takes 0% of a pack.`}</p>
         </form>`;
     }
 
@@ -977,8 +1025,11 @@
       <div class="sec-head"><div>
         <p class="eyebrow">Payments</p>
         <h1>Wallet</h1>
-        <p class="pm-lede">Your cards, every charge and refund with Sporv's ${FEE_PCT}% itemized so you can
-          see it comes out of the coach's side, and any session credits you have bought.
+        <p class="pm-lede">${feeLive()
+          ? `Your cards, every charge and refund with Sporv's ${FEE_PCT}% itemized so you can
+             see it comes out of the coach's side, and any session credits you have bought.`
+          : `Your cards, every charge and refund, and any session credits you have bought.
+             Sporv takes 0% of a booking — the coach keeps every dollar you pay.`}
           Every row here corresponds to money that actually moved.</p>
       </div></div>
 
@@ -987,8 +1038,14 @@
           <div class="d">${list.length ? esc(cardLabel(defaultCard())) + " is default" : "None yet"}</div></div>
         <div class="stat"><div class="k">Net charged</div><div class="v num">${usd(netCharged)}</div>
           <div class="d">${rows.length} transaction${rows.length === 1 ? "" : "s"}, refunds included</div></div>
+        ${/* the stat sums RECORDED fees, so it keeps its value after the rate went to 0;
+             only the description changes, because the money in it really was taken. */""}
         <div class="stat"><div class="k">Sporv's share</div><div class="v num">${usd(feesPaid)}</div>
-          <div class="d">${FEE_PCT}% of each booking, paid by the coach</div></div>
+          <div class="d">${feeLive()
+            ? `${FEE_PCT}% of each booking, paid by the coach`
+            : feesPaid
+              ? "Taken on earlier bookings. New bookings are 0%"
+              : "Sporv takes 0% of a booking"}</div></div>
         <div class="stat"><div class="k">Session credits</div><div class="v num">${creditTotal}</div>
           <div class="d">${creditRows.length ? "across " + creditRows.length + " listing" + (creditRows.length === 1 ? "" : "s") : "No packs bought"}</div></div>
       </div>
@@ -1018,10 +1075,11 @@
             <thead><tr><th>Date</th><th>Description</th><th>Method</th><th>Gross</th>
               <th>Fee</th><th>Net to coach</th><th>Charged</th><th>Status</th></tr></thead>
             <tbody>${txRows}</tbody></table></div>
-          <p class="pm-fine"><b>Gross</b> is the coach's price. <b>Fee</b> is Sporv's ${FEE_PCT}%,
-            taken from the coach's side. <b>Net to coach</b> is gross minus the fee.
-            <b>Charged</b> is what left your card — the coach's price, with no fee added.
-            Refunds are the same four numbers with the sign flipped.</p>`
+          <p class="pm-fine"><b>Gross</b> is the coach's price. <b>Fee</b> is Sporv's share,
+            taken from the coach's side${feeLive() ? ` — ${FEE_PCT}% today` : ` — 0% on new bookings, so the column
+            only carries fees charged before the subscription model`}. <b>Net to coach</b> is gross
+            minus the fee. <b>Charged</b> is what left your card — the coach's price, with no fee
+            added. Refunds are the same four numbers with the sign flipped.</p>`
           : `<p class="pm-none">No transactions yet. Nothing has been charged to this account.</p>`}
       </section>
 

@@ -21,7 +21,7 @@
 <meta name="twitter:description" content="Find coaches, trainers, camps and teams across 20+ sports in Chicagoland.">
 <meta name="twitter:image" content="https://the-sporve-web.vercel.app/og.png">
 <link rel="icon" href="data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%2032%2032'%3E%3Crect%20width='32'%20height='32'%20rx='7'%20fill='%2309090B'/%3E%3Ccircle%20cx='16'%20cy='16'%20r='6'%20fill='white'/%3E%3C/svg%3E">
-<meta name="sporve-build" content="ba5639017601a581">
+<meta name="sporve-build" content="fac73b6933e46509">
 </head>
 <body>
 <noscript><h1>Sporv — Every sport. One app.</h1><p>Sporv connects families and athletes with coaches, trainers, camps, and teams across more than 20 sports. Please enable JavaScript to use the app.</p></noscript>
@@ -4988,8 +4988,13 @@ function ptypeOf(p){
 const TODAY="2026-08-03";
 
 /* ── platform fee: the single source of truth ──────────────────────────
-   Flat 12%, deducted from the coach (owner decision 2026-08-06; incidence
-   2026-08-10). See docs/decisions/2026-08-10-fee-incidence.md.
+   ZERO (owner decision 2026-08-17 — the subscription pivot). Sporv now takes
+   0% of bookings; revenue is the provider subscription (free / Pro $34.99 /
+   Enterprise $149, defined in the plan_entitlements table server-side). The
+   flat 12% era (2026-08-06 → 2026-08-17) is history: bookings paid then carry
+   their RECORDED fee in the ledger and keep rendering it truthfully — a
+   recorded fee is never recomputed from this constant (see the webhook note
+   in the backend repo).
 
    This lives here, at the top level of the host script, because every module
    is inlined AFTER it inside its own IIFE and therefore resolves these names
@@ -4999,9 +5004,9 @@ const TODAY="2026-08-03";
    three times because it was authored in five places. Read these; do not
    redeclare them, and do not write the bare decimal anywhere.
 
-   src/smoke.sh enforces both halves: no stray fee literal, and every rendered
-   percentage equal to FEE_PCT. */
-const FEE_PCT = 12;
+   src/smoke.sh enforces both halves: no stray fee literal, and rendered rates
+   limited to FEE_PCT and the 100% coaches keep. */
+const FEE_PCT = 0;
 const FEE_RATE = FEE_PCT / 100;
 function dayAfter(n){
   const d=new Date(TODAY+"T12:00:00Z");
@@ -6268,10 +6273,10 @@ function pricingHTML(){
      "Card checkout. The coach's price is the price — no fee added for families."],
     ["Getting paid, as a coach",
      "Chasing parents after practice.",
-     `Automatic payout, minus a flat ${FEE_PCT}% platform fee, itemized on every payout — gross, fee, net.`],
+     `Automatic payout of the full amount — Sporv takes ${FEE_PCT}% of bookings. You keep every dollar families pay.`],
     ["Running the season, as a coach",
      "Spreadsheets, screenshots, a shoebox of notes.",
-     "Roster, schedule, session notes and messages in one place. Listing is free."],
+     "Roster, schedule, session notes and messages in one place. Free to start; Pro is $34.99 a month."],
   ];
   return `<main class="shell">
     ${/* C4, tell 9: the top-level answer to "what does this cost" was set one
@@ -6281,15 +6286,15 @@ function pricingHTML(){
          single constant checkout charges; it is never retyped as prose. */""}
     <div class="pr-head">
       <p class="eyebrow">Pricing</p>
-      <h1 class="display">${FEE_PCT}%, and only<br>when you're paid.</h1>
-      <p class="lede" style="margin-left:0;max-width:58ch">Families pay the coach's
-        listed price and nothing on top. Coaches pay one flat fee per paid booking,
-        itemized on every payout.</p>
+      <h1 class="display">Coaches keep 100%.<br>The software is the product.</h1>
+      <p class="lede" style="margin-left:0;max-width:58ch">Sporv takes ${FEE_PCT}% of
+        bookings. Families pay the coach's listed price and nothing on top; coaches
+        run their business on a flat subscription — free to start, Pro when it grows.</p>
     </div>
     <div class="pr-stats" role="list">
-      <div role="listitem"><b class="num">${FEE_PCT}%</b><span>platform fee, only on a paid booking</span></div>
-      <div role="listitem"><b class="num">$0</b><span>to join, list, browse, and message</span></div>
-      <div role="listitem"><b class="num">$0</b><span>background checks — run at Sporv's cost</span></div>
+      <div role="listitem"><b class="num">${FEE_PCT}%</b><span>of a booking taken by Sporv — coaches keep 100%</span></div>
+      <div role="listitem"><b class="num">$34.99</b><span>a month for Pro — unlimited AI, up to 3 people</span></div>
+      <div role="listitem"><b class="num">$0</b><span>to join, list, browse, and message — the Free plan is real</span></div>
     </div>
     <div class="cmp-wrap">
       <table class="cmp" aria-label="What Sporv costs, compared">
@@ -6298,7 +6303,9 @@ function pricingHTML(){
       </table>
     </div>
     <p class="cmp-fine">Joining, listing, browsing and messaging are free on both sides.
-      The ${FEE_PCT}% is taken from a paid booking and from nothing else.</p>
+      Pro is $34.99 a month; Enterprise — a multi-player workspace for larger
+      operations, $149 a month — is in development, by early access only.
+      No plan takes a percentage of a booking.</p>
     <div class="cmp-ctas">
       <button class="btn" data-becomecoach="1">Become a coach</button>
       <button class="btn ghost" data-nav="explore">Find a coach</button>
@@ -6728,8 +6735,8 @@ function coachLandingHTML(){
     ["AI assistant","Reschedule, offer a waitlist spot, or message a group by typing what you want. It only acts on your real calendar.","Try the assistant","dashboard"]];
   const faq=[
     ["How does the background check work?","Every individual clears their own check — not the business. Your listings stay unbookable and hidden from search until yours clears, and an org being approved never vouches for a trainer on its roster."],
-    ["When do I get paid?","Once your background check clears and your bank is connected, payouts run automatically after a completed session. Each one itemizes gross, the platform fee, and your net."],
-    ["What does Sporv take?",`A flat ${FEE_PCT}% platform fee, taken only when you get paid and itemized on every payout — gross, fee, and your net on each booking. Joining, listing, and messaging are free.`],
+    ["When do I get paid?","Once your background check clears and your bank is connected, payouts run automatically after a completed session. The full booking amount is yours; every payout is itemized."],
+    ["What does Sporv take?",`${FEE_PCT}% of bookings — you keep 100% of what families pay. Sporv is a flat software subscription instead: free to start, $34.99 a month for Pro. Joining, listing, and messaging are free.`],
     ["What happens when someone cancels?","The cancellation policy copied onto the booking at purchase governs the refund — not whatever your listing says later. You pick flexible, moderate, or strict per service."],
     ["Who owns the client relationship?","You do. Families you bring keep booking you, and your roster and notes are yours."],
     ["Can I leave and take my data?","Yes. Request an export at any time. Deletion is reviewed as a case so financial and safety records required by law are retained, and everything else is removed."]];
@@ -6834,10 +6841,11 @@ function coachLandingHTML(){
   </section>
 
   ${/* Anti-slop C3, plus a factual correction. This was a centred CARD
-       (tell #17) around the display word "Tiered" — and "Tiered" is FALSE:
-       the fee is a flat ${FEE_PCT}%, the owner's stated decision and the number
-       stripe-create-checkout actually charges. A fee section is the one place
-       a wrong word is a contract problem, not a style problem.
+       (tell #17) around the display word "Tiered" — and "Tiered" is FALSE.
+       Since 2026-08-17 the model is subscription: FEE_PCT is 0, the owner's
+       stated decision and what stripe-create-checkout actually charges
+       (PLATFORM_FEE_BPS=0). A fee section is the one place a wrong word is a
+       contract problem, not a style problem.
        Now a coach-scoped B3 table: the money questions a coach actually asks,
        hairline rows, the real number, no card. */""}
   <section class="band">
@@ -6848,11 +6856,11 @@ function coachLandingHTML(){
           <thead><tr><th>The job</th><th>Elsewhere</th><th>On Sporv</th></tr></thead>
           <tbody>
             <tr><th scope="row">Getting paid</th>
-              <td>Chasing parents after practice, card readers, invoices.</td>
-              <td>Automatic payout on every paid booking, minus a flat ${FEE_PCT}% — itemized as gross, fee, net.</td></tr>
-            <tr><th scope="row">Being listed</th>
-              <td>A directory fee, a subscription, ads.</td>
-              <td>Joining, listing and messaging are free. No monthly fee, no per-listing fee.</td></tr>
+              <td>A percentage of every booking, skimmed before it reaches you.</td>
+              <td>Automatic payout of the full amount — Sporv takes ${FEE_PCT}% of bookings. You keep every dollar families pay.</td></tr>
+            <tr><th scope="row">Running the software</th>
+              <td>A directory fee plus a cut of the work itself.</td>
+              <td>A flat subscription and nothing from bookings. Free to start; Pro is $34.99 a month when the business grows.</td></tr>
             <tr><th scope="row">The background check</th>
               <td>Billed to you, or skipped.</td>
               <td>Run at Sporv's cost. Never billed to you, never optional.</td></tr>
@@ -7086,7 +7094,7 @@ function productHTML(){
   const co=[
     [PICON.home,"Command centre","Your day, your roster, and your revenue on one screen.","tab:dashboard"],
     [PICON.calendar,"Scheduling & availability","Set availability once; families book only what is genuinely open.","tab:slots"],
-    [PICON.card,"Payments & payouts","In-app checkout, automatic payouts, the platform fee itemised.","tab:finances"],
+    [PICON.card,"Payments & payouts","In-app checkout, automatic payouts, every payout itemised.","tab:finances"],
     [PICON.users,"Client roster","Every family, session, and note in one place.","tab:roster"],
     [PICON.list,"Listings","Define what you offer, what it costs, and where you coach.","tab:listings"],
     [PICON.camera,"Media library","Photos and video with per-athlete consent enforced, not requested.","tab:media"],
@@ -7151,8 +7159,8 @@ function productHTML(){
     <div class="shell">
       <div class="prodsec" data-rev>
         <h2>For coaches and programs</h2>
-        <p class="sub">Free to join and list. The platform fee is taken only when you get paid,
-          and itemised on every payout.</p>
+        <p class="sub">Free to join and list. Sporv takes 0% of your bookings —
+          the software is a flat subscription, and every payout is itemised.</p>
       </div>
       <div class="prodgrid" data-rev>${co.map(r=>card(r[0],r[1],r[2],r[3])).join("")}</div>
     </div>
@@ -7374,7 +7382,7 @@ function detailHTML(id){
       </div>
       <div style="margin-top:18px">
         <div class="linerow"><span>${money(p.price)} × 1 session</span><span class="num">${money(p.price)}</span></div>
-        <div class="linerow"><span>Sporv's ${FEE_PCT}% (paid by the coach)</span><span class="num">−${money(Math.round(p.price*FEE_RATE))}</span></div>
+        <div class="linerow"><span>Booking fee</span><span class="num">$0 — the coach's price is the price</span></div>
         <div class="linerow total"><span>Total</span><span class="num">${money(p.price)}</span></div>
       </div>
       ${spots>0
@@ -8465,7 +8473,7 @@ function payoutsPanelHTML(){
       <span class="pill ${live?"gold":"warn"}">${live?"Active":started?"Incomplete":"Not connected"}</span></div>
     ${body}
     ${S.connectError?`<div class="err" role="alert" style="margin-top:10px">${esc(S.connectError)}</div>`:""}
-    <p class="pay-fine">Sporv takes ${FEE_PCT}% of each booking. The rest reaches your account
+    <p class="pay-fine">Sporv takes ${FEE_PCT}% of your bookings — you keep the full amount. It reaches your account
       through Stripe, which holds your bank details — not us.</p>
   </section>`;
 }
@@ -8621,7 +8629,7 @@ function dashboardHTML(){
              this file and smoke fails if any surface hardcodes it again. */
           const g=isCoachGuest()?0:gAll,f=Math.round(g*FEE_RATE);
           return `<div class="num" style="font-size:var(--text-2xl);font-weight:700;letter-spacing:-.03em;margin-top:6px">${veil(money(g-f))}</div>
-          <div class="num" style="color:var(--muted);font-size:var(--text-sm)">${isCoachGuest()?"Sign in to see payouts":money(g)+" gross · "+money(f)+" platform fee"}</div>
+          <div class="num" style="color:var(--muted);font-size:var(--text-sm)">${isCoachGuest()?"Sign in to see payouts":(f>0?money(g)+" gross · "+money(f)+" platform fee":money(g)+" gross · you keep 100%")}</div>
           <div class="payflow">
             ${[["Pending",money(0)],["In transit",money(0)],["Paid out",money(g-f)]]
               .map(([k,v],i)=>`<div class="payst ${i===2?"on":""}"><span class="eyebrow">${k}</span>
@@ -9462,7 +9470,7 @@ function modalHTML(){
           <select name="tier"><option>Standard</option><option>Premium (+$15)</option></select></div>
         <div style="border-top:1px solid var(--rule);margin-top:6px;padding-top:8px">
           <div class="linerow"><span>${esc(p.title)}</span><span class="num">${money(p.price)}</span></div>
-          <div class="linerow"><span>Sporv's 12% (paid by the coach)</span><span class="num">−${money(fee)}</span></div>
+          <div class="linerow"><span>Booking fee for families</span><span class="num">$0</span></div>
           <div class="linerow total"><span>Total</span><span class="num">${money(p.price)}</span></div>
         </div>
         <button class="btn wide" type="submit" style="margin-top:14px">Confirm booking</button>
@@ -9933,7 +9941,7 @@ const INFO={
   terms:{title:"Terms of Service (interim)",sections:[
     {h:"These terms are being finalized",b:"Sporv's full Terms of Service are being completed with counsel. Until they are published, the statements below describe how the service actually operates today, and they are the terms we hold ourselves to. Questions: support@sporve.com."},
     {h:"Coaches are independent professionals",b:"Coaches, trainers, camps and teams on Sporv are independent professionals, not Sporv employees. Sporv is the marketplace that connects you and processes payment."},
-    {h:"The platform fee",b:"Sporv charges coaches a flat 12% platform fee, taken only when a booking is paid, and itemized on every payout as gross, fee, and net. Families pay the coach's listed price; Sporv adds no booking fee for families."},
+    {h:"What Sporv charges",b:"Sporv takes 0% of bookings — coaches keep 100% of what families pay. Coaches run their business on a flat subscription (free to start; Pro is $34.99 a month). Families pay the coach's listed price; Sporv adds no booking fee for families. Bookings paid during the earlier 12% era keep their recorded fee on their receipts."},
     {h:"Background checks",b:"A coach can take a booking only after clearing an individual background check with a recorded completion date. The system refuses bookings for anyone without one — this is enforced in the booking path, not just stated here."},
     {h:"Accounts and children",b:"An adult opens the account. Athlete profiles are limited to ages 13-18 until a verifiable parental-consent process is live, matching our published privacy notice."},
   ]},
@@ -10155,7 +10163,7 @@ const PAGE_META={
   "saved":{t:"Saved coaches",d:"Shortlist coaches and compare before you book.",sport:"Boxing",cta:"saved",ctaL:"Open saved",kx:["search","map-search","athlete-progress"]},
   "athlete-progress":{t:"Athlete progress",d:"A timeline of sessions and notes, one athlete at a time.",sport:"Track & Field",cta:"timeline",ctaL:"See progress",kx:["what-is","search","session-notes"]},
   "scheduling":{t:"Scheduling & availability",d:"Your calendar and open slots — capacity enforced at the database.",sport:"Tennis",cta:"coachtab:slots",ctaL:"Open scheduling",kx:["payments","roster","instant-booking"]},
-  "payments":{t:"Payments & payouts",d:"Checkout in-app; payouts itemized as gross, fee, and net.",sport:"Golf",cta:"coachtab:finances",ctaL:"See payouts",kx:["bookings-receipts","scheduling","roster"]},
+  "payments":{t:"Payments & payouts",d:"Checkout in-app; the full booking amount reaches the coach.",sport:"Golf",cta:"coachtab:finances",ctaL:"See payouts",kx:["bookings-receipts","scheduling","roster"]},
   "roster":{t:"Client roster",d:"Every family you coach — bookings, notes, and consent in one place.",sport:"Hockey",cta:"coachtab:roster",ctaL:"Open the roster",kx:["scheduling","session-notes","payments"]},
   "session-notes":{t:"Session notes",d:"Notes tied to the athlete and the session, shared with the parent.",sport:"Fencing",cta:"coachtab:notes",ctaL:"See session notes",kx:["roster","media-consent","athlete-progress"]},
   "media-consent":{t:"Media & consent",d:"Photos shared only with recorded consent, per child.",sport:"Gymnastics",cta:"coachtab:media",ctaL:"See media & consent",kx:["session-notes","background-checks","roster"]},
@@ -10319,8 +10327,8 @@ function sig_payments(){ return `<div class="sig-payments" data-step="2">
   <div class="py-status">In transit · arrives Tue</div>
   <div class="py-lines">
     <div class="py-line"><span class="py-lab">Session</span><span class="py-amt">$45.00</span></div>
-    <div class="py-line"><span class="py-lab">Platform fee <span class="py-fee">12%</span></span><span class="py-amt">&minus;$5.40</span></div>
-    <div class="py-line py-total"><span class="py-lab">Your payout</span><span class="py-amt">$39.60</span></div>
+    <div class="py-line"><span class="py-lab">Platform fee <span class="py-fee">0%</span></span><span class="py-amt">&minus;$0.00</span></div>
+    <div class="py-line py-total"><span class="py-lab">Your payout</span><span class="py-amt">$45.00</span></div>
   </div>
   <button class="py-adv" type="button">Advance state</button>
 </div>`; }
@@ -10980,14 +10988,14 @@ if(id==="messaging"){
   }
   if(id==="payments"){
     /* Recipe α, Golf. S1 hero(split) → S3 pg-rows(white) → S5 pg-proof(slate)
-       → S7 pg-stats(slate) → S8 close(white). No dark band. Flat 12% fee only.
+       → S7 pg-stats(slate) → S8 close(white). No dark band. 0% fee era.
        Athletic register: lesson, swing, round, tee. Accents wear Golf via --ps. */
     return `<div class="${cls}">
     <section class="pgband slate pg-hero split"><div class="shell" data-rev>
       <div class="pg-heroL">
         ${pageEyebrow(meta)}
         <h1 class="pg-serif pg-h1">Book the lesson, <em>pay in one swing.</em></h1>
-        <p class="pg-sub">Every golf lesson checks out inside the app. The parent pays once, Sporv's flat 12% platform fee comes off the top, and the coach's payout lands automatically — with a receipt and a refund trail on every booking.</p>
+        <p class="pg-sub">Every golf lesson checks out inside the app. The parent pays once, the coach keeps all of it — Sporv takes 0% of bookings — and the payout lands automatically, with a receipt and a refund trail on every booking.</p>
         <div class="pg-ctarow">${pageCTA(meta)}${open||`<button class="pg-textlink" data-nav="page:bookings-receipts">Where the receipt lives →</button>`}</div>
       </div>
       </div></section>
@@ -10997,7 +11005,7 @@ if(id==="messaging"){
     <section class="pgband white"><div class="shell" data-rev>
       <div class="pg-rows">
         ${[["01","One flow to book and pay","Pick a golf slot and pay in the same tap. The card is charged when the booking confirms, not on some callback that never comes."],
-           ["02","A flat fee, shown up front","Sporv takes a <span class=\"hl\">flat 12% platform fee</span> on every booking — the same on a $30 clinic or a $90 private lesson. No tiers, no fine print."],
+           ["02","Nothing skimmed off a booking","Sporv takes <span class=\"hl\">0% of every booking</span> — the same on a $30 clinic or a $90 private lesson. The software is a flat subscription; the lesson money is the coach's."],
            ["03","Payouts land on their own","Once the golf lesson is played, the coach's payout releases to their account automatically. Every booking keeps a receipt and a refund trail."]]
           .map(([n,b,p])=>`<div class="pg-row"><div class="pg-rnum">${esc(n)}</div><div class="pg-rclaim"><b>${esc(b)}</b></div><div class="pg-rproof">${p}</div></div>`).join("")}
       </div>
@@ -11008,15 +11016,15 @@ if(id==="messaging"){
       <div class="pg-proof" style="margin-top:22px">
         <div><span class="k">booking</span> Doral Junior Golf — short game clinic</div>
         <div><span class="k">session</span> $45.00 · paid in app</div>
-        <div><span class="k">fee</span>     $5.40 · Sporv flat 12% platform fee</div>
-        <div><span class="k">payout</span>  <span class="hl">$39.60</span> · to the coach, automatic</div>
+        <div><span class="k">fee</span>     $0.00 · Sporv takes 0% of bookings</div>
+        <div><span class="k">payout</span>  <span class="hl">$45.00</span> · to the coach, automatic</div>
         <div><span class="k">refund</span>  full trail kept on every booking</div>
       </div>
     </div></section>
 
     <section class="pgband slate"><div class="shell" data-rev>
       <div class="pg-stats">
-        ${[["12%","flat platform fee on every booking"],["100%","of bookable coaches, background-checked"],["$0","to browse, save, and message"]]
+        ${[["100%","of every booking kept by the coach"],["100%","of bookable coaches, background-checked"],["$0","to browse, save, and message"]]
           .map(([n,l])=>`<div class="pg-stat"><div class="n" data-count="${esc(n)}">${esc(n)}</div><div class="l">${esc(l)}</div></div>`).join("")}
       </div>
     </div></section>
@@ -11632,7 +11640,7 @@ try{
 }catch(_e){}
 try{
 (function(){var r=document.querySelector('.sig-payments');if(!r)return;
-  var states=['Pending · not yet released','In transit · arrives Tue','Paid · $39.60 deposited'];
+  var states=['Pending · not yet released','In transit · arrives Tue','Paid · $45.00 deposited'];
   var st=r.querySelector('.py-status');var b=r.querySelector('.py-adv');
   function apply(){st.textContent=states[(parseInt(r.dataset.step,10)||1)-1];}
   b.addEventListener('click',function(){r.dataset.step=(parseInt(r.dataset.step,10)%3)+1;apply();});
@@ -14525,7 +14533,8 @@ document.addEventListener("click",e=>{
     /* Logistics policies the coach owns — added 2026-08-15 for the assistant's
        set_policy port. what_to_bring + travel_radius (service area) are pure
        logistics. cancellation_policy is DELIBERATELY NOT here: it drives refund
-       math, which is frozen while payments move to the subscription model. */
+       math, and refunds are Sporv's published policy, not a field a coach can
+       retype (reconciled 2026-08-17 — see createListing). */
     "what_to_bring", "travel_radius",
   ];
 
@@ -14535,6 +14544,49 @@ document.addEventListener("click",e=>{
       if (EDITABLE.indexOf(k) >= 0 && patch[k] !== undefined) out[k] = patch[k];
     });
     return out;
+  }
+
+  /* THE PLANS — one declaration, read by the billing tab and by the onboarding
+     wizard's plan step (mod-coachonboard.js reads SporveCoach.plans()), so a
+     price can never disagree with itself across two files.
+
+     `buyable` is the honesty flag. Enterprise has a price and no product: the
+     multi-player workspace it names is not built, billing-create-checkout
+     rejects it server-side, and nothing here may offer a way to pay for it. */
+  var PLANS = {
+    free: {
+      id: "free", name: "Free", price: "$0", per: "",
+      adds: "Three AI actions a month, one seat.", buyable: true,
+    },
+    pro: {
+      id: "pro", name: "Sporv Pro", price: "$34.99", per: "/mo",
+      adds: "Unlimited AI actions and up to three seats.", buyable: true,
+    },
+    enterprise: {
+      id: "enterprise", name: "Sporv Enterprise", price: "$149", per: "/mo",
+      adds: "Multi-player workspace, in development.", buyable: false,
+    },
+  };
+
+  /* The statuses that actually grant the paid plan. `canceled` and `incomplete`
+     are deliberately absent: one is a plan that ended, the other a checkout
+     that never finished, and calling either of them Pro would be the product
+     telling a coach they bought something they did not. */
+  var ENTITLING = ["active", "trialing", "past_due"];
+
+  function prettyDay(iso) {
+    if (!iso) return null;
+    var t = Date.parse(iso);
+    if (!isFinite(t)) return null;
+    return new Date(t).toLocaleDateString("en-US",
+      { month: "long", day: "numeric", year: "numeric" });
+  }
+
+  /* Where Stripe sends the coach back. The app routes on the query string
+     (?connect=done, ?booking=…), not on a hash, so this matches that
+     convention; the billing tab's own wire() reads ?billing= and scrubs it. */
+  function backUrl(mark) {
+    return window.location.origin + window.location.pathname + "?billing=" + mark;
   }
 
   var ACCOUNT = {
@@ -14555,10 +14607,16 @@ document.addEventListener("click",e=>{
        id: the session is the source of truth for who you are. */
     load: function () {
       if (!uid()) { provider = null; return Promise.resolve(null); }
+      /* plan / plan_status / plan_period_end are SERVER-COMPUTED: the Stripe
+         webhook projects them onto this row and a trigger refuses a client
+         write, so they are safe to read and pointless to send. They are
+         selected here rather than in a second query because the billing tab
+         must never be able to render a plan the row does not state. */
       return API.from("providers",
         "select=id,business_name,bio,sports,location,provider_type,status," +
         "verification_status,background_check_status,background_check_completed_at," +
         "onboarding_completed,stripe_account_id,stripe_charges_enabled," +
+        "plan,plan_status,plan_period_end," +
         "coach_years_coaching,coach_years_played,credentials,avatar_url,logo_url" +
         "&owner_id=eq." + encodeURIComponent(uid()) + "&limit=1"
       ).then(function (rows) {
@@ -14860,8 +14918,11 @@ document.addEventListener("click",e=>{
        immediately; booking is still gated server-side by the
        enforce_booking_provider_verified trigger, so an unverified coach's
        listing is visible-but-not-bookable, never a safety hole.
-       cancellation_policy is left to its 'flexible' default and NOT exposed —
-       it drives refund math, frozen for the subscription rebuild. */
+       cancellation_policy is left to its 'flexible' default and NOT exposed.
+       RECONCILED 2026-08-17 with the subscription model: Sporv takes 0% of a
+       booking from this date, so a refund returns the whole of what the family
+       paid, while a booking recorded before it keeps the fee it was actually
+       charged — history is reported, never recomputed. */
     createListing: function (f) {
       var no = guard(); if (no) return no;
       if (!provider || !provider.id) {
@@ -14925,7 +14986,7 @@ document.addEventListener("click",e=>{
        id returns zero rows → we throw rather than claim success). Same field
        map as createListing. status and cancellation_policy are intentionally
        NOT editable here (publish-state and refund policy are separate, and
-       cancellation is refund-linked/frozen). */
+       cancellation is refund-linked — see the reconciliation on createListing). */
     updateListing: function (programId, f) {
       var no = guard(); if (no) return no;
       if (!programId) return Promise.reject(new Error("No listing to update."));
@@ -14945,6 +15006,82 @@ document.addEventListener("click",e=>{
         if (!rows || !rows[0]) throw new Error("The listing wasn't updated — it may not be yours.");
         return rows[0];
       });
+    },
+
+    /* THE PLAN, READ OFF THE ROW AND NOWHERE ELSE.
+       -----------------------------------------------------------------------
+       Every string this returns is a restatement of three server-owned
+       columns. There is no branch that infers a plan from a redirect, a
+       query parameter or a click — a coach who cancels in Stripe's portal is
+       on the free plan the moment the webhook says so, and not before.
+
+       Returns {id, status, entitled, ends, label, plan}: `entitled` is what the
+       UI gates on, `label` is what it prints. */
+    plan: function () {
+      var p = provider || {};
+      var id = PLANS[p.plan] ? p.plan : "free";
+      var status = String(p.plan_status || "none");
+      var ends = prettyDay(p.plan_period_end);
+      var paid = id !== "free";
+      var entitled = paid && ENTITLING.indexOf(status) >= 0;
+      var name = PLANS[id].name;
+      var label = "Free plan";
+      if (entitled) {
+        if (status === "trialing") label = name + " — trial ends " + (ends || "soon");
+        else if (status === "past_due") label = name + " — payment failed" +
+          (ends ? "; access until " + ends : "");
+        else label = name + (ends ? " — renews " + ends : "");
+      } else if (paid && status === "canceled") {
+        label = "Free plan — " + name + " canceled" + (ends ? "; period ends " + ends : "");
+      } else if (paid && status === "incomplete") {
+        label = "Free plan — " + name + " checkout not finished";
+      }
+      return { id: id, status: status, entitled: entitled, ends: ends,
+               label: label, plan: PLANS[id] };
+    },
+
+    plans: function () { return PLANS; },
+
+    /* BUY A PLAN. The function decides everything that matters — that the
+       caller is a coach, that the plan is on sale, that they are not already
+       paying for it — and rejects with a message written to be shown. So this
+       sends three fields and follows a link; it never renders its own idea of
+       why a purchase was refused. */
+    startCheckout: function (planId) {
+      var no = guard(); if (no) return no;
+      var p = PLANS[planId];
+      if (!p || !p.buyable || planId === "free") {
+        return Promise.reject(new Error("That plan isn't on sale yet."));
+      }
+      /* A SYNCHRONOUS throw here is the bug connectPayouts already shipped
+         once: it happens before the promise exists, so the caller's .catch
+         never runs and the button sits on "Opening Stripe…" forever. */
+      if (!API.fn) return Promise.reject(new Error("The billing module didn't load."));
+      return API.fn("billing-create-checkout", {
+        plan: planId,
+        successUrl: backUrl("done"),
+        cancelUrl: backUrl("cancelled"),
+      }).then(function (r) {
+        if (!r || !r.checkoutUrl) throw new Error("Stripe did not return a checkout page.");
+        window.location.href = r.checkoutUrl;
+        return r;
+      });
+    },
+
+    /* CARD, CANCEL AND INVOICES ARE STRIPE'S SCREENS, NOT OURS. Rebuilding
+       them here would mean holding card state in this client and writing our
+       own cancel path beside the webhook that already owns plan_status. A 409
+       here means the coach has no billing history yet, and the function says
+       so in words. */
+    openBillingPortal: function () {
+      var no = guard(); if (no) return no;
+      if (!API.fn) return Promise.reject(new Error("The billing module didn't load."));
+      return API.fn("billing-portal", { returnUrl: backUrl("portal") })
+        .then(function (r) {
+          if (!r || !r.portalUrl) throw new Error("Stripe did not return a billing page.");
+          window.location.href = r.portalUrl;
+          return r;
+        });
     },
 
     current: function () { return provider; },
@@ -14973,6 +15110,159 @@ document.addEventListener("click",e=>{
   };
 
   window.SporveCoach = ACCOUNT;
+
+  /* ═══════════════════ THE BILLING TAB ═══════════════════
+     WHY IT IS A MODULE VIEW AND NOT A BLOCK BOLTED INTO SETTINGS. The host
+     dispatches a coach tab through coachBody(t), whose first line is
+     `const mv=modView(t); if(mv) return mv();` — so a module that registers
+     views.billing owns that tab outright, with no host edit. The host already
+     tells a coach who hits the AI quota that "the upgrade lives in Account →
+     Billing"; until now that sentence pointed at a surface that did not exist.
+
+     Everything printed here restates provider.plan / plan_status /
+     plan_period_end. Nothing in this file can change a plan: the two buttons
+     hand the coach to Stripe, Stripe tells the webhook, the webhook writes the
+     row, and the next load() is when this page changes its mind. A plan
+     inferred from a redirect is a plan the coach did not necessarily buy. */
+  var CSS = `
+.cb-head{display:flex;justify-content:space-between;align-items:flex-start;gap:16px;margin:18px 0 6px;flex-wrap:wrap}
+.cb-lede{color:var(--muted);font-size:var(--text-base);max-width:64ch;margin-top:5px}
+.cb-two{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,360px);gap:20px;align-items:start;margin-top:16px}
+.cb-plan{display:block;font-size:var(--text-lg);font-weight:600;letter-spacing:-.02em;margin-top:10px}
+.cb-note{color:var(--ink-2);font-size:var(--text-base);margin-top:6px;max-width:52ch}
+.cb-fine{color:var(--muted);font-size:var(--text-sm);line-height:1.55;margin-top:8px;max-width:52ch}
+.cb-fine a{color:var(--slate-ink)}
+.cb-acts{display:flex;gap:10px;flex-wrap:wrap;margin-top:16px}
+.cb-row{margin-top:14px}
+@media(max-width:900px){.cb-two{grid-template-columns:1fr}}
+`;
+
+  function billingView() {
+    /* Same gate the host applies to every private coach tab. Billing states a
+       renewal date and a card — it belongs to the account, not to a visitor
+       looking around the portal. */
+    if (typeof isCoachGuest === "function" && isCoachGuest() &&
+        typeof coachLockHTML === "function") {
+      return coachLockHTML("Billing", "your plan, its renewal date and the card Stripe holds");
+    }
+    var st = ACCOUNT.plan();
+    var free = PLANS.free, pro = PLANS.pro, ent = PLANS.enterprise;
+    return `
+    <div class="cb-head"><div>
+      <h2>Billing</h2>
+      <p class="cb-lede">Your plan, what it includes, and the card Stripe holds. Sporv takes no
+        share of a booking.</p>
+    </div></div>
+
+    <div class="cb-two">
+      <div class="panel">
+        <p class="eyebrow">Current plan</p>
+        <b class="cb-plan">${esc(st.label)}</b>
+        <p class="cb-note">${esc(st.entitled ? st.plan.adds : free.adds)}</p>
+        ${provider ? "" : `<p class="cb-fine">Your coach profile has not loaded yet, so this reads
+          from nothing — reopen the tab in a moment.</p>`}
+        <div class="cb-acts">
+          ${st.entitled
+            ? `<button class="btn" data-cb-portal="1">Manage billing</button>`
+            : `<button class="btn" data-cb-buy="pro">Upgrade to ${esc(pro.name)}</button>`}
+        </div>
+        <p class="cb-fine">${st.entitled
+          ? "Card, invoices and cancellation open in Stripe's billing portal."
+          : esc(pro.price + pro.per + ". " + pro.adds)}</p>
+        <p class="err hide cb-row" data-cb-err role="alert"></p>
+      </div>
+
+      <div class="panel">
+        <p class="eyebrow">Plans</p>
+        <div class="linerow cb-row"><span>${esc(free.name)}</span>
+          <span class="num">${esc(free.price)}</span></div>
+        <p class="cb-fine">${esc(free.adds)}</p>
+        <div class="linerow cb-row"><span>${esc(pro.name)}</span>
+          <span class="num">${esc(pro.price + pro.per)}</span></div>
+        <p class="cb-fine">${esc(pro.adds)}</p>
+        <p class="cb-fine">${esc(ent.price + ent.per)} Enterprise (multi-player workspace) is in
+          development — <a href="mailto:support@sporve.com?subject=Enterprise%20early%20access">contact
+          Sporv for early access</a>.</p>
+      </div>
+    </div>`;
+  }
+
+  function cbErr(msg) {
+    var el = document.querySelector("[data-cb-err]");
+    if (!el) return;
+    el.textContent = msg || "";
+    if (msg) el.classList.remove("hide"); else el.classList.add("hide");
+  }
+
+  function cbBusy(btn, on, label) {
+    if (!btn) return;
+    btn.disabled = on;
+    if (on) { btn.dataset.cbLabel = btn.textContent; btn.textContent = label; }
+    else if (btn.dataset.cbLabel) { btn.textContent = btn.dataset.cbLabel; }
+  }
+
+  /* COMING BACK FROM STRIPE. Read once per page load, then scrubbed, so a
+     refresh does not replay it and a shared link does not carry it. The mark
+     decides the WORDING only — the plan itself is re-read from the row, and
+     the success wording never claims the plan changed, because the webhook may
+     land a second after the browser does. */
+  var returnRead = false;
+  function readReturn() {
+    if (returnRead || typeof window === "undefined") return;
+    returnRead = true;
+    var q;
+    try { q = new URLSearchParams(window.location.search); } catch (e) { return; }
+    var mark = q.get("billing");
+    if (!mark) return;
+    try { history.replaceState(null, "", window.location.pathname); } catch (e) {}
+    if (!AUTH.isSignedIn || !AUTH.isSignedIn()) return;
+    ACCOUNT.load().then(function (pv) {
+      if (typeof S === "undefined") return;
+      S.coachProvider = pv; S.portal = "coach"; S.coachTab = "billing";
+      render();
+      var st = ACCOUNT.plan();
+      if (mark === "cancelled") toast("Checkout cancelled — nothing was charged");
+      else if (mark === "portal") toast(st.label);
+      else toast(st.entitled ? st.label
+        : "Stripe has your payment — your plan changes the moment it confirms");
+    }).catch(function () {});
+  }
+
+  function wireBilling() {
+    if (typeof document === "undefined") return;
+    readReturn();
+    document.querySelectorAll("[data-cb-buy]").forEach(function (b) {
+      b.onclick = function () {
+        cbErr("");
+        cbBusy(b, true, "Opening Stripe…");
+        ACCOUNT.startCheckout(b.dataset.cbBuy).catch(function (err) {
+          cbBusy(b, false);
+          /* The function's own message is the only accurate account of what
+             was refused — "you already have an active plan", "that plan isn't
+             purchasable yet". Replacing it with a house string would hide the
+             reason from the one person who has to act on it. */
+          cbErr((err && err.message) || "Could not open Stripe checkout.");
+        });
+      };
+    });
+    document.querySelectorAll("[data-cb-portal]").forEach(function (b) {
+      b.onclick = function () {
+        cbErr("");
+        cbBusy(b, true, "Opening Stripe…");
+        ACCOUNT.openBillingPortal().catch(function (err) {
+          cbBusy(b, false);
+          cbErr((err && err.message) || "Could not open the billing portal.");
+        });
+      };
+    });
+  }
+
+  window.MOD_COACHBILLING = {
+    css: CSS,
+    tabs: { billing: "Billing" },
+    views: { billing: billingView },
+    wire: wireBilling,
+  };
 })();
 
 </script>
@@ -18048,9 +18338,16 @@ window.MOD_COACHOPS = {
 /* ═══════════════════════════════════════════════════════════════════
    MOD_PAYMENTS — money for Sporv Web.
 
+   THE FEE ERA CHANGED (2026-08, subscription pivot). Sporv charged a flat 12%
+   of every booking; it now charges providers a subscription and takes 0% of a
+   booking, so FEE_PCT is 0 and new checkouts show no fee line at all. The 12%
+   is not deleted from this file, it is demoted to HISTORY: a fee recorded on a
+   past booking or ledger row is still rendered, at the rate it was actually
+   charged. Derived fees follow the constant; recorded fees follow the record.
+
    Four real backend flows, mirrored exactly on the client:
-     · checkout        review → payment method → confirm, 12% platform fee
-                       itemized, card validated (Luhn + IIN brand + expiry)
+     · checkout        review → payment method → confirm, platform fee itemized
+                       only when non-zero, card validated (Luhn + IIN + expiry)
      · cancellation    refund follows the policy SNAPSHOTTED onto the booking
                        at purchase, never the listing's current policy
      · wallet          payment methods (last-4 only), transaction ledger with
@@ -18058,8 +18355,8 @@ window.MOD_COACHOPS = {
      · split pay       one booking across two guardians, cents reconciled
 
    Money is held in INTEGER CENTS everywhere and only formatted at the edge.
-   The host's money() renders whole dollars; a 12% fee is rarely whole, so
-   amounts computed here print through usd() at two decimals. Nothing here
+   The host's money() renders whole dollars; a percentage fee is rarely whole,
+   so amounts computed here print through usd() at two decimals. Nothing here
    invents a movement of money: every figure shown comes from a row in
    S.transactions that a user action actually wrote.
 
@@ -18186,6 +18483,33 @@ window.MOD_COACHOPS = {
   };
   const feeOn = cents => Math.round(cents * FEE_PCT / 100);
   const pctOf = (cents, pct) => Math.round(cents * pct / 100);
+
+  /* ── fee truth has two paths, and they must never be crossed ──────────
+     DERIVED — feeOn() prices a NEW booking off the host's FEE_PCT. Under the
+     subscription model that constant is 0, so feeOn() returns 0 and every fee
+     line below drops out: a "$0.00 platform fee" row is noise, not disclosure.
+     All of it is written against the constant, never against a hardcoded 0, so
+     if FEE_PCT is ever non-zero again the rows itemize themselves with no edit.
+
+     RECORDED — a fee already written onto a booking or a ledger row is history.
+     It is never recomputed and never hidden. A booking that was charged 12% has
+     to keep saying 12% forever, whatever FEE_PCT reads today, so the label for a
+     recorded fee cannot interpolate the live constant. recordedPct() reads the
+     rate back OUT of the two numbers that were stored, and returns it only when
+     it reproduces the stored cents exactly; otherwise the row says "fee" and
+     asserts no percentage it cannot prove. Zero and unknown stay distinct: a
+     recorded 0 means no fee was taken, null means nothing was ever captured. */
+  const feeLive = () => Number(FEE_PCT) > 0;
+  function recordedPct(feeCents, grossCents) {
+    const f = Math.abs(Number(feeCents) || 0), g = Math.abs(Number(grossCents) || 0);
+    if (!f || !g) return null;
+    const pct = Math.round(f * 100 / g);
+    return Math.round(g * pct / 100) === f ? pct : null;
+  }
+  const feeLabel = (feeCents, grossCents, tail) => {
+    const pct = recordedPct(feeCents, grossCents);
+    return `Sporv's ${pct == null ? "fee" : pct + "%"} ${tail}`;
+  };
 
   /* ── dates ──────────────────────────────────────────────────────────── */
   function sessionStart(dateStr, startTime) {
@@ -18337,8 +18661,9 @@ window.MOD_COACHOPS = {
     }
     const gross = Math.round(Number(p.price) * 100) + tierExtraCents(tier);
     const fee = feeOn(gross);
-    /* deducted incidence: the family is charged the coach's price. The fee is Sporv's
-       share of that price, not a surcharge, so it is itemized but never added to total. */
+    /* deducted incidence: the family is charged the coach's price. Any fee is Sporv's
+       share of that price, not a surcharge, so it is itemized but never added to total.
+       Under the subscription model fee is 0 and the total is the coach's price exactly. */
     return { gross, fee, total: gross, creditValue: 0 };
   }
 
@@ -18387,7 +18712,7 @@ window.MOD_COACHOPS = {
             ? sumRow("Paid with", "1 session credit")
             : sumRow("Paid with", esc(r.method))}
           ${sumRow("Session price", usd(r.grossCents))}
-          ${sumRow(`Sporv's ${FEE_PCT}% (paid by the coach)`, "−" + usd(r.feeCents))}
+          ${r.feeCents ? sumRow(feeLabel(r.feeCents, r.grossCents, "(paid by the coach)"), "−" + usd(r.feeCents)) : ""}
           ${sumRow("Charged", usd(r.totalCents), "total")}
         </div>
         <p class="pm-fine">Cancellation policy on this booking: <b>${esc(POLICIES[r.policy].label)}</b> —
@@ -18431,11 +18756,14 @@ window.MOD_COACHOPS = {
             ${sumRow(`${esc(p.title)} · ${esc(modelLabel(p.model))}`, money(p.price))}
             ${tierExtraCents(d.tier) ? sumRow("Premium tier", usd(tierExtraCents(d.tier))) : ""}
             ${sumRow("Session price", usd(t.gross))}
-            ${sumRow(`Sporv's ${FEE_PCT}% (paid by the coach)`, "−" + usd(t.fee))}
+            ${t.fee ? sumRow(`Sporv's ${FEE_PCT}% (paid by the coach)`, "−" + usd(t.fee)) : ""}
             ${sumRow("Total", usd(t.total), "total")}
           </div>
-          <p class="pm-fine">You pay the coach's price. The ${FEE_PCT}% fee is Sporv's share of it,
-            deducted from the coach's earnings and never added to your total.
+          <p class="pm-fine">${t.fee
+            ? `You pay the coach's price. The ${FEE_PCT}% fee is Sporv's share of it,
+               deducted from the coach's earnings and never added to your total.`
+            : `You pay the coach's price. Sporv takes 0% of the booking — the coach keeps
+               every dollar and pays for the software by subscription.`}
             ${esc(POLICIES[p.cancellationPolicy] ? POLICIES[p.cancellationPolicy].label : "Moderate")}
             cancellation applies and is copied onto the booking when you pay.</p>
 
@@ -18476,7 +18804,7 @@ window.MOD_COACHOPS = {
 
         <div class="pm-sum pm-gap">
           ${sumRow("Session price", usd(t.gross))}
-          ${sumRow(`Sporv's ${FEE_PCT}% (paid by the coach)`, "−" + usd(t.fee))}
+          ${t.fee ? sumRow(`Sporv's ${FEE_PCT}% (paid by the coach)`, "−" + usd(t.fee)) : ""}
           ${sumRow("Total", usd(t.total), "total")}
         </div>
 
@@ -18500,7 +18828,7 @@ window.MOD_COACHOPS = {
       </div>
       <div class="pm-sum pm-gap">
         ${sumRow("Session price", usd(t.gross))}
-        ${sumRow(`Sporv's ${FEE_PCT}% (paid by the coach)`, "−" + usd(t.fee))}
+        ${t.fee ? sumRow(`Sporv's ${FEE_PCT}% (paid by the coach)`, "−" + usd(t.fee)) : ""}
         ${sumRow(d.useCredit ? "Charged today" : "Total", usd(t.total), "total")}
       </div>
       ${d.useCredit ? `<p class="pm-fine">Nothing is charged today — a credit you already paid for covers
@@ -18693,7 +19021,10 @@ window.MOD_COACHOPS = {
         ${byCredit
           ? sumRow("Credit value on this booking", usd(basis))
           : sumRow("Session price paid", usd(ch.gross))}
-        ${(!byCredit && ch.fee != null) ? sumRow(`Sporv's ${FEE_PCT}% (from the coach)`, "−" + usd(ch.fee)) : ""}
+        ${/* RECORDED fee: labelled at the rate this booking actually paid, never at the
+             live FEE_PCT — a 12% booking stays a 12% booking after the rate went to 0.
+             A recorded 0 prints nothing; only a missing capture says "not recorded". */""}
+        ${(!byCredit && ch.fee) ? sumRow(feeLabel(ch.fee, ch.gross, "(from the coach)"), "−" + usd(ch.fee)) : ""}
         ${(!byCredit && ch.fee == null) ? `<div class="pm-sum-row"><span>Sporv's fee</span><span class="pm-meta">not recorded on this booking</span></div>` : ""}
         ${(!byCredit && ch.itemized) ? sumRow("Charged", usd(ch.total)) : ""}
       </div>
@@ -18710,15 +19041,19 @@ window.MOD_COACHOPS = {
             <span class="num">${creditReturn ? "1 credit" : usd(refundGross)}</span></div>`
         : `
           <div class="pm-math-row"><span>Session price ${usd(ch.gross)} × ${esc(band.pct)}%</span><span class="num">${usd(refundGross)}</span></div>
-          ${ch.fee != null
-            ? `<div class="pm-math-row"><span>Sporv gives back its ${FEE_PCT}% too — ${usd(ch.fee)} × ${esc(band.pct)}% — to the coach, not to you</span><span class="num">−${usd(refundFee)}</span></div>`
-            : `<div class="pm-math-row"><span>Sporv's fee</span><span class="pm-meta">nothing recorded, so nothing returned</span></div>`}
+          ${ch.fee
+            ? `<div class="pm-math-row"><span>Sporv gives back its ${recordedPct(ch.fee, ch.gross) == null ? "fee" : recordedPct(ch.fee, ch.gross) + "%"} too — ${usd(ch.fee)} × ${esc(band.pct)}% — to the coach, not to you</span><span class="num">−${usd(refundFee)}</span></div>`
+            : ch.fee == null
+              ? `<div class="pm-math-row"><span>Sporv's fee</span><span class="pm-meta">nothing recorded, so nothing returned</span></div>`
+              : ""}
           <div class="pm-math-row pm-math-sep"><span><b>Refund to ${esc(b.cardLast4 ? cardLabel({ brand: b.cardBrand, last4: b.cardLast4 }) : "your original payment method")}</b></span>
             <span class="num"><b>${usd(refundTotal)}</b></span></div>`}
       </div>
 
-      <p class="pm-fine">${refundTotal > 0 || creditReturn
-        ? "Sporv returns its fee in the same proportion as the session price — we don't keep a fee on money we give back."
+      <p class="pm-fine">${(refundTotal > 0 || creditReturn)
+        ? (ch.fee
+            ? "Sporv returns its fee in the same proportion as the session price — we don't keep a fee on money we give back."
+            : "The refund is the session price alone. Sporv took no fee on this booking, so there is none to return.")
         : "This cancellation returns nothing. Cancelling is still recorded, and the seat is released to the waitlist."}</p>
 
       <div id="pmCancelErr" class="err hide"></div>
@@ -18931,7 +19266,7 @@ window.MOD_COACHOPS = {
         <div class="pm-math">
           <div class="eyebrow">How ${usd(ch.total)} divides</div>
           <div class="pm-math-row"><span>Session price</span><span class="num">${usd(ch.gross)}</span></div>
-          ${ch.fee != null ? `<div class="pm-math-row"><span>Sporv's ${FEE_PCT}% (paid by the coach)</span><span class="num">−${usd(ch.fee)}</span></div>` : ""}
+          ${ch.fee ? `<div class="pm-math-row"><span>${feeLabel(ch.fee, ch.gross, "(paid by the coach)")}</span><span class="num">−${usd(ch.fee)}</span></div>` : ""}
           <div class="pm-math-row pm-math-sep"><span>Their half</span><span class="num">${usd(half)}</span></div>
           <div class="pm-math-row"><span>Your half${mine !== half ? " (carries the odd cent)" : ""}</span><span class="num">${usd(mine)}</span></div>
           <div class="pm-math-row on"><span><b>Together</b></span><span class="num"><b>${usd(mine + half)}</b></span></div>
@@ -19004,7 +19339,7 @@ window.MOD_COACHOPS = {
             <div class="pm-math-row"><span>${pack.sessions} × ${money(pp.price)} at list price</span><span class="num">${usd(full)}</span></div>
             <div class="pm-math-row"><span>Pack discount (${esc(pack.discountPct)}%)</span><span class="num">−${usd(off)}</span></div>
             <div class="pm-math-row pm-math-sep"><span>Pack price</span><span class="num">${usd(gross)}</span></div>
-            <div class="pm-math-row"><span>Sporv's ${FEE_PCT}% (paid by the coach)</span><span class="num">−${usd(fee)}</span></div>
+            ${fee ? `<div class="pm-math-row"><span>Sporv's ${FEE_PCT}% (paid by the coach)</span><span class="num">−${usd(fee)}</span></div>` : ""}
             <div class="pm-math-row on"><span><b>Charged today</b></span><span class="num"><b>${usd(gross)}</b></span></div>
             <div class="pm-math-row pm-math-sep"><span>Effective price per session</span>
               <span class="num">${usd(perCents)}${per === perCents ? "" : " (rounded)"}</span></div>
@@ -19014,8 +19349,11 @@ window.MOD_COACHOPS = {
           <div id="pmPackErr" class="err hide"></div>
           <button class="btn pm-gap" type="submit">Buy ${pack.sessions} sessions for ${usd(gross)}</button>
           <p class="pm-fine">Credits are held against this listing and pay for one session each at checkout.
-            The discount is applied to the coach's price; Sporv's fee is taken from the discounted
-            total, not the list price.</p>
+            ${fee
+              ? `The discount is applied to the coach's price; Sporv's fee is taken from the discounted
+                 total, not the list price.`
+              : `The discount is applied to the coach's price, and the coach keeps all of it —
+                 Sporv takes 0% of a pack.`}</p>
         </form>`;
     }
 
@@ -19023,8 +19361,11 @@ window.MOD_COACHOPS = {
       <div class="sec-head"><div>
         <p class="eyebrow">Payments</p>
         <h1>Wallet</h1>
-        <p class="pm-lede">Your cards, every charge and refund with Sporv's ${FEE_PCT}% itemized so you can
-          see it comes out of the coach's side, and any session credits you have bought.
+        <p class="pm-lede">${feeLive()
+          ? `Your cards, every charge and refund with Sporv's ${FEE_PCT}% itemized so you can
+             see it comes out of the coach's side, and any session credits you have bought.`
+          : `Your cards, every charge and refund, and any session credits you have bought.
+             Sporv takes 0% of a booking — the coach keeps every dollar you pay.`}
           Every row here corresponds to money that actually moved.</p>
       </div></div>
 
@@ -19033,8 +19374,14 @@ window.MOD_COACHOPS = {
           <div class="d">${list.length ? esc(cardLabel(defaultCard())) + " is default" : "None yet"}</div></div>
         <div class="stat"><div class="k">Net charged</div><div class="v num">${usd(netCharged)}</div>
           <div class="d">${rows.length} transaction${rows.length === 1 ? "" : "s"}, refunds included</div></div>
+        ${/* the stat sums RECORDED fees, so it keeps its value after the rate went to 0;
+             only the description changes, because the money in it really was taken. */""}
         <div class="stat"><div class="k">Sporv's share</div><div class="v num">${usd(feesPaid)}</div>
-          <div class="d">${FEE_PCT}% of each booking, paid by the coach</div></div>
+          <div class="d">${feeLive()
+            ? `${FEE_PCT}% of each booking, paid by the coach`
+            : feesPaid
+              ? "Taken on earlier bookings. New bookings are 0%"
+              : "Sporv takes 0% of a booking"}</div></div>
         <div class="stat"><div class="k">Session credits</div><div class="v num">${creditTotal}</div>
           <div class="d">${creditRows.length ? "across " + creditRows.length + " listing" + (creditRows.length === 1 ? "" : "s") : "No packs bought"}</div></div>
       </div>
@@ -19064,10 +19411,11 @@ window.MOD_COACHOPS = {
             <thead><tr><th>Date</th><th>Description</th><th>Method</th><th>Gross</th>
               <th>Fee</th><th>Net to coach</th><th>Charged</th><th>Status</th></tr></thead>
             <tbody>${txRows}</tbody></table></div>
-          <p class="pm-fine"><b>Gross</b> is the coach's price. <b>Fee</b> is Sporv's ${FEE_PCT}%,
-            taken from the coach's side. <b>Net to coach</b> is gross minus the fee.
-            <b>Charged</b> is what left your card — the coach's price, with no fee added.
-            Refunds are the same four numbers with the sign flipped.</p>`
+          <p class="pm-fine"><b>Gross</b> is the coach's price. <b>Fee</b> is Sporv's share,
+            taken from the coach's side${feeLive() ? ` — ${FEE_PCT}% today` : ` — 0% on new bookings, so the column
+            only carries fees charged before the subscription model`}. <b>Net to coach</b> is gross
+            minus the fee. <b>Charged</b> is what left your card — the coach's price, with no fee
+            added. Refunds are the same four numbers with the sign flipped.</p>`
           : `<p class="pm-none">No transactions yet. Nothing has been charged to this account.</p>`}
       </section>
 
@@ -20621,21 +20969,27 @@ window.MOD_SEARCH={
 const TODAY = new Date(2026, 7, 3);          // Mon 3 Aug 2026
 const TODAY_ISO = "2026-08-03";
 
-/* ── platform economics ────────────────────────────────────────────
-   PLACEHOLDER RATE. The Flutter app computes a TIERED fee server-side from
-   program price; this flat rate is a stand-in for the arithmetic only. No
-   user-facing string states a percentage — see PART 8.7. Replace with the
-   real tier table when it is exported here, then render the table. */
-/* FEE_RATE comes from the host — see the single-source block there. */
-const feeOn = n => Math.round(Number(n) * FEE_RATE);
-const netOf = n => Number(n) - feeOn(n);
+/* ── platform economics, 2026-08-17 ────────────────────────────────
+   Sporv charges the COACH a subscription, not a cut of a booking. So this
+   wizard no longer does fee arithmetic at all: the price a family pays is the
+   money that reaches the coach, and the only thing to choose is a plan.
+
+   The plan names and prices are NOT declared here. They come from
+   SporveCoach.plans() (mod-coachaccount.js), which is the one place they are
+   written, so a price cannot drift between the wizard and the billing tab. If
+   that module is absent the step still renders — it just states the free plan
+   and sends the coach to Billing, rather than inventing a number. */
+const plans = () => (window.SporveCoach && window.SporveCoach.plans
+  ? window.SporveCoach.plans() : null);
+const planPrice = id => { const p = plans(); return p && p[id] ? p[id].price + p[id].per : null; };
+const planName  = id => { const p = plans(); return p && p[id] ? p[id].name : (id === "pro" ? "Pro" : "Free"); };
 
 /* ── steps ───────────────────────────────────────────────────────── */
 const STEPS = [
   ["Identity",        "Who you are",              "The legal name here is the name that goes to the screening partner. The business name is what families read on your listings."],
   ["Sports",          "What you coach",           "Pick every sport you actually coach. Each one becomes a filter families can find you through."],
   ["Services",        "Services & capacity",      "A service is one thing a family can book. Capacity is the honest ceiling — how many athletes you can coach at once without the session getting worse."],
-  ["Pricing",         "Pricing",                  "You set the price. Sporv's platform fee comes out at checkout; the take-home figure beside each service is what actually reaches your account."],
+  ["Pricing",         "Pricing and your plan",    "You set the price and you keep all of it. Sporv charges you a plan, not a share of a booking — start free and change it whenever you want."],
   ["Availability",    "Availability",             "The days and the window you can coach. Exact session times come later, from your schedule — this is the outer boundary."],
   ["Background check","Background check",         "Every person who coaches on Sporv must clear their own check before listings go live. This step collects your consent and the identifiers needed for screening."],
   ["Review",          "Review & submit",          "Everything you entered, read back. Fix anything that is wrong before it goes in."],
@@ -20739,6 +21093,9 @@ const BLANK = {
   sports: [],
   services: [{ id: "svc_1", name: "", format: "private", capacity: 1, minutes: 60, price: "", model: "single_session" }],
   days: [], startTime: "16:00", endTime: "19:00",
+  /* free until the coach says otherwise — a wizard that arrives pre-set to the
+     paid plan is a charge nobody chose */
+  plan: "free",
   consent: false, dob: "", ssn4: "",
   submittedAt: null, profile: null, drafts: [],
 };
@@ -20750,6 +21107,9 @@ function draft(){
   if (!Array.isArray(d.sports)) d.sports = [];
   if (!Array.isArray(d.days)) d.days = [];
   if (!Array.isArray(d.drafts)) d.drafts = [];
+  /* an older draft in sessionStorage has no plan key, and any value that is not
+     "pro" resolves to free — the safe side of the only field here that costs money */
+  if (d.plan !== "pro") d.plan = "free";
   if (!Array.isArray(d.services) || !d.services.length) d.services = [newService()];
   d.services.forEach((s, i) => {
     if (!s.id) s.id = "svc_" + (i + 1);
@@ -20963,6 +21323,14 @@ const CSS = `
 .cob-consent.on{border-color:var(--slate);background:var(--slate-tint)}
 .cob-consent input{width:18px;height:18px;margin:1px 0 0;flex:0 0 auto;accent-color:var(--slate)}
 .cob-consent span{font-size:var(--text-sm);color:var(--ink-2);line-height:1.5}
+.cob-plans{display:flex;flex-direction:column;gap:10px}
+.cob-plan{display:flex;gap:12px;align-items:flex-start;padding:15px;border:1.5px solid var(--rule);
+  border-radius:var(--r-m);cursor:pointer;transition:border-color .14s,background .14s}
+.cob-plan:hover{border-color:var(--rule-strong);background:var(--raise)}
+.cob-plan.on{border-color:var(--slate);background:var(--slate-tint)}
+.cob-plan input{width:18px;height:18px;margin:1px 0 0;flex:0 0 auto;accent-color:var(--slate)}
+.cob-plan b{display:block;font-size:var(--text-base);font-weight:600;letter-spacing:-.015em}
+.cob-plan span span{display:block;font-size:var(--text-sm);color:var(--muted);line-height:1.5;margin-top:2px}
 .cob-truth{border:1px solid var(--rule-strong);border-radius:var(--r-l);padding:18px 20px;background:var(--raise);margin-bottom:20px}
 .cob-truth h4{margin:0 0 4px;font-size:var(--text-base);letter-spacing:-.015em}
 .cob-truth p{font-size:var(--text-sm);color:var(--ink-2);line-height:1.58;margin-top:9px}
@@ -21139,7 +21507,7 @@ function servicesStep(d, err){
 function pricingStep(d, err){
   const priced = d.services.filter(s => !isBlank(s.price) && isFinite(Number(s.price)) && Number(s.price) >= 0);
   const gross = priced.reduce((t, s) => t + Number(s.price), 0);
-  const fee = priced.reduce((t, s) => t + feeOn(s.price), 0);
+  const proPrice = planPrice("pro");
   return `
   ${d.services.map((s, i) => {
     const p = isBlank(s.price) ? null : Number(s.price);
@@ -21168,10 +21536,10 @@ function pricingStep(d, err){
       </div>
       <div class="cob-take">
         <p class="cob-takenote">${esc(modelRow(s.model)[2])}
-          Sporv's fee is taken at checkout and itemized on every payout — never billed to you separately.</p>
+          Sporv takes no share of this price.</p>
         <div class="cob-takefig">
-          <b class="num" data-cob-net="${esc(s.id)}">${ok ? money(netOf(p)) : "—"}</b>
-          <span>you keep${ok ? ", after " + money(feeOn(p)) + " fee" : " — enter a price"}</span>
+          <b class="num" data-cob-net="${esc(s.id)}">${ok ? money(p) : "—"}</b>
+          <span>you keep${ok ? ", all of it" : " — enter a price"}</span>
         </div>
       </div>
     </div>`;
@@ -21180,11 +21548,31 @@ function pricingStep(d, err){
   <div class="panel" style="background:var(--raise);border:0;margin-top:4px">
     <div class="eyebrow">If one of each sold at list price</div>
     <div class="linerow"><span>Families pay</span><span class="num" data-cob-gross>${money(gross)}</span></div>
-    <div class="linerow"><span>Platform fee</span><span class="num" data-cob-fee>−${money(fee)}</span></div>
-    <div class="linerow total"><span>Reaches your account</span><span class="num" data-cob-nettotal>${money(gross - fee)}</span></div>
+    <div class="linerow total"><span>Reaches your account</span><span class="num" data-cob-nettotal>${money(gross)}</span></div>
   </div>
-  <p class="cob-help" style="margin-top:14px">Payment processing is settled by Stripe on top of this;
-    these figures are the marketplace fee only.</p>`;
+  <p class="cob-help" style="margin-top:14px">Stripe settles its own payment-processing charge on top of
+    this. Sporv is not part of that number.</p>
+
+  ${/* THE PLAN CHOICE — the step that used to explain a commission.
+       Free is pre-selected and stays selected unless the coach changes it: an
+       upsell that defaults to the paid tier is how someone finds a charge they
+       did not choose. Nothing here takes a payment; see submittedHTML(). */""}
+  <fieldset style="border:0;padding:0;margin:26px 0 0" data-cob-field="plan">
+    <legend class="eyebrow" style="padding:0;margin-bottom:11px">Your plan</legend>
+    <div class="cob-plans">
+      ${[["free", "Start free", "Three AI actions a month, one seat. No card."],
+         ["pro",  planName("pro") + (proPrice ? " — " + proPrice : ""),
+                  "Unlimited AI actions and up to three seats."]]
+        .map(([k, label, note]) => `
+        <label class="cob-plan ${d.plan === k ? "on" : ""}">
+          <input type="radio" name="cobplan" value="${k}" data-cob-plan="${k}"
+            ${d.plan === k ? "checked" : ""}>
+          <span style="min-width:0"><b>${esc(label)}</b><span>${esc(note)}</span></span>
+        </label>`).join("")}
+    </div>
+    <p class="cob-help" style="margin-top:12px">Either way you keep every dollar a family pays. Pro is
+      charged after you submit, from your account page, and you can change plan any time.</p>
+  </fieldset>`;
 }
 
 function availabilityStep(d, err){
@@ -21292,7 +21680,7 @@ function rbHead(title, step){
 function reviewStep(d, err){
   const priced = d.services.filter(s => !isBlank(s.price) && isFinite(Number(s.price)));
   const gross = priced.reduce((t, s) => t + Number(s.price), 0);
-  const fee = priced.reduce((t, s) => t + feeOn(s.price), 0);
+  const proPrice = planPrice("pro");
   const bgSteps = [["Consent given", !!d.consent], ["Submitted to partner", false],
     ["Screening", false], ["Result", false]];
   return `
@@ -21321,12 +21709,13 @@ function reviewStep(d, err){
   </div>
 
   <div class="cob-rb">
-    ${rbHead("Pricing", 3)}
+    ${rbHead("Pricing and your plan", 3)}
     ${d.services.map(s => line(s.name || "Untitled service",
       `<span class="num">${money(Number(s.price))}</span> <span style="font-weight:500;color:var(--muted)">${esc(MODEL_UNIT[s.model] || s.model)}</span>`)).join("")}
-    <div class="linerow"><span>Platform fee across one of each</span>
-      <span class="num">−${money(fee)}</span></div>
-    <div class="linerow total"><span>You keep</span><span class="num">${money(gross - fee)}</span></div>
+    <div class="linerow total"><span>You keep, across one of each</span><span class="num">${money(gross)}</span></div>
+    ${line("Plan", d.plan === "pro"
+      ? esc(planName("pro") + (proPrice ? ", " + proPrice : "") + " — starts after you submit")
+      : "Free")}
   </div>
 
   <div class="cob-rb">
@@ -21377,7 +21766,21 @@ function submittedHTML(d){
       <div class="linerow"><span>Background check</span><span><b><span class="pill warn">${esc(p.backgroundCheck || "pending")}</span></b></span></div>
       <div class="linerow"><span>Verification</span><span><b><span class="pill slate">${esc(p.verification || "unverified")}</span></b></span></div>
       <div class="linerow"><span>Draft listings</span><span><b class="num">${(d.drafts || []).length}</b></span></div>
+      <div class="linerow"><span>Plan</span><span><b>${d.plan === "pro"
+        ? esc(planName("pro") + (planPrice("pro") ? " — " + planPrice("pro") : "") + ", not started yet")
+        : "Free"}</b></span></div>
       <div class="linerow total"><span>Visible to families</span><span><b>None, until the check clears</b></span></div>
+      ${/* The plan the coach picked on step 4, now that there is a coach row
+           for the checkout to belong to. Free needs no action and gets a
+           sentence, not a button. */""}
+      ${d.plan === "pro" ? `
+        <p class="cob-help" style="margin:18px 0 10px">You chose ${esc(planName("pro"))}. Nothing has been
+          charged — Stripe takes the payment, and your plan changes when it confirms.</p>
+        <button class="btn" data-cob-buypro="1">Start ${esc(planName("pro"))}${
+          planPrice("pro") ? " — " + esc(planPrice("pro")) : ""}</button>
+        <p class="err hide" data-cob-buyerr role="alert" style="margin-top:10px"></p>`
+      : `<p class="cob-help" style="margin:18px 0 0">You are on the free plan. Pro is one button in
+          Account → Billing whenever you want it.</p>`}
       <div class="cob-lock" style="margin:20px 0 0">
         <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"
           stroke-linecap="round" aria-hidden="true"><rect x="4" y="10" width="16" height="11" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/></svg>
@@ -21559,7 +21962,7 @@ function submitApplication(){
     minutes: intOf(s.minutes),
     price: Number(trim(s.price)),
     model: s.model,
-    netPerSale: netOf(Number(trim(s.price))),
+    netPerSale: Number(trim(s.price)),   // no marketplace fee — net is the price
     availability: { days: d.days.slice(), start: d.startTime, end: d.endTime },
     status: "draft",                // never "published"
     published: false,
@@ -21646,18 +22049,16 @@ function sync(){
     if (net){
       const p = isBlank(s.price) ? null : Number(trim(s.price));
       const ok = p != null && isFinite(p) && p >= 0;
-      net.textContent = ok ? money(netOf(p)) : "—";
+      net.textContent = ok ? money(p) : "—";
       const cap = net.parentNode && net.parentNode.querySelector ? net.parentNode.querySelector("span") : null;
-      if (cap) cap.textContent = ok ? "you keep, after " + money(feeOn(p)) + " fee" : "you keep — enter a price";
+      if (cap) cap.textContent = ok ? "you keep, all of it" : "you keep — enter a price";
     }
   });
 
   const priced = d.services.filter(s => !isBlank(s.price) && isFinite(Number(trim(s.price))) && Number(trim(s.price)) >= 0);
   const gross = priced.reduce((t, s) => t + Number(trim(s.price)), 0);
-  const fee = priced.reduce((t, s) => t + feeOn(trim(s.price)), 0);
   const g = document.querySelector("[data-cob-gross]"); if (g) g.textContent = money(gross);
-  const f = document.querySelector("[data-cob-fee]"); if (f) f.textContent = "−" + money(fee);
-  const n = document.querySelector("[data-cob-nettotal]"); if (n) n.textContent = money(gross - fee);
+  const n = document.querySelector("[data-cob-nettotal]"); if (n) n.textContent = money(gross);
 
   const sp = document.querySelector("[data-cob-span]");
   if (sp){
@@ -21782,6 +22183,35 @@ function wire(){
     cur.days = on ? cur.days.filter(x => x !== k)
       : WD.map(w => w[0]).filter(x => x === k || cur.days.indexOf(x) >= 0);   // keeps Mon→Sun order
     render();
+  });
+
+  /* The plan choice is recorded, not charged. render() rather than sync()
+     because the selected card's outline is part of the step's markup. */
+  q("[data-cob-plan]").forEach(r => r.onchange = () => {
+    draft().plan = r.dataset.cobPlan === "pro" ? "pro" : "free";
+    render();
+  });
+
+  /* THE ONE PLACE THIS WIZARD CAN START A PAYMENT, and it is after the
+     application is in. Two reasons it is not on the pricing step: Stripe
+     Checkout is a full navigation away from a half-finished wizard, and
+     billing-create-checkout refuses a caller who is not yet a coach — which,
+     before submit, is every one of them. */
+  q("[data-cob-buypro]").forEach(b => b.onclick = () => {
+    const err = document.querySelector("[data-cob-buyerr]");
+    if (err){ err.textContent = ""; err.classList.add("hide"); }
+    if (!window.SporveCoach || !window.SporveCoach.startCheckout){
+      if (err){ err.textContent = "Billing isn't available in this session — upgrade from your account page."; err.classList.remove("hide"); }
+      return;
+    }
+    b.disabled = true;
+    const was = b.textContent;
+    b.textContent = "Opening Stripe…";
+    window.SporveCoach.startCheckout("pro").catch(e => {
+      b.disabled = false; b.textContent = was;
+      /* the function's own words — it is the only thing that knows why */
+      if (err){ err.textContent = (e && e.message) || "Could not open Stripe checkout."; err.classList.remove("hide"); }
+    });
   });
 
   q("[data-cob-consent]").forEach(cb => cb.onchange = () => {
@@ -26590,13 +27020,13 @@ window.MOD_COMPANIES = {
       ["Marketplace", "Families compare real services by sport, age, level, place, price, format, and dated availability. Coaches publish that supply themselves. An empty match stays empty; Sporv does not pad the catalogue with a coach who missed the request. Reopening a result reads its current record again."],
       ["Verification", "Every person who can accept a booking needs their own cleared background-check state. A company cannot lend its status to staff. A badge that stops being true stops showing, and new booking access stops with it. The named person remains the unit of trust."],
       ["Booking", "A parent chooses a published opening with duration, place, capacity, and full price attached. Checkout checks the remaining seat again before writing confirmation. A failed payment or a full session never becomes a polite fiction. Both sides leave with the same dated record."],
-      ["Payments", "Families pay the listed service price without an added booking fee. The coach sees gross revenue, Sporv's twelve-percent platform fee, and net payout on one record. A refund keeps the original charge and adjustment visible. No transfer is reduced to an unexplained balance."],
+      ["Payments", "Families pay the listed service price without an added booking fee. Sporv takes zero percent of bookings, so gross and net payout match on the record. A refund keeps the original charge and adjustment visible. No transfer is reduced to an unexplained balance."],
       ["Messaging", "A question begins from a listing and remains attributed. If the family books, the same thread follows the dated session. Conversation can clarify fit or arrival; it cannot bypass verification, capacity, payment, or confirmation. Reporting stays separate from an ordinary reply."],
       ["Progress", "Dated notes, goals, and real measurements stay with the athlete account while retaining each coach's authorship. Parents can read the season without rebuilding it from screenshots, and changing coaches does not erase earlier work. A missing observation is never filled by inference."]
     ];
     var questions = [
       ["Who is Sporv for?", "Families use Sporv to find and manage youth-sports instruction. Independent coaches, trainers, camps, teams, and authorized organizations use the other side to publish supply and operate the sessions they sell."],
-      ["What does it cost?", "Families pay the coach's listed price and no family booking fee. Coaches pay a flat twelve-percent platform fee only on paid booking revenue; gross, fee, net, and later adjustments remain itemized."],
+      ["What does it cost?", "Families pay the coach's listed price and no family booking fee. Coaches keep one hundred percent of booking revenue and run the software on a flat subscription — free to start, Pro at thirty-four ninety-nine a month."],
       ["When will it be near me?", "Search can only show supply that a real coach has published in the chosen area. Coverage grows coach by coach, so Sporv shows an honest empty result and keeps the criteria visible when a local match does not exist yet."]
     ];
     return wrap("what-is", "B01", "manifesto-grid-claim-questions", "D-L-D-L", hero(meta,
@@ -26617,7 +27047,7 @@ window.MOD_COMPANIES = {
   function bookingsPage(meta) {
     var prose = [
       "A booking starts with the coach, service, athlete, dated opening, duration, place, and price that were accepted at checkout. Sporv stores those facts together instead of leaving the parent to match a card charge with an email and a calendar event. The coach sees the same session on the roster. Messages about arrival, equipment, or a change remain attached to that context. Confirmation records when the booking was created and which account made it. If the family and coach agree to move the session, the updated time remains linked to the original purchase instead of becoming an orphaned calendar entry. Attendance or completion can be recorded later without rewriting what checkout originally promised.",
-      "Payment creates an itemized receipt inside the booking. Families pay the coach's listed price with no added family booking fee. The coach's platform fee is deducted from the coach payout and shown there, not quietly placed on the parent total. If a charge fails, the record cannot present the session as paid. If money is returned, the refund amount and status remain beside the original charge. The parent sees the paid total and payment state; the coach sees gross revenue, the platform deduction, and expected net. Those views describe the same transaction without exposing private payout-account details to the family. A receipt can be reopened from the session after the email is gone, and a processing state stays distinct from settled money.",
+      "Payment creates an itemized receipt inside the booking. Families pay the coach's listed price with no added family booking fee, and the coach's payout is the full amount — Sporv takes zero percent of a booking, and nothing is quietly placed on the parent total. If a charge fails, the record cannot present the session as paid. If money is returned, the refund amount and status remain beside the original charge. The parent sees the paid total and payment state; the coach sees gross revenue and the matching expected payout. Those views describe the same transaction without exposing private payout-account details to the family. A receipt can be reopened from the session after the email is gone, and a processing state stays distinct from settled money.",
       "Cancellation uses the policy saved when the parent booked, not whatever the listing says later. The current flexible policy returns the paid amount when cancellation happens at least twenty-four hours before the session; inside that window, the saved terms decide the result. The calculation reads the time, amount paid, policy snapshot, and any earlier refund. No one types a convenient number over the record. When a coach cancels or a session does not happen, support can inspect the same record rather than guessing from competing screenshots. The family can see whether the refund is requested, processing, or completed, and the coach can see how that change affects the payout. A finished refund remains in history; it does not erase the original payment."
     ];
     var rail = "<aside class='pg-stat-rail' aria-label='Booking record rules'>" +
@@ -26638,20 +27068,20 @@ window.MOD_COMPANIES = {
 
   function paymentsPage(meta) {
     var prose = [
-      "A family pays the price the coach published. Sporv does not add a family booking fee at checkout. The paid booking records the gross service price, and the coach side records the platform fee and resulting net payout. Keeping incidence explicit matters: the parent should not discover a surcharge at the last step, and the coach should not have to reverse-engineer what arrived. Tax or processor information, when applicable, is labeled separately rather than folded into the platform fee, and no estimate is presented as a settled transfer.",
-      "The platform fee is a flat twelve percent of the paid booking. It is taken only when there is paid revenue, then itemized on the payout record as gross, fee, and net. The coach connects a payout account after the required onboarding and safety gates clear. Payout state moves from pending to in transit to paid, so a balance never disappears behind a generic success message. A failed or paused transfer keeps its amount and status while the coach follows the remediation path; it does not masquerade as revenue that reached the bank.",
-      "Refunds preserve the same arithmetic. When money goes back under the saved cancellation policy, Sporv returns the corresponding portion of its fee instead of keeping a fee on refunded coach revenue. The original charge, refunded amount, remaining paid amount, returned fee, and payout adjustment stay visible. That trail lets both sides distinguish a pending transfer from money that was actually deposited. Partial refunds use the paid amount actually returned, so several adjustments still reconcile to the original booking instead of producing a second unexplained ledger entry."
+      "A family pays the price the coach published. Sporv does not add a family booking fee at checkout, and it does not take a percentage from the coach either. The paid booking records the gross service price, and the payout record shows that same amount reaching the coach. Keeping incidence explicit matters: the parent should not discover a surcharge at the last step, and the coach should not have to reverse-engineer what arrived. Tax or processor information, when applicable, is labeled separately, and no estimate is presented as a settled transfer.",
+      "Sporv takes zero percent of the paid booking. The platform's revenue is the coach subscription — free to start, thirty-four ninety-nine a month for Pro — so the money a family pays for coaching is not the money that funds the software. The coach connects a payout account after the required onboarding and safety gates clear, and the full booking amount moves as one transfer. Payout state moves from pending to in transit to paid, so a balance never disappears behind a generic success message. A failed or paused transfer keeps its amount and status while the coach follows the remediation path; it does not masquerade as revenue that reached the bank. Bookings paid during the earlier flat-fee era keep the fee that was actually recorded on them; a historical receipt is never rewritten by a pricing change.",
+      "Refunds preserve the same arithmetic. When money goes back under the saved cancellation policy, the refunded amount is the coach revenue being returned — there is no platform fee on the booking to unwind. On historical bookings that did record a fee, the matching portion of that fee is returned with the refund rather than kept on money the coach gave back. The original charge, refunded amount, remaining paid amount, and payout adjustment stay visible. That trail lets both sides distinguish a pending transfer from money that was actually deposited, and several partial adjustments still reconcile to the original booking instead of producing a second unexplained ledger entry."
     ];
     var rail = "<aside class='pg-stat-rail' aria-label='Worked payout example'>" +
       "<div class='pg-rail-stat'><span class='pg-rail-value'>$45.00</span><span class='pg-rail-label'>family pays the coach's listed lesson price</span></div>" +
-      "<div class='pg-rail-stat'><span class='pg-rail-value'>−$5.40</span><span class='pg-rail-label'>twelve percent platform fee from coach revenue</span></div>" +
-      "<div class='pg-rail-stat'><span class='pg-rail-value'>$39.60</span><span class='pg-rail-label'>coach net payout before any later refund</span></div></aside>";
-    var worked = "<div class='pg-worked-math'><code>gross       $45.00\nfee      ×     .12\n-----------------\nplatform   −$5.40\ncoach net   $39.60</code>" +
-      "<p data-prose>A forty-five-dollar lesson produces a five-dollar-and-forty-cent fee and a thirty-nine-dollar-and-sixty-cent coach payout. The same formula applies to every paid booking; there is no tier to infer and no separate invoice after the fact. The rail repeats those exact amounts in the transfer record the coach can reopen later. These are disclosed demo amounts, but the live calculation is written from the booking's stored gross value rather than copied from a marketing example. Rounding is resolved once on that record, so the displayed parts always reconcile.</p></div>";
-    var formula = "<aside class='pg-hero-math' aria-label='Disclosed demo payout calculation'><code>$45.00\n×   .12\n────────\n− $5.40\n= $39.60</code><span>DEMO BOOKING</span></aside>";
+      "<div class='pg-rail-stat'><span class='pg-rail-value'>−$0.00</span><span class='pg-rail-label'>zero percent of bookings taken by Sporv</span></div>" +
+      "<div class='pg-rail-stat'><span class='pg-rail-value'>$45.00</span><span class='pg-rail-label'>coach net payout before any later refund</span></div></aside>";
+    var worked = "<div class='pg-worked-math'><code>gross       $45.00\nfee      ×    .00\n-----------------\nplatform   −$0.00\ncoach net   $45.00</code>" +
+      "<p data-prose>A forty-five-dollar lesson produces a forty-five-dollar coach payout. The same rule applies to every paid booking; there is no tier to infer, no percentage to reverse-engineer, and no separate invoice after the fact. The rail repeats those exact amounts in the transfer record the coach can reopen later. These are disclosed demo amounts, but the live calculation is written from the booking's stored gross value rather than copied from a marketing example, and a booking that recorded a fee in the earlier era keeps that recorded arithmetic on its own receipt.</p></div>";
+    var formula = "<aside class='pg-hero-math' aria-label='Disclosed demo payout calculation'><code>$45.00\n×   .00\n────────\n− $0.00\n= $45.00</code><span>DEMO BOOKING</span></aside>";
     return wrap("payments", "R3", "math-head-to-rail-first-essay", "D-L", hero(meta,
-      "Gross, fee, and net are <em>shown before payout.</em>",
-      "The parent's charge and the coach's payout are two views of the same paid booking. Families pay the coach's listed price without an added booking fee. Coaches pay one flat platform fee from that revenue, then see the exact gross, fee, and net amounts as the transfer moves. Refunds keep their own trail and return the matching portion of the fee when coach revenue is returned. The adjacent calculation uses disclosed demo values.",
+      "The whole booking is <em>the coach's payout.</em>",
+      "The parent's charge and the coach's payout are two views of the same paid booking. Families pay the coach's listed price without an added booking fee, and Sporv takes zero percent of it — the software is a flat subscription instead. The coach sees the exact gross and net amounts, equal, as the transfer moves. Refunds keep their own trail. The adjacent calculation uses disclosed demo values.",
       { tone: "dark", layout: "payout-math", eyebrow: "PAYMENTS AND PAYOUTS", aside: formula }) +
       "<section class='pgband white pg-payment-ledger' data-section='essay-stat' data-layout='rail-first-essay'><div class='shell pg-essay-stat'><div class='pg-essay'><h2>The arithmetic should fit on four lines.</h2>" +
       prose.map(function (p) { return "<p data-prose>" + p + "</p>"; }).join("") + worked +
