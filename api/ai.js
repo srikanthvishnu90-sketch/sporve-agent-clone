@@ -38,6 +38,17 @@ import { Buffer } from "node:buffer";
    from one sentence is a classification task, which is what it is best at. */
 const MODEL = "claude-haiku-4-5";
 
+/* The Supabase project this page already talks to. Both values are PUBLIC —
+   they ship inside the built page (mod-api.js) — and are only used here to
+   forward the CALLER'S OWN JWT to the consume_ai_quota RPC. No service-role
+   key exists in this deployment, by design: the quota decision, the usage
+   insert and the plan lookup all run in the database under the caller's
+   identity. Env vars override for previews pointed at another project. */
+const SUPABASE_URL =
+  process.env.SUPABASE_URL || "https://tseszaprvtvqrkfpditu.supabase.co";
+const SUPABASE_ANON =
+  process.env.SUPABASE_ANON_KEY || "sb_publishable_CLawpS61QZDONSyy8ZdhTQ_rjCBLYBW";
+
 const MAX_TEXT = 2000;
 const MAX_BODY_BYTES = 8 * 1024;
 const WINDOW_MS = 60_000;
@@ -213,6 +224,58 @@ export default async function handler(req, res) {
         .map((g) => g.slice(0, 120))
         .slice(0, 50)
     : [];
+
+  /* ── Entitlements gate ─────────────────────────────────────────────────────
+     The per-IP window above is an abuse shield, not a quota. The QUOTA is
+     enforced in the database: consume_ai_quota() resolves the caller's
+     provider and plan, counts this calendar month against plan_entitlements,
+     and inserts the usage row atomically (advisory-locked). This endpoint
+     only forwards the caller's bearer token and translates the verdict:
+       - no/invalid token  -> 401 (client refreshes once and retries)
+       - not a coach       -> 403 (the command bar is a coach surface)
+       - over quota        -> 429 with a message written to be read
+     Runs AFTER body validation (malformed input should not cost a DB round
+     trip) and BEFORE the model call (an unauthenticated curl spends nothing). */
+  const bearer = String(req.headers.authorization || "");
+  if (!/^Bearer .+/.test(bearer)) {
+    return res.status(401).json({ error: "auth_required" });
+  }
+  let quota;
+  try {
+    const q = await fetch(`${SUPABASE_URL}/rest/v1/rpc/consume_ai_quota`, {
+      method: "POST",
+      headers: {
+        apikey: SUPABASE_ANON,
+        Authorization: bearer,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ p_kind: "command_bar" }),
+    });
+    if (q.status === 401) return res.status(401).json({ error: "auth_invalid" });
+    if (!q.ok) throw new Error(`quota check ${q.status}`);
+    quota = await q.json();
+  } catch (err) {
+    /* The metering layer being down must not silently become free unlimited
+       AI — fail closed, with a shape the client reports honestly. */
+    console.error("quota check failed:", err?.message || err);
+    return res.status(503).json({ error: "quota_unavailable" });
+  }
+  if (!quota?.allowed) {
+    if (quota?.reason === "quota_exhausted") {
+      return res.status(429).json({
+        error: "quota_exhausted",
+        used: quota.used,
+        quota: quota.quota,
+        message:
+          `You've used your ${quota.quota} free AI actions this month — ` +
+          "upgrade to Pro for unlimited.",
+      });
+    }
+    if (quota?.reason === "not_a_coach") {
+      return res.status(403).json({ error: "coach_only" });
+    }
+    return res.status(401).json({ error: "auth_invalid" });
+  }
 
   const client = new Anthropic(); // reads ANTHROPIC_API_KEY from the environment
 

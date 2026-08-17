@@ -94,13 +94,15 @@ A="$URL/api/ai"
   && pass "non-JSON rejected (415)" || fail "non-JSON not rejected"
 [ "$(code -X POST "$A" -H 'content-type: application/json' -H 'origin: https://evil.example' -d '{"text":"hi"}')" = "403" ] \
   && pass "cross-origin rejected (403)" || fail "cross-origin NOT rejected"
-# Same-origin is 503 without a key and 200 with one. Both mean every gate
-# passed; anything else means a gate is misbehaving.
+# Same-origin WITHOUT a bearer token is 401 with a key configured (the
+# entitlements gate charges nobody anonymous) and 503 without one. A 200 here
+# would mean the auth gate fell off and any same-origin curl spends money.
 SO=$(code -X POST "$A" -H 'content-type: application/json' -H "origin: $URL" -d '{"text":"open my earnings"}')
 case "$SO" in
-  200) pass "same-origin accepted (200 — key configured, AI live)";;
-  503) pass "same-origin accepted (503 — gates pass, no key set yet)";;
-  *)   fail "same-origin returned $SO — expected 200 or 503";;
+  401) pass "same-origin unauthenticated rejected (401 — entitlements gate live)";;
+  503) pass "same-origin gates pass (503 — no key set yet)";;
+  200) fail "same-origin unauthenticated returned 200 — the auth gate is MISSING";;
+  *)   fail "same-origin returned $SO — expected 401 or 503";;
 esac
 
 echo "────────────────────────────────────────────────────"

@@ -161,6 +161,10 @@
 
     setAccessToken: function (t) { accessToken = t || null; },
     isSignedIn: function () { return !!accessToken; },
+    /* Read access for callers that talk to NON-Supabase same-origin endpoints
+       (/api/ai) yet must prove who the visitor is. The token is the visitor's
+       own credential — handing it to their own next request leaks nothing. */
+    getAccessToken: function () { return accessToken; },
 
     /* Liveness probe. Resolves { ok, programs } or rejects with an ApiError.
        Used by smoke.sh to assert the built page can actually reach the backend

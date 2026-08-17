@@ -22,7 +22,7 @@ function responseRecorder() {
   };
 }
 
-async function invoke({ method = "POST", contentType = "application/json", origin = "https://sporv.test", body = {} } = {}) {
+async function invoke({ method = "POST", contentType = "application/json", origin = "https://sporv.test", body = {}, authorization = null } = {}) {
   requestNumber += 1;
   const req = {
     method,
@@ -31,6 +31,7 @@ async function invoke({ method = "POST", contentType = "application/json", origi
       origin,
       "content-type": contentType,
       "x-forwarded-for": "192.0.2." + requestNumber,
+      ...(authorization ? { authorization } : {}),
     },
     socket: { remoteAddress: "127.0.0.1" },
     body,
@@ -88,6 +89,31 @@ try {
     restated: "Do something unsupported.",
   }), { action: "unknown", target: "", body: "", restated: "" });
 
+  // Entitlements gate: a valid body with no bearer token spends nothing.
+  res = await invoke({ body: { text: "open earnings" } });
+  assert.equal(res.statusCode, 401);
+  assert.equal(res.payload.error, "auth_required");
+
+  // Over quota: the DB verdict becomes a 429 whose message is written to be
+  // read, and the model is never called (fetch here IS the RPC mock).
+  const realFetch = globalThis.fetch;
+  globalThis.fetch = async () =>
+    new Response(
+      JSON.stringify({ allowed: false, reason: "quota_exhausted", used: 3, quota: 3 }),
+      { status: 200, headers: { "content-type": "application/json" } },
+    );
+  try {
+    res = await invoke({
+      body: { text: "open earnings" },
+      authorization: "Bearer contract-test-token",
+    });
+    assert.equal(res.statusCode, 429);
+    assert.equal(res.payload.error, "quota_exhausted");
+    assert.match(res.payload.message, /upgrade to Pro/);
+  } finally {
+    globalThis.fetch = realFetch;
+  }
+
   delete process.env.ANTHROPIC_API_KEY;
   res = await invoke({ body: { text: "open earnings" } });
   assert.equal(res.statusCode, 503);
@@ -97,4 +123,4 @@ try {
   else process.env.ANTHROPIC_API_KEY = previousKey;
 }
 
-console.log("AI contract: 9 assertions passed");
+console.log("AI contract: 14 assertions passed");

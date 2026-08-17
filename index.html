@@ -21,7 +21,7 @@
 <meta name="twitter:description" content="Find coaches, trainers, camps and teams across 20+ sports in Chicagoland.">
 <meta name="twitter:image" content="https://the-sporve-web.vercel.app/og.png">
 <link rel="icon" href="data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%2032%2032'%3E%3Crect%20width='32'%20height='32'%20rx='7'%20fill='%2309090B'/%3E%3Ccircle%20cx='16'%20cy='16'%20r='6'%20fill='white'/%3E%3C/svg%3E">
-<meta name="sporve-build" content="eec6bc3833c16dc3">
+<meta name="sporve-build" content="ba5639017601a581">
 </head>
 <body>
 <noscript><h1>Sporv — Every sport. One app.</h1><p>Sporv connects families and athletes with coaches, trainers, camps, and teams across more than 20 sports. Please enable JavaScript to use the app.</p></noscript>
@@ -13006,17 +13006,33 @@ async function submitCommand(text){
   if(S.cmdSending||!text||!text.trim())return;
   const q=text.trim();
   S.cmdDraft=q;S.cmdSending=true;S.cmdError="";S.cmdPending=null;render();
-  let a=null, failed=false;
-  try{
-    const r=await fetch("/api/ai",{
+  let a=null, failed=false, quotaMsg="";
+  /* /api/ai now requires the coach's own bearer token: the server meters AI
+     use per plan via consume_ai_quota (DB-enforced). Same single-retry-on-401
+     discipline as every Supabase call — refresh once, then accept the answer. */
+  const aiCall=()=>{
+    const h={"content-type":"application/json"};
+    const t=window.SporveAPI&&window.SporveAPI.getAccessToken&&window.SporveAPI.getAccessToken();
+    if(t)h.authorization="Bearer "+t;
+    return fetch("/api/ai",{
       method:"POST",
-      headers:{"content-type":"application/json"},
+      headers:h,
       body:JSON.stringify({
         text:q,
         groups:S.conversations.filter(c=>(c.kind||"direct")==="group").map(c=>c.name),
       }),
     });
+  };
+  try{
+    let r=await aiCall();
+    if(r.status===401&&window.SporveAuth&&window.SporveAuth.refresh){
+      try{ await window.SporveAuth.refresh(); r=await aiCall(); }catch(_){/* fall through to status handling */}
+    }
     if(r.ok) a=await r.json();
+    else if(r.status===429){
+      const b=await r.json().catch(()=>({}));
+      quotaMsg=b.message||"You've hit this month's free AI limit — upgrade to Pro for unlimited.";
+    }
     else failed=true;
   }catch(_){ failed=true; }
   S.cmdSending=false;
@@ -13030,6 +13046,14 @@ async function submitCommand(text){
      not, because the coach cannot tell which one they got.
 
      The fallback still runs — it is better than nothing — but it says so. */
+  if(quotaMsg){
+    /* A quota rejection is a POLICY answer, not a failure. The local regex
+       router still runs (it costs nothing and keeps the bar useful), but the
+       coach is told exactly why the smart parse stopped and what changes it —
+       the upgrade lives in Account → Billing. */
+    toast(quotaMsg+" (Account → Billing.) Using the basic matcher for now.");
+    runCommand(q); return;
+  }
   if(failed){
     /* toast(), not S.cmdError. Setting cmdError would have been the same bug
        this fix exists to remove: grep shows NO template reads it, so the
@@ -13670,6 +13694,10 @@ document.addEventListener("click",e=>{
 
     setAccessToken: function (t) { accessToken = t || null; },
     isSignedIn: function () { return !!accessToken; },
+    /* Read access for callers that talk to NON-Supabase same-origin endpoints
+       (/api/ai) yet must prove who the visitor is. The token is the visitor's
+       own credential — handing it to their own next request leaks nothing. */
+    getAccessToken: function () { return accessToken; },
 
     /* Liveness probe. Resolves { ok, programs } or rejects with an ApiError.
        Used by smoke.sh to assert the built page can actually reach the backend
