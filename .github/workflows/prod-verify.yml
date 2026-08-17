@@ -26,4 +26,4 @@ jobs:
       - name: Build
         run: python3 src/build.py
       - name: Verify production
-        run: bash src/verify-prod.sh
+        run: ./src/verify-prod.sh

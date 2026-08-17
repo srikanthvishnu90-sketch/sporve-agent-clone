@@ -20,23 +20,19 @@
    strand the eager ones, which is the kind of split-brain that renders half a
    page from live data and half from the seed.
 
-   WHAT IS ACTUALLY DIFFERENT ABOUT THE LIVE ROWS, measured 2026-08-12:
+   WHAT IS ACTUALLY DIFFERENT ABOUT LIVE ROWS:
 
-     seed                          live
-     30 listings / 6 businesses    10 listings / 10 businesses (1 each)
-     ids "prog_1".."prog_30"       uuids
-     2 of 6 businesses unverified  every row background-check verified
-     Miami coordinates             Chicago
-     mixed pricing models          single_session throughout
-     enrolled 4..15                enrolled 0
+     seed fixture                  live
+     fixed fictional records       production rows that can grow or disappear
+     ids "prog_1".."prog_30"       UUIDs
+     disclosed sample activity     current catalogue and session records
+     mixed fixture coordinates     Chicagoland listing coordinates
 
-   The verification difference is not cosmetic. The seed deliberately shipped
-   two businesses WITHOUT background checks so the trust UI had something to
-   say. Production cannot show you an unchecked provider at all — RLS filters
-   them before PostgREST sees the request (20 of 23 providers are visible; the
-   3 without a check are not). So the "not yet checked" state disappears from
-   browse. That is the gate working, not a regression, but it means the
-   contrast that made the badge legible has to come from copy now, not data.
+   Verification is not inferred from visibility. A live listing can render
+   without a badge when its provider row lacks dated evidence, and the family
+   can remove it with the verified-only filter. The database booking write is
+   the final authority: a visible listing does not grant an unchecked coach the
+   right to accept a booking.
 
    FAIL-SAFE, AND WHY IT IS NOT OPTIONAL
    Any failure — offline, CSP, RLS change, a 500 — leaves the seeded catalogue
@@ -66,9 +62,9 @@
 
      The `providers(...)` embed is a PostgREST resource embedding over the
      programs.provider_id foreign key. It resolves in ONE round trip and obeys
-     the same RLS and column grants as a direct read — verified: a provider
-     without a background check yields no program row at all, not a program row
-     with a null provider. */
+     the same RLS and column grants as a direct read. Visibility is not treated
+     as proof of clearance; toProgram() still requires status plus a completion
+     date before it exposes a badge. */
   var PROGRAM_COLS = [
     "id", "title", "description", "sport_type", "skill_level", "age_group",
     "minimum_age", "maximum_age", "price", "currency", "pricing_model",
@@ -177,6 +173,29 @@
   }
 
   var loaded = false;
+  /* Keep the deterministic fallback before the first live mutation. reload()
+     can fail after a successful hydration; without this snapshot the module
+     labeled the page "seed" while leaving yesterday's live rows and slots in
+     memory. Preserve the array identity, but restore its original contents. */
+  var fallbackPrograms = (typeof PROGRAMS !== "undefined" && Array.isArray(PROGRAMS))
+    ? PROGRAMS.slice() : [];
+
+  function clearLiveSlots() {
+    if (typeof LIVE_SLOTS !== "object" || !LIVE_SLOTS) return;
+    Object.keys(LIVE_SLOTS).forEach(function (key) { delete LIVE_SLOTS[key]; });
+  }
+
+  function restoreFallback() {
+    if (typeof PROGRAMS !== "undefined" && Array.isArray(PROGRAMS) && fallbackPrograms.length) {
+      PROGRAMS.length = 0;
+      PROGRAMS.push.apply(PROGRAMS, fallbackPrograms);
+      if (typeof rebuildBusinesses === "function") rebuildBusinesses();
+    }
+    clearLiveSlots();
+    loaded = false;
+    mark("seed");
+    return false;
+  }
 
   /* A `file://` page never hydrates.
      ------------------------------------------------------------------------
@@ -264,8 +283,7 @@
       return Promise.resolve(false);
     }
     if (!enabled()) {
-      mark("seed");
-      return Promise.resolve(false);
+      return Promise.resolve(restoreFallback());
     }
 
     return Promise.all([
@@ -290,8 +308,7 @@
            RLS change, an unpublish, a bad filter — the seeded page is the
            better thing to show while it is investigated. */
         if (!Array.isArray(rows) || rows.length === 0) {
-          mark("seed");
-          return false;
+          return restoreFallback();
         }
 
         var live = rows.map(toProgram);
@@ -306,6 +323,10 @@
           (byProgram[s.program_id] = byProgram[s.program_id] || []).push(toSlot(s));
         });
         if (typeof LIVE_SLOTS === "object" && LIVE_SLOTS) {
+          /* A refresh is a replacement, not a merge. If a session was deleted
+             between fetches, retaining its old key would keep a bookable-looking
+             time alive until the tab closed. */
+          clearLiveSlots();
           Object.keys(byProgram).forEach(function (k) { LIVE_SLOTS[k] = byProgram[k]; });
         }
 
@@ -331,9 +352,8 @@
       })
       .catch(function () {
         /* Offline, CSP, 5xx, a revoked grant — all identical from here, and
-           all have the same right answer: leave the seed alone. */
-        mark("seed");
-        return false;
+           all have the same right answer: restore the disclosed fallback. */
+        return restoreFallback();
       });
   }
 

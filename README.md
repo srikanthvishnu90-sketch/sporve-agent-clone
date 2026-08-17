@@ -1,126 +1,88 @@
-# The Sporve Web
+# The Sporv Web
 
-The web counterpart to the Sporve mobile app — a youth-sports marketplace connecting
-families with background-checked coaches across 20+ sports.
+Sporv is the web surface for a two-sided youth-sports marketplace. Families can
+discover coaches, inspect current verification state, choose real sessions, book,
+pay, message, and follow an athlete's progress. Coaches can manage listings,
+availability, clients, messages, notes, media consent, and payouts.
 
-Same product, same data, same functionality as the Flutter app; light theme and a
-desktop layout. Airbnb's model: one product, two surfaces.
+The app is vanilla JavaScript assembled into one self-contained browser document.
+When served over HTTP it hydrates public catalogue data from the production
+Supabase project. When opened directly with `file://`, it deliberately uses the
+deterministic sample catalogue so local visual checks do not depend on production
+data. Sample-only panels identify their data in the interface.
 
-**Every sport. One app.**
+## Build and run
 
----
+`index.html` is generated output. Edit files in `src/`, then rebuild:
 
-## Run it
-
-`index.html` is a single self-contained file. No build step, no install, no server.
-
-```bash
-open index.html
-```
-
-Or serve it:
-
-```bash
-python3 -m http.server 8420
-# http://127.0.0.1:8420
-```
-
-The only network requests are to `picsum.photos` for placeholder photography —
-the same placeholders the source app uses.
-
----
-
-## Two sides
-
-Switch with the **Family / Coach** toggle in the header.
-
-**Family** — Explore (30 listings, 20+ sports), Map, AI Coach, Bookings, Schedule,
-Messages, Saved, Profile, Athlete progress, Goals & plan, Notifications, Trust & safety.
-
-**Coach** — Home dashboard, Schedule, Bookings, Clients, Messages, Services &
-locations, Earnings, Reviews, Policies, Waitlist, Recurring slots, Automated
-messages, Media, Session notes, Insights, Business profile.
-
----
-
-## Data
-
-Thirty listings across six businesses, transcribed verbatim from the source app's
-`lib/core/mock/mock_data.dart`. Sport colors copied from `sport_colors.dart` —
-OKLCH-calibrated, and the only chromatic layer in the design.
-
-Nothing about the catalogue is invented. Two of the six businesses (Everglade
-Racquet Institute, Sunset Field Athletics) show "Verification pending" instead of
-the trust badge because their background checks have not cleared.
-
----
-
-## What is actually enforced
-
-These are not labels. They hold in the code:
-
-- **Background checks are per person, never per business.** An approved
-  organization never vouches for an individual on its roster. Unverified coaches
-  are filtered out before sport, age, or budget in the AI matcher.
-- **Parental consent gates child profiles.** No consent checkbox, no athlete
-  record. Consent is stamped with a version and timestamp.
-- **Media consent is enforced, not advisory.** Photos of minors carry a per-athlete
-  flag (`none` / `private_share` / `public_profile`). A coach can request consent
-  but can never grant it on a family's behalf.
-- **Reviews unlock only after a completed session** — not merely a booking.
-- **Refunds follow the cancellation policy snapshotted at purchase**, not whatever
-  the listing says later.
-- **Coaches cannot self-verify.** Verification, background-check, and payout fields
-  are read-only on the coach's own profile.
-- **Guests browse freely.** Auth is triggered by an action (book / message / save),
-  never a wall — and the deferred action resumes itself after sign-in.
-
----
-
-## Layout
-
-```
-index.html              the built app (single file)
-src/
-  sporve-web.host.html  host app with a <!--MODULES--> placeholder
-  mod-safety.js         safety reports, refunds, privacy requests
-  mod-reviews.js        reviews, athlete timeline, goals & plan
-  mod-coachops.js       policies, waitlist, recurring slots, automated messages
-  mod-payments.js       checkout, cancellation refunds, wallet, split pay
-  mod-search.js         advanced filters, sort, saved searches, compare
-  mod-coachonboard.js   7-step coach onboarding wizard
-  mod-media.js          media library with per-athlete consent enforcement
-  mod-notes.js          session notes and progress reports
-  mod-insights.js       demand, funnel, price positioning, client watchlist
-  mod-companies.js      the six businesses as entities; offering-type-aware booking
-  build.py              inlines every module into index.html
-```
-
-Rebuild after editing anything in `src/`:
-
-```bash
+```sh
 python3 src/build.py
+./src/smoke.sh
 ```
 
-Each module registers a `window.MOD_*` object exposing `{css, views, modals, tabs,
-wire, state}`. The host discovers them at boot, merges their state, injects their
-CSS, and routes to their views. Modules never touch the host file, so they can be
-built independently and dropped in.
+For a local HTTP surface:
 
----
+```sh
+python3 -m http.server 8420
+```
 
-## Stack
+Then open `http://127.0.0.1:8420`. The page also opens directly from disk for the
+seeded fixture path, although same-origin API endpoints are available only when it
+is served.
 
-Vanilla JavaScript. No framework, no bundler, no dependencies, no CDN.
+## Architecture
 
-The whole thing is one HTML file because it has to survive a strict CSP that blocks
-every external request. Typography is Arial across both roles — it ships on every
-OS, so nothing silently falls back to something you didn't choose.
+```text
+index.html                   generated, deployable single-file app
+vercel.json                  redirects, security headers, generated CSP hashes
+api/ai.js                    same-origin, origin-gated AI command endpoint
+src/sporve-web.host.html     host markup, styles, state, and route renderer
+src/mod-api.js               Supabase REST and Edge Function client
+src/mod-auth.js              Supabase Auth session lifecycle
+src/mod-catalog.js           live listings and session hydration
+src/mod-coachaccount.js      coach profile, listings, and payout onboarding
+src/mod-booking.js           server-authoritative booking and checkout flow
+src/mod-payments.js          receipts, refunds, wallet, and payment views
+src/mod-productpages.js      fourteen text-first product-page compositions
+src/mod-*.js                 remaining feature modules
+src/build.py                 module/font/image assembly and CSP generation
+src/smoke.sh                 build, browser, security, data, and layout checks
+scripts/*-audit.js           focused product, overlap, and slop audits
+scripts/*-contract-test.mjs  server and repository boundary tests
+```
 
----
+The build inlines local fonts, the landing image, and every browser module. No
+browser framework or external asset CDN is required. Production catalogue,
+authentication, booking, and payment calls go to the configured Supabase project;
+the command bar calls the same-origin `/api/ai` endpoint. A strict Content Security
+Policy limits those connections and whitelists each inline script by a generated
+SHA-256 hash.
 
-## Contact
+## Product truth
 
-support@sporve.com · Miami, FL
+- Verification belongs to the named coach, not to a business. A visible badge
+  requires both a cleared status and a completion date.
+- Families may browse unbadged supply unless they enable the verified-only filter.
+  The server checks provider safety again when a booking is written.
+- Child profiles require parental consent, and media permission remains a separate
+  per-athlete decision that a coach cannot grant.
+- Reviews unlock from completed sessions. Cancellation and refund calculations use
+  the policy snapshot attached to the paid booking.
+- Coaches cannot grant themselves verification, payout readiness, or other
+  server-owned state through the browser client.
 
-Sporve is a marketplace connecting families with independent coaches.
+## Data and location
+
+The deployed catalogue is live data. The local fixture is intentionally fictional
+and exists for deterministic development and screenshots; it must never be
+presented as measured marketplace activity. Sporv's current market and public copy
+are based in Chicagoland.
+
+## Release
+
+Changes to `src/` are incomplete until `python3 src/build.py` has regenerated
+`index.html` and the CSP hashes in `vercel.json`. Pull requests run the complete
+browser smoke suite. A push to `main` triggers production verification against
+`https://the-sporve-web.vercel.app`.
+
+Contact: support@sporve.com · Chicago, IL

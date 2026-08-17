@@ -2,7 +2,7 @@
   "name": "the-sporve-web",
   "private": true,
   "type": "module",
-  "description": "Static Sporve web page. The only Node in this repo is api/ — the page itself is built by src/build.py and has no npm step.",
+  "description": "Sporv web app. Python builds the single-file browser surface; Node powers the same-origin AI endpoint and contract tests.",
   "comment": "playwright is deliberately NOT a dependency here. It is the CI browser harness only, installed by .github/workflows/pr-checks.yml at a pinned version. Listing it would make Vercel install ~300MB of devDependencies on every production build for something production never runs.",
   "dependencies": {
     "@anthropic-ai/sdk": "^0.68.0"

@@ -22,24 +22,24 @@
    coach gets a `providers` record they own, and every field they fill in is
    PATCHed onto it.
 
-   THE BACKEND WAS ALREADY READY, which is worth stating because it is why this
-   file is short. RLS on `providers`, verified 2026-08-12:
+   THE BACKEND OWNS THE TRUST BOUNDARY. RLS scopes a coach's writes to their own
+   provider row, and server triggers freeze the trust and payout columns. The
+   public catalogue may expose an approved listing without a badge; accepting a
+   booking still requires the server-side provider safety gate.
 
      providers_insert_owner   INSERT  authenticated  check (owner_id = auth.uid())
      providers_select_owner   SELECT  authenticated  using (owner_id = auth.uid())
      providers_update_owner   UPDATE  authenticated  using (owner_id = auth.uid())
-     providers_select_public  SELECT  anon+auth      using (status='approved'
-                                                       and provider_safety_cleared(id))
 
-   So a coach can create and edit exactly their own row and nobody else's, and
-   the server enforces it — this client could be hostile and the rule holds.
+   So a coach can create and edit exactly their own row and nobody else's, while
+   column-freeze triggers prevent a hostile client from granting trust or payout
+   state to itself.
 
-   A NEW COACH IS NOT PUBLIC, AND THAT IS THE POINT. The column defaults are
+   A NEW COACH IS NOT BOOKABLE, AND THAT IS THE POINT. The column defaults are
    status='pending', background_check_status='none', verification_status=
-   'unverified'. providers_select_public requires 'approved' AND a cleared
-   safety check, so a freshly created coach is invisible to browse and search
-   until a human approves them and the check clears. Signing up does not put an
-   unchecked adult in front of a family, which is the whole product promise.
+   'unverified'. Even if an unbadged listing is discoverable, the booking trigger
+   refuses it until approval and the required personal check are current. Signing
+   up never grants the right to take a family booking.
 
    IMAGES. `providers.avatar_url` / `logo_url` and the `provider-media` bucket
    were added 2026-08-12 — the project previously had NO storage buckets at
@@ -116,7 +116,8 @@
       if (!uid()) { provider = null; return Promise.resolve(null); }
       return API.from("providers",
         "select=id,business_name,bio,sports,location,provider_type,status," +
-        "verification_status,background_check_status,onboarding_completed," +
+        "verification_status,background_check_status,background_check_completed_at," +
+        "onboarding_completed,stripe_account_id,stripe_charges_enabled," +
         "coach_years_coaching,coach_years_played,credentials,avatar_url,logo_url" +
         "&owner_id=eq." + encodeURIComponent(uid()) + "&limit=1"
       ).then(function (rows) {
@@ -522,7 +523,8 @@
     publicState: function () {
       if (!provider) return { live: false, reason: "no-profile" };
       if (provider.status !== "approved") return { live: false, reason: "pending-approval" };
-      if (provider.background_check_status !== "verified") {
+      if (provider.background_check_status !== "verified" ||
+          !provider.background_check_completed_at) {
         return { live: false, reason: "pending-check" };
       }
       return { live: true, reason: null };

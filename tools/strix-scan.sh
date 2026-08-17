@@ -5,12 +5,11 @@
 # clo-nudge.sh) as the deep pass behind clo's always-available MODE: pentest
 # static triage.
 #
-# WHAT IT TARGETS. Not this repo. `the-sporve-web` is one static HTML file with
-# no server, no database, no user input — a scanner finds nothing here (clo.md
-# MODE: pentest documents this). The real attack surface is the BACKEND:
-# ~/SportsMan-main (81 SQL migrations, 31 edge functions, RLS, Stripe webhooks,
-# the ai-gateway) + the live Supabase project. Default target is therefore
-# ~/SportsMan-main; override with --target <path|url>.
+# WHAT IT TARGETS. The default is the backend at ~/SportsMan-main (SQL
+# migrations, Edge Functions, RLS, Stripe webhooks, and the AI gateway). This
+# web repo is also an allowed source target because it now contains a serverless
+# API, authenticated product flows, forms, and Supabase clients. Override with
+# --target <local-path>; URLs are always refused.
 #
 # AUTHORIZATION. The owner's own codebase — authorized security testing. Strix
 # reads and analyses; findings are validated with proof-of-concept but this
@@ -27,17 +26,30 @@
 # ─────────────────────────────────────────────────────────────────────────────
 set -euo pipefail
 
-TARGET="${HOME}/SportsMan-main"
-RUN_NAME="sporve-backend-$(git -C "${HOME}/SportsMan-main" rev-parse --short HEAD 2>/dev/null || echo scan)"
-OUT_DIR="strix_runs"
+SCRIPT_DIR=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd -P)
+WEB_ROOT=$(CDPATH= cd -- "$SCRIPT_DIR/.." && pwd -P)
+BACKEND_ROOT="${HOME}/SportsMan-main"
+TARGET="$BACKEND_ROOT"
+RUN_NAME="sporve-backend-$(git -C "$BACKEND_ROOT" rev-parse --short HEAD 2>/dev/null || echo scan)"
+OUT_DIR="$WEB_ROOT/strix_runs"
 
 while [ $# -gt 0 ]; do
   case "$1" in
-    --target) TARGET="$2"; shift 2 ;;
-    --name)   RUN_NAME="$2"; shift 2 ;;
+    --target)
+      [ "$#" -ge 2 ] || { echo "--target requires a local path" >&2; exit 1; }
+      TARGET="$2"; shift 2 ;;
+    --name)
+      [ "$#" -ge 2 ] || { echo "--name requires a value" >&2; exit 1; }
+      RUN_NAME="$2"; shift 2 ;;
     *) echo "unknown arg: $1" >&2; exit 1 ;;
   esac
 done
+
+case "$RUN_NAME" in
+  ""|*[!A-Za-z0-9._-]*)
+    echo "REFUSED: run name may contain only letters, numbers, dot, underscore, and hyphen." >&2
+    exit 1 ;;
+esac
 
 # CODE-ONLY by design. Strix does dynamic testing with live proof-of-concept
 # exploits — pointing it at a live URL actively attacks that host. This runner
@@ -47,8 +59,20 @@ done
 # production). Any http(s) target — including our own Supabase/Vercel — is
 # refused here.
 case "$TARGET" in
-  "${HOME}/SportsMan-main"*|"${HOME}/the-sporve-web"*|./*|.) : ;;
-  http*://*) echo "REFUSED: $TARGET is a live URL. This runner scans SOURCE only; a live-infra pentest is a hand-staged RED action, not an automated one." >&2; exit 3 ;;
+  http://*|https://*) echo "REFUSED: $TARGET is a live URL. This runner scans SOURCE only; a live-infra pentest is a hand-staged RED action, not an automated one." >&2; exit 3 ;;
+esac
+
+if [ ! -d "$TARGET" ]; then
+  echo "Target not found: $TARGET" >&2
+  exit 2
+fi
+
+TARGET=$(CDPATH= cd -- "$TARGET" && pwd -P)
+if [ -d "$BACKEND_ROOT" ]; then
+  BACKEND_ROOT=$(CDPATH= cd -- "$BACKEND_ROOT" && pwd -P)
+fi
+case "$TARGET" in
+  "$WEB_ROOT"|"$WEB_ROOT"/*|"$BACKEND_ROOT"|"$BACKEND_ROOT"/*) : ;;
   *) echo "REFUSED: $TARGET is not an owner-owned source tree. Third-party pentesting is out of bounds." >&2; exit 3 ;;
 esac
 
@@ -73,10 +97,6 @@ if [ -z "${LLM_API_KEY:-}" ]; then
   note "       export LLM_API_KEY='sk-ant-...'   (an Anthropic key you control)"
   missing=1
 fi
-if [ ! -e "$TARGET" ] && [[ "$TARGET" != http* ]]; then
-  note "✗ Target not found: $TARGET"; missing=1
-fi
-
 if [ "$missing" -ne 0 ]; then
   echo ""
   echo "STRIX DEEP PASS: STAGED, not run — preconditions above are the owner's"
@@ -92,7 +112,7 @@ strix -n --target "$TARGET" --run-name "$RUN_NAME" 2>&1 | tee "$OUT_DIR/${RUN_NA
 # ── Summarise into the shared ledger (one line, observable only) ────────────
 FIND_JSON=$(ls -t "$OUT_DIR/${RUN_NAME}"*/findings.json 2>/dev/null | head -1 || true)
 if [ -n "$FIND_JSON" ]; then
-  count=$(python3 -c "import json,sys;print(len(json.load(open('$FIND_JSON'))))" 2>/dev/null || echo "?")
+  count=$(python3 -c 'import json,sys; print(len(json.load(open(sys.argv[1], encoding="utf-8"))))' "$FIND_JSON" 2>/dev/null || echo "?")
   echo "STRIX: $count validated finding(s) in $FIND_JSON — triage with clo MODE: pentest"
   python3 "$(dirname "$0")/../.claude/hooks/clo-sync.py" note claude \
     "strix deep pass complete: $count finding(s), see $OUT_DIR/${RUN_NAME}" 2>/dev/null || true

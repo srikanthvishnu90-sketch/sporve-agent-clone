@@ -17,7 +17,7 @@
         · .sbc-mark — the verified-badge-with-date pill on trust (the one
           icon the spec names as REQUIRED to stay).
         · .trust-badge svg — same badge where it appears inline on cards.
-   B. PRODUCT-PAGE COPY — FAILS outside 300–500 marked prose words. Hero
+   B. PRODUCT-PAGE COPY — FAILS outside 390–500 marked prose words. Hero
       standfirsts fail outside 50–80 words; recipe-specific block ranges are
       also enforced where length is part of the composition.
    C. STRUCTURE — FAILS. A declared n-column grid whose visible children
@@ -183,8 +183,8 @@ window.SLOP_AUDIT = function (root) {
     };
     const prose = [...product.querySelectorAll("[data-prose]")].filter(visible);
     out.warn.pageWords = prose.reduce((sum, el) => sum + words(el.textContent), 0);
-    if (out.warn.pageWords < 300 || out.warn.pageWords > 500) {
-      out.fail.product.push(id + ": prose=" + out.warn.pageWords + " (expected 300–500)");
+    if (out.warn.pageWords < 390 || out.warn.pageWords > 500) {
+      out.fail.product.push(id + ": prose=" + out.warn.pageWords + " (expected 390–500)");
     }
 
     const standfirst = product.querySelector("[data-standfirst]");
@@ -341,12 +341,34 @@ window.SLOP_AUDIT = function (root) {
 
     const phrase = [...new Set(product.querySelectorAll(".pg-h1 em,.pg-accent-phrase"))];
     const accent = [...phrase, ...product.querySelectorAll(".pg-cta")].filter(visible);
+    const cta = product.querySelector(".pg-cta");
     const extraEm = [...product.querySelectorAll("em")].filter((el) => phrase.indexOf(el) === -1);
     out.warn.accent = accent.map(path);
     if (phrase.length !== 1 || product.querySelectorAll(".pg-cta").length !== 1 ||
         accent.length !== 2 || extraEm.length) {
       out.fail.product.push(id + ": accent voice must be one italic phrase plus one CTA");
     }
+    if (phrase.length === 1 && cta) {
+      const phraseColor = getComputedStyle(phrase[0]).color;
+      const ctaColor = getComputedStyle(cta).backgroundColor;
+      if (phraseColor !== ctaColor) {
+        out.fail.product.push(id + ": phrase/CTA colour mismatch " + phraseColor + " vs " + ctaColor);
+      }
+    }
+
+    const h1 = product.querySelector(".pg-h1");
+    const h1Ceiling = {
+      "what-is":66.1, "background-checks":56.1, "search":60.1,
+      "messaging":40.1, "insights":43.1
+    }[id] || 48.1;
+    if (h1 && parseFloat(getComputedStyle(h1).fontSize) > h1Ceiling) {
+      out.fail.product.push(id + ": H1 exceeds " + h1Ceiling.toFixed(0) + "px ceiling");
+    }
+    [...product.querySelectorAll("section[data-section] h2")].forEach((heading) => {
+      if (parseFloat(getComputedStyle(heading).fontSize) > 52.1) {
+        out.fail.product.push(id + ": section heading exceeds 52px ceiling at " + path(heading));
+      }
+    });
   }
 
   if (/\bSporve\b/.test(scope.innerText || "")) {

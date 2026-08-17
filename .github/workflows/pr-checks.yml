@@ -37,8 +37,11 @@ jobs:
           path: ~/.cache/ms-playwright
           key: playwright-chromium-1.62.1
 
-      - name: Install Playwright
-        run: npm install --no-save --no-audit --no-fund playwright@1.62.1
+      - name: Install production dependencies
+        run: npm ci --ignore-scripts --no-audit --no-fund
+
+      - name: Install Playwright harness
+        run: npm install --no-save --package-lock=false --ignore-scripts --no-audit --no-fund playwright@1.62.1
 
       - name: Install Chromium
         run: npx playwright install --with-deps chromium
@@ -47,4 +50,4 @@ jobs:
         run: python3 src/build.py
 
       - name: Smoke (all checks, browser included)
-        run: bash src/smoke.sh
+        run: ./src/smoke.sh

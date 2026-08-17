@@ -16,7 +16,7 @@
 #   scale        the 8-step type scale drifts the moment someone hand-writes a px
 #
 # Exit 0 = safe to commit. Non-zero = revert, do not push.
-# Usage: bash src/smoke.sh
+# Usage: ./src/smoke.sh
 
 set -uo pipefail
 cd "$(dirname "$0")/.." || exit 2
@@ -37,30 +37,83 @@ grep -q "NONE FOUND" /tmp/smoke-build.txt && fail "fonts missing -- type contrac
 [ -s index.html ] && pass "index.html emitted ($(wc -c < index.html) bytes)" \
   || { fail "index.html empty or missing"; exit 1; }
 
+if node scripts/ai-contract-test.mjs >/tmp/ai-contract-test.txt 2>&1; then
+  pass "api/ai contract: strict JSON, UTF-8 byte cap, origin gate, and output shape"
+else
+  fail "api/ai contract test failed:"
+  sed 's/^/        /' /tmp/ai-contract-test.txt
+  exit 1
+fi
+
+if node scripts/repo-contract-test.mjs >/tmp/repo-contract-test.txt 2>&1; then
+  pass "repository contract: source manifest, generated output, CSP, and docs agree"
+else
+  fail "repository contract test failed:"
+  sed 's/^/        /' /tmp/repo-contract-test.txt
+  exit 1
+fi
+
+if node scripts/data-contract-test.mjs >/tmp/data-contract-test.txt 2>&1; then
+  pass "data contract: catalogue refresh, fallback, trust evidence, and payout fields"
+else
+  fail "data contract test failed:"
+  sed 's/^/        /' /tmp/data-contract-test.txt
+  exit 1
+fi
+
 # gstack's browse is a developer convenience and lives outside the repo, so it
 # is absent on a CI runner. src/ci-browse.mjs is the in-repo fallback: a
 # Playwright-backed daemon implementing the six subcommands used below. Without
 # it this script exited 0 after 3 of 25 assertions and CI showed a green tick
 # for a run that never opened a page.
 CIB=""
-if [ ! -x "$B" ]; then
+start_ci_browser() {
   if command -v node >/dev/null 2>&1 && node -e "import('playwright')" >/dev/null 2>&1; then
+    # A daemon killed before its exit handler runs can leave this marker
+    # behind. Waiting for existence alone then "connects" to yesterday's dead
+    # port and misdiagnoses the application as failing to boot.
+    rm -f .ci-browse-port
     node src/ci-browse.mjs serve >/tmp/ci-browse.log 2>&1 &
     CIB=$!
-    for _ in $(seq 1 50); do [ -f .ci-browse-port ] && break; sleep 0.2; done
-    if [ ! -f .ci-browse-port ]; then
+    ready=0
+    for _ in $(seq 1 50); do
+      if [ -f .ci-browse-port ] && node src/ci-browse.mjs viewport 1440x900 >/tmp/ci-browse-probe.txt 2>&1; then
+        ready=1
+        break
+      fi
+      kill -0 "$CIB" 2>/dev/null || break
+      sleep 0.2
+    done
+    if [ "$ready" -ne 1 ]; then
       fail "ci-browse daemon failed to start:"; sed 's/^/        /' /tmp/ci-browse.log; exit 1
     fi
     B="node src/ci-browse.mjs"
     echo "  using in-repo ci-browse (playwright)"
+    return 0
   else
-    # Fail, do not skip. A check that goes green without running is the exact
-    # failure this file exists to prevent.
-    fail "no browser harness: gstack browse absent and playwright not installed — 22 of 25 checks cannot run"
-    [ -n "${GITHUB_ACTIONS:-}" ] && \
-      echo "::error title=Smoke incomplete::No browser harness available; 22 of 25 smoke checks did not run."
-    exit 1
+    return 1
   fi
+}
+
+if [ -x "$B" ]; then
+  # Presence is not readiness. In restricted shells the helper can exist but
+  # be unable to bind or reach its localhost control port. Without this probe,
+  # that infrastructure failure is misreported below as "host script did not
+  # boot", sending a debugger into application code that never ran.
+  if ! "$B" viewport 1440x900 >/tmp/smoke-browser-probe.txt 2>&1; then
+    if ! start_ci_browser; then
+      fail "browser harness exists but could not start, and playwright fallback is unavailable"
+      sed 's/^/        /' /tmp/smoke-browser-probe.txt
+      exit 1
+    fi
+  fi
+elif ! start_ci_browser; then
+  # Fail, do not skip. A check that goes green without running is the exact
+  # failure this file exists to prevent.
+  fail "no browser harness: gstack browse absent and playwright not installed — 22 of 25 checks cannot run"
+  [ -n "${GITHUB_ACTIONS:-}" ] && \
+    echo "::error title=Smoke incomplete::No browser harness available; 22 of 25 smoke checks did not run."
+  exit 1
 fi
 cleanup(){ [ -n "$CIB" ] && { $B stop >/dev/null 2>&1; kill "$CIB" 2>/dev/null; rm -f .ci-browse-port; }; }
 trap cleanup EXIT
@@ -897,10 +950,19 @@ if curl -sI "http://127.0.0.1:$CSPPORT/index.html" | grep -qi "^content-security
     /* A real coach (live provider row, pending + unchecked) must NOT see
        approved/verified/payouts pills or invented metrics. */
     S.coachProvider={business_name:'Probe',status:'pending',
-      background_check_status:'none',stripe_charges_enabled:false};
+      background_check_status:'none',background_check_completed_at:null,
+      stripe_account_id:null,stripe_charges_enabled:false};
     var st=coachState();
     if(!st.isReal) return 'NOTREAL';
     if(st.approved||st.verified||st.payouts||st.listed) return 'CLAIMSTOOMUCH';
+    S.coachProvider={business_name:'Probe',status:'approved',
+      background_check_status:'verified',background_check_completed_at:null,
+      stripe_account_id:'acct_probe',stripe_charges_enabled:true};
+    st=coachState();
+    if(st.verified||st.listed) return 'UNEVIDENCED';
+    S.coachProvider.background_check_completed_at='2026-08-16T12:00:00Z';
+    st=coachState();
+    if(!st.verified||!st.listed||!st.payouts||!st.connectStarted) return 'EVIDENCELOST';
     S.coachProvider=null;
     return 'OK';
   })()" 2>/dev/null | tr -d '\r')
@@ -908,6 +970,8 @@ if curl -sI "http://127.0.0.1:$CSPPORT/index.html" | grep -qi "^content-security
     OK)             pass "honesty: no fabricated coach reply, and a pending coach is not shown as verified" ;;
     FAKEREPLY)      fail "honesty: the fabricated coach reply is back — a message attributed to a coach that no human wrote" ;;
     CLAIMSTOOMUCH)  fail "honesty: a pending, unchecked coach is being reported as approved/verified/paid" ;;
+    UNEVIDENCED)    fail "honesty: verified status without a completion date still produces a coach badge" ;;
+    EVIDENCELOST)   fail "honesty: dated verification or loaded Stripe state is not reaching the coach portal" ;;
     NOSTATE)        fail "honesty: coachState() is gone; the portal is reading the seed again" ;;
     *)              fail "honesty: probe returned nothing ($honest)" ;;
   esac
@@ -1071,7 +1135,7 @@ redecl=$(grep -cE "^\s*const (FEE_RATE|FEE_PCT|PLATFORM_FEE)\s*=" src/mod-*.js 2
 # Geometry and style also multiply by 0.12 -- an SVG circle radius at
 # mod-companies.js:149 is not a platform fee -- so those lines are excluded by
 # shape rather than by line number, which would rot on the next edit.
-hardcoded=$(grep -nE "\*\s*0\.12\b" src/sporve-web.html src/sporve-web.host.html src/mod-*.js 2>/dev/null \
+hardcoded=$(grep -nE "\*\s*0\.12\b" src/sporve-web.host.html src/mod-*.js 2>/dev/null \
   | grep -vE "Math\.(min|max)\(|opacity|circle|rgba|scale\(|translate" | wc -l | tr -d ' ')
 [ "$hardcoded" -eq 0 ] || fail "fee: $hardcoded hardcoded 0.12 literal(s) in source — use FEE_RATE"
 [ "$redecl" -eq 0 ] && pass "fee: no module re-declares the rate" \
@@ -1145,7 +1209,7 @@ sweepc=${sweep//\"/}; sweepc=$(printf '%s' "$sweepc" | tr -d '\r')
 if [ "$(printf '%s' "$sweepc" | tr -d '[:space:]')" = "CLEAN" ]; then
   pass "15 pages: zero emoji, zero decorative in-band svg, zero scaffolds"
 elif [ -z "$(printf '%s' "$sweepc" | tr -d '[:space:]')" ]; then
-  printf "  \033[33mWARN\033[0m  %s\n" "§9 sweep did not return — re-run"
+  fail "§9 sweep did not return — the product-page audit did not run"
 else fail "§9 sweep: $sweep"; fi
 
 # ── slop-audit: the enforcement instrument (owner spec 2026-08-14) ────────
@@ -1203,7 +1267,7 @@ slop=$($B js "$AUD;
 slopc=${slop//\"/}
 case "$slopc" in
   *"fails:[]"*)
-    pass "product-page audit: 14 pages at 300–500 words; unique rendered silhouettes, rhythms, accents, and heroes clean"
+    pass "product-page audit: 14 pages at 390–500 words; unique rendered silhouettes, rhythms, exact phrase/CTA colours, and compact headings clean"
     w=$(printf '%s' "$slopc" | grep -o 'wcopy:[0-9]*' | grep -o '[0-9]*')
     d=$(printf '%s' "$slopc" | grep -o 'wdot:[0-9]*' | grep -o '[0-9]*')
     [ "${w:-0}" -gt 0 ] || [ "${d:-0}" -gt 0 ] \
@@ -1234,10 +1298,17 @@ brand=$($B js "
  '$ROUTES'.split(' ').forEach(name=>{S.portal='family';S.auth={status:'guest'};S.route={name,arg:null};render();inspect(name);});
  '$ASSIGNED_PAGES'.split(' ').forEach(id=>{S.route={name:'page',arg:id};render();inspect('page:'+id);});
  S.route={name:'home',arg:null};render();
- const top=document.querySelector('.topbar .wordmark')?.textContent.trim().toUpperCase();
+ const crop=document.querySelector('.topbar .navlogo-crop');
+ const logo=crop?.querySelector('img.navlogo');
+ const cropBox=crop?.getBoundingClientRect();
+ const logoBox=logo?.getBoundingClientRect();
+ const cropRatio=cropBox&&logoBox&&logoBox.width ? cropBox.width/logoBox.width : 0;
+ const cropOverflow=crop ? getComputedStyle(crop).overflow : '';
  S.route={name:'explore',arg:null};render();
  const foot=document.querySelector('.close-zone .wordmark')?.textContent.trim().toUpperCase();
- if(top!=='SPORV')bad.push('HEADER_LOGO:'+top);
+ if(!logo||logo.alt!=='Sporv'||cropOverflow!=='hidden'||cropRatio<.84||cropRatio>.90){
+   bad.push('HEADER_LOGO:'+(logo?.alt||'missing')+':'+cropRatio.toFixed(2));
+ }
  if(foot!=='SPORV')bad.push('FOOTER_LOGO:'+foot);
  if(old.test(document.title)||old.test(document.querySelector('meta[name=description]')?.content||''))bad.push('HEAD');
  return bad.length?bad.join(','):'OK'})()" 2>/dev/null)
@@ -1306,17 +1377,60 @@ he=$($B js "
  if(e>0)o.push(r+'(emoji='+e+')')});return o.length?o.join(' '):'CLEAN'})()" 2>/dev/null)
 [ "$(printf '%s' "${he//\"/}" | tr -d '[:space:]')" = "CLEAN" ] && pass "home + explore: zero emoji (rails allowed per six-task override)" || fail "home/explore sweep: $he"
 
-# §1 — horizontal headlines: 40–54px, ≤3 rendered lines, ≥55% of the shell.
+# §1 — compact, readable headlines inside deliberately different hero layouts.
+# The retired rule required every title to consume 55% of the shell and fit on
+# three lines. That recreated the shared composition the fourteen blueprints
+# explicitly removed. Keep hard size, wrapping, clipping and hero-height rails
+# without requiring identical column geometry.
 $B viewport 1440x900 >/dev/null 2>&1
 $B goto "file://$(pwd)/index.html" >/dev/null 2>&1
 t1=$($B js "
-(()=>{const bad=[];'$PAGES'.split(' ').forEach(id=>{S.route={name:'page',arg:id};render();
- const h=document.querySelector('.pg-h1');const sh=document.querySelector('.pg-hero .shell');if(!h||!sh)return;
+(()=>{const bad=[];S.portal='family';S.auth={status:'guest'};
+'$ASSIGNED_PAGES'.split(' ').forEach(id=>{S.route={name:'page',arg:id};render();
+ const h=document.querySelector('.pg-h1');const hero=document.querySelector('.pg-hero');
+ if(!h||!hero){bad.push(id+'(missing)');return;}
  const fs=parseFloat(getComputedStyle(h).fontSize);const lh=parseFloat(getComputedStyle(h).lineHeight);
- const lines=Math.round(h.clientHeight/lh);const w=Math.round(h.clientWidth/sh.clientWidth*100);
- if(fs<40||fs>54||lines>3||w<55)bad.push(id+'('+fs.toFixed(0)+'px,'+lines+'ln,'+w+'%)')});
+ const lines=Math.round(h.clientHeight/lh);const clipped=h.scrollWidth>h.clientWidth+1;
+ const heroH=hero.getBoundingClientRect().height;
+ /* lines ceiling is 6, not 5: CoreText (mac) and FreeType (linux) wrap the
+    same headline at the same width ±1 line on boundary text — measured, not
+    guessed (identical fonts, advances within 1px, different break points).
+    The binding physical rail is the 45vh hero ceiling below, which caps a
+    skyscraper headline on every platform regardless of line count. */
+ if(fs<34||fs>60||lines>6||clipped||heroH>window.innerHeight*.45+1){
+   bad.push(id+'('+fs.toFixed(0)+'px,'+lines+'ln,'+Math.round(heroH)+'h'+(clipped?',clip':'')+')');
+ }});
 return bad.length?bad.join(' '):'CLEAN'})()" 2>/dev/null)
-[ "$(printf '%s' "${t1//\"/}" | tr -d '[:space:]')" = "CLEAN" ] && pass "17 heroes: horizontal, 40–54px, ≤3 lines, ≥55% width" || fail "§1 type: $t1"
+[ "$(printf '%s' "${t1//\"/}" | tr -d '[:space:]')" = "CLEAN" ] && pass "14 product heroes: 34–60px, ≤6 lines, unclipped, ≤45vh" || fail "§1 type: $t1"
+
+# The desktop check above missed a portrait-tablet regression: at 768px the
+# hero switches to one column, and desktop type plus per-page top offsets pushed
+# eight pages past 45vh. Measure both responsive compositions explicitly and
+# require the first real section to be visible in the initial viewport.
+for vp in 768x1024 390x844; do
+  $B viewport "$vp" >/dev/null 2>&1
+  $B goto "file://$(pwd)/index.html" >/dev/null 2>&1
+  compact=$($B js "
+  (()=>{const bad=[];S.portal='family';S.auth={status:'guest'};
+  '$ASSIGNED_PAGES'.split(' ').forEach(id=>{S.route={name:'page',arg:id};render();
+   const root=document.querySelector('[data-product-page]');
+   const h=root?.querySelector('.pg-h1');const hero=root?.querySelector(':scope > .pg-hero');
+   const first=root?.querySelectorAll(':scope > section.pgband')[1];
+   if(!h||!hero||!first){bad.push(id+'(missing)');return;}
+   const fs=parseFloat(getComputedStyle(h).fontSize);const clipped=h.scrollWidth>h.clientWidth+1;
+   const heroH=hero.getBoundingClientRect().height;const firstTop=first.getBoundingClientRect().top;
+   if(fs<28||fs>34.1||clipped||heroH>window.innerHeight*.45+1||firstTop>=window.innerHeight){
+     bad.push(id+'('+fs.toFixed(0)+'px,'+Math.round(heroH)+'h,'+Math.round(firstTop)+'top'+(clipped?',clip':'')+')');
+   }});
+  return bad.length?bad.join(' '):'CLEAN'})()" 2>/dev/null)
+  [ "$(printf '%s' "${compact//\"/}" | tr -d '[:space:]')" = "CLEAN" ] \
+    && pass "14 product heroes at $vp: compact, unclipped, ≤45vh, first section visible" \
+    || fail "§1 responsive type at $vp: $compact"
+done
+
+# Restore the canonical desktop viewport for the remaining visual checks.
+$B viewport 1440x900 >/dev/null 2>&1
+$B goto "file://$(pwd)/index.html" >/dev/null 2>&1
 
 # §4/§5 — every assigned page is rendered by the recipe module, and every
 # Keep Exploring destination carries explanatory copy rather than a filler tag.
@@ -1375,7 +1489,7 @@ const out=[];'$ROUTES'.split(' ').forEach(r=>{S.auth={status:'guest'};S.route={n
 return out.length?[...new Set(out)].slice(0,6).join(' | '):'CLEAN'})()" 2>/dev/null)
 clean=${bad//\"/}; clean=$(printf '%s' "$clean" | tr -d '[:space:]')
 if [ "$clean" = "CLEAN" ]; then pass "dark grounds carry white or slate text"
-elif [ -z "$clean" ]; then printf "  \033[33mWARN\033[0m  %s\n" "dark-ground check did not return — re-run; not treated as a failure"
+elif [ -z "$clean" ]; then fail "dark-ground check did not return — contrast audit did not run"
 else fail "dark-ground violations: $bad"; fi
 
 # Layout must never scroll horizontally.

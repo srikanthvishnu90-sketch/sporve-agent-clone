@@ -13,7 +13,7 @@ money, consent, communication, and performance from one product.
 
 ## Product Purpose
 
-Sporve is a two-sided youth-sports marketplace centered on booking an independent,
+Sporv is a two-sided youth-sports marketplace centered on booking an independent,
 background-checked person rather than administering a league. The web surface is
 the desktop counterpart to the mobile product, not a brochure. Success means both
 sides can complete their real workflows with claims grounded in actual product

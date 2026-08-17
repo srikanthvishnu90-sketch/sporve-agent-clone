@@ -21,7 +21,7 @@
 <meta name="twitter:description" content="Find coaches, trainers, camps and teams across 20+ sports in Chicagoland.">
 <meta name="twitter:image" content="https://the-sporve-web.vercel.app/og.png">
 <link rel="icon" href="data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%2032%2032'%3E%3Crect%20width='32'%20height='32'%20rx='7'%20fill='%2309090B'/%3E%3Ccircle%20cx='16'%20cy='16'%20r='6'%20fill='white'/%3E%3C/svg%3E">
-<meta name="sporve-build" content="1dae4b325b7a38ec">
+<meta name="sporve-build" content="eec6bc3833c16dc3">
 </head>
 <body>
 <noscript><h1>Sporv — Every sport. One app.</h1><p>Sporv connects families and athletes with coaches, trainers, camps, and teams across more than 20 sports. Please enable JavaScript to use the app.</p></noscript>
@@ -354,12 +354,15 @@ img{max-width:100%;display:block}
 /* Header wordmark carries the slate brand colour as a literal on black; the
    footer keeps the token so it tracks the footer ground. */
 .topbar .wordmark{text-transform:uppercase;color:#8FA3BC;font-size:var(--text-lg);font-weight:600}
-/* Real Sporv logo, recolored to the slate token (#8FA3BC) with a transparent
-   ground so it integrates into the black bar instead of sitting in a white box.
-   §3: it is now the LEFT home link (inside .brand), so no left margin. */
-.navlogo{height:28px;width:auto;flex:0 0 auto;display:block;opacity:.95}
+/* The original S + wordmark lockup stays intact. The crop removes only the
+   retired final E; changing the asset itself would also change the S geometry. */
+.navlogo-crop{width:100.5px;height:28px;overflow:hidden;display:block;flex:0 0 auto}
+.navlogo{height:28px;width:auto;max-width:none;display:block;opacity:.95}
 .navlogo:hover{opacity:1}
-@media(max-width:900px){.navlogo{height:24px}}
+@media(max-width:900px){
+  .navlogo-crop{width:86.1px;height:24px}
+  .navlogo{height:24px}
+}
 .searchpill{
   flex:1;max-width:520px;display:flex;align-items:center;gap:0;
   border:1px solid var(--rule-strong);border-radius:999px;box-shadow:var(--shadow);
@@ -3559,7 +3562,8 @@ body.reg-coach .navlink{font-size:var(--text-md)}
    --ps-ink / --ps-bright, so a page wears its sport with zero hand-tuned hex. */
 /* Fallback for any page not yet given a hue; the .pg-<id> vars below override
    this by source order since build.py injects them at __SPORTVARS__ last. */
-.pgroot{--ps:var(--slate);--ps-ink:var(--slate-deep);--ps-bright:#8FA3BC}
+.pgroot{--ps:var(--slate);--ps-ink:var(--slate-deep);--ps-bright:#8FA3BC;
+  --page-accent:var(--ps-ink);--page-accent-on:#fff}
 .pg-what-is{--ps:#2EA136;--ps-ink:#227628;--ps-bright:#2EA136}
 .pg-background-checks{--ps:#009AA0;--ps-ink:#00787D;--ps-bright:#009AA0}
 .pg-examples{--ps:#009F77;--ps-ink:#007557;--ps-bright:#009F77}
@@ -3579,7 +3583,16 @@ body.reg-coach .navlink{font-size:var(--text-md)}
 .pg-ai-coach{--ps:#7172FA;--ps-ink:#5859C3;--ps-bright:#7172FA}
 .pg-serif{font-family:var(--pg-display,"Instrument Serif",Georgia,"Times New Roman",serif);font-weight:var(--pg-weight,400);
   letter-spacing:-.01em;line-height:1.02;font-style:normal}
-.pg-serif em{font-style:italic;color:var(--ps-ink)}
+/* The accent phrase renders in the REAL Instrument italic face on every page,
+   including Archivo/Syne/Hanken accent pages. Not only a voice decision: those
+   families ship no italic file, and synthetic-oblique layout inside a heading
+   run diverges between CoreText (mac) and FreeType (linux) — measured 5 vs 7
+   wrapped lines for the same h1 at the same width, which broke the 45vh hero
+   law only on Linux. A declared italic face has one set of metrics everywhere. */
+.pg-serif em,#app.reg-tabs .pg-serif em{font-style:italic;font-family:"Instrument Serif",serif;color:var(--page-accent)}
+/* The second selector is load-bearing: `#app.reg-tabs h1 em` re-points ems at
+   var(--display) with (1,1,2) specificity, which silently beat the bare class
+   rule and kept the accent phrase in the synthetic-italic display face. */
 /* Per-page display face — one embedded, CSP-safe family per product page, matched
    to subject/mood (analysis 2026-08-09). No rule here = Instrument Serif via the
    var() fallback above (byte-identical to before). Archivo/Syne carry a heavier
@@ -3596,12 +3609,12 @@ body.reg-coach .navlink{font-size:var(--text-md)}
 .pgband.slate{background:#E9EEF4;border-bottom-color:#CBD5E1}
 .pgband.slate.alt{background:#F1F5F9}
 .pgband.white{background:var(--paper)}
-.pgband.dark{background:var(--canvas-dark);border-bottom-color:#1C222B}
+.pgband.dark{--page-accent:var(--ps-bright);--page-accent-on:var(--canvas-dark);
+  background:var(--canvas-dark);border-bottom-color:#1C222B}
 .pgband.dark h2,.pgband.dark .pg-serif{color:#fff}
 .pgband.dark p{color:#94A3B8}
-/* On the obsidian band the italic accent must brighten — --ps-ink resolves
-   dark and would vanish on #09090B (colour law). Use the AA-on-dark ramp. */
-.pgband.dark .pg-serif em{color:var(--ps-bright)}
+/* A dark band promotes the shared page accent to its AA-on-dark ramp. The
+   italic phrase and CTA therefore resolve to the exact same computed colour. */
 .pgband.dark .pg-eyebrow,.pgband.dark .pg-sub{color:#94A3B8}
 /* The dark section carries a real product demo, rendered dark, behind a
    Demo-data pill — not recoloured prose. */
@@ -4114,13 +4127,14 @@ body.reg-coach .navlink{font-size:var(--text-md)}
   font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:var(--faint)}
 /* §1 — horizontal headlines: down from 84px, runs wide (≤3 lines), not a
    vertical stack. max-width:none so it fills its column; the ≤7-word rule keeps
-   it to 3 lines. Section H2s capped to ≤36 via the !important rule below,
+   it to 3 lines. Section H2s capped to ≤32 via the !important rule below,
    overriding the pages' inline clamps without touching each template. */
-.pg-h1{font-size:clamp(40px,3.6vw,54px);margin:20px 0 0;max-width:none;line-height:1.06}
-.pgband h2.pg-serif{font-size:clamp(26px,2.4vw,36px)!important;line-height:1.14}
+.pg-h1{font-size:clamp(34px,2.9vw,44px);margin:20px 0 0;max-width:none;line-height:1.06}
+.pgband h2.pg-serif{font-size:clamp(23px,1.9vw,30px)!important;line-height:1.14}
 .pg-sub{font-size:18px;color:var(--muted);max-width:56ch;margin:18px 0 0;line-height:1.55}
 .pg-cta{display:inline-flex;align-items:center;gap:8px;height:var(--h-ctl);padding:0 22px;
-  border-radius:var(--r-ctl);background:var(--ps-ink);color:#fff;font-weight:600;font-size:var(--text-sm)}
+  border-radius:var(--r-ctl);background:var(--page-accent);color:var(--page-accent-on);
+  font-weight:600;font-size:var(--text-sm)}
 .pg-cta:hover{filter:brightness(.92)}
 .pg-ctarow{display:flex;align-items:center;gap:20px;margin-top:28px}
 .pg-textlink{color:var(--ink);text-decoration:underline;text-underline-offset:3px;font-weight:600;font-size:var(--text-sm)}
@@ -4169,21 +4183,21 @@ body.reg-coach .navlink{font-size:var(--text-md)}
    single primary CTA. Product figures are deliberately neutral so a state in
    a sample UI cannot be mistaken for the page's sport voice. */
 .rebuild-page .pg-hero{padding:0}
-.rebuild-page .pg-hero .shell{padding-top:clamp(18px,2.4vh,24px);padding-bottom:clamp(18px,2.4vh,24px)}
+.rebuild-page .pg-hero .shell{padding-top:clamp(14px,2vh,20px);padding-bottom:clamp(14px,2vh,20px)}
 .rebuild-page .pg-hero-inner{display:grid;grid-template-columns:minmax(0,1.12fr) minmax(280px,.88fr);
-  gap:clamp(28px,6vw,88px);align-items:end}
+  gap:clamp(24px,4vw,64px);align-items:end}
 .rebuild-page .pg-hero-title,.rebuild-page .pg-hero-copy{min-width:0}
 .rebuild-page .pg-h1{max-width:28ch;margin-top:0;text-wrap:balance}
-.rebuild-page .pg-sub{max-width:70ch;margin-top:12px;font-size:clamp(16px,1.4vw,18px);line-height:1.5;text-wrap:pretty}
-.rebuild-page .pg-ctarow{margin-top:20px}
+.rebuild-page .pg-sub{max-width:70ch;margin-top:10px;font-size:clamp(16px,1.4vw,18px);line-height:1.5;text-wrap:pretty}
+.rebuild-page .pg-ctarow{margin-top:16px}
 .rebuild-page .pg-kxrow:hover b{color:var(--ink)}
 .rebuild-page [data-prose]{text-wrap:pretty}
-.rebuild-page .pgband:not(.pg-hero){padding:clamp(48px,7vw,82px) 0}
+.rebuild-page .pgband:not(.pg-hero){padding:clamp(54px,7.5vw,90px) 0}
 .rebuild-page .pg-eyebrow{font-family:ui-monospace,"SF Mono",Menlo,monospace;font-size:var(--text-xs);
   line-height:1.3;letter-spacing:.16em;text-transform:uppercase;color:var(--faint);margin:0 0 13px}
 .rebuild-page .dark .pg-h1{color:#fff}
 .rebuild-page .pgband [data-prose]{font-size:clamp(14px,1.05vw,15.5px);line-height:1.72}
-.rebuild-page .pg-sub[data-prose]{font-size:clamp(15px,1.28vw,17px);line-height:1.58}
+.rebuild-page .pg-sub[data-prose]{font-size:clamp(15px,1.18vw,16px);line-height:1.54}
 
 /* R1 — statement + four-step walkthrough. */
 .pg-walkthrough{border-bottom:1px solid var(--rule)}
@@ -4193,7 +4207,7 @@ body.reg-coach .navlink{font-size:var(--text-md)}
 .pg-walk-step:last-child{padding-bottom:0}
 .pg-walk-num{font-family:ui-monospace,"SF Mono",Menlo,monospace;font-size:var(--text-sm);
   letter-spacing:.08em;color:var(--faint);padding-top:4px}
-.pg-walk-step h2{font-size:clamp(22px,2.4vw,32px);line-height:1.12;letter-spacing:-.025em}
+.pg-walk-step h2{font-size:clamp(21px,2.1vw,28px);line-height:1.12;letter-spacing:-.025em}
 .pg-walk-step p{max-width:68ch;color:var(--muted);font-size:var(--text-base);line-height:1.68}
 
 /* R2 — one argument followed by a prose comparison table. */
@@ -4213,7 +4227,7 @@ body.reg-coach .navlink{font-size:var(--text-md)}
 /* R3 — essay beside a rail of real, bare numerals. */
 .pg-essay-stat{display:grid;grid-template-columns:minmax(0,1.55fr) minmax(250px,.65fr);
   gap:clamp(48px,8vw,112px);align-items:start}
-.pg-essay h2{font-size:clamp(28px,3.4vw,44px);max-width:17ch;line-height:1.1;letter-spacing:-.025em;margin-bottom:24px}
+.pg-essay h2{font-size:clamp(26px,3vw,38px);max-width:17ch;line-height:1.1;letter-spacing:-.025em;margin-bottom:24px}
 .pg-essay p{max-width:68ch;color:var(--muted);font-size:var(--text-base);line-height:1.72;margin-top:18px}
 .pg-stat-rail{border-top:1px solid var(--rule)}
 .pg-rail-stat{padding:24px 0;border-bottom:1px solid var(--rule)}
@@ -4228,7 +4242,7 @@ body.reg-coach .navlink{font-size:var(--text-md)}
 /* R4 — argument left, one flat, captioned product artifact right. */
 .pg-r4-grid{display:grid;grid-template-columns:minmax(0,.92fr) minmax(380px,1.08fr);
   gap:clamp(44px,7vw,96px);align-items:start}
-.pg-r4-copy h2{font-size:clamp(28px,3.4vw,44px);line-height:1.1;letter-spacing:-.025em;max-width:16ch}
+.pg-r4-copy h2{font-size:clamp(26px,3vw,38px);line-height:1.1;letter-spacing:-.025em;max-width:16ch}
 .pg-r4-copy p{color:var(--muted);font-size:var(--text-base);line-height:1.72;margin-top:20px;max-width:66ch}
 .pg-flat-figure{margin:0;min-width:0}
 .pg-mono-ui{font-family:ui-monospace,"SF Mono",Menlo,monospace;border-top:1px solid var(--ink);
@@ -4255,7 +4269,7 @@ body.reg-coach .navlink{font-size:var(--text-md)}
 .pg-dark-essay{background:var(--canvas-dark)}
 .pg-dark-essay .shell{display:grid;grid-template-columns:minmax(220px,.62fr) minmax(0,1.38fr);
   gap:clamp(48px,8vw,118px);align-items:start}
-.pg-dark-essay h2{color:#fff;font-size:clamp(30px,3.8vw,48px);line-height:1.08;letter-spacing:-.025em;max-width:13ch}
+.pg-dark-essay h2{color:#fff;font-size:clamp(28px,3.3vw,42px);line-height:1.08;letter-spacing:-.025em;max-width:13ch}
 .pg-dark-copy{columns:1}
 .pg-dark-copy p{color:#fff!important;font-size:var(--text-base);line-height:1.75;margin-top:24px;max-width:70ch}
 .pg-dark-copy p:first-child{margin-top:0}
@@ -4269,7 +4283,7 @@ body.reg-coach .navlink{font-size:var(--text-md)}
 .pg-question-ledger{border-top:1px solid var(--rule)}
 .pg-question-row{display:grid;grid-template-columns:minmax(230px,.68fr) minmax(0,1.32fr);
   gap:clamp(32px,7vw,96px);padding:30px 0;border-bottom:1px solid var(--rule)}
-.pg-question-row dt{font-size:clamp(20px,2vw,28px);line-height:1.2;font-weight:800;letter-spacing:-.02em}
+.pg-question-row dt{font-size:clamp(19px,1.8vw,24px);line-height:1.2;font-weight:800;letter-spacing:-.02em}
 .pg-question-row dd{margin:0;color:var(--muted);font-size:var(--text-base);line-height:1.7;max-width:70ch}
 
 /* ══════════════ FOURTEEN PAGE SILHOUETTES ══════════════
@@ -4280,7 +4294,7 @@ body.reg-coach .navlink{font-size:var(--text-md)}
 
 /* 01 — What is Sporv: dark manifesto / six-cell field / dark claim / ledger. */
 .pg-what-is .pg-hero-inner{grid-template-columns:minmax(280px,.78fr) minmax(0,1.22fr);align-items:center}
-.pg-what-is .pg-h1{font-size:clamp(48px,6.5vw,78px);max-width:10ch}
+.pg-what-is .pg-h1{font-size:clamp(38px,4.8vw,58px);max-width:10ch}
 .pg-what-is .pg-hero-copy{padding-left:clamp(0px,3vw,46px);border-left:1px solid #2A3038}
 .pg-capability-grid{display:grid;grid-template-columns:repeat(3,1fr);border-top:1px solid var(--rule);
   border-left:1px solid var(--rule)}
@@ -4290,18 +4304,18 @@ body.reg-coach .navlink{font-size:var(--text-md)}
 .pg-capability-grid p{color:var(--muted);max-width:38ch}
 .pg-market-claim .shell{display:grid;grid-template-columns:minmax(260px,.9fr) minmax(0,1.1fr);
   gap:clamp(42px,8vw,120px);align-items:end}
-.pg-market-claim h2{font-size:clamp(34px,4.7vw,62px);line-height:1.02;max-width:14ch}
+.pg-market-claim h2{font-size:clamp(31px,4vw,52px);line-height:1.02;max-width:14ch}
 .pg-market-claim p{max-width:62ch;color:#fff!important}
 .pg-what-questions .pg-question-row{grid-template-columns:minmax(210px,.5fr) minmax(0,1.5fr)}
 
 /* 02 — Checks: threshold hero / five stages / one honesty interruption / 2×2 questions. */
-.pg-background-checks .pg-hero-inner{grid-template-columns:minmax(0,1.42fr) minmax(300px,.58fr);align-items:center}
+.pg-background-checks .pg-hero-inner{grid-template-columns:minmax(0,1.15fr) minmax(390px,.85fr);align-items:center}
 .pg-background-checks .pg-hero .shell{padding-top:14px;padding-bottom:14px}
-.pg-background-checks .pg-h1{font-size:clamp(44px,5vw,64px);max-width:12ch}
+.pg-background-checks .pg-h1{font-size:clamp(36px,4vw,50px);max-width:12ch}
 .pg-background-checks [data-layout="walk-five"] .pg-walk-step{grid-template-columns:84px minmax(230px,.72fr) minmax(0,1.28fr)}
 .pg-check-honesty .shell{display:grid;grid-template-columns:minmax(250px,.72fr) minmax(0,1.28fr);
   gap:clamp(46px,8vw,120px);align-items:start}
-.pg-check-honesty h2{font-size:clamp(34px,4vw,52px);max-width:12ch;line-height:1.06}
+.pg-check-honesty h2{font-size:clamp(30px,3.5vw,44px);max-width:12ch;line-height:1.06}
 .pg-check-honesty p{color:#fff!important;max-width:62ch;margin-top:22px}
 .pg-check-honesty p:first-child{margin-top:0}
 .pg-check-questions .pg-question-ledger{display:grid;grid-template-columns:repeat(2,1fr);border-left:1px solid var(--rule)}
@@ -4311,10 +4325,14 @@ body.reg-coach .navlink{font-size:var(--text-md)}
 
 /* 03 — Search: wide eligibility statement / inverse filter machine / white comparison ledger. */
 .pg-search .pg-hero-inner{grid-template-columns:minmax(0,1.35fr) minmax(340px,.65fr);align-items:center}
-.pg-search .pg-h1{font-size:clamp(44px,5.2vw,68px);max-width:14ch}
+/* Search's hero height is set by its demo-UI aside, not its headline, and sat
+   ~2px over the 45vh ceiling on Linux text metrics (CI) while passing on mac.
+   Trimmed shell padding buys ~10px of cross-platform margin. */
+.pg-search .pg-hero .shell{padding-top:14px;padding-bottom:14px}
+.pg-search .pg-h1{font-size:clamp(36px,4.1vw,52px);max-width:14ch}
 .pg-search-match-grid{display:grid;grid-template-columns:minmax(0,1.03fr) minmax(380px,.97fr);
   gap:clamp(52px,9vw,132px);align-items:start}
-.pg-search-copy h2{color:#fff;font-size:clamp(30px,3.4vw,46px);line-height:1.08;max-width:17ch}
+.pg-search-copy h2{color:#fff;font-size:clamp(28px,3vw,40px);line-height:1.08;max-width:17ch}
 .pg-search-copy>p[data-prose]{color:#fff!important;max-width:62ch;margin-top:20px}
 .pg-search-match .pg-mono-ui{background:transparent;border-color:#fff;color:#fff}
 .pg-search-match .pg-ui-head,.pg-search-match .pg-ui-row{border-color:#2A3038}
@@ -4347,10 +4365,10 @@ body.reg-coach .navlink{font-size:var(--text-md)}
 /* 06 — Messaging: centered question / three parallel essay columns / four-part index. */
 .pg-messaging .pg-hero-inner{display:block;text-align:center}
 .pg-messaging .pg-hero-title{display:flex;flex-direction:column;align-items:center}
-.pg-messaging .pg-hero-copy{max-width:72ch;margin:18px auto 0}.pg-messaging .pg-ctarow{justify-content:center}
-.pg-messaging .pg-h1{max-width:none;font-size:clamp(38px,3.5vw,44px);line-height:1}
+.pg-messaging .pg-hero-copy{max-width:84ch;margin:12px auto 0}.pg-messaging .pg-ctarow{justify-content:center}
+.pg-messaging .pg-h1{max-width:none;font-size:clamp(32px,2.9vw,38px);line-height:1}
 .pg-message-essay .shell{display:block}
-.pg-message-essay h2{max-width:22ch;font-size:clamp(38px,4.8vw,62px);margin-bottom:48px}
+.pg-message-essay h2{max-width:22ch;font-size:clamp(34px,4vw,50px);margin-bottom:48px}
 .pg-message-essay .pg-dark-copy{display:grid;grid-template-columns:repeat(3,1fr);gap:0}
 .pg-message-essay .pg-dark-copy p{margin:0;padding:0 clamp(22px,3vw,42px);border-left:1px solid #343A43}
 .pg-message-essay .pg-dark-copy p:first-child{padding-left:0;border-left:0}
@@ -4412,7 +4430,7 @@ body.reg-coach .navlink{font-size:var(--text-md)}
 .pg-roster-grid{grid-template-columns:1fr;gap:52px}
 .pg-roster-grid .pg-flat-figure{order:-1}
 .pg-roster-grid .pg-r4-copy{display:grid;grid-template-columns:minmax(190px,.8fr) repeat(3,minmax(0,1fr));gap:clamp(20px,3vw,42px)}
-.pg-roster-grid .pg-r4-copy h2{font-size:clamp(25px,2.8vw,38px);margin:0}.pg-roster-grid .pg-r4-copy p{margin:0}
+.pg-roster-grid .pg-r4-copy h2{font-size:clamp(24px,2.5vw,34px);margin:0}.pg-roster-grid .pg-r4-copy p{margin:0}
 
 /* 12 — Session notes: marginal title / numbered editorial sequence / paired definitions. */
 .pg-session-notes .pg-hero-inner{grid-template-columns:minmax(0,.72fr) minmax(380px,1.28fr);align-items:start}
@@ -4436,7 +4454,7 @@ body.reg-coach .navlink{font-size:var(--text-md)}
 
 /* 14 — Insights: dark metric head / right-set thesis / compact evidence table. */
 .pg-insights .pg-hero-inner{grid-template-columns:minmax(260px,.78fr) minmax(370px,1fr) minmax(170px,.4fr);align-items:center}
-.pg-insights .pg-h1{max-width:13ch;font-size:clamp(40px,3.3vw,48px)}
+.pg-insights .pg-h1{max-width:13ch;font-size:clamp(34px,2.8vw,40px)}
 .pg-hero-metrics{border-top:1px solid #343A43}
 .pg-hero-metrics div{padding:16px 0;border-bottom:1px solid #343A43}
 .pg-hero-metrics strong{display:block;color:#fff;font-family:ui-monospace,"SF Mono",Menlo,monospace;
@@ -4477,8 +4495,29 @@ body.reg-coach .navlink{font-size:var(--text-md)}
   .pg-note-defs .pg-definition-list{grid-template-columns:1fr}
   .pg-consent-questions .pg-question-row{width:100%;margin-left:0!important;grid-template-columns:1fr;gap:10px}
 }
+/* A portrait tablet still gets the stacked hero, but it cannot inherit the
+   desktop display scale and per-page top offsets: that combination pushed eight
+   routes beyond the 45vh hero ceiling at 768x1024. Keep the copy and composition;
+   tighten only its first fold. */
+@media(min-width:521px) and (max-width:820px){
+  .rebuild-page .pg-hero .shell{padding-top:10px;padding-bottom:10px}
+  .rebuild-page .pg-hero-inner{gap:8px}
+  .rebuild-page .pg-hero-title,.rebuild-page .pg-hero-copy{padding-top:0!important}
+  .rebuild-page .pg-h1{font-size:clamp(30px,4.2vw,34px)!important;line-height:1.03;max-width:none!important}
+  .rebuild-page .pg-eyebrow{margin-bottom:7px}
+  .rebuild-page .pg-sub[data-prose]{font-size:14.5px;line-height:1.4;margin-top:4px;max-width:72ch}
+  .rebuild-page .pg-ctarow{margin-top:8px}
+  .rebuild-page .pg-cta{height:44px}
+}
 @media(max-width:520px){
-  .rebuild-page .pg-h1{font-size:clamp(36px,11vw,48px)}
+  .rebuild-page .pg-hero .shell{padding:10px 16px}
+  .rebuild-page .pg-hero-inner{gap:8px}
+  .rebuild-page .pg-hero-title,.rebuild-page .pg-hero-copy{padding-top:0!important}
+  .rebuild-page .pg-h1{font-size:clamp(28px,7.7vw,32px);line-height:1.02;max-width:none!important}
+  .rebuild-page .pg-eyebrow{margin-bottom:7px}
+  .rebuild-page .pg-sub[data-prose]{font-size:13px;line-height:1.4;margin-top:4px}
+  .rebuild-page .pg-ctarow{margin-top:8px}
+  .rebuild-page .pg-cta{height:44px}
   .pg-walk-step{grid-template-columns:1fr}.pg-walk-step p{grid-column:auto}
   .pg-background-checks [data-layout="walk-five"] .pg-walk-step{grid-template-columns:1fr}
   .pg-ui-row{grid-template-columns:1fr;gap:4px}
@@ -6154,7 +6193,7 @@ function kindBandHTML(id,title,sub,type,full){
 function topbarHTML(){
   const u=S.auth.user;
   return `<header class="topbar"><div class="shell topbar-in">
-    <button class="brand" data-nav="explore" aria-label="Sporv home"><span class="wordmark">Sporv</span></button>
+    <button class="brand" data-nav="explore" aria-label="Sporv home"><span class="navlogo-crop"><img class="navlogo" src="data:image/png;base64,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" alt="Sporv" width="99" height="24"></span></button>
     ${/* Column 2 of the 1fr auto 1fr grid: the centred menu group. Rendered
           for families only, but the wrapper is always present so the grid
           keeps three columns and the group stays geometrically centred. */""}
@@ -8388,11 +8427,12 @@ function coachState(){
   if(pv) return {
     isReal:true,
     businessName:pv.business_name||"Your coaching business",
-    status:pv.status, verified:pv.background_check_status==="verified",
+    status:pv.status,
+    verified:pv.background_check_status==="verified"&&!!pv.background_check_completed_at,
     approved:pv.status==="approved",
     payouts:!!pv.stripe_charges_enabled,
     connectStarted:!!pv.stripe_account_id,
-    listed:pv.status==="approved"&&pv.background_check_status==="verified",
+    listed:pv.status==="approved"&&pv.background_check_status==="verified"&&!!pv.background_check_completed_at,
   };
   return {
     isReal:false,
@@ -8950,7 +8990,8 @@ function coachBody(t){
                <div class="bub ${m.me?"them":"me"}">${esc(m.text)}</div>`).join("")}
           </div>
           <form class="msg-compose" id="coachCompose">
-            <input name="text" placeholder="Message ${esc(title(active))}" autocomplete="off" required>
+            <input name="text" aria-label="Message ${esc(title(active))}"
+              placeholder="Message ${esc(title(active))}" autocomplete="off" required>
             <button class="btn sm" type="submit">Send</button>
           </form>
         </div>
@@ -13985,23 +14026,19 @@ document.addEventListener("click",e=>{
    strand the eager ones, which is the kind of split-brain that renders half a
    page from live data and half from the seed.
 
-   WHAT IS ACTUALLY DIFFERENT ABOUT THE LIVE ROWS, measured 2026-08-12:
+   WHAT IS ACTUALLY DIFFERENT ABOUT LIVE ROWS:
 
-     seed                          live
-     30 listings / 6 businesses    10 listings / 10 businesses (1 each)
-     ids "prog_1".."prog_30"       uuids
-     2 of 6 businesses unverified  every row background-check verified
-     Miami coordinates             Chicago
-     mixed pricing models          single_session throughout
-     enrolled 4..15                enrolled 0
+     seed fixture                  live
+     fixed fictional records       production rows that can grow or disappear
+     ids "prog_1".."prog_30"       UUIDs
+     disclosed sample activity     current catalogue and session records
+     mixed fixture coordinates     Chicagoland listing coordinates
 
-   The verification difference is not cosmetic. The seed deliberately shipped
-   two businesses WITHOUT background checks so the trust UI had something to
-   say. Production cannot show you an unchecked provider at all — RLS filters
-   them before PostgREST sees the request (20 of 23 providers are visible; the
-   3 without a check are not). So the "not yet checked" state disappears from
-   browse. That is the gate working, not a regression, but it means the
-   contrast that made the badge legible has to come from copy now, not data.
+   Verification is not inferred from visibility. A live listing can render
+   without a badge when its provider row lacks dated evidence, and the family
+   can remove it with the verified-only filter. The database booking write is
+   the final authority: a visible listing does not grant an unchecked coach the
+   right to accept a booking.
 
    FAIL-SAFE, AND WHY IT IS NOT OPTIONAL
    Any failure — offline, CSP, RLS change, a 500 — leaves the seeded catalogue
@@ -14031,9 +14068,9 @@ document.addEventListener("click",e=>{
 
      The `providers(...)` embed is a PostgREST resource embedding over the
      programs.provider_id foreign key. It resolves in ONE round trip and obeys
-     the same RLS and column grants as a direct read — verified: a provider
-     without a background check yields no program row at all, not a program row
-     with a null provider. */
+     the same RLS and column grants as a direct read. Visibility is not treated
+     as proof of clearance; toProgram() still requires status plus a completion
+     date before it exposes a badge. */
   var PROGRAM_COLS = [
     "id", "title", "description", "sport_type", "skill_level", "age_group",
     "minimum_age", "maximum_age", "price", "currency", "pricing_model",
@@ -14142,6 +14179,29 @@ document.addEventListener("click",e=>{
   }
 
   var loaded = false;
+  /* Keep the deterministic fallback before the first live mutation. reload()
+     can fail after a successful hydration; without this snapshot the module
+     labeled the page "seed" while leaving yesterday's live rows and slots in
+     memory. Preserve the array identity, but restore its original contents. */
+  var fallbackPrograms = (typeof PROGRAMS !== "undefined" && Array.isArray(PROGRAMS))
+    ? PROGRAMS.slice() : [];
+
+  function clearLiveSlots() {
+    if (typeof LIVE_SLOTS !== "object" || !LIVE_SLOTS) return;
+    Object.keys(LIVE_SLOTS).forEach(function (key) { delete LIVE_SLOTS[key]; });
+  }
+
+  function restoreFallback() {
+    if (typeof PROGRAMS !== "undefined" && Array.isArray(PROGRAMS) && fallbackPrograms.length) {
+      PROGRAMS.length = 0;
+      PROGRAMS.push.apply(PROGRAMS, fallbackPrograms);
+      if (typeof rebuildBusinesses === "function") rebuildBusinesses();
+    }
+    clearLiveSlots();
+    loaded = false;
+    mark("seed");
+    return false;
+  }
 
   /* A `file://` page never hydrates.
      ------------------------------------------------------------------------
@@ -14229,8 +14289,7 @@ document.addEventListener("click",e=>{
       return Promise.resolve(false);
     }
     if (!enabled()) {
-      mark("seed");
-      return Promise.resolve(false);
+      return Promise.resolve(restoreFallback());
     }
 
     return Promise.all([
@@ -14255,8 +14314,7 @@ document.addEventListener("click",e=>{
            RLS change, an unpublish, a bad filter — the seeded page is the
            better thing to show while it is investigated. */
         if (!Array.isArray(rows) || rows.length === 0) {
-          mark("seed");
-          return false;
+          return restoreFallback();
         }
 
         var live = rows.map(toProgram);
@@ -14271,6 +14329,10 @@ document.addEventListener("click",e=>{
           (byProgram[s.program_id] = byProgram[s.program_id] || []).push(toSlot(s));
         });
         if (typeof LIVE_SLOTS === "object" && LIVE_SLOTS) {
+          /* A refresh is a replacement, not a merge. If a session was deleted
+             between fetches, retaining its old key would keep a bookable-looking
+             time alive until the tab closed. */
+          clearLiveSlots();
           Object.keys(byProgram).forEach(function (k) { LIVE_SLOTS[k] = byProgram[k]; });
         }
 
@@ -14296,9 +14358,8 @@ document.addEventListener("click",e=>{
       })
       .catch(function () {
         /* Offline, CSP, 5xx, a revoked grant — all identical from here, and
-           all have the same right answer: leave the seed alone. */
-        mark("seed");
-        return false;
+           all have the same right answer: restore the disclosed fallback. */
+        return restoreFallback();
       });
   }
 
@@ -14374,24 +14435,24 @@ document.addEventListener("click",e=>{
    coach gets a `providers` record they own, and every field they fill in is
    PATCHed onto it.
 
-   THE BACKEND WAS ALREADY READY, which is worth stating because it is why this
-   file is short. RLS on `providers`, verified 2026-08-12:
+   THE BACKEND OWNS THE TRUST BOUNDARY. RLS scopes a coach's writes to their own
+   provider row, and server triggers freeze the trust and payout columns. The
+   public catalogue may expose an approved listing without a badge; accepting a
+   booking still requires the server-side provider safety gate.
 
      providers_insert_owner   INSERT  authenticated  check (owner_id = auth.uid())
      providers_select_owner   SELECT  authenticated  using (owner_id = auth.uid())
      providers_update_owner   UPDATE  authenticated  using (owner_id = auth.uid())
-     providers_select_public  SELECT  anon+auth      using (status='approved'
-                                                       and provider_safety_cleared(id))
 
-   So a coach can create and edit exactly their own row and nobody else's, and
-   the server enforces it — this client could be hostile and the rule holds.
+   So a coach can create and edit exactly their own row and nobody else's, while
+   column-freeze triggers prevent a hostile client from granting trust or payout
+   state to itself.
 
-   A NEW COACH IS NOT PUBLIC, AND THAT IS THE POINT. The column defaults are
+   A NEW COACH IS NOT BOOKABLE, AND THAT IS THE POINT. The column defaults are
    status='pending', background_check_status='none', verification_status=
-   'unverified'. providers_select_public requires 'approved' AND a cleared
-   safety check, so a freshly created coach is invisible to browse and search
-   until a human approves them and the check clears. Signing up does not put an
-   unchecked adult in front of a family, which is the whole product promise.
+   'unverified'. Even if an unbadged listing is discoverable, the booking trigger
+   refuses it until approval and the required personal check are current. Signing
+   up never grants the right to take a family booking.
 
    IMAGES. `providers.avatar_url` / `logo_url` and the `provider-media` bucket
    were added 2026-08-12 — the project previously had NO storage buckets at
@@ -14468,7 +14529,8 @@ document.addEventListener("click",e=>{
       if (!uid()) { provider = null; return Promise.resolve(null); }
       return API.from("providers",
         "select=id,business_name,bio,sports,location,provider_type,status," +
-        "verification_status,background_check_status,onboarding_completed," +
+        "verification_status,background_check_status,background_check_completed_at," +
+        "onboarding_completed,stripe_account_id,stripe_charges_enabled," +
         "coach_years_coaching,coach_years_played,credentials,avatar_url,logo_url" +
         "&owner_id=eq." + encodeURIComponent(uid()) + "&limit=1"
       ).then(function (rows) {
@@ -14874,7 +14936,8 @@ document.addEventListener("click",e=>{
     publicState: function () {
       if (!provider) return { live: false, reason: "no-profile" };
       if (provider.status !== "approved") return { live: false, reason: "pending-approval" };
-      if (provider.background_check_status !== "verified") {
+      if (provider.background_check_status !== "verified" ||
+          !provider.background_check_completed_at) {
         return { live: false, reason: "pending-check" };
       }
       return { live: true, reason: null };
@@ -26312,19 +26375,19 @@ window.MOD_COMPANIES = {
   }
 
   function searchPage(meta) {
-    var intro = "Sport is only the first gate. Sporv also reads the athlete's age, current level, preferred format, budget, distance, and the coach's published intensity before a result can belong. Families narrow one real catalogue rather than browsing invented recommendations. A saved coach remains a live search result, so changed availability or verification can never be frozen into a misleading shortlist.";
+    var intro = "Sport is only the first filter. Sporv also reads the athlete's age, the listing's published skill level, preferred format, budget, distance, and current availability. Families narrow one real catalogue rather than browsing invented recommendations. Verification remains visible on every result, and a verified-only control removes coaches without dated clearance. A saved coach still points to the current listing, so changed availability or check state cannot be frozen into a misleading shortlist.";
     var figure = "<figure class='pg-flat-figure pg-filter-figure'><div class='pg-mono-ui' aria-label='Demonstration of family search filters'>" +
       "<div class='pg-ui-head'><span>FAMILY SEARCH</span><span>DEMO DATA</span></div>" +
       "<div class='pg-ui-row'><span class='pg-ui-key'>SPORT</span><span class='pg-ui-value'>Baseball</span></div>" +
       "<div class='pg-ui-row'><span class='pg-ui-key'>ATHLETE AGE</span><span class='pg-ui-value'>9 years</span></div>" +
       "<div class='pg-ui-row'><span class='pg-ui-key'>LEVEL</span><span class='pg-ui-value'>Developing fundamentals</span></div>" +
-      "<div class='pg-ui-row'><span class='pg-ui-key'>INTENSITY</span><span class='pg-ui-value'>Age-appropriate</span></div>" +
-      "<div class='pg-ui-row'><span class='pg-ui-key'>RESULT</span><span class='pg-ui-value'>6 bookable sessions remain</span></div></div>" +
-      "<figcaption data-prose>This disclosed demo uses fictional filter values to show the mechanism, not catalogue supply. Each row removes listings that do not match; none of the values can create a coach, a session, or a cleared check.</figcaption></figure>";
+      "<div class='pg-ui-row'><span class='pg-ui-key'>FORMAT</span><span class='pg-ui-value'>Single session</span></div>" +
+      "<div class='pg-ui-row'><span class='pg-ui-key'>RESULT</span><span class='pg-ui-value'>6 matching listings remain</span></div></div>" +
+      "<figcaption data-prose>This disclosed demo uses fictional filter values to show the mechanism, not current catalogue supply. Each row removes listings that do not match; none of the values can create a coach, a session, or a cleared check.</figcaption></figure>";
     var rows = [
-      ["Respect the age gate", "A broad sport directory leaves the parent to inspect every profile for age fit.", "Age and intensity are stored with the listing. A nine-year-old never sees varsity-intensity training as a valid match."],
+      ["Respect the age range", "A broad sport directory leaves the parent to inspect every profile for age fit.", "Minimum and maximum age stay with the listing. Selecting an athlete's age removes services whose published range does not include them."],
       ["Show real supply", "A recommendation can look relevant while the coach has no dated opening to take.", "Only published services and current availability enter the result, with price, place, format, and capacity still attached."],
-      ["Apply trust first", "A polished profile may rank before anyone verifies the individual who will coach.", "The personal background-check gate runs before relevance. An unchecked coach cannot be rescued by distance, popularity, or business membership."],
+      ["Keep trust legible", "A polished profile can make an unchecked person look equivalent to someone with dated clearance.", "The check state stays beside the result. Verified-only removes unbadged supply, and the server checks provider safety again before accepting a booking."],
       ["Save without freezing", "A bookmark often preserves an old promise long after the underlying listing changes.", "The shortlist points back to the current record. A coach who stops being bookable stops being bookable there too."]
     ];
     var table = "<section class='pgband white pg-search-compare' data-section='comparison-table' data-layout='compare-ledger'><div class='shell pg-comparison-wrap'>" +
@@ -26335,25 +26398,25 @@ window.MOD_COMPANIES = {
       }).join("") + "</tbody></table></div></section>";
     return wrap("search", "B03", "filter-figure-to-comparison", "L-D-L", hero(meta,
       "Match the athlete, not just <em>the sport.</em>", intro,
-      { tone: "white", layout: "search-gate", eyebrow: "SPORT, AGE, LEVEL, INTENSITY" }) +
+      { tone: "white", layout: "search-gate", eyebrow: "SPORT, AGE, LEVEL, FORMAT" }) +
       "<section class='pgband dark pg-search-match' data-section='filter-figure' data-layout='dark-copy-filter'><div class='shell pg-search-match-grid'>" +
-      "<div class='pg-search-copy'><p class='pg-eyebrow'>THE MATCHING RULE</p><h2>A nine-year-old never sees varsity-intensity training.</h2>" +
-      "<p data-prose>A parent starts with facts the coach has already committed to the listing. Sport and age decide eligibility. Level and intensity protect fit. Format, price, distance, and schedule decide whether the session can work in family life. The result set gets smaller as those facts become specific; Sporv never widens it with a convenient near-match.</p>" +
-      "<p data-prose>The coach sees the same fields while publishing, including the ages served and the kind of instruction being offered. That symmetry matters. Search is not interpreting a vague biography after the fact; it is comparing the family's request with structured supply the coach can correct before anyone books.</p>" +
-      "<p data-prose>Verification is a gate, not another ranking signal. If the named coach's personal check is not cleared, the listing cannot enter bookable search. A saved result, a company affiliation, or a short drive cannot weaken that rule.</p></div>" + figure + "</div></section>" + table);
+      "<div class='pg-search-copy'><p class='pg-eyebrow'>THE MATCHING RULE</p><h2>The athlete's age range stays attached to every result.</h2>" +
+      "<p data-prose>A parent starts with facts the coach has already committed to the listing. Sport and age narrow eligibility. The selected level, format, price, distance, and available date decide whether the service can work in family life. The result set gets smaller as those facts become specific; Sporv does not invent a nearby substitute that ignores a selected filter. If nothing matches, the empty result keeps the criteria visible so the family can revise a choice deliberately.</p>" +
+      "<p data-prose>The coach sees the same structured fields while publishing: ages served, skill level, format, price, location, and schedule. That symmetry matters. Search is not interpreting a vague biography after the fact; it is comparing the family's request with supply the coach can correct before anyone books. A parent can understand why a listing belongs, while a coach can identify which published fact kept another listing out.</p>" +
+      "<p data-prose>Verification is visible and filterable, not silently inferred from a polished profile. With verified-only selected, a coach without a cleared status and completion date leaves the results. Without it, the listing remains unbadged rather than being called clear. When a family proceeds, the server checks provider safety again as the booking is written, so an old result or saved link cannot grant permission that the current record no longer supports.</p></div>" + figure + "</div></section>" + table);
   }
 
   function schedulingPage(meta) {
-    var intro = "A coach publishes the hours they are prepared to teach, attaches each opening to a service and capacity, and lets families book only those times. The calendar is not a promise to call back; it is the supply families can actually take. When a slot fills or closes, it leaves availability, so the public schedule and the coach's working week stay the same record.";
+    var intro = "A coach publishes the hours they are prepared to teach, attaches each opening to a service and capacity, and lets families book only those times. The calendar is not a promise to call back; it is the supply families can actually take. When a slot fills or closes, it leaves availability, so the public schedule and the coach's working week stay the same record. The next parent reads that change immediately instead of waiting for a manual correction.";
     var steps = [
       ["Set the repeating week",
-       "The coach starts with the hours that normally belong to coaching: Tuesday after school, Saturday morning, or any other repeatable block. Each block has a start, duration, service, place, and capacity. Sporv turns those rules into dated openings. Families never see the private calendar around them; they see only the lesson times the coach deliberately made bookable."],
+       "The coach starts with the hours that normally belong to coaching: Tuesday after school, Saturday morning, or any other repeatable block. Each block has a start, duration, service, place, and capacity. Sporv turns those rules into dated openings. Families never see the private calendar around them; they see only the lesson times the coach deliberately made bookable. The coach previews the dated result before publishing, so one recurring mistake cannot become a month of misleading supply before it goes live."],
       ["Change one date or the rule",
-       "A tournament, holiday, or court closure should not force the coach to rebuild the month. A single occurrence can close without deleting the repeating rule, while a permanent change updates future openings. The coach sees which dates were generated and which were edited. Families see the resulting truth: open, full, or unavailable, with no internal scheduling notes exposed."],
+       "A tournament, holiday, or court closure should not force the coach to rebuild the month. A single occurrence can close without deleting the repeating rule, while a permanent change updates future openings. The coach sees which dates were generated and which were edited. Families see the resulting truth: open, full, or unavailable, with no internal scheduling notes exposed. A closed occurrence leaves family search immediately, while an existing booking remains in the records of both sides. That state is definitive."],
       ["Capacity closes the door",
-       "Every opening carries the number of athletes it can hold. Checkout claims a seat against that number, and the last available seat closes the slot. Two families cannot both take one remaining place merely because their screens were open at the same time. The database checks capacity again when the booking is written; the calendar display alone is never the safety mechanism."],
+       "Every opening carries the number of athletes it can hold. Checkout claims a seat against that number, and the last available seat closes the slot. Two families cannot both take one remaining place merely because their screens were open at the same time. The database checks capacity again when the booking is written; the calendar display alone is never the safety mechanism. A temporary hold expires after failed payment, returning that seat without changing the coach's published rule."],
       ["Move the week without losing history",
-       "Changing future availability does not rewrite a session that was already booked. The existing booking keeps its date, price, participants, and policy snapshot until the coach and family deliberately change or cancel it. That separation protects both sides: the coach can shape next week freely, while a parent can still prove what was agreed for the session already on the books."]
+       "Changing future availability does not rewrite a session that was already booked. The existing booking keeps its date, price, participants, and policy snapshot until the coach and family deliberately change or cancel it. That separation protects both sides: the coach can shape next week freely, while a parent can still prove what was agreed for the session already on the books. An agreed move creates a dated update and notification rather than silently altering the original promise."]
     ];
     var week = "<aside class='pg-hero-schedule' aria-label='Example published week'>" +
       "<div><span>TUE 04:00</span><b>2 openings</b></div><div><span>THU 05:30</span><b>full</b></div>" +
@@ -26365,20 +26428,20 @@ window.MOD_COMPANIES = {
   }
 
   function mapPage(meta) {
-    var argument = "A list can sort by distance, but it still makes a parent translate every address into a journey. The map starts with place. Each pin represents the location attached to an existing listing, and opening it keeps the coach, sport, ages, price, verification state, and available sessions together. The rule underneath is the same as search: an unchecked person is not promoted by geography, and a pin never creates availability that the listing does not have.";
+    var argument = "A list can sort by distance, but it still makes a parent translate every address into a journey. The map starts with place. Each pin represents the location attached to an existing listing, and opening it keeps the coach, sport, ages, price, verification state, and available sessions together. Geography never upgrades an unbadged coach: the state remains readable, and verified-only removes that pin. A pin also cannot create availability the listing does not have. The parent can return without losing filters, and the coach corrects an address at its source. A moved session removes the old pin instead of leaving an attractive but false destination.";
     var rows = [
       ["Find the practical radius",
-       "Read addresses one by one, estimate unfamiliar neighborhoods, and discover the drive only after opening several profiles.",
-       "See session locations together, begin with what is realistically close, and keep the stated distance beside every coach you inspect."],
+       "Read addresses one by one, estimate unfamiliar neighborhoods, and discover the drive only after opening several profiles. The comparison becomes driving homework for the family.",
+       "See session locations together, begin with what is realistically close, and keep the stated distance beside every coach you inspect. Changing the radius updates the visible set without discarding the filters."],
       ["Understand one pin",
-       "A marker often hides the useful facts, so the parent leaves the map and loses the place they were comparing.",
-       "Opening a pin shows the named coach or program, sport, ages, price, check state, and next real opening without replacing the map."],
+       "A marker often hides the useful facts, so the parent leaves the map and loses the place they were comparing. Backtracking makes promising options feel interchangeable.",
+       "Opening a pin shows the named coach or program, sport, ages, price, check state, and next real opening without replacing the map. Closing it returns the parent to the same geographic comparison."],
       ["Narrow the visible set",
-       "Filters rebuild a detached list, making it hard to tell whether fewer results are closer or simply elsewhere.",
-       "Sport, age, level, price, and format remove pins in place, so the family can see both the criteria and the geography that remain."],
+       "Filters rebuild a detached list, making it hard to tell whether fewer results are closer or simply elsewhere. The family cannot explain which choice removed which option.",
+       "Sport, age, level, price, and format remove pins in place, so the family can see both the criteria and the geography that remain. An empty area stays empty instead of filling with distant substitutes."],
       ["Protect the booking",
-       "A directory pin can point at a business even when the individual coach or the advertised time has not been verified.",
-       "The same personal-check and live-capacity rules govern map results. Location changes presentation; it never weakens who may appear or what may be booked."]
+       "A directory pin can point at a business even when the individual coach or the advertised time has not been verified. The marker looks current even when the offer behind it is not.",
+       "The map keeps check state visible and offers the same verified-only filter as search. Location changes presentation, not authority: the server verifies provider safety and the chosen seat again before accepting the booking."]
     ];
     var table = "<section class='pgband dark pg-map-table' data-section='comparison-table' data-layout='dark-wide-table'><div class='shell pg-comparison-wrap'>" +
       "<table class='pg-comparison'><thead><tr><th>The job</th><th>Elsewhere</th><th>On Sporv</th></tr></thead><tbody>" +
@@ -26388,27 +26451,27 @@ window.MOD_COMPANIES = {
       }).join("") + "</tbody></table></div></section>";
     return wrap("map-search", "R2", "offset-argument-to-dark-table", "L-L-D", hero(meta,
       "A list of coaches does not tell you <em>what a map does.</em>",
-      "Distance is not a detail to check after choosing a coach. It decides whether a Tuesday lesson can become part of family life. Sporv puts real session locations on the map first, then lets sport, age, level, price, and format narrow what remains. Every visible pin still obeys the personal-check and live-availability rules that protect ordinary search.",
+      "Distance is not a detail to check after choosing a coach. It decides whether a Tuesday lesson can become part of family life. Sporv puts real listing locations on the map first, then lets sport, age, level, price, format, and verified-only narrow what remains. Each pin keeps its current check state and available sessions visible rather than turning geography into an unsupported trust signal.",
       { tone: "slate", layout: "map-corner", eyebrow: "LOCATION AS A DECISION" }) +
       "<section class='pgband white pg-map-argument' data-section='argument' data-layout='offset-argument'><div class='shell'><p class='pg-argument' data-prose>" +
       argument + "</p></div></section>" + table);
   }
 
   function insightsPage(meta) {
-    var argument = "Insights are useful only when the coach can trace them back to work that happened in the product. Sporv derives the view from searches, listing visits, checkout starts, paid bookings, payouts, and return dates. The screen separates sample data from a coach's own data and keeps named client watchlists behind sign-in. A rising number should lead to a decision the coach understands, not a decorative score the platform cannot explain.";
+    var argument = "Insights are useful only when the coach can tell measured account activity from an example. The current web build does not measure search impressions or profile views, so demand and funnel counts are seeded samples and carry that label. Price position is derived from comparable catalogue listings. Availability and return timing are computed from current schedule and booking records, while named client watchlists stay behind sign-in. A number should lead to a decision the coach understands. Sample evidence demonstrates the intended reading; it is never described as this coach's performance.";
     var rows = [
       ["Read local demand",
-       "A coach guesses which sports, ages, or times families nearby want, usually from the messages loud enough to reach them.",
-       "Search demand is grouped from catalogue activity, so the coach can compare what families sought with the services and hours they actually publish."],
+       "A coach guesses which sports, ages, or times families nearby want, usually from the messages loud enough to reach them. Quiet searches never enter that anecdotal picture.",
+       "The current web demo groups seeded search figures by sport and labels them Sample data. It shows the intended demand comparison without presenting those counts as measured account activity. The coach can compare the example with published sports and hours, but the screen does not claim that a family actually ran those searches."],
       ["Follow the booking path",
-       "Page views, inquiries, and bookings live in separate tools, leaving no reliable way to see where interest stopped.",
-       "Listing views, checkout starts, and completed bookings form one funnel. Each stage comes from a recorded action rather than a coach-entered estimate."],
+       "Page views, inquiries, and bookings live in separate tools, leaving no reliable way to see where interest stopped. A large top-line count can hide an unusable checkout path.",
+       "The funnel is a labeled sample 30-day window with appearances, profile views, checkout starts, and completed bookings. It demonstrates the stage-by-stage view; it does not claim those counts came from the signed-in coach. Real paid bookings remain separate from the sample funnel."],
       ["Position a price",
-       "A broad internet average mixes formats, locations, and age groups, then presents the result as advice for one coach.",
-       "Price position compares relevant listings and names the comparison set. Sporv shows evidence; the coach keeps authority over the price they publish."],
+       "A broad internet average mixes formats, locations, and age groups, then presents the result as advice for one coach. The average sounds precise while its peers remain invisible.",
+       "Price position compares relevant listings and names the comparison set. Sporv shows evidence; the coach keeps authority over the price they publish. No suggested figure edits the listing by itself."],
       ["Notice who did not return",
-       "A spreadsheet becomes stale between sessions, and a quiet family disappears until the coach happens to remember them.",
-       "The watchlist uses real booking dates to identify a lapse, stays private to the signed-in coach, and never treats seeded sample families as outreach targets."]
+       "A spreadsheet becomes stale between sessions, and a quiet family disappears until the coach happens to remember them. Manual notes rarely distinguish a deliberate pause from forgotten follow-up.",
+       "The watchlist uses real booking dates to identify a lapse, stays private to the signed-in coach, and never treats seeded sample families as outreach targets. It offers context, not an instruction to contact anyone."]
     ];
     var table = "<section class='pgband slate alt pg-insights-table' data-section='comparison-table' data-layout='stacked-comparison'><div class='shell pg-comparison-wrap'>" +
       "<table class='pg-comparison'><thead><tr><th>The job</th><th>Elsewhere</th><th>On Sporv</th></tr></thead><tbody>" +
@@ -26416,12 +26479,12 @@ window.MOD_COMPANIES = {
         return "<tr><th scope='row' data-prose>" + row[0] + "</th><td data-prose>" +
           row[1] + "</td><td data-prose>" + row[2] + "</td></tr>";
       }).join("") + "</tbody></table></div></section>";
-    var snapshot = "<aside class='pg-hero-metrics' aria-label='Disclosed demo catalogue snapshot'><div><strong>" +
-      PROGRAMS.length + "</strong><span>demo listings in the seeded catalogue</span></div>" +
-      "<div><strong>3</strong><span>traceable stages from visit to paid booking</span></div></aside>";
+    var snapshot = "<aside class='pg-hero-metrics' aria-label='Data provenance for the insights view'>" +
+      "<div><strong>DEMO</strong><span>search demand and funnel figures</span></div>" +
+      "<div><strong>LIVE</strong><span>bookings, availability, and client dates</span></div></aside>";
     return wrap("insights", "R2", "metric-head-to-argument-to-stacked-table", "D-L-L", hero(meta,
       "A dashboard number should explain <em>what changed.</em>",
-      "Bookings, earnings, search demand, price position, and returning clients already leave records as a coach works. Insights turns those records into a readable view of the business without asking for a second spreadsheet. Every figure is derived, demo figures are labeled, and the client watchlist stays private because business guidance never justifies exposing a family's history.",
+      "Bookings, earnings, price position, availability, and returning clients can leave records as a coach works. Search demand and funnel activity do not yet: the current web build uses clearly labeled sample figures to demonstrate those views. Insights keeps derived account evidence separate from seeded examples, and the client watchlist stays private because business guidance never justifies exposing a family's history.",
       { tone: "dark", layout: "metrics", eyebrow: "COACH BUSINESS EVIDENCE", aside: snapshot }) +
       "<section class='pgband white pg-insights-argument' data-section='argument' data-layout='narrow-right-argument'><div class='shell'><p class='pg-argument' data-prose>" +
       argument + "</p></div></section>" + table);
@@ -26429,9 +26492,9 @@ window.MOD_COMPANIES = {
 
   function instantBookingPage(meta) {
     var copy = [
-      "Instant booking begins with supply the coach has already published. A family chooses a dated opening, sees the service, duration, location, capacity, and full price, then confirms the athlete who will attend. Nothing is sent as a vague request. The selected opening is held through checkout so the parent knows which session the payment is buying.",
-      "Capacity is checked again when the booking is written. That second check matters when two families reach the last seat at nearly the same moment: one confirmed write can take it, and the other must choose another opening. A screen that merely looked open cannot override the stored count. Once full, the slot stops appearing as available.",
-      "Payment and the policy snapshot attach to the same booking record. The parent receives confirmation, the coach sees the athlete on the roster, and both sides can reopen the date, price, messages, receipt, and cancellation terms. If payment fails, the session is not presented as confirmed. A clean failure is safer than a booking that exists only in one person's inbox."
+      "Instant booking begins with supply the coach has already published. A family chooses a dated opening, sees the service, duration, location, capacity, and full price, then confirms the athlete who will attend. Nothing is sent as a vague request. The selected opening is held through checkout so the parent knows which session the payment is buying. The athlete is selected before payment, keeping age fit, family authority, and the coach's eventual roster aligned with the person who will actually arrive.",
+      "Capacity is checked again when the booking is written. That second check matters when two families reach the last seat at nearly the same moment: one confirmed write can take it, and the other must choose another opening. A screen that merely looked open cannot override the stored count. Once full, the slot stops appearing as available. The coach sees confirmed capacity, not abandoned checkout attempts, and an expired hold returns to supply without requiring a manual calendar repair.",
+      "Payment and the policy snapshot attach to the same booking record. The parent receives confirmation, the coach sees the athlete on the roster, and both sides can reopen the date, price, messages, receipt, and cancellation terms. If payment fails, the session is not presented as confirmed. A clean failure is safer than a booking that exists only in one person's inbox. A cancellation or agreed move updates this shared record rather than inventing a replacement in private messages. The change remains dated, attributed, and readable to both sides."
     ];
     var figure = "<figure class='pg-flat-figure'><div class='pg-mono-ui' aria-label='Sample open baseball session'>" +
       "<div class='pg-ui-head'><span>Grand Slam Baseball / Hitting Lab</span><span>Sample data</span></div>" +
@@ -26440,7 +26503,7 @@ window.MOD_COMPANIES = {
       "<div class='pg-ui-choice'><span>Sat May 16 / 10:30 AM / 60 min</span><span>$45.00</span></div>" +
       "<div class='pg-ui-row'><span class='pg-ui-key'>capacity</span><span class='pg-ui-value'>1 seat held while payment completes</span></div>" +
       "<div class='pg-ui-row'><span class='pg-ui-key'>result</span><span class='pg-ui-value'>confirmed only after the card succeeds</span></div>" +
-      "</div><figcaption data-prose>This flat figure uses disclosed demo data to explain the record: a fictional coach, one dated opening, the complete price, capacity, and the rule that separates a temporary hold from a confirmed session. It also shows the parent what the coach will receive as a booked athlete, rather than hiding the operational result behind a decorative confirmation screen. Nothing here depends on a callback or manual acceptance after payment.</figcaption></figure>";
+      "</div><figcaption data-prose>This flat figure uses disclosed demo data to explain the record: a fictional coach, one dated opening, the complete price, capacity, and the rule that separates a temporary hold from a confirmed session. It also shows the parent what the coach will receive as a booked athlete, rather than hiding the operational result behind a decorative confirmation screen. Nothing here depends on a callback or manual acceptance after payment. The real interface follows the same sequence for every sport: choose published supply, hold one seat, take payment, write confirmation, and preserve capacity from the stored outcome.</figcaption></figure>";
     return wrap("instant-booking", "R4", "ticket-head-to-inverse-product", "L-D", hero(meta,
       "Choose the opening and leave with <em>a confirmed session.</em>",
       "A bookable time is not an invitation to start a text thread. It is a dated opening the coach published, with a service, duration, place, price, and seat count behind it. Sporv holds the selected seat while payment completes, checks capacity when the booking is written, and confirms only after the charge succeeds, so both sides leave the flow reading the same record.",
@@ -26452,9 +26515,9 @@ window.MOD_COMPANIES = {
 
   function athleteProgressPage(meta) {
     var copy = [
-      "Progress begins with a session that happened. The coach records the focus, what changed, and what should come next against the athlete who attended. A goal can name a skill, distance, time, or other concrete target. The parent sees the same dated note and can read improvement without reconstructing it from messages sent across a season.",
-      "The timeline belongs to the athlete's family account, not to one coach's private notebook. Training with another coach does not erase the earlier record, and a new note does not rewrite an older one. Each entry keeps its author and session context, so continuity never turns into anonymous advice. The family decides which athlete record a booking uses.",
-      "Numbers appear only when someone recorded a real measure. A personal best can show the baseline and later result; an ordinary practice can remain a written observation. Sporv does not turn every child into a leaderboard or infer medical conclusions from coaching notes. The rule is simple: show what was observed, preserve who wrote it, and keep the history with the athlete."
+      "Progress begins with a session that happened. The coach records the focus, what changed, and what should come next against the athlete who attended. A goal can name a skill, distance, time, or other concrete target. The parent sees the same dated note and can read improvement without reconstructing it from messages sent across a season. The next session can reopen that context, so a stated follow-up becomes work to revisit rather than a compliment that disappears after delivery.",
+      "The timeline belongs to the athlete's family account, not to one coach's private notebook. Training with another coach does not erase the earlier record, and a new note does not rewrite an older one. Each entry keeps its author and session context, so continuity never turns into anonymous advice. The family decides which athlete record a booking uses. That ownership also prevents a coach from merging two athletes because their names look similar; every entry follows the selected account and source booking.",
+      "Numbers appear only when someone recorded a real measure. A personal best can show the baseline and later result; an ordinary practice can remain a written observation. Sporv does not turn every child into a leaderboard or infer medical conclusions from coaching notes. The rule is simple: show what was observed, preserve who wrote it, and keep the history with the athlete. Corrections create a visible update rather than silently improving an old result, and a missing measurement remains missing until someone actually records one."
     ];
     var figure = "<figure class='pg-flat-figure'><div class='pg-mono-ui' aria-label='Sample athlete progress timeline'>" +
       "<div class='pg-ui-head'><span>Avery / Sprint development</span><span>Sample data</span></div>" +
@@ -26462,7 +26525,7 @@ window.MOD_COMPANIES = {
       "<div class='pg-ui-row'><span class='pg-ui-key'>MAY 02</span><span class='pg-ui-value'>Block starts / first three steps sharper</span></div>" +
       "<div class='pg-ui-row'><span class='pg-ui-key'>MAY 16</span><span class='pg-ui-value'>150m rep / held form through the turn</span></div>" +
       "<div class='pg-ui-row'><span class='pg-ui-key'>MAY 30</span><span class='pg-ui-value'>100m / 13.9s / new personal best</span></div>" +
-      "</div><figcaption data-prose>This timeline uses disclosed demo data for a fictional athlete. It distinguishes measurement from observation, keeps every entry dated and attributed, and gives the next coach continuity without pretending that one number explains the whole athlete. Parents can read the change over time while the coach prepares the next session from the same evidence. A gap stays a gap; the interface does not manufacture progress for dates when nobody recorded an observation or result.</figcaption></figure>";
+      "</div><figcaption data-prose>This timeline uses disclosed demo data for a fictional athlete. It distinguishes measurement from observation, keeps every entry dated and attributed, and gives the next coach continuity without pretending that one number explains the whole athlete. Parents can read the change over time while the coach prepares the next session from the same evidence. A gap stays a gap; the interface does not manufacture progress for dates when nobody recorded an observation or result. In the real record, the family sees the author and source session for every line, while coach access follows the active coaching relationship instead of turning the timeline into a public profile.</figcaption></figure>";
     var change = "<aside class='pg-hero-progress' aria-label='Demonstration of dated progress'><span>APR 18</span><strong>14.4s</strong><span>MAY 30</span><strong>13.9s</strong></aside>";
     return wrap("athlete-progress", "R4", "progress-head-to-figure-first-record", "D-L", hero(meta,
       "The coach can change. <em>The record stays.</em>",
@@ -26475,16 +26538,16 @@ window.MOD_COMPANIES = {
 
   function rosterPage(meta) {
     var copy = [
-      "A coach can begin with the families they already train instead of waiting for the first marketplace booking to make the product useful. Imported clients enter as roster records with the minimum contact and athlete context needed for the coach's work. New paid bookings then join the same roster automatically, avoiding a second list for clients who happened to arrive through Sporv.",
-      "Opening an athlete connects the practical history: upcoming and completed sessions, notes, payment state, messages, and media-consent status. The coach does not have to match a nickname in a group text to a payer in a receipt export. Parents still control their own account and consent decisions. A roster link gives the coach working context; it does not transfer ownership of family data.",
-      "The roster is private to the signed-in coach or authorized organization member. Public visitors see listings, not client names, attendance, or notes. Sorting and search happen inside that protected view. When access to an athlete is no longer justified, removing the coaching relationship closes future operational access without rewriting completed booking and payment records that both sides may still need."
+      "A coach can begin with the families they already train instead of waiting for the first marketplace booking to make the product useful. Imported clients enter as roster records with the minimum contact and athlete context needed for the coach's work. New paid bookings then join the same roster automatically, avoiding a second list for clients who happened to arrive through Sporv. A likely duplicate is surfaced before creation, so an email variation does not quietly split one athlete's week across two operational histories.",
+      "Opening an athlete connects the practical history: upcoming and completed sessions, notes, payment state, messages, and media-consent status. The coach does not have to match a nickname in a group text to a payer in a receipt export. Parents still control their own account and consent decisions. A roster link gives the coach working context; it does not transfer ownership of family data. The family sees its own athletes and bookings, while the coach sees only the relationships required to deliver and account for instruction.",
+      "The roster is private to the signed-in coach or authorized organization member. Public visitors see listings, not client names, attendance, or notes. Sorting and search happen inside that protected view. When access to an athlete is no longer justified, removing the coaching relationship closes future operational access without rewriting completed booking and payment records that both sides may still need. Organization roles narrow who may open, import, or message roster entries; belonging to the business is not blanket permission to read every family's history."
     ];
     var figure = "<figure class='pg-flat-figure'><div class='pg-mono-ui' aria-label='Sample private client roster'>" +
       "<div class='pg-ui-head'><span>Hockey roster / private coach view</span><span>Sample data</span></div>" +
       "<table class='pg-roster-ui'><thead><tr><th>Athlete</th><th>Sessions</th><th>Last seen</th></tr></thead><tbody>" +
       "<tr><td>Cole S.</td><td>31</td><td>Yesterday</td></tr><tr><td>Mason B.</td><td>24</td><td>2 days</td></tr>" +
       "<tr><td>Ella T.</td><td>12</td><td>5 days</td></tr><tr><td>Ava L.</td><td>8</td><td>1 week</td></tr>" +
-      "</tbody></table></div><figcaption data-prose>This table uses disclosed demo names and attendance counts to show the useful minimum at a glance. Names and attendance stay in the signed-in coach view; a public listing never inherits private roster data. Sorting the table changes order, not access, and every row opens the same athlete record rather than a copied profile for that coaching relationship.</figcaption></figure>";
+      "</tbody></table></div><figcaption data-prose>This table uses disclosed demo names and attendance counts to show the useful minimum at a glance. Names and attendance stay in the signed-in coach view; a public listing never inherits private roster data. Sorting the table changes order, not access, and every row opens the same athlete record rather than a copied profile for that coaching relationship. The real roster can also show a next session, an unfinished note, or missing consent as operational context, but those cues never turn private family information into catalogue content or a public ranking.</figcaption></figure>";
     return wrap("roster", "R4", "compact-head-to-wide-roster", "L-L", hero(meta,
       "Every client becomes <em>one working record.</em>",
       "Bring the families you already coach, then let new bookings add themselves. The roster joins each athlete to sessions, notes, payment state, messages, and consent without making the coach rebuild those links in a spreadsheet. It is a private operations view: families keep their own accounts and permissions, while public visitors never see the names or histories a coach uses to run the week.",
@@ -26496,12 +26559,12 @@ window.MOD_COMPANIES = {
 
   function whatIsPage(meta) {
     var cells = [
-      ["Marketplace", "Families compare real services by sport, age, level, place, price, format, and dated availability. Coaches publish that supply themselves. An empty match stays empty; Sporv does not pad the catalogue with a coach who missed the request."],
-      ["Verification", "Every person who can accept a booking needs their own cleared background-check state. A company cannot lend its status to staff. A badge that stops being true stops showing, and new booking access stops with it."],
-      ["Booking", "A parent chooses a published opening with duration, place, capacity, and full price attached. Checkout checks the remaining seat again before writing confirmation. A failed payment or a full session never becomes a polite fiction."],
-      ["Payments", "Families pay the listed service price without an added booking fee. The coach sees gross revenue, Sporv's twelve-percent platform fee, and net payout on one record. A refund keeps the original charge and adjustment visible."],
-      ["Messaging", "A question begins from a listing and remains attributed. If the family books, the same thread follows the dated session. Conversation can clarify fit or arrival; it cannot bypass verification, capacity, payment, or confirmation."],
-      ["Progress", "Dated notes, goals, and real measurements stay with the athlete account while retaining each coach's authorship. Parents can read the season without rebuilding it from screenshots, and changing coaches does not erase earlier work."]
+      ["Marketplace", "Families compare real services by sport, age, level, place, price, format, and dated availability. Coaches publish that supply themselves. An empty match stays empty; Sporv does not pad the catalogue with a coach who missed the request. Reopening a result reads its current record again."],
+      ["Verification", "Every person who can accept a booking needs their own cleared background-check state. A company cannot lend its status to staff. A badge that stops being true stops showing, and new booking access stops with it. The named person remains the unit of trust."],
+      ["Booking", "A parent chooses a published opening with duration, place, capacity, and full price attached. Checkout checks the remaining seat again before writing confirmation. A failed payment or a full session never becomes a polite fiction. Both sides leave with the same dated record."],
+      ["Payments", "Families pay the listed service price without an added booking fee. The coach sees gross revenue, Sporv's twelve-percent platform fee, and net payout on one record. A refund keeps the original charge and adjustment visible. No transfer is reduced to an unexplained balance."],
+      ["Messaging", "A question begins from a listing and remains attributed. If the family books, the same thread follows the dated session. Conversation can clarify fit or arrival; it cannot bypass verification, capacity, payment, or confirmation. Reporting stays separate from an ordinary reply."],
+      ["Progress", "Dated notes, goals, and real measurements stay with the athlete account while retaining each coach's authorship. Parents can read the season without rebuilding it from screenshots, and changing coaches does not erase earlier work. A missing observation is never filled by inference."]
     ];
     var questions = [
       ["Who is Sporv for?", "Families use Sporv to find and manage youth-sports instruction. Independent coaches, trainers, camps, teams, and authorized organizations use the other side to publish supply and operate the sessions they sell."],
@@ -26525,8 +26588,8 @@ window.MOD_COMPANIES = {
 
   function bookingsPage(meta) {
     var prose = [
-      "A booking starts with the coach, service, athlete, dated opening, duration, place, and price that were accepted at checkout. Sporv stores those facts together instead of leaving the parent to match a card charge with an email and a calendar event. The coach sees the same session on the roster. Messages about arrival, equipment, or a change remain attached to that context.",
-      "Payment creates an itemized receipt inside the booking. Families pay the coach's listed price with no added family booking fee. The coach's platform fee is deducted from the coach payout and shown there, not quietly placed on the parent total. If a charge fails, the record cannot present the session as paid. If money is returned, the refund amount and status remain beside the original charge.",
+      "A booking starts with the coach, service, athlete, dated opening, duration, place, and price that were accepted at checkout. Sporv stores those facts together instead of leaving the parent to match a card charge with an email and a calendar event. The coach sees the same session on the roster. Messages about arrival, equipment, or a change remain attached to that context. Confirmation records when the booking was created and which account made it. If the family and coach agree to move the session, the updated time remains linked to the original purchase instead of becoming an orphaned calendar entry. Attendance or completion can be recorded later without rewriting what checkout originally promised.",
+      "Payment creates an itemized receipt inside the booking. Families pay the coach's listed price with no added family booking fee. The coach's platform fee is deducted from the coach payout and shown there, not quietly placed on the parent total. If a charge fails, the record cannot present the session as paid. If money is returned, the refund amount and status remain beside the original charge. The parent sees the paid total and payment state; the coach sees gross revenue, the platform deduction, and expected net. Those views describe the same transaction without exposing private payout-account details to the family. A receipt can be reopened from the session after the email is gone, and a processing state stays distinct from settled money.",
       "Cancellation uses the policy saved when the parent booked, not whatever the listing says later. The current flexible policy returns the paid amount when cancellation happens at least twenty-four hours before the session; inside that window, the saved terms decide the result. The calculation reads the time, amount paid, policy snapshot, and any earlier refund. No one types a convenient number over the record. When a coach cancels or a session does not happen, support can inspect the same record rather than guessing from competing screenshots. The family can see whether the refund is requested, processing, or completed, and the coach can see how that change affects the payout. A finished refund remains in history; it does not erase the original payment."
     ];
     var rail = "<aside class='pg-stat-rail' aria-label='Booking record rules'>" +
@@ -26547,16 +26610,16 @@ window.MOD_COMPANIES = {
 
   function paymentsPage(meta) {
     var prose = [
-      "A family pays the price the coach published. Sporv does not add a family booking fee at checkout. The paid booking records the gross service price, and the coach side records the platform fee and resulting net payout. Keeping incidence explicit matters: the parent should not discover a surcharge at the last step, and the coach should not have to reverse-engineer what arrived.",
-      "The platform fee is a flat twelve percent of the paid booking. It is taken only when there is paid revenue, then itemized on the payout record as gross, fee, and net. The coach connects a payout account after the required onboarding and safety gates clear. Payout state moves from pending to in transit to paid, so a balance never disappears behind a generic success message.",
-      "Refunds preserve the same arithmetic. When money goes back under the saved cancellation policy, Sporv returns the corresponding portion of its fee instead of keeping a fee on refunded coach revenue. The original charge, refunded amount, remaining paid amount, returned fee, and payout adjustment stay visible. That trail lets both sides distinguish a pending transfer from money that was actually deposited."
+      "A family pays the price the coach published. Sporv does not add a family booking fee at checkout. The paid booking records the gross service price, and the coach side records the platform fee and resulting net payout. Keeping incidence explicit matters: the parent should not discover a surcharge at the last step, and the coach should not have to reverse-engineer what arrived. Tax or processor information, when applicable, is labeled separately rather than folded into the platform fee, and no estimate is presented as a settled transfer.",
+      "The platform fee is a flat twelve percent of the paid booking. It is taken only when there is paid revenue, then itemized on the payout record as gross, fee, and net. The coach connects a payout account after the required onboarding and safety gates clear. Payout state moves from pending to in transit to paid, so a balance never disappears behind a generic success message. A failed or paused transfer keeps its amount and status while the coach follows the remediation path; it does not masquerade as revenue that reached the bank.",
+      "Refunds preserve the same arithmetic. When money goes back under the saved cancellation policy, Sporv returns the corresponding portion of its fee instead of keeping a fee on refunded coach revenue. The original charge, refunded amount, remaining paid amount, returned fee, and payout adjustment stay visible. That trail lets both sides distinguish a pending transfer from money that was actually deposited. Partial refunds use the paid amount actually returned, so several adjustments still reconcile to the original booking instead of producing a second unexplained ledger entry."
     ];
     var rail = "<aside class='pg-stat-rail' aria-label='Worked payout example'>" +
       "<div class='pg-rail-stat'><span class='pg-rail-value'>$45.00</span><span class='pg-rail-label'>family pays the coach's listed lesson price</span></div>" +
       "<div class='pg-rail-stat'><span class='pg-rail-value'>−$5.40</span><span class='pg-rail-label'>twelve percent platform fee from coach revenue</span></div>" +
       "<div class='pg-rail-stat'><span class='pg-rail-value'>$39.60</span><span class='pg-rail-label'>coach net payout before any later refund</span></div></aside>";
     var worked = "<div class='pg-worked-math'><code>gross       $45.00\nfee      ×     .12\n-----------------\nplatform   −$5.40\ncoach net   $39.60</code>" +
-      "<p data-prose>A forty-five-dollar lesson produces a five-dollar-and-forty-cent fee and a thirty-nine-dollar-and-sixty-cent coach payout. The same formula applies to every paid booking; there is no tier to infer and no separate invoice after the fact. The rail repeats those exact amounts in the transfer record the coach can reopen later.</p></div>";
+      "<p data-prose>A forty-five-dollar lesson produces a five-dollar-and-forty-cent fee and a thirty-nine-dollar-and-sixty-cent coach payout. The same formula applies to every paid booking; there is no tier to infer and no separate invoice after the fact. The rail repeats those exact amounts in the transfer record the coach can reopen later. These are disclosed demo amounts, but the live calculation is written from the booking's stored gross value rather than copied from a marketing example. Rounding is resolved once on that record, so the displayed parts always reconcile.</p></div>";
     var formula = "<aside class='pg-hero-math' aria-label='Disclosed demo payout calculation'><code>$45.00\n×   .12\n────────\n− $5.40\n= $39.60</code><span>DEMO BOOKING</span></aside>";
     return wrap("payments", "R3", "math-head-to-rail-first-essay", "D-L", hero(meta,
       "Gross, fee, and net are <em>shown before payout.</em>",
@@ -26580,15 +26643,15 @@ window.MOD_COMPANIES = {
 
   function messagingPage(meta) {
     var blocks = [
-      "A family can ask a background-checked coach about level, equipment, accessibility, timing, or fit before paying. The conversation stays inside the account instead of requiring a public phone number. The coach sees who is asking and which listing opened the thread, so an answer can refer to the actual service rather than a context-free message copied from another app. The family can leave without creating a second contact channel at all.",
-      "When the family books, the existing conversation remains connected to that booking. Arrival instructions, a promised accommodation, or a schedule clarification do not vanish behind a new thread. Both sides can read what was said before the session and continue from there. Sporv does not turn a message into a booking; payment, capacity, and confirmation still have to clear their own rules. Later messages keep that session context even when the calendar becomes busy.",
-      "Messaging also needs an exit. Either side can stop engaging, report a safety concern, or use the published support route when the issue is not ordinary scheduling. A coach cannot use access to a roster as permission to broadcast unrelated marketing. Keeping the thread attached, attributed, and reportable gives the product a record without pretending that software can replace judgment in an urgent situation. The safety route remains visible when an ordinary reply is not enough."
+      "A family can ask a background-checked coach about level, equipment, accessibility, timing, or fit before paying. The conversation stays inside the account instead of requiring a public phone number. The coach sees who is asking and which listing opened the thread, so an answer can refer to the actual service rather than a context-free message copied from another app. The family can leave without creating a second contact channel at all. Starting elsewhere does not earn a hidden advantage in search or booking.",
+      "When the family books, the existing conversation remains connected to that booking. Arrival instructions, a promised accommodation, or a schedule clarification do not vanish behind a new thread. Both sides can read what was said before the session and continue from there. Sporv does not turn a message into a booking; payment, capacity, and confirmation still have to clear their own rules. Later messages keep that session context even when the calendar becomes busy. An agreed change remains conversation evidence until the booking record itself changes.",
+      "Messaging also needs an exit. Either side can stop engaging, report a safety concern, or use the published support route when the issue is not ordinary scheduling. A coach cannot use access to a roster as permission to broadcast unrelated marketing. Keeping the thread attached, attributed, and reportable gives the product a record without pretending that software can replace judgment in an urgent situation. The safety route remains visible when an ordinary reply is not enough. If ordinary replies stop, the dated thread remains intact for both sides."
     ];
     var defs = [
-      ["Listing thread", "The conversation starts from a real coach or program listing, so sport, service, and sender remain identifiable."],
-      ["Booking context", "After checkout, the same thread carries the dated session instead of opening a disconnected replacement conversation."],
-      ["Delivery record", "Sent messages remain attributed and ordered; a draft or failed send is not presented as delivered to the other side."],
-      ["Safety route", "Reporting is separate from ordinary replies, and emergencies still belong with local emergency services rather than a marketplace inbox."]
+      ["Listing thread", "The conversation starts from a real coach or program listing, so sport, service, sender, and the offer being discussed remain identifiable."],
+      ["Booking context", "After checkout, the same thread carries the dated session instead of opening a disconnected replacement conversation with no purchase history."],
+      ["Delivery record", "Sent messages remain attributed and ordered; a draft or failed send is not presented as delivered to the other side or quietly inserted later."],
+      ["Safety route", "Reporting is separate from ordinary replies, preserves the relevant thread for review, and leaves emergencies with local emergency services rather than a marketplace inbox."]
     ];
     return wrap("messaging", "R5", "centered-question-to-three-column-essay", "L-D-L", hero(meta,
       "Ask first. Keep the answer <em>with the booking.</em>",
@@ -26601,15 +26664,15 @@ window.MOD_COMPANIES = {
 
   function sessionNotesPage(meta) {
     var blocks = [
-      "The coach writes a note against a completed or scheduled session and selects the athlete it describes. The note can record the drill, observation, adjustment, and next focus in the coach's own words. A draft remains on the coach side until it is sent. Sporv does not label unfinished text as a parent update, because writing something and delivering it are different product states. That distinction stays visible in the coach's queue.",
-      "Sending creates the family-facing copy inside the athlete's record. The parent sees which coach wrote it and which session produced it, rather than receiving a floating paragraph with no date. The coach can review written notes and see which sessions still need one. Private operational details do not belong in the shared note; the field is for a useful account of the athlete's work. Delivery state stays visible after the page is reopened.",
-      "Over time, sent notes become the narrative layer of athlete progress. Measurements can sit beside them, but a time or count never replaces the coach's observation. A later coach can understand what was tried while every entry keeps its author. The rule protects continuity without laundering opinion into fact: old notes persist as dated statements, and a new note never edits their history. The parent can always see that order for themselves."
+      "The coach writes a note against a completed or scheduled session and selects the athlete it describes. The note can record the drill, observation, adjustment, and next focus in the coach's own words. A draft remains on the coach side until it is sent. Sporv does not label unfinished text as a parent update, because writing something and delivering it are different product states. That distinction stays visible in the coach's queue. Autosave protects the draft without changing who can read it.",
+      "Sending creates the family-facing copy inside the athlete's record. The parent sees which coach wrote it and which session produced it, rather than receiving a floating paragraph with no date. The coach can review written notes and see which sessions still need one. Private operational details do not belong in the shared note; the field is for a useful account of the athlete's work. Delivery state stays visible after the page is reopened. A failed send stays failed until delivery actually succeeds.",
+      "Over time, sent notes become the narrative layer of athlete progress. Measurements can sit beside them, but a time or count never replaces the coach's observation. A later coach can understand what was tried while every entry keeps its author. The rule protects continuity without laundering opinion into fact: old notes persist as dated statements, and a new note never edits their history. The parent can always see that order for themselves. Corrections remain dated rather than silently replacing the original account."
     ];
     var defs = [
-      ["Draft", "Text visible to the coach while it is still being written; the family has not received it."],
-      ["Sent note", "A dated, attributed update delivered to the athlete's family and attached to the source session."],
-      ["Needs a note", "A queue built from session records, helping the coach find completed work that has no written update yet."],
-      ["Progress timeline", "The athlete-level sequence of sent observations and real measurements, preserved across sessions and coaches."]
+      ["Draft", "Text visible to the coach while it is still being written; the family has not received it, and autosave never changes that boundary."],
+      ["Sent note", "A dated, attributed update delivered to the athlete's family, attached to the source session, and kept in its original order."],
+      ["Needs a note", "A private queue built from session records, helping the coach find completed work that has no written update yet without exposing a family reminder publicly."],
+      ["Progress timeline", "The athlete-level sequence of sent observations and real measurements, preserved across sessions and coaches while every entry keeps its author."]
     ];
     return wrap("session-notes", "R5", "margin-head-to-numbered-dark-notes", "L-D-L", hero(meta,
       "Write once. Send a note that <em>keeps its context.</em>",
@@ -26637,17 +26700,17 @@ window.MOD_COMPANIES = {
       ["Run the vendor check", "The screening vendor compares the submitted identity against the sources included in its service. Sporv receives a state from that process; the coach cannot type a result, design a badge, or approve themselves from the listing editor."],
       ["Review the result", "A returned result can require operational review before it becomes a product state. Review resolves identity or record questions without turning urgency into clearance. Pending means pending, even when a coach has clients waiting or a business owner asks to publish early."],
       ["Show a dated badge", "A cleared state makes the named coach eligible for the badge and for bookable supply, subject to the other listing gates. The visible state belongs to that person and date. It never spreads across colleagues, locations, or an organization logo."],
-      ["Re-check the current truth", "The product reads the stored state again when supply is presented. If clearance expires, changes, or is withdrawn, the badge stops showing and new booking access closes. An old link or saved coach cannot preserve a safety claim that is no longer true."]
+      ["Re-check the current truth", "The product reads the stored state again when a booking is written. If clearance expires, changes, or is withdrawn, the badge stops showing and the server closes new booking access. An old link or saved coach cannot preserve a safety claim that is no longer true."]
     ];
     var questions = [
-      ["Does a club's check cover its coaches?", "No. Every person who can appear as bookable needs their own stored cleared state. Organization membership changes administration, not the identity that was screened."],
-      ["Can a pending coach take requests?", "No. Pending supply stays outside bookable search and map results. A family can never be asked to treat a future result as though it had already cleared."],
-      ["What does the parent see?", "The family sees the named coach and current verification state beside the service. They should report any mismatch between that person and the person who arrives."],
-      ["What happens to earlier bookings?", "Historical records keep what was booked and when for support and review. They do not restore the coach's right to accept another booking after the safety state changes."]
+      ["Does a club's check cover its coaches?", "No. Every person who can appear as bookable needs their own stored cleared state. Organization membership changes administration, not the identity that was screened or the date attached to that result."],
+      ["Can a pending coach take a booking?", "No. Pending coaches can appear without a badge when verified-only is off. Verified-only removes them. If a family reaches booking from an old result or link, the server reads the current provider state and refuses the booking until the required check is complete."],
+      ["What does the parent see?", "The family sees the named coach and current verification state beside the service. They should report any mismatch between that person and the person who arrives, because the badge cannot travel to a substitute."],
+      ["What happens to earlier bookings?", "Historical records keep what was booked and when for support and review. They do not restore the coach's right to accept another booking after the safety state changes or make an expired badge current again."]
     ];
     return wrap("background-checks", "B02", "threshold-head-walk-honesty-questions", "L-L-D-L", hero(meta,
       "The check is <em>per person.</em>",
-      "Every coach who can accept a booking must have their own cleared background-check record. A club cannot extend its standing to an unchecked staff member, and a coach cannot set the badge themselves. Sporv reads the stored result before that person appears as bookable, then keeps reading it. If the cleared state stops being true, the badge and access to new bookings stop with it.",
+      "Every coach who can accept a booking must have their own cleared background-check record. A club cannot extend its standing to an unchecked staff member, and a coach cannot set the badge themselves. Sporv shows the current state on the listing and reads it again when a booking is written. If clearance stops being true, the badge and access to new bookings stop with it.",
       { tone: "white", layout: "check-threshold", eyebrow: "HOW BACKGROUND CHECKS WORK" }) +
       walkthroughSection(steps, { tone: "white", layout: "walk-five" }) +
       "<section class='pgband dark pg-check-honesty' data-section='honesty-panel' data-layout='two-paragraph-honesty'><div class='shell'><h2>What a check cannot promise</h2><div>" +
@@ -26659,15 +26722,15 @@ window.MOD_COMPANIES = {
   function mediaConsentPage(meta) {
     var questions = [
       ["Who can grant consent?",
-       "A parent or authorized family account grants consent for the athlete. A coach can request it and explain the intended use, but cannot approve the request on the family's behalf. Organization membership does not change that boundary. The product records who granted the decision and when, so an unchecked box in a coach workflow never becomes permission by implication."],
+       "A parent or authorized family account grants consent for the athlete. A coach can request it and explain the intended use, but cannot approve the request on the family's behalf. Organization membership does not change that boundary. The product records who granted the decision and when, so an unchecked box in a coach workflow never becomes permission by implication. A request can expire unanswered without becoming a yes."],
       ["What exactly receives permission?",
-       "Consent is tied to the athlete and the allowed use presented to the family, such as private sharing with tagged families or eligibility for a public profile. The coach tags the athletes shown in an asset before sharing it. When several children appear, each child's state matters. One parent's yes cannot cover another family's athlete in the same photo or clip."],
+       "Consent is tied to the athlete and the allowed use presented to the family, such as private sharing with tagged families or eligibility for a public profile. The coach tags the athletes shown in an asset before sharing it. When several children appear, each child's state matters. One parent's yes cannot cover another family's athlete in the same photo or clip. A different use requires its own stated permission."],
       ["What does the coach see before consent?",
-       "The coach sees that permission is missing or awaiting a family decision. The blocked asset cannot be marked shareable with that athlete or published as though the decision existed. This is a product gate, not a reminder beside an active button. Private storage for review is different from permission to distribute, and the interface keeps those states separate."],
+       "The coach sees that permission is missing or awaiting a family decision. The blocked asset cannot be marked shareable with that athlete or published as though the decision existed. This is a product gate, not a reminder beside an active button. Private storage for review is different from permission to distribute, and the interface keeps those states separate. The blocked reason remains readable beside the action."],
       ["What happens after a parent revokes it?",
-       "The athlete's permission changes immediately for future sharing, and affected media loses the shareable state inside Sporv. Revocation cannot pull back a file another person already saved outside the service, so the product does not make that impossible promise. Families can use the support and safety routes when a copy remains somewhere it should not."],
+       "The athlete's permission changes immediately for future sharing, and affected media loses the shareable state inside Sporv. Revocation cannot pull back a file another person already saved outside the service, so the product does not make that impossible promise. Families can use the support and safety routes when a copy remains somewhere it should not. The decision history records when future use closed."],
       ["Can consent be assumed from a booking?",
-       "No. Paying for coaching, attending a session, joining a team, or accepting ordinary service terms does not silently grant media permission. The booking can establish who attended and which family controls the athlete record; consent remains a separate choice. A missing decision stays missing until the family acts, and the coach sees a locked state rather than a default yes."]
+       "No. Paying for coaching, attending a session, joining a team, or accepting ordinary service terms does not silently grant media permission. The booking can establish who attended and which family controls the athlete record; consent remains a separate choice. A missing decision stays missing until the family acts, and the coach sees a locked state rather than a default yes. Repeated attendance never weakens that separation."]
     ];
     return wrap("media-consent", "R6", "consent-head-to-staggered-ledger", "D-L", hero(meta,
       "A child's image moves only after <em>the parent's yes.</em>",

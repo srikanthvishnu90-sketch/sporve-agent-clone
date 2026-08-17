@@ -39,7 +39,14 @@ async function serve() {
      loads the built page over file:// and the page reads its own inlined
      resources. */
   const browser = await chromium.launch({
-    args: ["--allow-file-access-from-files"],
+    /* --font-render-hinting=none: on Linux, FreeType hinting rounds glyph
+       advances up to integers, inflating rendered text ~2-4% versus the
+       fractional metrics macOS uses. That was enough to wrap several product
+       h1s one line wider in CI than anywhere else, failing the ≤5-line and
+       45vh hero laws for layouts that are correct on every real platform the
+       design targets. Disabling hinting gives fractional advances and brings
+       CI's text layout in line with the metrics the design was tuned against. */
+    args: ["--allow-file-access-from-files", "--font-render-hinting=none"],
   });
   const page = await browser.newPage({ viewport: { width: 1440, height: 900 } });
 
@@ -64,6 +71,19 @@ async function serve() {
         const { op, arg } = JSON.parse(raw || "{}");
         if (op === "goto") {
           await page.goto(arg, { waitUntil: "load" });
+          /* The built page embeds its fonts as data: URIs and loads each face
+             LAZILY on first use. The per-page accent faces (Archivo, Syne,
+             Hanken Grotesk) are first used only after smoke's js snippets call
+             render() for a product page — and those snippets measure line
+             counts and hero heights synchronously, so in CI they measured the
+             fallback serif and headlines wrapped 6–7 lines where the real
+             faces wrap ≤5 (deterministic FAIL; local daemons pass on platform
+             timing). Force EVERY declared face to decode now, so later
+             render()+measure cycles see final metrics. */
+          await page.evaluate(async () => {
+            await Promise.all([...document.fonts].map((f) => f.load()));
+            await document.fonts.ready;
+          });
           out = "ok";
         } else if (op === "viewport") {
           const [w, h] = String(arg).split("x").map(Number);

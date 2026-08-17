@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Inline every mod-*.js into the host HTML at the <!--MODULES--> marker.
 
-Idempotent: always rebuilds from the pristine host (sporve-web.html), so
+Idempotent: always rebuilds from the pristine host (sporve-web.host.html), so
 re-running after a new module lands simply re-inlines the full current set.
 Outputs the built page to every distribution target.
 """
@@ -12,6 +12,13 @@ ROOT = os.path.dirname(HERE)
 HOST = os.path.join(HERE, "sporve-web.host.html")
 MARKER = "<!--MODULES-->"
 TARGETS = [os.path.join(ROOT, "index.html")]
+
+def require_once(text, token, label):
+    """Fail before emitting a partial build when a source injection drifts."""
+    count = text.count(token)
+    if count != 1:
+        sys.exit("FATAL: expected exactly one %s; found %d" % (label, count))
+
 ORDER = [
     # mod-api.js first: it defines window.SporveAPI, which later modules use.
     "mod-api.js",
@@ -31,8 +38,11 @@ ORDER = [
 ]
 
 host = open(HOST, encoding="utf-8").read()
-if MARKER not in host:
-    sys.exit("FATAL: %s marker missing from host" % MARKER)
+require_once(host, MARKER, MARKER + " marker in host")
+require_once(host, "/*__FONTFACE__*/", "font-face token in host")
+require_once(host, "/*__SPORTVARS__*/", "sport-variable token in host")
+_hero_source = '"__HERO_IMGS__".indexOf("__HERO") === 0 ? [] : []'
+require_once(host, _hero_source, "hero-image expression in host")
 
 found = {os.path.basename(p): p for p in glob.glob(os.path.join(HERE, "mod-*.js"))}
 names = [n for n in ORDER if n in found] + sorted(n for n in found if n not in ORDER)
@@ -223,7 +233,7 @@ if heroes:
         hero_bytes += len(raw)
         uris.append("data:image/%s;base64,%s"
                     % (MIME[h.rsplit(".", 1)[1].lower()], base64.b64encode(raw).decode("ascii")))
-    built = built.replace('"%s".indexOf("__HERO") === 0 ? [] : []' % HERO_TOKEN,
+    built = built.replace(_hero_source,
                           "[%s]" % ",".join('"%s"' % u for u in uris))
     print("hero images: %d inlined (%.0f KB) — %s"
           % (len(heroes), hero_bytes / 1024, ", ".join(os.path.basename(h) for h in heroes)))
@@ -277,6 +287,7 @@ STANDALONE = (
     f'<link rel="icon" href="{_FAVICON}">\n'
     "</head>\n<body>\n__SPORVE_BODY__\n</body>\n</html>\n"
 )
+require_once(STANDALONE, "__SPORVE_BODY__", "standalone body token")
 
 # Build stamp: a content hash of the emitted page, embedded in the page.
 #
@@ -286,15 +297,15 @@ STANDALONE = (
 # site "which build are you serving?" and get an exact answer, which is what
 # post-deploy verification and rollback both need.
 _page = STANDALONE.replace("__SPORVE_BODY__", built)
+for _token in (MARKER, "/*__FONTFACE__*/", "/*__SPORTVARS__*/", "__SPORVE_BODY__"):
+    if _token in _page:
+        sys.exit("FATAL: unresolved build token in output: %s" % _token)
+if heroes and HERO_TOKEN in _page:
+    sys.exit("FATAL: unresolved hero-image token in output")
 _stamp = hashlib.sha256(_page.encode("utf-8")).hexdigest()[:16]
 _page = _page.replace(
     "</head>", f'<meta name="sporve-build" content="{_stamp}">\n</head>', 1
 )
-
-for t in TARGETS:
-    os.makedirs(os.path.dirname(t), exist_ok=True)
-    with open(t, "w", encoding="utf-8") as f:
-        f.write(_page)
 
 # ── CSP script hashes ────────────────────────────────────────────────────
 # The CSP shipped with script-src 'self' 'unsafe-inline', which is barely a CSP
@@ -322,24 +333,39 @@ _hashes = [
     for s in _scripts
 ]
 _vercel = os.path.join(ROOT, "vercel.json")
-if os.path.exists(_vercel) and _hashes:
-    with open(_vercel, encoding="utf-8") as f:
-        _cfg = json.load(f)
-    _src = "script-src 'self' " + " ".join(_hashes) + ";"
-    _changed = False
-    for _rule in _cfg.get("headers", []):
-        for _h in _rule.get("headers", []):
-            if _h.get("key") == "Content-Security-Policy":
-                _new = re.sub(r"script-src [^;]*;", _src, _h["value"], count=1)
-                if _new != _h["value"]:
-                    _h["value"] = _new
-                    _changed = True
-    if _changed:
-        with open(_vercel, "w", encoding="utf-8") as f:
-            json.dump(_cfg, f, indent=2, ensure_ascii=False)
-            f.write("\n")
-    print("csp: %d inline script hash(es) %s"
-          % (len(_hashes), "written to vercel.json" if _changed else "already current"))
+if not _hashes:
+    sys.exit("FATAL: no inline scripts found; refusing to emit an unhashed build")
+if not os.path.exists(_vercel):
+    sys.exit("FATAL: vercel.json missing; cannot publish CSP hashes")
+with open(_vercel, encoding="utf-8") as f:
+    _cfg = json.load(f)
+_csp_headers = [
+    h for rule in _cfg.get("headers", []) for h in rule.get("headers", [])
+    if h.get("key", "").lower() == "content-security-policy"
+]
+if len(_csp_headers) != 1:
+    sys.exit("FATAL: expected exactly one Content-Security-Policy header; found %d"
+             % len(_csp_headers))
+_src = "script-src 'self' " + " ".join(_hashes) + ";"
+_current_csp = _csp_headers[0].get("value", "")
+_new_csp, _replaced = re.subn(r"script-src [^;]*;", _src, _current_csp, count=1)
+if _replaced != 1:
+    sys.exit("FATAL: CSP header has no replaceable script-src directive")
+_changed = _new_csp != _current_csp
+_csp_headers[0]["value"] = _new_csp
+if _changed:
+    with open(_vercel, "w", encoding="utf-8") as f:
+        json.dump(_cfg, f, indent=2, ensure_ascii=False)
+        f.write("\n")
+print("csp: %d inline script hash(es) %s"
+      % (len(_hashes), "written to vercel.json" if _changed else "already current"))
+
+# Emit only after every required source injection and security-header update has
+# validated. A failed build must not leave a fresh index beside stale CSP hashes.
+for t in TARGETS:
+    os.makedirs(os.path.dirname(t), exist_ok=True)
+    with open(t, "w", encoding="utf-8") as f:
+        f.write(_page)
 
 print("inlined %d module(s):" % len(names))
 print("\n".join(report) if report else "  (none yet)")
