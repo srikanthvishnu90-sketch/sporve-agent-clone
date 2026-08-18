@@ -1687,6 +1687,14 @@ img{max-width:100%;display:block}
   pointer-events:none}
 .aipill > *{pointer-events:auto}
 @media(max-width:767px){.aipill{bottom:16px;width:calc(100vw - 24px)}}
+/* Owner 2026-08-18: an ACTIVE chatbox (a live conversation panel) sits dead
+   centre of the viewport, not pinned to the bottom. Scoped with :has() to the
+   talking state only, so the resting strip keeps its bottom placement and the
+   maximized Amboras state (its own wrapper) is unaffected. top/left 50% +
+   translate(-50%,-50%) is the exact-centre transform that survives the panel's
+   min() width/height changing under it. */
+.aipill:has(.aidock-panel.talking){top:50%;bottom:auto;transform:translate(-50%,-50%)}
+@media(max-width:767px){.aipill:has(.aidock-panel.talking){top:auto;bottom:16px;transform:translateX(-50%)}}
 /* The spacer. Defaults to 0 so every page without a pill is untouched, and
    render() overwrites it with the measured height + the 24px offset + a 16px
    breathing gap. On #app rather than body because the coach dark ground is
