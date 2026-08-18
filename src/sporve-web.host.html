@@ -929,7 +929,22 @@ img{max-width:100%;display:block}
    #111827 on #FFFFFF = 16.9:1 · #C4362F on #F8FAFC = 5.0:1 ·
    #57606E on #F8FAFC = 5.6:1 · #566274 on #E5EAF1 = 4.6:1 (disabled). */
 .cw .cg-wordmark{color:#111827}
-.cw .err{color:#C4362F}
+.cw .imp-sub{color:var(--muted);margin-bottom:16px;font-size:var(--text-base)}
+.imp-steps{display:flex;align-items:center;gap:10px;margin-bottom:18px}
+.imp-dot{font-family:var(--sans);font-size:var(--text-xs);font-weight:700;letter-spacing:.02em;color:var(--faint)}
+.imp-dot.on{color:var(--ink)}.imp-dot.done{color:var(--muted)}
+.imp-bar{flex:1;height:2px;background:var(--rule);border-radius:2px}
+.imp-bar.on{background:var(--slate)}
+.imp-addrow{display:flex;gap:8px;align-items:stretch}
+.imp-addrow input{flex:1;min-width:0}
+.imp-addrow .btn{flex:0 0 auto}
+.imp-list{list-style:none;margin:12px 0 18px;padding:0;display:flex;flex-direction:column;gap:2px}
+.imp-list li{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:9px 2px;border-bottom:1px solid var(--rule);font-size:var(--text-base)}
+.imp-x{font-family:var(--sans);font-size:var(--text-sm);font-weight:600;color:var(--muted);background:none;border:0;padding:4px 6px;cursor:pointer;border-radius:6px}
+.imp-x:hover{color:var(--ink);background:var(--raise2)}
+.imp-empty{color:var(--faint);font-size:var(--text-sm);margin:12px 0 18px}
+.imp-actions{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-top:16px}
+.err{color:#C4362F}
 .cw .eyebrow,.cw legend.eyebrow{color:#57606E}
 .cw .num,.cw .cob-help{color:#57606E}
 .cw-next:disabled{color:#566274}
@@ -9800,21 +9815,42 @@ function modalHTML(){
       </form>`);
   }
 
-  if(m.type==="importclients") return wrap("Import your clients",`
-    <p style="color:var(--muted);margin-bottom:18px">
-      Paste the families you already coach. Each gets a branded invite from you —
-      once they accept, their bookings, payments, and session history run through Sporv.</p>
-    <form id="importForm">
-      <div class="field"><label>Names and emails, one per line</label>
-        <textarea name="rows" rows="6" placeholder="Dana Rivera, dana@example.com
-Marcus Chen, marcus@example.com"></textarea></div>
-      <div class="field"><label>Message they'll receive</label>
-        <textarea name="note" rows="3">Hi — I've moved my scheduling and payments to Sporv. Same sessions, same me; you'll just book and pay in one place from now on.</textarea></div>
+  if(m.type==="importclients"){
+    /* Two-step wizard (owner 2026-08-18): step 1 adds names one at a time, step
+       2 pairs an email to each name, then Send. State lives in S.importWiz so it
+       survives the re-render every action triggers. Each person becomes a real
+       coach_invites row (server trigger fills token + owner) when a signed-in
+       coach sends; in the seed/preview state it stays a local demo like before. */
+    const w=S.importWiz||(S.importWiz={step:1,people:[]});
+    const steps=`<div class="imp-steps">
+      <span class="imp-dot ${w.step===1?"on":"done"}">1 · Names</span>
+      <span class="imp-bar ${w.step===2?"on":""}"></span>
+      <span class="imp-dot ${w.step===2?"on":""}">2 · Emails</span></div>`;
+    if(w.step===1) return wrap("Import your clients",`
+      <p class="imp-sub">Add the families you already coach, one at a time. Next you'll
+        add an email for each, then send everyone a branded invite from you.</p>
+      ${steps}
+      <div class="field"><label for="impName">Add a name</label>
+        <div class="imp-addrow">
+          <input id="impName" placeholder="Dana Rivera" autocomplete="off">
+          <button class="btn sm" type="button" data-imp-add="1">Add</button></div></div>
+      ${w.people.length
+        ? `<ul class="imp-list">${w.people.map((p,i)=>`<li><span>${esc(p.name)}</span>
+            <button class="imp-x" type="button" data-imp-remove="${i}" aria-label="Remove ${esc(p.name)}">Remove</button></li>`).join("")}</ul>`
+        : `<p class="imp-empty">No families added yet — type a name and press Add.</p>`}
+      <button class="btn wide" type="button" data-imp-next="1"${w.people.length?"":" disabled"}>Next: add emails</button>`);
+    return wrap("Add their emails",`
+      <p class="imp-sub">One email per family. Nothing is sent until you press Send, and
+        families are never charged to accept.</p>
+      ${steps}
+      ${w.people.map((p,i)=>`<div class="field"><label for="impEmail-${i}">${esc(p.name)}</label>
+        <input id="impEmail-${i}" type="email" value="${esc(p.email||"")}"
+          placeholder="${esc((p.name.split(/\s+/)[0]||"name").toLowerCase())}@example.com" autocomplete="off"></div>`).join("")}
       <div id="importErr" class="err hide" style="margin:8px 0"></div>
-      <button class="btn wide" type="submit">Send invites</button>
-      <p style="text-align:center;color:var(--faint);font-size:var(--text-sm);margin-top:11px">
-        Nothing is sent until you press this. Families are never charged to accept.</p>
-    </form>`);
+      <div class="imp-actions">
+        <button class="btn ghost sm" type="button" data-imp-back="1">Back</button>
+        <button class="btn" type="button" data-imp-send="1">Send ${w.people.length} invite${w.people.length===1?"":"s"}</button></div>`);
+  }
 
   if(m.type==="viewasparent"){
     /* The coach's own listing, which is seeded — S.listings holds seed ids, so
@@ -12008,7 +12044,7 @@ document.querySelectorAll('.sig-ai-coach').forEach(sigAiCoachWire);
   $("[data-coachtab]").forEach(b=>b.onclick=()=>{
     S.portal="coach";setCoachTab(b.dataset.coachtab);go("dashboard");});
   /* ── coach dashboard wiring ── */
-  $("[data-import]").forEach(b=>b.onclick=()=>{S.modal={type:"importclients"};render();});
+  $("[data-import]").forEach(b=>b.onclick=()=>{S.importWiz={step:1,people:[]};S.modal={type:"importclients"};render();});
   $("[data-viewas]").forEach(b=>b.onclick=()=>{S.modal={type:"viewasparent"};render();});
   $("[data-share]").forEach(b=>b.onclick=()=>{S.coachTab="dashboard";render();
     toast("Your booking link is in the Share card below");});
@@ -12050,19 +12086,49 @@ document.querySelectorAll('.sig-ai-coach').forEach(sigAiCoachWire);
       if(v)submitCommand(v);
     };
   }
-  const impf=document.getElementById("importForm");
-  if(impf) impf.onsubmit=e=>{
-    e.preventDefault();
-    const d=Object.fromEntries(new FormData(impf));
+  /* Import-clients wizard handlers. Each action mutates S.importWiz and
+     re-renders; the modal reads the fresh state. Draft input values are read
+     from the DOM at the moment of an action (they do not survive a render). */
+  const readEmails=()=>{(S.importWiz&&S.importWiz.people||[]).forEach((p,i)=>{
+    const el=document.getElementById("impEmail-"+i); if(el) p.email=el.value.trim();});};
+  $("[data-imp-add]").forEach(b=>b.onclick=()=>{
+    const el=document.getElementById("impName"); const v=(el&&el.value||"").trim();
+    if(!v) return;
+    S.importWiz.people.push({name:v,email:""}); render();
+    const n=document.getElementById("impName"); if(n) n.focus();
+  });
+  $("[data-imp-remove]").forEach(b=>b.onclick=()=>{
+    S.importWiz.people.splice(+b.dataset.impRemove,1); render();
+  });
+  $("[data-imp-next]").forEach(b=>b.onclick=()=>{
+    if(S.importWiz.people.length){ S.importWiz.step=2; render(); }
+  });
+  $("[data-imp-back]").forEach(b=>b.onclick=()=>{ readEmails(); S.importWiz.step=1; render(); });
+  $("[data-imp-send]").forEach(b=>b.onclick=()=>{
+    readEmails();
     const err=document.getElementById("importErr");
-    const rows=(d.rows||"").split("\n").map(r=>r.trim()).filter(Boolean);
-    const good=rows.filter(r=>/[\w.+-]+@[\w-]+\.[\w.-]+/.test(r));
-    if(!rows.length){err.textContent="Add at least one family.";err.classList.remove("hide");return;}
-    if(!good.length){err.textContent="Each line needs an email address.";err.classList.remove("hide");return;}
-    S.importedClients=[...(S.importedClients||[]),...good];
-    S.modal=null;render();
-    toast(`${good.length} invite${good.length===1?"":"s"} sent`);
-  };
+    const people=S.importWiz.people;
+    const rx=/[\w.+-]+@[\w-]+\.[\w.-]+/;
+    const missing=people.filter(p=>!rx.test(p.email||""));
+    if(missing.length){
+      err.textContent=missing.length===1
+        ? esc(missing[0].name)+" still needs a valid email."
+        : missing.length+" families still need a valid email.";
+      err.classList.remove("hide"); return;
+    }
+    /* Real invite when a signed-in coach with a provider row is present: one
+       coach_invites row per family; the enforce_coach_invite trigger fills the
+       token + inviter_owner_id and refuses anyone who is not the provider owner.
+       In the seed/preview state (no provider) it stays a local demo. */
+    const pv=S.coachProvider;
+    if(pv&&pv.id&&window.SporveAPI&&window.SporveAPI.isSignedIn&&window.SporveAPI.isSignedIn()){
+      people.forEach(p=>{try{window.SporveAPI.from("coach_invites","",
+        {method:"POST",body:{provider_id:pv.id,invited_email:p.email}});}catch(_){/* surfaced in toast below */}});
+    }
+    S.importedClients=[...(S.importedClients||[]),...people.map(p=>p.email)];
+    const n=people.length; S.modal=null; S.importWiz=null; render();
+    toast(n+" invite"+(n===1?"":"s")+" sent");
+  });
 
   $("[data-foot]").forEach(b=>b.onclick=()=>{
     const [kind,val]=b.dataset.foot.split(":");
@@ -12226,7 +12292,7 @@ document.querySelectorAll('.sig-ai-coach').forEach(sigAiCoachWire);
   $("[data-cdest]").forEach(b=>b.onclick=()=>{
     const d=b.dataset.cdest;
     if(d==="becomecoach"){enterCoachPortal();return;}
-    if(d==="import"){S.modal={type:"importclients"};render();return;}
+    if(d==="import"){S.importWiz={step:1,people:[]};S.modal={type:"importclients"};render();return;}
     /* "coachfeatures" was never matched and arrived here by fall-through, so
        the token was dead string and any typo behaved identically. Explicit
        now; the fall-through stays as the safety net it should have been. */
