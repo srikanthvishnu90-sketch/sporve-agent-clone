@@ -60,3 +60,16 @@ When the development-plans feature is actually built, re-enable the cron with
 correct auth — that is a code change (align plan-progress with the
 verify_jwt=false + internal-secret pattern lifecycle-process uses), tracked
 for the agent, not this owner step.
+
+---
+
+## RESOLVED 2026-08-18 (owner-authorized, agent-executed)
+
+- RED 1: owner confirmed the 21 are sample providers → de-verified
+  (verification_status='verified' AND background_check_status='none' → 'unverified').
+  Live count of unbacked-verified now 0.
+- RED 2: not a Stripe issue — a pg_cron job whose bearer token the plan-progress
+  edge function (verify_jwt=true) rejected. Feature (development plans) not
+  launched, so: cron.unschedule('plan-progress-sweep') + cleared its stale
+  cron_http_audit rows so the monitor reflects reality.
+- RESULT: check_production_invariants() = 29 PASS / 0 FAIL / 1 N/A. Board green.
