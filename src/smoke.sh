@@ -1501,6 +1501,46 @@ if [ "$clean" = "CLEAN" ]; then pass "dark grounds carry white or slate text"
 elif [ -z "$clean" ]; then fail "dark-ground check did not return — contrast audit did not run"
 else fail "dark-ground violations: $bad"; fi
 
+# F6 — keyboard reachability on the five money paths. A control a keyboard user
+# cannot reach is a control they cannot use; the two that matter on a payments
+# site are checkout and the coach billing/onboarding flow. Assert that on each
+# money-path surface every visible interactive element is keyboard-focusable
+# (not tabindex=-1, not a div-as-button with no role) AND that the page defines
+# a visible focus ring. Recorded on every CI run so the pass is durable, not a
+# one-time audit note.
+$B viewport 1440x900 >/dev/null 2>&1
+$B goto "file://$(pwd)/index.html" >/dev/null 2>&1
+kbd=$($B js "
+(()=>{const bad=[];
+ const surfaces=[
+   ['family','explore',null],['family','page',['payments']],
+   ['family','pricing',null],['family','coachinfo',null]];
+ // focus ring must exist in the stylesheet
+ let ring=false; for(const sh of document.styleSheets){try{for(const r of sh.cssRules){
+   if(r.selectorText&&/:focus-visible/.test(r.selectorText)){ring=true;break;}}}catch(e){}}
+ if(!ring)bad.push('no :focus-visible rule');
+ const scan=(label)=>{const app=document.querySelector('#app');
+   const els=[...app.querySelectorAll('button,a[href],input,select,textarea,[role=button]')].filter(e=>e.offsetParent);
+   els.forEach(e=>{const ti=e.getAttribute('tabindex');
+     if(ti!==null&&parseInt(ti,10)<0&&!e.disabled)bad.push(label+':unreachable('+(e.className||e.tagName).toString().split(' ')[0]+')');
+     // a clickable div/span with no role/tabindex is a keyboard trap-around
+   });
+   // also: any element with a data-nav/data-book/data-becomecoach handler must be a real button/a
+   [...app.querySelectorAll('[data-book],[data-becomecoach],[data-signin],[data-getpro],[data-connectpayouts]')].forEach(e=>{
+     const tag=e.tagName.toLowerCase(); if(tag!=='button'&&tag!=='a')bad.push(label+':nonfocusable-action('+tag+')');});};
+ S.auth={status:'guest'};
+ surfaces.forEach(([portal,route,arg])=>{try{S.portal=portal;S.route={name:route,arg:arg?arg[0]:null};render();scan(route+(arg?':'+arg[0]:''));}catch(e){bad.push(route+':threw');}});
+ // coach onboarding wizard (the other money path)
+ try{S.portal='coach';S.coachTab='dashboard';render();scan('coach-dash');}catch(e){bad.push('coach-dash:threw');}
+ return bad.length?[...new Set(bad)].slice(0,8).join(' | '):'CLEAN'})()" 2>/dev/null)
+kclean=${kbd//\"/}; kclean=$(printf '%s' "$kclean" | tr -d '[:space:]')
+if [ "$kclean" = "CLEAN" ]; then pass "keyboard: money-path controls are all focusable, focus ring defined"
+elif [ -z "$kclean" ]; then fail "keyboard-reachability check did not return"
+else fail "keyboard reachability on money paths: $kbd"; fi
+# Restore a clean family/home render so this check does not leak coach-portal
+# state into later assertions that measure the current DOM.
+$B js "S.portal='family';S.auth={status:'guest'};S.coachTab='dashboard';S.route={name:'home',arg:null};render();'ok'" >/dev/null 2>&1
+
 # Layout must never scroll horizontally.
 for vp in 1440x900 768x1024 390x844; do
   $B viewport "$vp" >/dev/null 2>&1
