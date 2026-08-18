@@ -49,5 +49,16 @@ jobs:
       - name: Build
         run: python3 src/build.py
 
+      # Contract tests are deterministic (no live network — the AI test mocks
+      # the quota RPC, data-contract uses a mock Supabase URL). They existed in
+      # the repo but nothing ran them; wired in here so the AI-endpoint auth /
+      # quota / injection-resistance contract (and the repo + data contracts)
+      # actually gate a PR instead of rotting.
+      - name: Contract tests (ai · repo · data)
+        run: |
+          node scripts/ai-contract-test.mjs
+          node scripts/repo-contract-test.mjs
+          node scripts/data-contract-test.mjs
+
       - name: Smoke (all checks, browser included)
         run: ./src/smoke.sh
