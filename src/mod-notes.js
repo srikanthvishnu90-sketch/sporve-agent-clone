@@ -125,6 +125,60 @@ function athleteByName(name){
   return roster().find(a => a.name.toLowerCase() === n) || null;
 }
 
+/* AI-command athlete resolution. The coach types "note for Nia to …"; the
+   assistant hands back a name string, and this maps it to a REAL roster row —
+   never inventing one. Returns {athlete} on a single confident match, {ambiguous}
+   when a first name hits two people, {} when nothing matches. The chat card gates
+   its Approve button on {athlete} being present, so an unresolved name can never
+   write a note against a fabricated athlete. */
+function resolveAthlete(name){
+  const q = String(name || "").trim().toLowerCase();
+  if (!q) return {};
+  const r = roster();
+  const exact = r.filter(a => a.name.toLowerCase() === q);
+  if (exact.length === 1) return { athlete: exact[0] };
+  const partial = r.filter(a => {
+    const full = a.name.toLowerCase();
+    return full.split(/\s+/)[0] === q || full.includes(q);
+  });
+  if (partial.length === 1) return { athlete: partial[0] };
+  if (partial.length > 1) return { ambiguous: partial };
+  return {};
+}
+
+/* The write rail behind an approved create_note proposal. It resolves the
+   athlete, refuses to invent one, and appends a REAL note row to the same
+   S.sessionNotes array the Session-notes tab reads — the exact store saveNote()
+   writes, so an AI-drafted note is indistinguishable from a hand-written one.
+   The drafted content lands in `worked` (the primary, always-first note field);
+   win/next stay empty and the row renderer skips empty fields. Throws loudly on
+   an unresolved/ambiguous name or empty body — the host's approveProposal turns
+   a throw into an honest failure bubble and reopens the card. */
+function createFromAI(spec){
+  spec = spec || {};
+  const hit = resolveAthlete(spec.athleteName);
+  if (hit.ambiguous)
+    throw new Error("More than one athlete matches “" + String(spec.athleteName || "").trim() + "” — name one exactly.");
+  if (!hit.athlete)
+    throw new Error("No athlete named “" + String(spec.athleteName || "").trim() + "” on your roster.");
+  const content = String(spec.body || "").trim();
+  if (!content) throw new Error("The note is empty.");
+  const a = hit.athlete;
+  const now = isoNow();
+  const n = {
+    id: "nt_ai_" + a.id + "_" + Date.now(),
+    sessionId: "ai_" + Date.now(),
+    athleteId: a.id, athlete: a.name, programId: a.programId,
+    date: now.slice(0, 10),
+    title: String(spec.title || "").trim().slice(0, 120),
+    worked: content, win: "", next: "",
+    skills: [], shared: false, sharedAt: null, source: "ai",
+    createdAt: now, updatedAt: now,
+  };
+  notes().push(n);
+  return { note: n, athlete: a.name };
+}
+
 /* Every session this coach has run or has on the books, from two real
    sources: the roster above, and the host's own S.bookings. */
 function ledger(){
@@ -700,7 +754,7 @@ function noteCard(n){
         ? `<span class="pill good">Shared with the family</span>`
         : `<span class="pill slate">Private to you</span>`}
     </div>
-    ${FIELDS.map(([k, label]) => `<div class="nt-f">
+    ${FIELDS.filter(([k]) => String(n[k] || "").trim()).map(([k, label]) => `<div class="nt-f">
       <div class="nt-flabel">${esc(label)}</div>
       <div class="nt-ftext">${esc(n[k])}</div></div>`).join("")}
     ${skillChips(n.skills, n.programId)}
@@ -1088,6 +1142,9 @@ window.MOD_NOTES = {
   wire: wire,
   state: { sessionNotes: seedNotes(), progressReports: [] },
   pendingNotes: pendingNotes,
+  /* Agentic AI-command rails (used by the coach chatbox create_note proposal). */
+  resolveAthlete: resolveAthlete,
+  createFromAI: createFromAI,
 };
 
 })();

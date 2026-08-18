@@ -21,7 +21,7 @@
 <meta name="twitter:description" content="Find coaches, trainers, camps and teams across 20+ sports in Chicagoland.">
 <meta name="twitter:image" content="https://the-sporve-web.vercel.app/og.png">
 <link rel="icon" href="data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%2032%2032'%3E%3Crect%20width='32'%20height='32'%20rx='7'%20fill='%2309090B'/%3E%3Ccircle%20cx='16'%20cy='16'%20r='6'%20fill='white'/%3E%3C/svg%3E">
-<meta name="sporve-build" content="89b8c222fe48fc4b">
+<meta name="sporve-build" content="0e26ab530ca5e728">
 </head>
 <body>
 <noscript><h1>Sporv — Every sport. One app.</h1><p>Sporv connects families and athletes with coaches, trainers, camps, and teams across more than 20 sports. Please enable JavaScript to use the app.</p></noscript>
@@ -7926,6 +7926,7 @@ function propCardHTML(p,i){
     <div class="propcard-head">Proposed — nothing happens until you approve</div>
     <p class="propcard-title">${esc(meta.label)}</p>
     ${draft?`<textarea class="propcard-draft" id="propEdit${i}" rows="4" aria-label="Edit the draft"${busy?" disabled":""}>${esc(draft)}</textarea>`:""}
+    ${(p.tool==="create_note"||p.tool==="create_document")?noteAthleteLine(p):""}
     ${!draft&&p.args&&Object.keys(p.args).length?`<p class="propcard-sub">${
       /* Truncate BEFORE escaping — slicing an escaped string can cut an
          entity like &amp; in half and leak raw markup. */
@@ -7935,7 +7936,7 @@ function propCardHTML(p,i){
         ?`<button class="btn sm" data-approve="${i}"${busy?" disabled":""}>${busy?esc(disp.busy):esc(disp.verb)}</button>`
         :`${draft?`<button class="btn sm" data-copyprop="${i}">Copy draft</button>`:""}
            <button class="btn ghost sm" data-coachtab="${esc(meta.tab)}">Open ${
-             {inbox:"Messages",schedule:"Schedule",listings:"Listings",profile:"Settings",media:"Media",dashboard:"Home"}[meta.tab]||meta.tab}</button>`}
+             {inbox:"Messages",schedule:"Schedule",listings:"Listings",profile:"Settings",media:"Media",dashboard:"Home",notes:"Session notes",finances:"Earnings"}[meta.tab]||meta.tab}</button>`}
       <button class="btn ghost sm" data-dismissprop="${i}"${busy?" disabled":""}>Dismiss</button>
     </div>
     ${!canSend&&isMsgFamily?`<p class="propcard-sub">Bulk and broadcast sends go out through the Approvals queue — this draft is yours to paste until that rail is wired.</p>`:""}
@@ -13195,6 +13196,30 @@ function applyAction(a,original){
       restated:a.restated||("Send this to "+hit.group.name+".")};
     S.cmdError="";render();return;
   }
+  /* The command bar is a quick launcher, not the agentic chat: it has no
+     inline review card. So a note/schedule intent typed here DEEP-LINKS to the
+     tab that owns the work (the chatbox is where these become approvable
+     drafts). A payout intent is money — it can only ever open Earnings, never
+     execute (RED). */
+  if(a.action==="create_note"||a.action==="create_document"){
+    S.coachTab="notes";S.cmdDraft="";S.cmdError="";
+    const line=a.restated||"Opened Session notes to add a note";
+    S.cmdLog=[{text:line,at:"just now"},...(S.cmdLog||[])].slice(0,8);
+    render();toast(line);return;
+  }
+  if(a.action==="schedule_change"){
+    setCoachTab("schedule");S.cmdDraft="";S.cmdError="";
+    const line=a.restated||"Opened your schedule";
+    S.cmdLog=[{text:line,at:"just now"},...(S.cmdLog||[])].slice(0,8);
+    render();toast(line);return;
+  }
+  if(a.action==="payout"){
+    /* RED: never moves money — opens Earnings for the coach to act. */
+    S.coachTab="finances";S.cmdDraft="";S.cmdError="";
+    const line=a.restated||"Opened Earnings — payouts run from there";
+    S.cmdLog=[{text:line,at:"just now"},...(S.cmdLog||[])].slice(0,8);
+    render();toast(line);return;
+  }
   runCommand(original);
 }
 
@@ -13345,6 +13370,14 @@ function askCoach(q){
    under the coach's own JWT). Anything without a live rail gets a deep link
    to the tab that owns the work, never a button that pretends. */
 const PROP_META={
+  create_note:         {label:"Create a session note",      tab:"notes"},
+  create_document:     {label:"Create a document",          tab:"notes"},
+  schedule_change:     {label:"Change your schedule",       tab:"schedule"},
+  /* RED — MONEY NEVER MOVES THROUGH THE CHAT. A payout intent has NO
+     PROP_DISPATCH rail on purpose, so its card can only ever deep-link to the
+     Earnings screen where the human executes the payout. An AI Approve must
+     never trigger a Stripe transfer; see the note above PROP_DISPATCH. */
+  payout:              {label:"Payout or earnings",         tab:"finances"},
   draft_message:       {label:"Send a message to a parent", tab:"inbox"},
   draft_bulk_message:  {label:"Message several families",   tab:"inbox"},
   draft_recap:         {label:"Session recap for a parent", tab:"inbox"},
@@ -13370,7 +13403,30 @@ const PROP_META={
      verb     — the Approve button label; busy — its in-flight label.
      run      — (proposal, editedDraftText) => Promise; throws/rejects loudly.
      done/fail — the confirmation / failure bubble text (fail gets the reason). */
+/* RED SAFETY LAW — no PROP_DISPATCH entry exists for `payout` (or any money
+   tool), and none may ever be added. A payout must be executed by the human on
+   the Earnings screen, never by an AI Approve: propCardHTML gates the Approve
+   button on a PROP_DISPATCH rail, so with no rail here a payout proposal can
+   only render a deep-link to finances. This is the one place the money path
+   crosses the assistant, and it crosses it as a link, not a button. */
 const PROP_DISPATCH={
+  /* FLAGSHIP (YELLOW). "Create a note for <athlete> to work on …" → a real
+     session-note row via MOD_NOTES, the SAME store the Session-notes tab reads.
+     canSend gates on the athlete resolving to a real roster row (never invent
+     one) AND a non-empty draft, so an unresolved name shows the deep-link, not
+     an Approve button over a note that would write against nobody. */
+  create_note:{
+    canSend:p=>{const M=window.MOD_NOTES;
+      return !!(M&&M.createFromAI&&M.resolveAthlete&&propDraft(p).trim()&&M.resolveAthlete(noteAthlete(p)).athlete);},
+    verb:"Approve & create", busy:"Creating…",
+    run:(p,text)=>{
+      const M=window.MOD_NOTES;
+      if(!M||!M.createFromAI) throw new Error("The session-notes module didn't load.");
+      return Promise.resolve(M.createFromAI({athleteName:noteAthlete(p),title:noteTitle(p),body:text}));
+    },
+    done:res=>"Note created for "+((res&&res.athlete)||"the athlete")+". It's in your Session notes.",
+    fail:why=>"That didn't save — "+why+" No note was created.",
+  },
   draft_message:{
     canSend:p=>!!(p.args&&p.args.booking_id), verb:"Approve & send", busy:"Sending…",
     run:(p,text)=>{
@@ -13424,6 +13480,10 @@ const PROP_DISPATCH={
     fail:why=>"That didn't save — "+why+" Your policy is unchanged.",
   },
 };
+/* A "document" for a coach IS a session note in this product — same store, same
+   Session-notes tab. So create_document shares the create_note rail rather than
+   inventing a second, parallel writer. */
+PROP_DISPATCH.create_document=PROP_DISPATCH.create_note;
 /* Which provider field a set_policy proposal targets. Read from whatever key
    the model used to name the policy; map ONLY the non-money logistics fields.
    'cancellation' returns its name so canSend can refuse it (money-sensitive: refund terms route through the deliberate policy screen). */
@@ -13443,6 +13503,22 @@ function policyField(p){
    read any of them — whichever it used becomes the one editable field. */
 function propDraft(p){
   return String((p.args&&(p.args.body||p.args.draft||p.args.bio||p.args.value||p.args.text))||"");
+}
+/* The athlete name and optional title a create_note/create_document proposal
+   carries. The model may key the athlete on any of these, so read whichever it
+   used; the name is resolved against the real roster before anything is written. */
+function noteAthlete(p){return String((p.args&&(p.args.athlete||p.args.athlete_name||p.args.name||p.args.for||p.args.athleteName))||"");}
+function noteTitle(p){return String((p.args&&(p.args.title||p.args.topic||p.args.subject))||"");}
+/* The card's athlete-status line for a note proposal: confirms the resolved
+   roster athlete, or explains WHY Approve is unavailable (ambiguous or unknown
+   name) so the coach can edit the name rather than hit a dead end. */
+function noteAthleteLine(p){
+  const M=window.MOD_NOTES; const name=noteAthlete(p);
+  if(!M||!M.resolveAthlete) return "";
+  const hit=M.resolveAthlete(name);
+  if(hit.athlete) return `<p class="propcard-sub">For ${esc(hit.athlete.name)} on your roster.</p>`;
+  if(hit.ambiguous) return `<p class="propcard-sub">More than one athlete matches “${esc(name)}”: ${esc(hit.ambiguous.map(a=>a.name).join(", "))}. Name one exactly, then approve.</p>`;
+  return `<p class="propcard-sub">No athlete named “${esc(name||"—")}” on your roster — edit the name to match a client, then approve.</p>`;
 }
 function proposalAt(i){
   const m=S.chat[i];
@@ -23754,6 +23830,60 @@ function athleteByName(name){
   return roster().find(a => a.name.toLowerCase() === n) || null;
 }
 
+/* AI-command athlete resolution. The coach types "note for Nia to …"; the
+   assistant hands back a name string, and this maps it to a REAL roster row —
+   never inventing one. Returns {athlete} on a single confident match, {ambiguous}
+   when a first name hits two people, {} when nothing matches. The chat card gates
+   its Approve button on {athlete} being present, so an unresolved name can never
+   write a note against a fabricated athlete. */
+function resolveAthlete(name){
+  const q = String(name || "").trim().toLowerCase();
+  if (!q) return {};
+  const r = roster();
+  const exact = r.filter(a => a.name.toLowerCase() === q);
+  if (exact.length === 1) return { athlete: exact[0] };
+  const partial = r.filter(a => {
+    const full = a.name.toLowerCase();
+    return full.split(/\s+/)[0] === q || full.includes(q);
+  });
+  if (partial.length === 1) return { athlete: partial[0] };
+  if (partial.length > 1) return { ambiguous: partial };
+  return {};
+}
+
+/* The write rail behind an approved create_note proposal. It resolves the
+   athlete, refuses to invent one, and appends a REAL note row to the same
+   S.sessionNotes array the Session-notes tab reads — the exact store saveNote()
+   writes, so an AI-drafted note is indistinguishable from a hand-written one.
+   The drafted content lands in `worked` (the primary, always-first note field);
+   win/next stay empty and the row renderer skips empty fields. Throws loudly on
+   an unresolved/ambiguous name or empty body — the host's approveProposal turns
+   a throw into an honest failure bubble and reopens the card. */
+function createFromAI(spec){
+  spec = spec || {};
+  const hit = resolveAthlete(spec.athleteName);
+  if (hit.ambiguous)
+    throw new Error("More than one athlete matches “" + String(spec.athleteName || "").trim() + "” — name one exactly.");
+  if (!hit.athlete)
+    throw new Error("No athlete named “" + String(spec.athleteName || "").trim() + "” on your roster.");
+  const content = String(spec.body || "").trim();
+  if (!content) throw new Error("The note is empty.");
+  const a = hit.athlete;
+  const now = isoNow();
+  const n = {
+    id: "nt_ai_" + a.id + "_" + Date.now(),
+    sessionId: "ai_" + Date.now(),
+    athleteId: a.id, athlete: a.name, programId: a.programId,
+    date: now.slice(0, 10),
+    title: String(spec.title || "").trim().slice(0, 120),
+    worked: content, win: "", next: "",
+    skills: [], shared: false, sharedAt: null, source: "ai",
+    createdAt: now, updatedAt: now,
+  };
+  notes().push(n);
+  return { note: n, athlete: a.name };
+}
+
 /* Every session this coach has run or has on the books, from two real
    sources: the roster above, and the host's own S.bookings. */
 function ledger(){
@@ -24329,7 +24459,7 @@ function noteCard(n){
         ? `<span class="pill good">Shared with the family</span>`
         : `<span class="pill slate">Private to you</span>`}
     </div>
-    ${FIELDS.map(([k, label]) => `<div class="nt-f">
+    ${FIELDS.filter(([k]) => String(n[k] || "").trim()).map(([k, label]) => `<div class="nt-f">
       <div class="nt-flabel">${esc(label)}</div>
       <div class="nt-ftext">${esc(n[k])}</div></div>`).join("")}
     ${skillChips(n.skills, n.programId)}
@@ -24717,6 +24847,9 @@ window.MOD_NOTES = {
   wire: wire,
   state: { sessionNotes: seedNotes(), progressReports: [] },
   pendingNotes: pendingNotes,
+  /* Agentic AI-command rails (used by the coach chatbox create_note proposal). */
+  resolveAthlete: resolveAthlete,
+  createFromAI: createFromAI,
 };
 
 })();

@@ -111,7 +111,11 @@ const ACTION_SCHEMA = {
   properties: {
     action: {
       type: "string",
-      enum: ["send_group_message", "create_group", "open_tab", "unknown"],
+      enum: [
+        "send_group_message", "create_group", "open_tab",
+        "create_note", "schedule_change", "payout",
+        "unknown",
+      ],
       description: "The single operation the coach is asking for.",
     },
     target: {
@@ -119,14 +123,18 @@ const ACTION_SCHEMA = {
       description:
         "What the action applies to. For send_group_message and create_group, " +
         "the group name exactly as the coach said it (e.g. 'monday noon'). " +
-        "For open_tab, one of: dashboard, schedule, bookings, roster, inbox, " +
-        "listings, finances, reviews, media, notes. Empty string if none.",
+        "For create_note, the athlete's name exactly as the coach said it (e.g. " +
+        "'Julian' or 'Nia Okafor'). For open_tab, one of: dashboard, schedule, " +
+        "bookings, roster, inbox, listings, finances, reviews, media, notes. " +
+        "Empty string if none.",
     },
     body: {
       type: "string",
       description:
-        "The message text to send, for send_group_message only. Write it as the " +
-        "coach would send it to families. Empty string for every other action.",
+        "The text content. For send_group_message, the message to families. For " +
+        "create_note, the note content (what to work on / what happened). For " +
+        "schedule_change and payout, a one-line description of the intended change. " +
+        "Empty string for every other action.",
     },
     restated: {
       type: "string",
@@ -146,6 +154,9 @@ Rules:
 - "message <name> that <something>" means send_group_message: target is the group name, body is the something, rewritten as a clear message to families.
 - Preserve the coach's meaning in body. Do not add pleasantries, emoji, or details they did not give you.
 - If the instruction only names a place to go ("open my earnings"), use open_tab.
+- "create/write/add a note for <athlete> to/that <content>" means create_note: target is the athlete's name, body is the note content. This is a DRAFT the coach approves; never claim it is saved.
+- "move/reschedule/change <session>", "block out <time>", "open/close a slot" means schedule_change: body describes the change in one line.
+- Anything about a payout, transfer, getting paid, or moving money means payout: body describes what the coach asked. Money NEVER moves from here — this only points the coach at their Earnings screen.
 - If you cannot map it confidently, use "unknown" rather than guessing. A wrong action costs the coach a message to real families.
 - restated is one plain sentence, addressed to the coach, e.g. "Send 'Practice is cancelled' to the Monday at noon group."
 

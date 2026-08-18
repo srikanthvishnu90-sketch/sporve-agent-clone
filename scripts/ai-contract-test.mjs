@@ -89,6 +89,48 @@ try {
     restated: "Do something unsupported.",
   }), { action: "unknown", target: "", body: "", restated: "" });
 
+  // ── Agentic actions: create_note / schedule_change / payout ───────────────
+  // New enum members must pass through normalizeAction with their fields intact,
+  // and remain subject to the SAME length caps (a note body over MAX_TEXT, like
+  // any oversized field, collapses to the safe UNKNOWN sentinel).
+  assert.deepEqual(normalizeAction({
+    action: "create_note",
+    target: "Julian",
+    body: "Work on up-and-unders under a contested catch.",
+    restated: "Draft a session note for Julian.",
+  }), {
+    action: "create_note",
+    target: "Julian",
+    body: "Work on up-and-unders under a contested catch.",
+    restated: "Draft a session note for Julian.",
+  });
+  assert.deepEqual(normalizeAction({
+    action: "schedule_change",
+    target: "Monday 4pm",
+    body: "Move the Monday 4pm session to 5pm.",
+    restated: "Move Monday 4pm to 5pm.",
+  }), {
+    action: "schedule_change",
+    target: "Monday 4pm",
+    body: "Move the Monday 4pm session to 5pm.",
+    restated: "Move Monday 4pm to 5pm.",
+  });
+  assert.deepEqual(normalizeAction({
+    action: "payout",
+    target: "",
+    body: "Pay me out my balance.",
+    restated: "Open Earnings — payouts run from there.",
+  }), {
+    action: "payout",
+    target: "",
+    body: "Pay me out my balance.",
+    restated: "Open Earnings — payouts run from there.",
+  });
+  // Length cap still bites on the new actions.
+  assert.deepEqual(normalizeAction({
+    action: "create_note", target: "x", body: "A".repeat(9000), restated: "x",
+  }), { action: "unknown", target: "", body: "", restated: "" });
+
   // ── A6: adversarial injection resistance ──────────────────────────────────
   // The model output is untrusted. normalizeAction is the boundary the browser
   // depends on, so a hostile or malformed action object must ALWAYS collapse to
@@ -156,4 +198,4 @@ try {
   else process.env.ANTHROPIC_API_KEY = previousKey;
 }
 
-console.log("AI contract: 30 assertions passed");
+console.log("AI contract: 34 assertions passed");
