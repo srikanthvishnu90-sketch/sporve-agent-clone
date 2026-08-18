@@ -231,13 +231,12 @@
      easy half. The render layer carries assumptions the seed satisfied and
      production does not, and two of them are visible on the first screen:
 
-       · THE MAP IS HARDCODED TO MIAMI. `const LNG=[-80.345,-80.115],
-         LAT=[25.655,25.870]` and pins are positioned by percentage inside that
-         box. Chicago's (41.9, -87.6) computes to left:-3154%, top:-7456% —
-         every pin lands thousands of percent off-canvas while the header still
-         says "10 programs across Chicagoland". (The seed's coordinates were
-         already Miami while its address strings said Chicago; real coordinates
-         make an existing bug total.)
+       · MAP GEOGRAPHY — RESOLVED 2026-08-17. The map box was once hardcoded
+         to Miami while the seed coordinates were also Miami under Chicago
+         address strings. Both are fixed: seed coordinates are now real
+         Chicagoland, and mapBounds() DERIVES the box from the listings, so any
+         metro's coordinates project on-canvas. Left here as the record of why
+         the box is computed, not constant.
 
        · THE "TEAM PROGRAMS" BAND GOES PERMANENTLY EMPTY. `ptypeOf()` sorts a
          listing into solo/camp/org, and the only route into `org` for a
