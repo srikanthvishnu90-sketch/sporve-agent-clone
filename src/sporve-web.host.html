@@ -2859,10 +2859,13 @@ h2.ctr{margin-bottom:10px}
 }
 /* ── PARTS 2+3 · mega-menus ──────────────────────────────────────── */
 .pmgrid4{display:grid;grid-template-columns:1fr 1.15fr 1.15fr 1px 1.1fr;gap:0;padding:30px 24px 26px}
+/* pmgrid5 adds the "For organizations" Enterprise column; the New feature
+   column and its 1px divider stay pinned to the right as in pmgrid4. */
+.pmgrid5{display:grid;grid-template-columns:.9fr 1.05fr 1.05fr 1.05fr 1px 1fr;gap:0;padding:30px 24px 26px}
 .cmgrid{display:grid;grid-template-columns:1.5fr 1px 1fr;gap:0;padding:30px 24px 26px}
-.pmgrid4 .pmcol,.cmgrid .pmcol{display:flex;flex-direction:column;gap:2px;padding:0 26px;min-width:0}
-.pmgrid4 .pmcol:first-child,.cmgrid .pmcol:first-child{padding-left:0}
-.pmgrid4 .eyebrow,.cmgrid .eyebrow{margin-bottom:10px}
+.pmgrid4 .pmcol,.pmgrid5 .pmcol,.cmgrid .pmcol{display:flex;flex-direction:column;gap:2px;padding:0 26px;min-width:0}
+.pmgrid4 .pmcol:first-child,.pmgrid5 .pmcol:first-child,.cmgrid .pmcol:first-child{padding-left:0}
+.pmgrid4 .eyebrow,.pmgrid5 .eyebrow,.cmgrid .eyebrow{margin-bottom:10px}
 .pmrow2{
   display:flex;align-items:center;height:44px;padding:0 12px;border-radius:var(--r-ctl);
   /* 700, per the owner's explicit request that mega-menu row titles go bold.
@@ -2905,11 +2908,12 @@ h2.ctr{margin-bottom:10px}
 .cmtalk p{font-size:var(--t-small);color:var(--muted);line-height:1.55;margin-top:8px;max-width:34ch}
 @media(max-width:1180px){
   .pmgrid4{grid-template-columns:1fr 1fr;gap:18px 0}
-  .pmgrid4 .pmdiv{display:none}
+  .pmgrid5{grid-template-columns:1fr 1fr;gap:18px 0}
+  .pmgrid4 .pmdiv,.pmgrid5 .pmdiv{display:none}
   .cmgrid{grid-template-columns:1fr}
   .cmgrid .pmdiv{display:none}
 }
-@media(max-width:720px){.pmgrid4{grid-template-columns:1fr}}
+@media(max-width:720px){.pmgrid4,.pmgrid5{grid-template-columns:1fr}}
 
 /* T1b — dark reskin of BOTH mega-menu panels on the #09090B ground. Scoped to
    #app .productmenu so it overrides the light-ground defaults above (which stay
@@ -3566,7 +3570,7 @@ body.reg-coach .navlink{font-size:var(--text-md)}
    display weight because a grotesque needs more mass than a serif to read as
    display; their em emphasis synthesises an oblique (no italic axis embedded),
    which suits a grotesque. Colour untouched — em keeps its --ps-ink tint. */
-.pg-ai-coach,.pg-insights,.pg-scheduling,.pg-roster,.pg-payments,.pg-instant-booking{--pg-display:"Archivo","Inter",system-ui,sans-serif;--pg-weight:600}
+.pg-ai-coach,.pg-insights,.pg-scheduling,.pg-roster,.pg-payments,.pg-instant-booking,.pg-enterprise,.pg-enterprise-roster,.pg-enterprise-finance,.pg-enterprise-compliance{--pg-display:"Archivo","Inter",system-ui,sans-serif;--pg-weight:600}
 .pg-search,.pg-map-search,.pg-saved,.pg-athlete-progress{--pg-display:"Syne","Inter",system-ui,sans-serif;--pg-weight:600}
 /* background-checks, media-consent, session-notes, messaging, bookings-receipts
    intentionally KEEP Instrument Serif (trust / consent / money / human record). */
@@ -4431,6 +4435,64 @@ body.reg-coach .navlink{font-size:var(--text-md)}
 .pg-insights-table .pg-comparison tbody th{font-size:var(--text-base)}
 .pg-insights-table .pg-comparison th,.pg-insights-table .pg-comparison td{padding-top:18px;padding-bottom:18px}
 .rebuild-page .pgband.dark [data-prose]{color:#fff!important}
+
+/* ══════════════ 15–18 — FOR ORGANIZATIONS (ENTERPRISE, IN DEVELOPMENT) ══════════════
+   Four sales/design showcase pages for the $149 Enterprise tier. No sport
+   identity is claimed: they keep the .pgroot slate default (--ps=slate), so the
+   italic phrase and CTA wear frozen slate chrome rather than an invented sport.
+   Each hero geometry is deliberately distinct so the rendered-silhouette audit
+   sees four separate compositions. Demo cards on light heroes use ink/rule;
+   on dark heroes they use #fff / #94A3B8 literals per the dark-ground law. */
+
+/* 15 — Organization overview: split thesis + sample org board / dark argument / white ledger. */
+.pg-enterprise .pg-hero-inner{grid-template-columns:minmax(0,1.06fr) minmax(230px,.8fr) minmax(186px,.6fr);align-items:end}
+.pg-enterprise .pg-hero .shell{padding-top:9px;padding-bottom:9px}
+.pg-enterprise .pg-h1{max-width:17ch}
+.pg-enterprise-argument .pg-argument{max-width:76ch}
+.pg-hero-orgboard{font-family:ui-monospace,"SF Mono",Menlo,monospace;border-top:1px solid var(--ink)}
+.pg-hero-orgboard .pg-board-top{display:flex;justify-content:space-between;gap:12px;padding:11px 0;border-bottom:1px solid var(--rule);font-size:var(--text-xs);letter-spacing:.06em}
+.pg-hero-orgboard .pg-board-top span:first-child{color:var(--faint)}
+.pg-hero-orgboard .pg-board-top span:last-child{color:var(--muted)}
+.pg-hero-orgboard>div:not(.pg-board-top){display:flex;justify-content:space-between;gap:16px;padding:7px 0;border-bottom:1px solid var(--rule);font-size:var(--text-xs)}
+.pg-hero-orgboard span{color:var(--faint)}
+.pg-hero-orgboard b{color:var(--ink);font-weight:700}
+
+/* 16 — Roster & staff: wide two-column head / copy left, sample staff table right. */
+.pg-enterprise-roster .pg-hero-inner{grid-template-columns:minmax(0,1.24fr) minmax(300px,.76fr);align-items:center}
+.pg-enterprise-roster .pg-h1{max-width:15ch}
+.pg-enterprise-roster-figure .pg-r4-grid{grid-template-columns:minmax(340px,1.02fr) minmax(340px,.98fr);align-items:start}
+.pg-staff-ui{width:100%;border-collapse:collapse;font-family:ui-monospace,"SF Mono",Menlo,monospace;font-size:var(--text-sm)}
+.pg-staff-ui th,.pg-staff-ui td{text-align:left;padding:14px 0;border-bottom:1px solid var(--rule);vertical-align:middle}
+.pg-staff-ui thead th{color:var(--faint);font-weight:500}
+.pg-staff-ui td{color:var(--ink)}
+.pg-staff-ui th:last-child,.pg-staff-ui td:last-child{text-align:right}
+.pg-role{display:inline-block;font-size:var(--text-xs);padding:3px 9px;border:1px solid var(--rule);border-radius:5px;
+  color:var(--muted);background:var(--raise);font-weight:600}
+.pg-ck{font-weight:700}
+.pg-ck-clear{color:var(--ink)}.pg-ck-pending{color:var(--muted)}.pg-ck-expired{color:var(--faint)}
+
+/* 17 — Org payments & pay: dark math head + sample comp summary / essay above the payout rail. */
+.pg-enterprise-finance .pg-hero-inner{grid-template-columns:minmax(0,1.05fr) minmax(240px,.72fr) minmax(196px,.62fr);align-items:center}
+.pg-enterprise-finance .pg-hero .shell{padding-top:14px;padding-bottom:14px}
+.pg-enterprise-finance .pg-h1{max-width:11ch}
+.pg-enterprise-ledger .pg-essay-stat{grid-template-columns:minmax(0,1.5fr) minmax(240px,.6fr)}
+.pg-hero-comp{font-family:ui-monospace,"SF Mono",Menlo,monospace;border-top:1px solid #343A43}
+.pg-hero-comp .pg-comp-top{display:flex;justify-content:space-between;gap:12px;padding:11px 0;border-bottom:1px solid #343A43;font-size:var(--text-xs);letter-spacing:.06em}
+.pg-hero-comp .pg-comp-top span:first-child{color:#94A3B8}.pg-hero-comp .pg-comp-top span:last-child{color:#94A3B8}
+.pg-hero-comp>div:not(.pg-comp-top){display:flex;justify-content:space-between;gap:16px;padding:7px 0;border-bottom:1px solid #343A43;font-size:var(--text-xs)}
+.pg-hero-comp span{color:#94A3B8}.pg-hero-comp b{color:#fff;font-weight:600}
+
+/* 18 — Compliance OS: right-weighted dark thesis + sample compliance board / question ledger. */
+.pg-enterprise-compliance .pg-hero-inner{grid-template-columns:minmax(0,1fr) minmax(230px,.68fr) minmax(210px,.66fr);align-items:end}
+.pg-enterprise-compliance .pg-hero .shell{padding-top:3px;padding-bottom:3px}
+.pg-enterprise-compliance .pg-h1{max-width:12ch}
+.pg-hero-compliance{font-family:ui-monospace,"SF Mono",Menlo,monospace;border-top:1px solid #343A43}
+.pg-hero-compliance .pg-board-top{display:flex;justify-content:space-between;gap:12px;padding:7px 0;border-bottom:1px solid #343A43;font-size:var(--text-xs);letter-spacing:.06em}
+.pg-hero-compliance .pg-board-top span{color:#94A3B8}
+.pg-hero-compliance>div:not(.pg-board-top){display:flex;justify-content:space-between;gap:16px;padding:3px 0;border-bottom:1px solid #343A43;font-size:var(--text-xs)}
+.pg-hero-compliance span{color:#94A3B8}
+.pg-hero-compliance b{font-weight:600}
+.pg-cbd-clear{color:#fff}.pg-cbd-pending{color:#94A3B8}.pg-cbd-expired{color:#94A3B8}
 
 @media(max-width:820px){
   .rebuild-page .pg-hero-inner{grid-template-columns:1fr!important;gap:16px;align-items:start}
@@ -6314,6 +6376,11 @@ function productMenuHTML(){
   const co=[["Scheduling & availability","page:scheduling"],["Payments & payouts","page:payments"],
     ["Client roster","page:roster"],["Session notes","page:session-notes"],
     ["Media & consent","page:media-consent"],["Insights","page:insights"]];
+  /* For organizations — the Enterprise ($149/mo) showcase. Every row lands on a
+     page:<id> marketing page that frames the tier as in development / early
+     access; none is a purchasable path. */
+  const org=[["Organization workspace","page:enterprise"],["Roster & staff","page:enterprise-roster"],
+    ["Payments & staff pay","page:enterprise-finance"],["Compliance OS","page:enterprise-compliance"]];
   const row=(t,a)=>`<button class="pmrow2" role="menuitem" data-pdest="${esc(a)}">${esc(t)}</button>`;
   /* Pricing REMOVED from this menu (owner, 2026-08-14): "the pricing page is
      also in the product toggle, remove that as the pricing page has its own
@@ -6322,11 +6389,12 @@ function productMenuHTML(){
      to decide whether the two are the same thing. They are. */
   const col=(eyebrow,rows)=>`<div class="pmcol">
     <div class="eyebrow">${esc(eyebrow)}</div>${rows.map(r=>row(r[0],r[1])).join("")}</div>`;
-  return `<div class="productmenu" role="menu" aria-label="Product"><div class="shell pmgrid4">
+  return `<div class="productmenu" role="menu" aria-label="Product"><div class="shell pmgrid5">
     <div class="pmcol"><div class="eyebrow">About</div>
       ${about.map(r=>row(r[0],r[1])).join("")}</div>
     ${col("For families",fam)}
     ${col("For coaches",co)}
+    ${col("For organizations",org)}
     <div class="pmdiv" aria-hidden="true"></div>
     <div class="pmcol pmnew">
       <div class="eyebrow">New</div>
@@ -10147,6 +10215,14 @@ const PAGE_META={
   "media-consent":{t:"Media & consent",d:"Photos shared only with recorded consent, per child.",sport:"Gymnastics",cta:"coachtab:media",ctaL:"See media & consent",kx:["session-notes","background-checks","roster"]},
   "insights":{t:"Insights",d:"Demand, price position, and retention — derived from real records.",sport:"Rowing",cta:"coachtab:insights",ctaL:"Open insights",kx:["payments","scheduling","roster"]},
   "ai-coach":{t:"Coach finder",d:"An assistant grounded in the catalogue — it cannot invent a coach.",sport:"Martial Arts",cta:"assistant",ctaL:"Try the assistant",kx:["search","what-is","messaging"]},
+  /* For organizations — the Enterprise ($149/mo) showcase. Enterprise is
+     plan_entitlements.purchasable=false and billing-create-checkout rejects it,
+     so cta points at the pricing tab (which describes early access) — never a
+     checkout. ctaL is the early-access ask, not a buy. */
+  "enterprise":{t:"Organization workspace",d:"Many coaches, teams, and families under one organization — in development.",sport:"Soccer",cta:"pricing",ctaL:"Join the early-access list",kx:["enterprise-roster","enterprise-finance","enterprise-compliance"]},
+  "enterprise-roster":{t:"Roster & staff",d:"Households, permission-gated records, and per-person check status — in development.",sport:"Volleyball",cta:"pricing",ctaL:"Join the early-access list",kx:["enterprise","enterprise-compliance","enterprise-finance"]},
+  "enterprise-finance":{t:"Org payments & pay",d:"Consolidated payouts and revenue splits at zero percent of bookings — in development.",sport:"Basketball",cta:"pricing",ctaL:"Join the early-access list",kx:["enterprise","enterprise-roster","enterprise-compliance"]},
+  "enterprise-compliance":{t:"Compliance OS",d:"Org-wide background-check orchestration that fails closed — in development.",sport:"Swimming",cta:"pricing",ctaL:"Join the early-access list",kx:["enterprise","enterprise-roster","background-checks"]},
 };
 function pageCTA(meta){
   if(meta.cta.indexOf("coachtab:")===0){const tab=meta.cta.split(":")[1];

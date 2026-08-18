@@ -9,7 +9,15 @@
     "search", "map-search", "instant-booking", "messaging",
     "bookings-receipts", "athlete-progress",
     "scheduling", "payments", "roster", "session-notes",
-    "media-consent", "insights"
+    "media-consent", "insights",
+    // For organizations — the Enterprise ($149/mo, in development) showcase.
+    // These are SALES/DESIGN artifacts: every one frames the tier as "in
+    // development / early access", carries no purchasable path (CTA navigates
+    // to the pricing tab, which describes early access), and labels every demo
+    // card "Sample · Enterprise in development". Enterprise is
+    // plan_entitlements.purchasable=false and billing-create-checkout rejects
+    // it server-side, so none of these may claim a live feature.
+    "enterprise", "enterprise-roster", "enterprise-finance", "enterprise-compliance"
   ];
 
   function hero(meta, headline, standfirst, options) {
@@ -409,6 +417,120 @@
       questionSection(questions, { tone: "white", layout: "staggered-consent-ledger", className: "pg-consent-questions" }));
   }
 
+  /* ── For organizations: the Enterprise ($149/mo, in development) showcase ──
+     Honesty law: Enterprise is not purchasable. Each page frames the tier as
+     in development / early access, uses pageCTA(meta) → the pricing tab (no
+     checkout), and labels every demo card "Sample · Enterprise in development".
+     No live metric is stated as real; sample figures carry that label. */
+
+  function enterprisePage(meta) {
+    var argument = "A growing academy rarely fails for lack of effort. It fails because the roster lives in one app, payments in another, waivers in a drawer, and background checks in someone's inbox, so the same family gets re-entered four times and no one number can be trusted. Enterprise is designed to hold those in a single organization record: staff, athletes, programs, locations, money, and compliance reading from one source. The design goal is one place a director can trust, not another dashboard to reconcile by hand every week.";
+    var rows = [
+      ["Onboard the organization",
+       "A new academy stitches together a booking site, a spreadsheet of families, a separate payments login, and a group chat, then re-enters the same people into each one before it can teach a single lesson.",
+       "The intended flow imports staff and existing families once, into a single organization with owner, admin, director, head-coach, assistant, and front-desk roles. This onboarding module is in development and shown here as a labelled sample."],
+      ["Give people the right access",
+       "Access is all-or-nothing: everyone shares one login, so a front-desk hire can open the payout account and any coach can edit another team's roster without anyone deciding they should.",
+       "The design scopes each role to what it needs. A front-desk account books and checks people in, a director sees a location, and only an owner or admin reaches org-wide money. These permissions are the plan, not a live guarantee yet."],
+      ["Run more than one location",
+       "Each site becomes its own detached account, so the head office cannot compare two gyms without exporting and merging spreadsheets by hand at the end of every month.",
+       "Multi-location is designed so programs, staff, and schedules belong to a named site while the organization reads across all of them at once. Coverage would grow site by site; this sample only shows the intended structure."],
+      ["See the whole business at once",
+       "A weekly picture means opening four tools and hoping the totals agree, which they rarely do once refunds, no-shows, and split pay are counted against each other.",
+       "The org dashboard is designed to summarise staff, active athletes, live programs, and a compliance score from the same records that run bookings. Every figure shown on this page is sample data while Enterprise is in development."]
+    ];
+    var board = "<aside class='pg-hero-orgboard' aria-label='Sample organization dashboard'>" +
+      "<div class='pg-board-top'><span>ACADEMY OS</span><span>Sample · Enterprise in development</span></div>" +
+      "<div><span>Staff</span><b>18</b></div><div><span>Active athletes</span><b>240</b></div>" +
+      "<div><span>Programs</span><b>12</b></div><div><span>Compliance</span><b>92%</b></div></aside>";
+    var table = "<section class='pgband white pg-enterprise-table' data-section='comparison-table' data-layout='org-ledger'><div class='shell pg-comparison-wrap'>" +
+      "<table class='pg-comparison'><thead><tr><th>The job</th><th>Elsewhere</th><th>On Sporv</th></tr></thead><tbody>" +
+      rows.map(function (row) {
+        return "<tr><th scope='row' data-prose>" + row[0] + "</th><td data-prose>" + row[1] +
+          "</td><td data-prose>" + row[2] + "</td></tr>";
+      }).join("") + "</tbody></table></div></section>";
+    return wrap("enterprise", "R2", "org-overview-argument-to-comparison", "L-D-L", hero(meta,
+      "One organization. <em>One operating record.</em>",
+      "Sporv Enterprise is the multi-player workspace an academy would run its whole operation on: many coaches, teams, and families under one organization instead of a dozen disconnected tools. It is in development and available by early access only, so every screen below is a labelled sample of the intended design rather than a live feature anyone can buy today.",
+      { tone: "slate", layout: "org-overview", eyebrow: "ENTERPRISE · IN DEVELOPMENT", aside: board }) +
+      "<section class='pgband dark pg-enterprise-argument' data-section='argument' data-layout='org-argument'><div class='shell'><p class='pg-argument' data-prose>" +
+      argument + "</p></div></section>" + table);
+  }
+
+  function enterpriseRosterPage(meta) {
+    var copy = [
+      "The family side of the roster is designed around households, not loose contacts. A guardian record links to one or more athletes, so a parent with three children in three sports is one relationship rather than three duplicated entries. Medical notes, allergies, and emergency contacts attach to the athlete but sit behind a permission gate: a front-desk account can check a child in without reading their health history, while only the roles a director approves can open it. Waivers and consent are captured once and travel with the athlete instead of living on paper.",
+      "The staff side is designed to make hiring legible. Each coach, assistant, and front-desk member is a person with a role, the locations they work, and their own background-check status, shown as clear, pending, or expired. A pending hire is never quietly treated as cleared to get through a busy week; the design fails closed, keeping an unverified person out of bookable supply. Smart groups can gather staff or athletes by sport, site, or age so a director messages exactly the right people without rebuilding a distribution list by hand every single time.",
+      "Because the roster is one organization record, a family is never re-entered when it moves between coaches inside the same academy, and a departing staff member's future access closes without erasing the completed sessions and payments both sides may still need. Guardians keep control of their own account and consent decisions; the organization sees the operational relationships required to deliver instruction, not a licence to read every family's private history. All of this is the intended design, presented as a labelled sample while Enterprise remains in development rather than a live product."
+    ];
+    var figure = "<figure class='pg-flat-figure'><div class='pg-mono-ui' aria-label='Sample organization staff roster'>" +
+      "<div class='pg-ui-head'><span>Staff roster · Riverside Academy</span><span>Sample · Enterprise in development</span></div>" +
+      "<table class='pg-staff-ui'><thead><tr><th>Name</th><th>Role</th><th>Check</th></tr></thead><tbody>" +
+      "<tr><td>Dana Whitfield</td><td><span class='pg-role'>Director</span></td><td class='pg-ck pg-ck-clear'>Clear</td></tr>" +
+      "<tr><td>Marcus Ellery</td><td><span class='pg-role'>Head coach</span></td><td class='pg-ck pg-ck-clear'>Clear</td></tr>" +
+      "<tr><td>Priya Nadkarni</td><td><span class='pg-role'>Assistant</span></td><td class='pg-ck pg-ck-pending'>Pending</td></tr>" +
+      "<tr><td>Tom Boyer</td><td><span class='pg-role'>Front desk</span></td><td class='pg-ck pg-ck-expired'>Expired</td></tr>" +
+      "</tbody></table></div><figcaption data-prose>This flat figure uses disclosed demo names to show the intended roster: each hire carries a role and their own background-check state, and a pending or expired check keeps that person out of bookable supply rather than being rounded up to cleared. Enterprise is in development, so these are sample rows, not live staff records.</figcaption></figure>";
+    return wrap("enterprise-roster", "R4", "roster-import-to-staff-figure", "L-L", hero(meta,
+      "Every household and every hire, <em>on one roster.</em>",
+      "Enterprise roster is designed to hold the two lists an academy actually runs on: the families it serves and the staff it employs. Guardians link to athletes, sensitive medical and emergency details stay permission-gated, and every staff member carries their own background-check state. It is in development and shown here as a labelled sample, not a live system anyone operates yet.",
+      { tone: "slate", layout: "roster-columns", eyebrow: "ENTERPRISE · IN DEVELOPMENT" }) +
+      "<section class='pgband white pg-enterprise-roster-figure' data-section='product-figure' data-layout='household-and-staff'><div class='shell pg-r4-grid'><div class='pg-r4-copy'><h2>Two lists, one household-aware record.</h2>" +
+      copy.map(function (p) { return "<p data-prose>" + p + "</p>"; }).join("") +
+      "</div>" + figure + "</div></section>");
+  }
+
+  function enterpriseFinancePage(meta) {
+    var prose = [
+      "At one coach, payment is simple: the family pays the listed price and the whole amount reaches the coach. An academy adds a layer the design has to handle honestly, because the person who taught the session may not be the person who owns the payout account. Enterprise is designed so a booking can carry a revenue split: a head coach and an assistant, or a coach and the organization, each see the agreed share on the same record instead of settling up by side transfer after the fact every month.",
+      "The split divides the coach revenue; it does not hide a marketplace cut. Sporv takes zero percent of a booking under this model, because the platform is funded by a flat software subscription rather than a percentage of what families pay for coaching. So the gross a family pays and the total that reaches the staff still match, and the split only decides how that same amount is shared between named people. A director can read gross, each share, and the net payout without reverse-engineering a booking fee that is not there.",
+      "Recurring memberships and invoicing are designed to sit beside single bookings, so a season pass, a monthly training plan, and a one-off clinic all land in one financial view rather than three exports. The dashboard's job is to show where money came from, which coach earned which share, and what is pending versus settled, read from the same records that run the schedule. Everything on this page is the intended design shown as a labelled sample; Enterprise is in development, and no figure here is a real transaction anyone was paid."
+    ];
+    var worked = "<div class='pg-worked-math'><code>gross        $90.00\nhead coach   × .60    $54.00\nassistant    × .40    $36.00\nplatform     −$0.00\n------------------------\nstaff total           $90.00</code>" +
+      "<p data-prose>A ninety-dollar session split sixty-forty between a head coach and an assistant pays fifty-four and thirty-six, and the two shares add back to the full ninety because Sporv takes nothing from the booking itself. These are disclosed demo amounts; the live calculation would read each share from the booking's stored gross rather than from a marketing example on a page.</p></div>";
+    var rail = "<aside class='pg-stat-rail' aria-label='Sample consolidated payout'>" +
+      "<div class='pg-rail-stat'><span class='pg-rail-value'>$90.00</span><span class='pg-rail-label'>family pays the listed session price · sample</span></div>" +
+      "<div class='pg-rail-stat'><span class='pg-rail-value'>−$0.00</span><span class='pg-rail-label'>zero percent of bookings taken by Sporv</span></div>" +
+      "<div class='pg-rail-stat'><span class='pg-rail-value'>$90.00</span><span class='pg-rail-label'>shared across the assigned staff · sample</span></div></aside>";
+    var comp = "<aside class='pg-hero-comp' aria-label='Sample staff compensation summary'>" +
+      "<div class='pg-comp-top'><span>THIS MONTH</span><span>Sample · in development</span></div>" +
+      "<div><span>Marcus E. · head coach</span><b>$2,140</b></div><div><span>Priya N. · assistant</span><b>$860</b></div>" +
+      "<div><span>Org share · programs</span><b>$1,020</b></div></aside>";
+    return wrap("enterprise-finance", "R3", "org-payout-essay-to-comp-rail", "D-L", hero(meta,
+      "Pay the whole staff, <em>from one ledger.</em>",
+      "Enterprise finance is designed for the academy that pays many coaches, not one. Consolidated payouts, per-coach revenue splits, recurring memberships, and a single financial view sit on the booking records families already pay into. Sporv still takes zero percent of a booking — the platform earns a flat software subscription — and every figure here is a labelled sample while the module is in development.",
+      { tone: "dark", layout: "comp-summary", eyebrow: "ENTERPRISE · IN DEVELOPMENT", aside: comp }) +
+      "<section class='pgband white pg-enterprise-ledger' data-section='essay-stat' data-layout='comp-essay'><div class='shell pg-essay-stat'><div class='pg-essay'><h2>One amount, shared between named people.</h2>" +
+      prose.map(function (p) { return "<p data-prose>" + p + "</p>"; }).join("") + worked +
+      "</div>" + rail + "</div></section>");
+  }
+
+  function enterpriseCompliancePage(meta) {
+    var questions = [
+      ["How does a check get run for a whole staff?",
+       "Each staff member is screened as an individual through an independent consumer reporting agency — the model here is a vendor such as Checkr. The organization can invite and track the check, but it never marks itself cleared. Sporv stores the state that comes back, and a director cannot type a result or grant a badge from an admin screen. This is the intended design, shown as a labelled sample while Enterprise is in development."],
+      ["What does the compliance dashboard show?",
+       "The board is designed to list every staff member with their current check state, certification status, and waiver status, each tied to a date rather than a vague yes. A director can see at a glance who is clear, whose check is pending, and whose clearance has expired and needs a re-run. The sample board on this page shows pending as pending; it does not round an unfinished check up to cleared to make the screen look complete."],
+      ["Can a pending or expired coach still be booked?",
+       "No. The design fails closed: an unverified person is kept out of bookable supply, and the server re-reads provider safety when a booking is written, so an old link cannot grant access a current record no longer supports. This mirrors the single-coach rule the live marketplace already enforces. Enterprise extends that same gate across an organization's whole staff rather than trusting the business to police itself."],
+      ["What do parents see?",
+       "Enterprise is designed to give families the same trust surface they get for an independent coach: the named person who will run the session and that person's current verification state, not a company logo standing in for an individual. A badge that stops being true stops showing. Parents should report any mismatch between the person listed and the person who arrives, because clearance never travels to a substitute."],
+      ["How does this handle minors and COPPA?",
+       "Athlete records describe children, so the design keeps sensitive data permission-gated, keeps media consent a separate parent decision, and limits which roles can open a child's information. The organization holding a booking does not become an owner of the family's data. These COPPA-minded boundaries are the intended posture; Enterprise is in development, and this page is a labelled sample rather than a live compliance system."]
+    ];
+    var board = "<aside class='pg-hero-compliance' aria-label='Sample organization compliance board'>" +
+      "<div class='pg-board-top'><span>COMPLIANCE BOARD</span><span>Sample · in development</span></div>" +
+      "<div><span>Dana W. · director</span><b class='pg-cbd pg-cbd-clear'>Clear</b></div>" +
+      "<div><span>Marcus E. · head coach</span><b class='pg-cbd pg-cbd-clear'>Clear</b></div>" +
+      "<div><span>Priya N. · assistant</span><b class='pg-cbd pg-cbd-pending'>Pending</b></div>" +
+      "<div><span>Tom B. · front desk</span><b class='pg-cbd pg-cbd-expired'>Expired</b></div></aside>";
+    return wrap("enterprise-compliance", "R6", "compliance-board-to-question-ledger", "D-L", hero(meta,
+      "Trust that <em>fails closed.</em>",
+      "Enterprise compliance is designed to run the trust layer for a whole staff at once: each person's background check orchestrated through an independent vendor, every certificate and waiver tracked to a date, and a single board showing who is clear, pending, or expired. The rule the whole company is built on holds here — an unverified person cannot take a booking. It is in development and shown as a labelled sample.",
+      { tone: "dark", layout: "compliance-board", eyebrow: "ENTERPRISE · IN DEVELOPMENT", aside: board }) +
+      questionSection(questions, { tone: "white", layout: "org-compliance-ledger", className: "pg-compliance-questions" }));
+  }
+
   function render(id) {
     var meta = PAGE_META[id];
     if (!meta) return "";
@@ -426,6 +548,10 @@
     if (id === "session-notes") return sessionNotesPage(meta);
     if (id === "background-checks") return backgroundChecksPage(meta);
     if (id === "media-consent") return mediaConsentPage(meta);
+    if (id === "enterprise") return enterprisePage(meta);
+    if (id === "enterprise-roster") return enterpriseRosterPage(meta);
+    if (id === "enterprise-finance") return enterpriseFinancePage(meta);
+    if (id === "enterprise-compliance") return enterpriseCompliancePage(meta);
     return "";
   }
 

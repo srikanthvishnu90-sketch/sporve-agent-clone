@@ -1193,8 +1193,8 @@ c=$(grep -o '"coach-assistant"' index.html 2>/dev/null | wc -l | tr -d ' '); c=$
 # #C2410C (rgb 194,65,12) or #38BDF8 (rgb 56,189,248).
 # 'saved' was merged into 'search' (rebuild spec) — its route redirects, so it
 # leaves the per-page sweeps; the redirect itself is asserted in the rebuild block.
-PAGES="what-is background-checks search map-search instant-booking messaging bookings-receipts athlete-progress scheduling payments roster session-notes media-consent insights ai-coach"
-ASSIGNED_PAGES="what-is background-checks search map-search instant-booking messaging bookings-receipts athlete-progress scheduling payments roster session-notes media-consent insights"
+PAGES="what-is background-checks search map-search instant-booking messaging bookings-receipts athlete-progress scheduling payments roster session-notes media-consent insights enterprise enterprise-roster enterprise-finance enterprise-compliance ai-coach"
+ASSIGNED_PAGES="what-is background-checks search map-search instant-booking messaging bookings-receipts athlete-progress scheduling payments roster session-notes media-consent insights enterprise enterprise-roster enterprise-finance enterprise-compliance"
 # Reset the portal EXPLICITLY before reloading. This used to be implicit: a
 # reload wiped S back to defaults, so the coach checks above could not leak
 # into the marketing-page checks below. Session persistence deliberately ends
@@ -1234,7 +1234,8 @@ slop=$($B js "$AUD;
  const navGroups=[
   ['what-is','background-checks'],
   ['search','map-search','instant-booking','messaging','bookings-receipts','athlete-progress'],
-  ['scheduling','payments','roster','session-notes','media-consent','insights']];
+  ['scheduling','payments','roster','session-notes','media-consent','insights'],
+  ['enterprise','enterprise-roster','enterprise-finance','enterprise-compliance']];
  const routes='$PAGES'.split(' ').map(id=>['page',id]).concat([['trust',null],['pricing',null],['coachinfo',null]]);
  const fails=[];let wcopy=0,wdot=0;const fps={};
  routes.forEach(([name,arg])=>{S.route={name,arg};render();
@@ -1276,7 +1277,7 @@ slop=$($B js "$AUD;
 slopc=${slop//\"/}
 case "$slopc" in
   *"fails:[]"*)
-    pass "product-page audit: 14 pages at 390–500 words; unique rendered silhouettes, rhythms, exact phrase/CTA colours, and compact headings clean"
+    pass "product-page audit: 18 pages at 390–500 words; unique rendered silhouettes, rhythms, exact phrase/CTA colours, and compact headings clean"
     w=$(printf '%s' "$slopc" | grep -o 'wcopy:[0-9]*' | grep -o '[0-9]*')
     d=$(printf '%s' "$slopc" | grep -o 'wdot:[0-9]*' | grep -o '[0-9]*')
     [ "${w:-0}" -gt 0 ] || [ "${d:-0}" -gt 0 ] \
@@ -1433,7 +1434,7 @@ for vp in 768x1024 390x844; do
    }});
   return bad.length?bad.join(' '):'CLEAN'})()" 2>/dev/null)
   [ "$(printf '%s' "${compact//\"/}" | tr -d '[:space:]')" = "CLEAN" ] \
-    && pass "14 product heroes at $vp: compact, unclipped, ≤45vh, first section visible" \
+    && pass "18 product heroes at $vp: compact, unclipped, ≤45vh, first section visible" \
     || fail "§1 responsive type at $vp: $compact"
 done
 
@@ -1455,7 +1456,7 @@ ids.forEach(id=>{S.route={name:'page',arg:id};render();const a=document.querySel
  }});
 return leak.length?leak.join(' '):('OK '+own)})()" 2>/dev/null)
 case "$(printf '%s' "${sm//\"/}")" in
-  *OK\ 14*) pass "14 recipe pages render; every Keep Exploring row has real destination copy";;
+  *OK\ 18*) pass "18 recipe pages render; every Keep Exploring row has real destination copy";;
   *) fail "recipe/KX coverage: $sm";;
 esac
 

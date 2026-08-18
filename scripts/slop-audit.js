@@ -156,7 +156,9 @@ window.SLOP_AUDIT = function (root) {
       "messaging":"R5", "bookings-receipts":"R3", "athlete-progress":"R4",
       "scheduling":"R1", "payments":"R3", "roster":"R4",
       "session-notes":"R5", "media-consent":"R6", "insights":"R2",
-      "what-is":"B01", "background-checks":"B02"
+      "what-is":"B01", "background-checks":"B02",
+      "enterprise":"R2", "enterprise-roster":"R4",
+      "enterprise-finance":"R3", "enterprise-compliance":"R6"
     };
     const expectedComposition = {
       "what-is":"manifesto-grid-claim-questions",
@@ -172,14 +174,20 @@ window.SLOP_AUDIT = function (root) {
       "roster":"compact-head-to-wide-roster",
       "session-notes":"margin-head-to-numbered-dark-notes",
       "media-consent":"consent-head-to-staggered-ledger",
-      "insights":"metric-head-to-argument-to-stacked-table"
+      "insights":"metric-head-to-argument-to-stacked-table",
+      "enterprise":"org-overview-argument-to-comparison",
+      "enterprise-roster":"roster-import-to-staff-figure",
+      "enterprise-finance":"org-payout-essay-to-comp-rail",
+      "enterprise-compliance":"compliance-board-to-question-ledger"
     };
     const expectedRhythm = {
       "what-is":"D-L-D-L", "background-checks":"L-L-D-L", "search":"L-D-L",
       "map-search":"L-L-D", "instant-booking":"L-D", "messaging":"L-D-L",
       "bookings-receipts":"L-L", "athlete-progress":"D-L", "scheduling":"D-L",
       "payments":"D-L", "roster":"L-L", "session-notes":"L-D-L",
-      "media-consent":"D-L", "insights":"D-L-L"
+      "media-consent":"D-L", "insights":"D-L-L",
+      "enterprise":"L-D-L", "enterprise-roster":"L-L",
+      "enterprise-finance":"D-L", "enterprise-compliance":"D-L"
     };
     const prose = [...product.querySelectorAll("[data-prose]")].filter(visible);
     out.warn.pageWords = prose.reduce((sum, el) => sum + words(el.textContent), 0);
