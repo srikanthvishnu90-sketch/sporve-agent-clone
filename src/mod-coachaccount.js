@@ -119,6 +119,39 @@
     },
   };
 
+  /* A5: the numbers above are a FALLBACK. plan_entitlements (public-read in the
+     DB) is the single source the AI endpoint actually enforces, so drive the
+     displayed price / quota / seats from it and reconcile PLANS in place — a
+     price change in the DB then updates the page instead of drifting. The prose
+     is generated from the same numbers so no second hardcoded figure survives.
+     If the fetch fails the fallback stands, so the tab never breaks. */
+  var plansSynced = false;
+  function syncPlans() {
+    if (plansSynced) return Promise.resolve(PLANS);
+    return API.from("plan_entitlements",
+      "select=plan,ai_monthly_quota,seat_limit,workspace_enabled,purchasable,price_usd_month"
+    ).then(function (rows) {
+      (rows || []).forEach(function (r) {
+        var p = PLANS[r.plan]; if (!p) return;
+        var price = Number(r.price_usd_month);
+        if (isFinite(price)) { p.price = "$" + (price % 1 ? price.toFixed(2) : String(price)); p.per = price > 0 ? "/mo" : ""; }
+        p.buyable = !!r.purchasable;
+        var seats = r.seat_limit;
+        var seatTxt = seats == null ? "" : seats + (seats === 1 ? " seat" : " seats");
+        if (r.plan === "free") {
+          var q = r.ai_monthly_quota;
+          p.adds = (q == null ? "Unlimited AI actions" : q + (q === 1 ? " AI action a month" : " AI actions a month")) +
+            (seatTxt ? ", " + seatTxt : "") + ".";
+        } else if (r.plan === "pro") {
+          p.adds = "Unlimited AI actions" + (seatTxt ? " and up to " + seatTxt : "") + ".";
+        }
+        // enterprise keeps its "in development" prose while workspace_enabled is false.
+      });
+      plansSynced = true;
+      return PLANS;
+    }).catch(function () { return PLANS; });
+  }
+
   /* The statuses that actually grant the paid plan. `canceled` and `incomplete`
      are deliberately absent: one is a plan that ended, the other a checkout
      that never finished, and calling either of them Pro would be the product
@@ -158,6 +191,7 @@
        id: the session is the source of truth for who you are. */
     load: function () {
       if (!uid()) { provider = null; return Promise.resolve(null); }
+      syncPlans();  // A5: reconcile plan prices/quota/seats from the DB (non-blocking)
       /* plan / plan_status / plan_period_end are SERVER-COMPUTED: the Stripe
          webhook projects them onto this row and a trigger refuses a client
          write, so they are safe to read and pointless to send. They are

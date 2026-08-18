@@ -21,7 +21,7 @@
 <meta name="twitter:description" content="Find coaches, trainers, camps and teams across 20+ sports in Chicagoland.">
 <meta name="twitter:image" content="https://the-sporve-web.vercel.app/og.png">
 <link rel="icon" href="data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%2032%2032'%3E%3Crect%20width='32'%20height='32'%20rx='7'%20fill='%2309090B'/%3E%3Ccircle%20cx='16'%20cy='16'%20r='6'%20fill='white'/%3E%3C/svg%3E">
-<meta name="sporve-build" content="2b2e49b6a67bce89">
+<meta name="sporve-build" content="1d37f9b092ed7d0e">
 </head>
 <body>
 <noscript><h1>Sporv — Every sport. One app.</h1><p>Sporv connects families and athletes with coaches, trainers, camps, and teams across more than 20 sports. Please enable JavaScript to use the app.</p></noscript>
@@ -14577,6 +14577,39 @@ document.addEventListener("click",e=>{
     },
   };
 
+  /* A5: the numbers above are a FALLBACK. plan_entitlements (public-read in the
+     DB) is the single source the AI endpoint actually enforces, so drive the
+     displayed price / quota / seats from it and reconcile PLANS in place — a
+     price change in the DB then updates the page instead of drifting. The prose
+     is generated from the same numbers so no second hardcoded figure survives.
+     If the fetch fails the fallback stands, so the tab never breaks. */
+  var plansSynced = false;
+  function syncPlans() {
+    if (plansSynced) return Promise.resolve(PLANS);
+    return API.from("plan_entitlements",
+      "select=plan,ai_monthly_quota,seat_limit,workspace_enabled,purchasable,price_usd_month"
+    ).then(function (rows) {
+      (rows || []).forEach(function (r) {
+        var p = PLANS[r.plan]; if (!p) return;
+        var price = Number(r.price_usd_month);
+        if (isFinite(price)) { p.price = "$" + (price % 1 ? price.toFixed(2) : String(price)); p.per = price > 0 ? "/mo" : ""; }
+        p.buyable = !!r.purchasable;
+        var seats = r.seat_limit;
+        var seatTxt = seats == null ? "" : seats + (seats === 1 ? " seat" : " seats");
+        if (r.plan === "free") {
+          var q = r.ai_monthly_quota;
+          p.adds = (q == null ? "Unlimited AI actions" : q + (q === 1 ? " AI action a month" : " AI actions a month")) +
+            (seatTxt ? ", " + seatTxt : "") + ".";
+        } else if (r.plan === "pro") {
+          p.adds = "Unlimited AI actions" + (seatTxt ? " and up to " + seatTxt : "") + ".";
+        }
+        // enterprise keeps its "in development" prose while workspace_enabled is false.
+      });
+      plansSynced = true;
+      return PLANS;
+    }).catch(function () { return PLANS; });
+  }
+
   /* The statuses that actually grant the paid plan. `canceled` and `incomplete`
      are deliberately absent: one is a plan that ended, the other a checkout
      that never finished, and calling either of them Pro would be the product
@@ -14616,6 +14649,7 @@ document.addEventListener("click",e=>{
        id: the session is the source of truth for who you are. */
     load: function () {
       if (!uid()) { provider = null; return Promise.resolve(null); }
+      syncPlans();  // A5: reconcile plan prices/quota/seats from the DB (non-blocking)
       /* plan / plan_status / plan_period_end are SERVER-COMPUTED: the Stripe
          webhook projects them onto this row and a trigger refuses a client
          write, so they are safe to read and pointless to send. They are
@@ -21569,7 +21603,7 @@ function pricingStep(d, err){
   <fieldset style="border:0;padding:0;margin:26px 0 0" data-cob-field="plan">
     <legend class="eyebrow" style="padding:0;margin-bottom:11px">Your plan</legend>
     <div class="cob-plans">
-      ${[["free", "Start free", "Three AI actions a month, one seat. No card."],
+      ${[["free", "Start free", ((plans()&&plans().free?plans().free.adds:"Three AI actions a month, one seat.")+" No card.")],
          ["pro",  planName("pro") + (proPrice ? " — " + proPrice : ""),
                   "Unlimited AI actions and up to three seats."]]
         .map(([k, label, note]) => `

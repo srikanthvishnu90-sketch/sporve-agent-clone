@@ -616,7 +616,7 @@ function pricingStep(d, err){
   <fieldset style="border:0;padding:0;margin:26px 0 0" data-cob-field="plan">
     <legend class="eyebrow" style="padding:0;margin-bottom:11px">Your plan</legend>
     <div class="cob-plans">
-      ${[["free", "Start free", "Three AI actions a month, one seat. No card."],
+      ${[["free", "Start free", ((plans()&&plans().free?plans().free.adds:"Three AI actions a month, one seat.")+" No card.")],
          ["pro",  planName("pro") + (proPrice ? " — " + proPrice : ""),
                   "Unlimited AI actions and up to three seats."]]
         .map(([k, label, note]) => `
