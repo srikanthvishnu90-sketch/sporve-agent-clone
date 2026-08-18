@@ -38,7 +38,7 @@
   function wrap(id, recipe, composition, rhythm, body) {
     return "<div class='pgroot pg-" + id + " rebuild-page' data-product-page='true' data-page-id='" +
       id + "' data-recipe='" + recipe + "' data-composition='" + composition +
-      "' data-rhythm='" + rhythm + "'>" + body + pageKX(id) + "</div>";
+      "' data-rhythm='" + rhythm + "'>" + body + "</div>";
   }
 
   function walkthroughSection(steps, options) {

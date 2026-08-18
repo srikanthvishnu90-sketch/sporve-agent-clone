@@ -1442,21 +1442,21 @@ done
 $B viewport 1440x900 >/dev/null 2>&1
 $B goto "file://$(pwd)/index.html" >/dev/null 2>&1
 
-# §4/§5 — every assigned page is rendered by the recipe module, and every
-# Keep Exploring destination carries explanatory copy rather than a filler tag.
+# §4/§5 — every assigned page is rendered by the recipe module, and none of
+# them ships the removed Keep-Exploring footer (owner spec 2026-08-18: the
+# footer was cut and the bands re-spread for more vertical air).
 sm=$($B js "
 (()=>{const ids='$ASSIGNED_PAGES'.split(' ');let own=0,leak=[];
 ids.forEach(id=>{S.route={name:'page',arg:id};render();const a=document.querySelector('#app');
  const root=a.querySelector('[data-product-page][data-page-id=\"'+id+'\"]');
  if(!root)leak.push(id+':recipe-root-missing');
  else own++;
- const rows=[...a.querySelectorAll('.pg-kxrow')];
- if(!rows.length||rows.some(row=>(row.querySelector('span')?.textContent.trim().length||0)<18)){
-   leak.push(id+':thin-keep-exploring');
+ if(a.querySelector('.pg-kx,.pg-kxrow,[data-section=\"keep-exploring\"]')){
+   leak.push(id+':keep-exploring-still-present');
  }});
 return leak.length?leak.join(' '):('OK '+own)})()" 2>/dev/null)
 case "$(printf '%s' "${sm//\"/}")" in
-  *OK\ 18*) pass "18 recipe pages render; every Keep Exploring row has real destination copy";;
+  *OK\ 18*) pass "18 recipe pages render; the Keep-Exploring footer is gone from every one";;
   *) fail "recipe/KX coverage: $sm";;
 esac
 

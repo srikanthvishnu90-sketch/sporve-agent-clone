@@ -104,9 +104,9 @@ window.SLOP_AUDIT = function (root) {
   out.warn.fingerprint = "";
   out.warn.accent = [];
   {
-    // body prose = page text minus figures, mocks, kx nav, heroes' CTA chrome
+    // body prose = page text minus figures, mocks, heroes' CTA chrome
     const clone = scope.cloneNode(true);
-    clone.querySelectorAll("[class*='sig-'],.pg-demo,.pg-kx,.pg-figure,.pg-proof,.pg-stats,nav,button").forEach((n) => n.remove());
+    clone.querySelectorAll("[class*='sig-'],.pg-demo,.pg-figure,.pg-proof,.pg-stats,nav,button").forEach((n) => n.remove());
     out.warn.pageWords = words(clone.innerText);
   }
   out.warn.fingerprint = [...scope.querySelectorAll("section.pgband")].map((sec) => {
@@ -118,7 +118,7 @@ window.SLOP_AUDIT = function (root) {
     // self-marker: .pg-figure IS the section, so querySelectorAll (descendants
     // only) could never see it — read it off the section's own class instead.
     const selfMark = /\bpg-figure\b/.test(cls) ? "pg-figure" : "";
-    const inner = [selfMark, ...[...sec.querySelectorAll(".pg-rows,.pg-demo,.pg-proof,.pg-stats,.pg-founder,.db-in,.pg-kx,.cmp,.deflist")]
+    const inner = [selfMark, ...[...sec.querySelectorAll(".pg-rows,.pg-demo,.pg-proof,.pg-stats,.pg-founder,.db-in,.cmp,.deflist")]
       .map((e) => e.className.split(" ")[0])].filter(Boolean).join("+");
     return ground + (inner ? ":" + inner : "");
   }).join("|");

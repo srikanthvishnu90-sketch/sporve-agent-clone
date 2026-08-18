@@ -21,7 +21,7 @@
 <meta name="twitter:description" content="Find coaches, trainers, camps and teams across 20+ sports in Chicagoland.">
 <meta name="twitter:image" content="https://the-sporve-web.vercel.app/og.png">
 <link rel="icon" href="data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%2032%2032'%3E%3Crect%20width='32'%20height='32'%20rx='7'%20fill='%2309090B'/%3E%3Ccircle%20cx='16'%20cy='16'%20r='6'%20fill='white'/%3E%3C/svg%3E">
-<meta name="sporve-build" content="f7fcdd5d24c185a2">
+<meta name="sporve-build" content="f8b9c5adb44bc03c">
 </head>
 <body>
 <noscript><h1>Sporv — Every sport. One app.</h1><p>Sporv connects families and athletes with coaches, trainers, camps, and teams across more than 20 sports. Please enable JavaScript to use the app.</p></noscript>
@@ -4182,18 +4182,10 @@ body.reg-coach .navlink{font-size:var(--text-md)}
 .pg-stat .n{font-family:"Instrument Serif",Georgia,serif;font-size:clamp(44px,5vw,64px);
   line-height:1;color:var(--ps-ink)}
 .pg-stat .l{color:var(--muted);font-size:var(--text-sm);margin-top:8px}
-/* S8 keep-exploring */
-.pg-kx{border-top:1px solid var(--rule)}
-.pg-kxrow{display:flex;align-items:center;gap:14px;padding:18px 0;border-bottom:1px solid var(--rule);
-  text-align:left;width:100%}
-.pg-kxrow b{font-weight:700;min-width:200px}
-.pg-kxrow span{color:var(--muted);font-size:var(--text-sm)}
-.pg-kxrow:hover b{color:var(--ps-ink)}
 @media(max-width:640px){
   .pg-triad,.pg-stats{grid-template-columns:1fr;gap:22px}
   .pg-triad>div{padding:22px 0 0;border-left:0;border-top:1px solid var(--rule)}
   .pg-triad>div:first-child{padding-top:0;border-top:0}
-  .pg-kxrow b{min-width:0}
 }
 @media(prefers-reduced-motion:reduce){.pg-hero [data-rev],.pgband [data-rev]{opacity:1;transform:none}}
 
@@ -4210,9 +4202,12 @@ body.reg-coach .navlink{font-size:var(--text-md)}
 .rebuild-page .pg-h1{max-width:28ch;margin-top:0;text-wrap:balance}
 .rebuild-page .pg-sub{max-width:70ch;margin-top:10px;font-size:clamp(16px,1.4vw,18px);line-height:1.5;text-wrap:pretty}
 .rebuild-page .pg-ctarow{margin-top:16px}
-.rebuild-page .pg-kxrow:hover b{color:var(--ink)}
 .rebuild-page [data-prose]{text-wrap:pretty}
-.rebuild-page .pgband:not(.pg-hero){padding:clamp(54px,7.5vw,90px) 0}
+.rebuild-page .pgband:not(.pg-hero){padding:clamp(72px,9.5vw,120px) 0}
+/* Section headers lead their chapter — give them air above the body so a
+   proportionate heading does not read as crammed against the prose. Vertical
+   margin only: it changes no horizontal geometry, so page fingerprints hold. */
+.rebuild-page .pgband:not(.pg-hero) h2{margin-top:0;margin-bottom:clamp(18px,2.1vw,30px)}
 .rebuild-page .pg-eyebrow{font-family:ui-monospace,"SF Mono",Menlo,monospace;font-size:var(--text-xs);
   line-height:1.3;letter-spacing:.16em;text-transform:uppercase;color:var(--faint);margin:0 0 13px}
 .rebuild-page .dark .pg-h1{color:#fff}
@@ -10248,30 +10243,30 @@ function closeZoneHTML(){
    scaffold hero + cross-links so every route resolves and the link graph has
    no orphan while the pages fan out. */
 const PAGE_META={
-  "what-is":{t:"What is Sporv?",d:"The marketplace — search, book, and pay for youth coaching in one account.",sport:"Soccer",cta:"explore",ctaL:"Find a coach",kx:["background-checks","search"]},
-  "background-checks":{t:"How background checks work",d:"Per-person checks with a dated record — no one takes a booking unverified.",sport:"Swimming",cta:"trust",ctaL:"See the trust center",kx:["what-is","media-consent"]},
-  "search":{t:"Search by sport & age",d:"Filter by sport, age, level, and budget — results only from the real catalogue.",sport:"Basketball",cta:"explore",ctaL:"Start searching",kx:["map-search","instant-booking","messaging"]},
-  "map-search":{t:"Map search",d:"See coaches as places — distance is part of every family's decision.",sport:"Cycling",cta:"map",ctaL:"Open the map",kx:["search","instant-booking","bookings-receipts"]},
-  "instant-booking":{t:"Instant booking",d:"Real open slots, with the seat count enforced at the database.",sport:"Baseball",cta:"explore",ctaL:"Find an open slot",kx:["bookings-receipts","scheduling","payments"]},
-  "messaging":{t:"Messaging",d:"Message coaches through the booking — never a stranger's phone number.",sport:"Volleyball",cta:"messages",ctaL:"Open messages",kx:["search","bookings-receipts","athlete-progress"]},
-  "bookings-receipts":{t:"Bookings & receipts",d:"Every session, payment, and refund in one record.",sport:"Football",cta:"bookings",ctaL:"See your bookings",kx:["instant-booking","payments","messaging"]},
-  "saved":{t:"Saved coaches",d:"Shortlist coaches and compare before you book.",sport:"Boxing",cta:"saved",ctaL:"Open saved",kx:["search","map-search","athlete-progress"]},
-  "athlete-progress":{t:"Athlete progress",d:"A timeline of sessions and notes, one athlete at a time.",sport:"Track & Field",cta:"timeline",ctaL:"See progress",kx:["what-is","search","session-notes"]},
-  "scheduling":{t:"Scheduling & availability",d:"Your calendar and open slots — capacity enforced at the database.",sport:"Tennis",cta:"coachtab:slots",ctaL:"Open scheduling",kx:["payments","roster","instant-booking"]},
-  "payments":{t:"Payments & payouts",d:"Checkout in-app; the full booking amount reaches the coach.",sport:"Golf",cta:"coachtab:finances",ctaL:"See payouts",kx:["bookings-receipts","scheduling","roster"]},
-  "roster":{t:"Client roster",d:"Every family you coach — bookings, notes, and consent in one place.",sport:"Hockey",cta:"coachtab:roster",ctaL:"Open the roster",kx:["scheduling","session-notes","payments"]},
-  "session-notes":{t:"Session notes",d:"Notes tied to the athlete and the session, shared with the parent.",sport:"Fencing",cta:"coachtab:notes",ctaL:"See session notes",kx:["roster","media-consent","athlete-progress"]},
-  "media-consent":{t:"Media & consent",d:"Photos shared only with recorded consent, per child.",sport:"Gymnastics",cta:"coachtab:media",ctaL:"See media & consent",kx:["session-notes","background-checks","roster"]},
-  "insights":{t:"Insights",d:"Demand, price position, and retention — derived from real records.",sport:"Rowing",cta:"coachtab:insights",ctaL:"Open insights",kx:["payments","scheduling","roster"]},
-  "ai-coach":{t:"Coach finder",d:"An assistant grounded in the catalogue — it cannot invent a coach.",sport:"Martial Arts",cta:"assistant",ctaL:"Try the assistant",kx:["search","what-is","messaging"]},
+  "what-is":{t:"What is Sporv?",d:"The marketplace — search, book, and pay for youth coaching in one account.",sport:"Soccer",cta:"explore",ctaL:"Find a coach"},
+  "background-checks":{t:"How background checks work",d:"Per-person checks with a dated record — no one takes a booking unverified.",sport:"Swimming",cta:"trust",ctaL:"See the trust center"},
+  "search":{t:"Search by sport & age",d:"Filter by sport, age, level, and budget — results only from the real catalogue.",sport:"Basketball",cta:"explore",ctaL:"Start searching"},
+  "map-search":{t:"Map search",d:"See coaches as places — distance is part of every family's decision.",sport:"Cycling",cta:"map",ctaL:"Open the map"},
+  "instant-booking":{t:"Instant booking",d:"Real open slots, with the seat count enforced at the database.",sport:"Baseball",cta:"explore",ctaL:"Find an open slot"},
+  "messaging":{t:"Messaging",d:"Message coaches through the booking — never a stranger's phone number.",sport:"Volleyball",cta:"messages",ctaL:"Open messages"},
+  "bookings-receipts":{t:"Bookings & receipts",d:"Every session, payment, and refund in one record.",sport:"Football",cta:"bookings",ctaL:"See your bookings"},
+  "saved":{t:"Saved coaches",d:"Shortlist coaches and compare before you book.",sport:"Boxing",cta:"saved",ctaL:"Open saved"},
+  "athlete-progress":{t:"Athlete progress",d:"A timeline of sessions and notes, one athlete at a time.",sport:"Track & Field",cta:"timeline",ctaL:"See progress"},
+  "scheduling":{t:"Scheduling & availability",d:"Your calendar and open slots — capacity enforced at the database.",sport:"Tennis",cta:"coachtab:slots",ctaL:"Open scheduling"},
+  "payments":{t:"Payments & payouts",d:"Checkout in-app; the full booking amount reaches the coach.",sport:"Golf",cta:"coachtab:finances",ctaL:"See payouts"},
+  "roster":{t:"Client roster",d:"Every family you coach — bookings, notes, and consent in one place.",sport:"Hockey",cta:"coachtab:roster",ctaL:"Open the roster"},
+  "session-notes":{t:"Session notes",d:"Notes tied to the athlete and the session, shared with the parent.",sport:"Fencing",cta:"coachtab:notes",ctaL:"See session notes"},
+  "media-consent":{t:"Media & consent",d:"Photos shared only with recorded consent, per child.",sport:"Gymnastics",cta:"coachtab:media",ctaL:"See media & consent"},
+  "insights":{t:"Insights",d:"Demand, price position, and retention — derived from real records.",sport:"Rowing",cta:"coachtab:insights",ctaL:"Open insights"},
+  "ai-coach":{t:"Coach finder",d:"An assistant grounded in the catalogue — it cannot invent a coach.",sport:"Martial Arts",cta:"assistant",ctaL:"Try the assistant"},
   /* For organizations — the Enterprise ($149/mo) showcase. Enterprise is
      plan_entitlements.purchasable=false and billing-create-checkout rejects it,
      so cta points at the pricing tab (which describes early access) — never a
      checkout. ctaL is the early-access ask, not a buy. */
-  "enterprise":{t:"Organization workspace",d:"Many coaches, teams, and families under one organization — in development.",sport:"Soccer",cta:"pricing",ctaL:"Join the early-access list",kx:["enterprise-roster","enterprise-finance","enterprise-compliance"]},
-  "enterprise-roster":{t:"Roster & staff",d:"Households, permission-gated records, and per-person check status — in development.",sport:"Volleyball",cta:"pricing",ctaL:"Join the early-access list",kx:["enterprise","enterprise-compliance","enterprise-finance"]},
-  "enterprise-finance":{t:"Org payments & pay",d:"Consolidated payouts and revenue splits at zero percent of bookings — in development.",sport:"Basketball",cta:"pricing",ctaL:"Join the early-access list",kx:["enterprise","enterprise-roster","enterprise-compliance"]},
-  "enterprise-compliance":{t:"Compliance OS",d:"Org-wide background-check orchestration that fails closed — in development.",sport:"Swimming",cta:"pricing",ctaL:"Join the early-access list",kx:["enterprise","enterprise-roster","background-checks"]},
+  "enterprise":{t:"Organization workspace",d:"Many coaches, teams, and families under one organization — in development.",sport:"Soccer",cta:"pricing",ctaL:"Join the early-access list"},
+  "enterprise-roster":{t:"Roster & staff",d:"Households, permission-gated records, and per-person check status — in development.",sport:"Volleyball",cta:"pricing",ctaL:"Join the early-access list"},
+  "enterprise-finance":{t:"Org payments & pay",d:"Consolidated payouts and revenue splits at zero percent of bookings — in development.",sport:"Basketball",cta:"pricing",ctaL:"Join the early-access list"},
+  "enterprise-compliance":{t:"Compliance OS",d:"Org-wide background-check orchestration that fails closed — in development.",sport:"Swimming",cta:"pricing",ctaL:"Join the early-access list"},
 };
 function pageCTA(meta){
   if(meta.cta.indexOf("coachtab:")===0){const tab=meta.cta.split(":")[1];
@@ -10282,15 +10277,6 @@ function pageEyebrow(meta){
   /* Spaced-caps text only — the retired filler link and its accent tint are
      both absent under the rebuild's text and two-accent rules. */
   return `<span class="pg-eyebrow">${esc(meta.t)}</span>`;
-}
-function pageKX(id){
-  const meta=PAGE_META[id];
-  return `<section class="pgband white" data-section="keep-exploring"><div class="shell" style="max-width:760px" data-rev>
-    <div class="eyebrow" style="color:var(--faint)">Keep exploring</div>
-    <div class="pg-kx" style="margin-top:16px">
-      ${meta.kx.map(k=>{const m=PAGE_META[k];return `<button class="pg-kxrow" data-nav="page:${k}">
-        <b>${esc(m.t)}</b><span>${esc(m.d)}</span></button>`;}).join("")}
-    </div></div></section>`;
 }
 function sig_background_checks(){ return `<div class="sig-background-checks" role="img" aria-label="Verification timeline for a swim coach: submitted and cleared, now bookable">
   <div class="sbc-top"><span class="sbc-sport">Swimming · Chicago, IL</span><span class="demotext">Sample data</span></div>
@@ -10585,7 +10571,6 @@ function pageHTML(id){
       <h2 class="pg-serif" style="font-size:clamp(30px,4.4vw,48px);max-width:15ch">Know the person before they <em>show up.</em></h2>
       <div class="pg-ctarow">${pageCTA(meta)}</div>
     </div></section>
-    ${pageKX(id)}
     </div>`;
   }
   if(id==="what-is"){
@@ -10733,7 +10718,6 @@ function pageHTML(id){
   </section>
 
   ${faqSectionHTML()}
-    ${pageKX(id)}
     </div>`;
   }
 if(id==="search"){
@@ -10782,7 +10766,6 @@ if(id==="search"){
       <h2 class="pg-serif" style="font-size:clamp(30px,4.4vw,48px);max-width:15ch">Filter your way to <em>tip-off.</em></h2>
       <div class="pg-ctarow">${pageCTA(meta)}</div>
     </div></section>
-    ${pageKX(id)}
     </div>`;
   }
 if(id==="map-search"){
@@ -10831,7 +10814,6 @@ if(id==="map-search"){
       <h2 class="pg-serif" style="font-size:clamp(30px,4.4vw,48px);max-width:15ch">See what is a short <em>ride away.</em></h2>
       <div class="pg-ctarow">${pageCTA(meta)}</div>
     </div></section>
-    ${pageKX(id)}
     </div>`;
   }
   if(id==="instant-booking"){
@@ -10878,7 +10860,6 @@ if(id==="map-search"){
       <h2 class="pg-serif" style="font-size:clamp(30px,4.4vw,48px);max-width:15ch">Take the open slot, <em>not a callback.</em></h2>
       <div class="pg-ctarow">${pageCTA(meta)}</div>
     </div></section>
-    ${pageKX(id)}
     </div>`;
   }
 if(id==="messaging"){
@@ -10927,7 +10908,6 @@ if(id==="messaging"){
       <h2 class="pg-serif" style="font-size:clamp(30px,4.4vw,48px);max-width:15ch">Say hello before the <em>first serve.</em></h2>
       <div class="pg-ctarow">${pageCTA(meta)}</div>
     </div></section>
-    ${pageKX(id)}
     </div>`;
   }
   if(id==="bookings-receipts"){
@@ -10974,7 +10954,6 @@ if(id==="messaging"){
       <h2 class="pg-serif" style="font-size:clamp(30px,4.4vw,48px);max-width:15ch">Every session accounted for, <em>on the record.</em></h2>
       <div class="pg-ctarow">${pageCTA(meta)}</div>
     </div></section>
-    ${pageKX(id)}
     </div>`;
   }
   /* The "saved" page recipe was removed here: saved coaches merged into Search
@@ -11037,7 +11016,6 @@ if(id==="messaging"){
       <h2 class="pg-serif" style="font-size:clamp(30px,4.4vw,48px);max-width:15ch">Watch the athlete <em>find their stride.</em></h2>
       <div class="pg-ctarow">${pageCTA(meta)}</div>
     </div></section>
-    ${pageKX(id)}
     </div>`;
   }
   if(id==="scheduling"){
@@ -11086,7 +11064,6 @@ if(id==="messaging"){
       <h2 class="pg-serif" style="font-size:clamp(30px,4.4vw,48px);max-width:15ch">Open the hours <em>you want to coach.</em></h2>
       <div class="pg-ctarow">${pageCTA(meta)}</div>
     </div></section>
-    ${pageKX(id)}
     </div>`;
   }
   if(id==="payments"){
@@ -11136,7 +11113,6 @@ if(id==="messaging"){
       <h2 class="pg-serif" style="font-size:clamp(30px,4.4vw,48px);max-width:15ch">Get paid when <em>the round ends.</em></h2>
       <div class="pg-ctarow">${pageCTA(meta)}</div>
     </div></section>
-    ${pageKX(id)}
     </div>`;
   }
   if(id==="roster"){
@@ -11185,7 +11161,6 @@ if(id==="messaging"){
       <h2 class="pg-serif" style="font-size:clamp(30px,4.4vw,48px);max-width:15ch">Keep every skater <em>in one record.</em></h2>
       <div class="pg-ctarow">${pageCTA(meta)}</div>
     </div></section>
-    ${pageKX(id)}
     </div>`;
   }
   if(id==="session-notes"){
@@ -11235,7 +11210,6 @@ if(id==="messaging"){
       <h2 class="pg-serif" style="font-size:clamp(30px,4.4vw,48px);max-width:15ch">Read the notes <em>between the bouts.</em></h2>
       <div class="pg-ctarow">${pageCTA(meta)}</div>
     </div></section>
-    ${pageKX(id)}
     </div>`;
   }
   if(id==="media-consent"){
@@ -11285,7 +11259,6 @@ if(id==="messaging"){
       <h2 class="pg-serif" style="font-size:clamp(30px,4.4vw,48px);max-width:15ch">A yes the parent <em>can always undo.</em></h2>
       <div class="pg-ctarow">${pageCTA(meta)}</div>
     </div></section>
-    ${pageKX(id)}
     </div>`;
   }
   if(id==="insights"){
@@ -11344,7 +11317,6 @@ if(id==="messaging"){
       <h2 class="pg-serif" style="font-size:clamp(30px,4.4vw,48px);max-width:15ch">Coach the athletes, <em>watch the numbers follow.</em></h2>
       <div class="pg-ctarow">${pageCTA(meta)}</div>
     </div></section>
-    ${pageKX(id)}
     </div>`;
   }
   if(id==="ai-coach"){
@@ -11394,7 +11366,6 @@ if(id==="messaging"){
       <h2 class="pg-serif" style="font-size:clamp(30px,4.4vw,48px);max-width:15ch">Ask anything — booking <em>stays gated on the check.</em></h2>
       <div class="pg-ctarow">${pageCTA(meta)}</div>
     </div></section>
-    ${pageKX(id)}
     </div>`;
   }
   /* Scaffold for pages still fanning out: real hero + cross-links so the route
@@ -11406,7 +11377,6 @@ if(id==="messaging"){
       <p class="pg-sub">This page is being built. The feature is live in the product now.</p>
       <div class="pg-ctarow">${pageCTA(meta)}${open}</div>
     </div></section>
-    ${pageKX(id)}
     </div>`;
 }
 
@@ -26972,7 +26942,7 @@ window.MOD_COMPANIES = {
   function wrap(id, recipe, composition, rhythm, body) {
     return "<div class='pgroot pg-" + id + " rebuild-page' data-product-page='true' data-page-id='" +
       id + "' data-recipe='" + recipe + "' data-composition='" + composition +
-      "' data-rhythm='" + rhythm + "'>" + body + pageKX(id) + "</div>";
+      "' data-rhythm='" + rhythm + "'>" + body + "</div>";
   }
 
   function walkthroughSection(steps, options) {
