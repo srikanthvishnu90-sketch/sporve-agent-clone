@@ -1607,18 +1607,19 @@ comp=$($B js "
  if(bg!=='rgb(62, 76, 90)') return 'BUBBLE_NOT_SLATE_'+bg;
  if(!document.querySelector('.aidock-row')) return 'NOT_ONE_ROW';
  if(f.getBoundingClientRect().height>130) return 'BUBBLE_TOO_TALL_'+Math.round(f.getBoundingClientRect().height);
- /* AT REST THE WIDGET IS THE BAR AND NOTHING ELSE. Owner, 2026-08-13. The
-    header, empty state, three suggestion buttons and chip row wrapped 380px of
-    furniture around a 100px control. This fails if any of them return. */
+ /* AT REST THE WIDGET IS THE BAR — plus the quick-action chip ROW (owner,
+    2026-08-19, follow-the-prompts, superseding the 2026-08-13 chip removal).
+    The header, empty state and three suggestion buttons stay GONE; the chip
+    row above the composer is now intended, so the at-rest ceiling rises from
+    150 to 190 to fit it. */
  S.chat=[];S.chatThinking=false;render();
  if(document.querySelector('.aidock-head')) return 'HEADER_BACK';
  if(document.querySelector('.aidock-empty')) return 'EMPTY_STATE_BACK';
  if(document.querySelectorAll('[data-ask]').length) return 'SUGGESTIONS_BACK';
- if(document.querySelectorAll('.aidock-chip').length) return 'CHIPS_BACK';
  if(document.getElementById('aidockScroll')) return 'THREAD_SHOWN_WHEN_EMPTY';
  if(!document.querySelector('.aidock-x')) return 'NO_X';
  const rest=document.querySelector('.aipill').getBoundingClientRect().height;
- if(rest>150) return 'WIDGET_TOO_TALL_AT_REST_'+Math.round(rest);
+ if(rest>190) return 'WIDGET_TOO_TALL_AT_REST_'+Math.round(rest);
  S.portal='family';S.route={name:'home',arg:null};render();
  return 'OK'})()" 2>/dev/null)
 [ "${comp//\"/}" = "OK" ] && pass "AI widget at rest is the bar alone — grey slate, white type" \

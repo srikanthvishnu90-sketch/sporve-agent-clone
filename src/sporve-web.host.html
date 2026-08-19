@@ -1488,10 +1488,14 @@ img{max-width:100%;display:block}
   letter-spacing:.08em;text-transform:uppercase;color:#9AA6B2;
   background:rgba(154,166,178,.12);border-radius:999px;padding:3px 9px}
 .aidock-ctx .aidock-ic{margin-left:auto;width:28px;height:28px}
-.aidock-chips{display:flex;gap:7px;flex-wrap:wrap;align-items:center;margin:0 0 2px}
-.aidock-chip{font-family:var(--sans);font-size:var(--text-xs);font-weight:600;
+.aidock-chips{display:flex;gap:7px;flex-wrap:nowrap;align-items:center;margin:0 0 8px;
+  overflow-x:auto;scrollbar-width:none}
+.aidock-chips::-webkit-scrollbar{display:none}
+.aidock-chip{display:inline-flex;align-items:center;gap:6px;white-space:nowrap;flex:0 0 auto;
+  font-family:var(--sans);font-size:var(--text-xs);font-weight:600;
   color:#C3CBD4;background:#131519;border:1px solid #2A313B;border-radius:999px;
   padding:6px 12px;min-height:32px;cursor:pointer;transition:.14s}
+.aidock-chip svg{opacity:.7;flex:none}
 .aidock-chip:hover{background:#1B1F26;border-color:#414B57;color:#F5F7F9}
 /* Collapsed: a slim strip. Never overlaps a table row or an action button. */
 .aidock-strip{width:100%;display:flex;align-items:center;gap:10px;
@@ -1503,7 +1507,7 @@ img{max-width:100%;display:block}
   overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .aidock-kbd{margin-left:auto;font-family:var(--mono);font-size:11px;color:#8A93A0;
   border:1px solid #2A313B;border-radius:6px;padding:2px 6px;flex:none}
-@media(max-width:560px){.aidock-chips{display:none}}
+/* chips stay on mobile too (spec: one line, horizontally scrollable) */
 
 /* No-orange landing. The accent family is redefined to slate for this route
    only; #app.noorange is set by render() when the landing is showing. Every
@@ -1714,32 +1718,41 @@ img{max-width:100%;display:block}
    maximized Amboras state (its own wrapper) is unaffected. top/left 50% +
    translate(-50%,-50%) is the exact-centre transform that survives the panel's
    min() width/height changing under it. */
-.aipill:has(.aidock-panel.talking){top:50%;bottom:auto;transform:translate(-50%,-50%)}
-@media(max-width:767px){.aipill:has(.aidock-panel.talking){top:auto;bottom:16px;transform:translateX(-50%)}}
+/* GROW UPWARD FROM THE BOTTOM ANCHOR (owner, 2026-08-19 — "follow the prompts
+   exactly", superseding PR #165's dead-centre). The talking panel stays pinned
+   at bottom:24px like the compact pill, so the composer never moves; the panel's
+   height grows UP and the conversation fills the space above the input. That
+   in-place composer is the signature of the reference pattern. */
+.aipill:has(.aidock-panel.talking){bottom:24px;top:auto;transform:translateX(-50%)}
+@media(max-width:767px){.aipill:has(.aidock-panel.talking){bottom:16px;transform:translateX(-50%)}}
 /* The spacer. Defaults to 0 so every page without a pill is untouched, and
    render() overwrites it with the measured height + the 24px offset + a 16px
    breathing gap. On #app rather than body because the coach dark ground is
    painted on #app, and padding inside it keeps that ground behind the pill. */
 :root{--aipill-h:0px}
 #app{padding-bottom:var(--aipill-h)}
-/* The button was --ink, which is #000 — invisible against the coach portal's
-   #0A0C0F ground and flat against the topbar elsewhere. Accent is the only
-   non-frozen colour in the system, and a filled shape clears the 3:1 non-text
-   contrast bar on both grounds. §3 bans #C2410C on black for TEXT, so the dark
-   portal swaps to --accent-on-dark (#F08A62, 8.52:1) rather than reusing it. */
-.aidock-fab{width:58px;height:58px;border-radius:999px;background:var(--accent);color:#FFFFFF;
-  display:grid;place-items:center;border:0;cursor:pointer;
-  box-shadow:0 6px 8px rgba(10,12,15,.14),0 18px 48px rgba(194,65,12,.30);
+/* SLATE FAB (owner, 2026-08-19 — supersedes the accent/baby-blue button).
+   Slate is the one chromatic chrome colour and carries buttons by the colour
+   law, so the assistant launcher wears --slate with --slate-on text (#14202C on
+   #7692AE = 5.10:1) — the same pairing the primary .btn uses. A filled circle
+   still clears the 3:1 non-text bar on both the light chrome and the coach
+   portal's #0A0C0F ground. position:relative anchors the unread badge. */
+.aidock-fab{width:58px;height:58px;border-radius:999px;background:var(--slate);color:var(--slate-on);
+  position:relative;display:grid;place-items:center;border:0;cursor:pointer;
+  box-shadow:0 6px 8px rgba(10,12,15,.14),0 18px 48px rgba(10,12,15,.34);
   transition:transform .18s,box-shadow .18s,background .18s}
-.aidock-fab:hover{transform:translateY(-2px);background:var(--accent-ink);
-  box-shadow:0 8px 12px rgba(10,12,15,.18),0 22px 56px rgba(194,65,12,.38)}
-/* Coach portal: the S is BABY BLUE, not the salmon accent (owner, 2026-08-12).
-   The mark stays near-black rather than white — white on #89CFF0 is 1.5:1 and
-   would be unreadable, which is the same mistake §3 records for accent-on-black
-   in the other direction. */
-#app.coachdark + #layer .aidock-fab{background:var(--baby);color:var(--baby-ink);
-  box-shadow:0 6px 8px rgba(0,0,0,.34),0 18px 48px rgba(137,207,240,.26)}
-#app.coachdark + #layer .aidock-fab:hover{background:var(--baby-deep)}
+.aidock-fab:hover{transform:translateY(-2px);background:var(--slate-deep);
+  box-shadow:0 8px 12px rgba(10,12,15,.18),0 22px 56px rgba(10,12,15,.42)}
+/* Coach portal (the only place the dock shows today): same slate, a deeper
+   glow so the circle reads against #0A0C0F. */
+#app.coachdark + #layer .aidock-fab{background:var(--slate);color:var(--slate-on);
+  box-shadow:0 6px 8px rgba(0,0,0,.34),0 18px 48px rgba(10,12,15,.55)}
+#app.coachdark + #layer .aidock-fab:hover{background:var(--slate-deep)}
+/* Unread badge: replies that landed while the dock was closed. White-on-slate-on
+   dark ring — frozen chrome literals, no new accent (owner kept the colour law). */
+.aidock-fab-badge{position:absolute;top:-3px;right:-3px;min-width:19px;height:19px;padding:0 5px;
+  border-radius:999px;background:#E9EEF4;color:#14202C;font:800 11px/19px var(--sans);
+  text-align:center;box-shadow:0 0 0 2px #0A0C0F}
 .aidock-fab-mark{font-family:var(--display);font-weight:700;font-size:var(--text-xl);line-height:1;letter-spacing:-.04em}
 /* THE CHAT DOCK IS BLACK. Owner spec 2026-08-12: black ground, white text, a
    grey-slate glow around it, sitting at the bottom of the screen — the shape
@@ -1766,7 +1779,14 @@ img{max-width:100%;display:block}
    reply was read through a slot. The composer keeps its reference geometry; the
    panel grows instead. calc(100vh - 160px) still governs short viewports, so
    this cannot push the pill off a laptop screen. */
-.aidock-panel.talking{height:min(620px,calc(100vh - 160px))}
+.aidock-panel.talking{height:min(620px,calc(100vh - 160px));
+  transform-origin:bottom center;animation:aigrow .28s cubic-bezier(.32,.72,0,1)}
+/* Height animates from a short bar up to full; because the pill is bottom-pinned
+   and the composer is the panel's bottom child, the input stays put and the
+   thread area is what grows. ~280ms per spec. */
+@keyframes aigrow{from{height:150px;opacity:.25}}
+@media(prefers-reduced-motion:reduce){.aidock-panel.talking{animation:aigrow-rm .16s ease}}
+@keyframes aigrow-rm{from{opacity:0}}
 /* At rest the "panel" IS the bar: no border, no ground, no glow of its own —
    the composer supplies all three. Only .talking (a live conversation) turns it
    back into a surface that has to hold a scrolling thread. */
@@ -5240,6 +5260,9 @@ const S={
   aiThreadHidden:false,            // state 2 with the thread tucked away — back to "just the bar"
   chatSessions:[],                 // previous assistant conversations [{id,title,ts,msgs}]
   chatSessionId:null,              // which session S.chat mirrors; null = a fresh thread
+  aiDraft:"",                      // unsent composer text — preserved across every dock transition
+  aiUnread:0,                      // replies that landed while the dock was closed → FAB badge
+  aiCollapsed:false,               // slim-strip variant (was read at L8012 before it existed here)
   cmdAction:"",
   cmdDraft:"",
   cmdSending:false,
@@ -7896,6 +7919,19 @@ function aiContext(){
   return {label:LABEL[t]||t, chips:MAP[t]||["What needs my attention today?"]};
 }
 
+/* Quick-action chips ROW, sat ABOVE the composer bubble (spec) — its own row,
+   not inside the input pill, so the composer bubble stays one lean row (the
+   coach must always see what they type — smoke guards that at <=130px). One
+   line, horizontally scrollable, never wraps. Each chip maps to a REAL
+   coach-command tool (aiContext keeps that honest); clicking fills the input.
+   Revived 2026-08-19 per owner "follow the prompts exactly". */
+function aiChipsHTML(){
+  const chips=aiContext().chips;
+  if(!chips.length) return "";
+  return `<div class="aidock-chips">${chips.map(c=>
+    `<button type="button" class="aidock-chip" data-aichip="${esc(c)}"><svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 2l1.5 5L19 8.5 13.5 10 12 15l-1.5-5L5 8.5 10.5 7z"/></svg>${esc(c)}</button>`).join("")}</div>`;
+}
+
 /* The review card — the one genuinely new UI piece of the chatbox build.
    A write PROPOSAL from coach-command renders as: what will happen, the exact
    draft (editable — the coach's edit wins over the model's text), and honest
@@ -8067,9 +8103,10 @@ function aiDockHTML(){
             <i class="dotdot"></i><i class="dotdot" style="animation-delay:.16s"></i><i class="dotdot" style="animation-delay:.32s"></i></div>`:""}
         </div>
       </div>
+      ${aiChipsHTML()}
       <form class="aidock-compose aimax-compose" id="aiDockForm">
         <input id="aiDockInput" class="aidock-input" placeholder="Write a message…"
-               aria-label="Message Sporv AI" autocomplete="off">
+               value="${esc(S.aiDraft||"")}" aria-label="Message Sporv AI" autocomplete="off">
         <div class="aidock-row">
           <button type="button" class="aidock-ic" data-aiattach="1" aria-label="Add an attachment">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
@@ -8125,6 +8162,7 @@ function aiDockHTML(){
         ${S.chatThinking?`<div class="bub them" style="align-self:flex-start;display:flex;gap:5px;align-items:center">
           <i class="dotdot"></i><i class="dotdot" style="animation-delay:.16s"></i><i class="dotdot" style="animation-delay:.32s"></i></div>`:""}
       </div>`:""}
+      ${aiChipsHTML()}
       <form class="aidock-compose" id="aiDockForm">
         ${S.aiHistOpen&&!S.aiMax?histDropHTML(true):""}
         ${/* Two rows, matching the reference exactly: the message field owns the
@@ -8132,7 +8170,7 @@ function aiDockHTML(){
              last turn from a different screenshot and it was wrong — the field
              has to be able to hold a sentence without sharing its line. */""}
         <input id="aiDockInput" class="aidock-input" placeholder="Write a message…"
-               aria-label="Message Sporv AI" autocomplete="off">
+               value="${esc(S.aiDraft||"")}" aria-label="Message Sporv AI" autocomplete="off">
         <div class="aidock-row">
           <button type="button" class="aidock-ic" data-aiattach="1" aria-label="Add an attachment">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
@@ -8197,11 +8235,15 @@ function aiDockHTML(){
    at the moment you go looking for it. Position, size, colour and shadow are
    untouched — this changes the glyph and the label, nothing else. */
 function fabHTML(open){
+  /* Unread badge only when the dock is CLOSED and a reply has landed since —
+     the count clears the moment it is opened. */
+  const n=S.aiUnread||0;
+  const badge=(!open&&n>0)?`<span class="aidock-fab-badge" aria-hidden="true">${n>9?"9+":n}</span>`:"";
   return `<div class="aidock">
     <button class="aidock-fab" data-aitoggle="1" aria-expanded="${open}"
-            aria-label="${open?"Collapse":"Open"} Sporv AI helper"
+            aria-label="${open?"Collapse":"Open"} Sporv AI helper${(!open&&n>0)?` — ${n} new`:""}"
             title="${open?"Collapse":"Open"} Sporv AI">
-      <span class="aidock-fab-mark">S</span>
+      <span class="aidock-fab-mark">S</span>${badge}
     </button>
   </div>`;
 }
@@ -11593,6 +11635,12 @@ function render(){
      innerHTML is replaced wholesale on each render, #layer is rebuilt alongside
      it, and neither the coach dark ground nor a page's own layout can affect a
      fixed-position child here. */
+  /* DRAFT PRESERVATION (owner, 2026-08-19). The composer lives inside #layer,
+     which is rebuilt wholesale on the next line, so anything typed-but-unsent
+     would be destroyed on every transition. Capture it into S.aiDraft first;
+     aiDockHTML re-emits it as the input's value, so the draft survives collapse,
+     maximize, minimize and a full close+reopen. Send clears S.aiDraft. */
+  (function(){const di=document.getElementById("aiDockInput"); if(di) S.aiDraft=di.value;})();
   document.getElementById("layer").innerHTML=
     modalHTML()+aiDockHTML()+(S.toast?`<div class="toast">${esc(S.toast)}</div>`:"");
 
@@ -12494,7 +12542,7 @@ document.querySelectorAll('.sig-ai-coach').forEach(sigAiCoachWire);
     const i=document.getElementById("aiDockInput");
     if(i){ i.value=b.dataset.aichip; i.focus(); }
   });
-  $("[data-aitoggle]").forEach(b=>b.onclick=()=>{S.aiOpen=!S.aiOpen;render();});
+  $("[data-aitoggle]").forEach(b=>b.onclick=()=>{S.aiOpen=!S.aiOpen; if(S.aiOpen)S.aiUnread=0; render();});
   /* Amboras state machine. Maximize is only offered from a live conversation;
      minimize returns to the pill; close resets max so the NEXT open starts at
      the bar — "minimizing would be the initial thing" (owner). */
@@ -12893,7 +12941,7 @@ document.querySelectorAll('.sig-ai-coach').forEach(sigAiCoachWire);
     adf.onsubmit=e=>{
       e.preventDefault();
       const i=document.getElementById("aiDockInput");
-      const v=i.value; i.value="";
+      const v=i.value; i.value=""; S.aiDraft="";
       askCoach(v);
     };
     if(S.aiOpen&&document.activeElement===document.body){
@@ -13381,6 +13429,9 @@ function askCoach(q){
       const proposal=write?{tool:String(write.tool||""),args:(write.args&&typeof write.args==="object")?write.args:{},state:"open"}:null;
       S.chatThinking=false;
       S.chat=[...S.chat,{role:"coach",text:reply,tools,proposal}];
+      /* Reply landed while the dock was closed → badge the FAB so the coach
+         sees there's something waiting; cleared when they reopen. */
+      if(S.aiOpen===false) S.aiUnread=(S.aiUnread||0)+1;
       render();
     }).catch(()=>{
       if(epoch!==chatEpoch) return;
@@ -13739,7 +13790,7 @@ document.addEventListener("keydown",e=>{
   if(!(e.key==="k"||e.key==="K")||!(e.metaKey||e.ctrlKey)) return;
   if(S.portal!=="coach") return;
   e.preventDefault();
-  S.aiOpen=true; S.aiCollapsed=false; render();
+  S.aiOpen=true; S.aiCollapsed=false; S.aiUnread=0; render();
   const i=document.getElementById("aiDockInput"); if(i) i.focus();
 });
 document.addEventListener("click",e=>{
