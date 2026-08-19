@@ -21,7 +21,7 @@
 <meta name="twitter:description" content="Find coaches, trainers, camps and teams across 20+ sports in Chicagoland.">
 <meta name="twitter:image" content="https://the-sporve-web.vercel.app/og.png">
 <link rel="icon" href="data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%2032%2032'%3E%3Crect%20width='32'%20height='32'%20rx='7'%20fill='%2309090B'/%3E%3Ccircle%20cx='16'%20cy='16'%20r='6'%20fill='white'/%3E%3C/svg%3E">
-<meta name="sporve-build" content="69cea0ea9dbac6bd">
+<meta name="sporve-build" content="3684126930b9de38">
 </head>
 <body>
 <noscript><h1>Sporv — Every sport. One app.</h1><p>Sporv connects families and athletes with coaches, trainers, camps, and teams across more than 20 sports. Please enable JavaScript to use the app.</p></noscript>
@@ -1899,16 +1899,25 @@ img{max-width:100%;display:block}
    z-index 86: over the pill (84) and the S fab (85); the maximized panel IS
    the assistant, nothing of the dock should poke through it. */
 .aimax-wrap{position:fixed;inset:0;z-index:86;display:flex;align-items:center;
-  justify-content:center;background:rgba(8,10,12,.55);padding:24px}
-.aidock-panel.aimax{width:min(960px,100%);height:min(860px,calc(100vh - 48px));
-  max-height:none;display:flex;flex-direction:column}
+  justify-content:center;background:rgba(8,10,12,.20);padding:24px}
+/* v2 PANEL: a centred reading window (owner keeps it CENTRED). FULLSCREEN
+   (.aifull) expands to inset:24px; the reading column (.aimax-col) stays 720px in
+   both, so only the chrome grows. */
+.aidock-panel.aimax{width:min(760px,calc(100vw - 48px));height:min(680px,calc(100vh - 96px));
+  max-height:none;display:flex;flex-direction:column;
+  transition:width .24s cubic-bezier(.32,.72,0,1),height .24s cubic-bezier(.32,.72,0,1)}
+.aidock-panel.aimax.aifull{width:calc(100vw - 48px);height:calc(100vh - 48px);max-width:none}
 .aimax-head{display:flex;align-items:center;gap:10px;padding:12px 14px;
   border-bottom:1px solid #1C222B;position:relative}
-.aimax-ctx{color:#9AA6B2;font-size:var(--text-sm)}
-.aimax-actions{margin-left:auto;display:flex;gap:4px}
-.aimax-ic{display:inline-flex;align-items:center;gap:4px;padding:7px 9px;
-  border:0;border-radius:9px;background:none;color:#9AA6B2;cursor:pointer;transition:.13s}
+.aimax-spacer{flex:1}
+.aimax-actions{margin-left:auto;display:flex;align-items:center;gap:6px}
+.aimax-ic{display:inline-flex;align-items:center;justify-content:center;gap:6px;
+  min-width:36px;height:36px;padding:0 9px;border:0;border-radius:9px;background:none;
+  color:#9AA6B2;cursor:pointer;transition:.13s;font-family:var(--sans);font-size:var(--text-sm);font-weight:600}
 .aimax-ic:hover{background:#1B1F26;color:#F5F7F9}
+/* the one raised control in the cluster (spec): new-chat in a light circle */
+.aimax-newbtn{background:#1B2129;border:1px solid #333A45;border-radius:999px}
+.aimax-newbtn:hover{background:#232B35;border-color:#4A5462}
 /* The conversation reads in a centred column, like a document — the panel is
    wide so the TEXT can be measured, not so bubbles can stretch. */
 .aimax-scroll{flex:1;overflow-y:auto;padding:22px 0}
@@ -5319,7 +5328,8 @@ const S={
   chat:[],
   chatThinking:false,
   aiOpen:true,                     // coach AI dock: open on arrival, X collapses to the S
-  aiMax:false,                     // Amboras state 3: the full-screen assistant with history
+  aiMax:false,                     // v2 state 3 PANEL: the expanded centred assistant
+  aiFull:false,                    // v2 state 4 FULLSCREEN (inset:24px); toggles off PANEL — ephemeral
   aiHistOpen:false,                // history dropdown (either view; ephemeral)
   aiThreadHidden:false,            // state 2 with the thread tucked away — back to "just the bar"
   chatSessions:[],                 // previous assistant conversations [{id,title,ts,msgs}]
@@ -7992,7 +8002,12 @@ function aiContext(){
   const LABEL={dashboard:"Home",roster:"Clients",inbox:"Messages",finances:"Earnings",
                schedule:"Schedule",listings:"Listings",media:"Media",operations:"Operations",
                profile:"Settings",search:"Search"};
-  return {label:LABEL[t]||t, chips:MAP[t]||["What needs my attention today?"]};
+  /* The v2 header's context-action — the surface-relevant view, deep-linked to a
+     real coach tab. Each maps to a tab data-ctab already routes to. */
+  const CTXACT={dashboard:{label:"View schedule",tab:"schedule"},schedule:{label:"View schedule",tab:"schedule"},
+    roster:{label:"View clients",tab:"roster"},inbox:{label:"View messages",tab:"inbox"},
+    listings:{label:"View listings",tab:"listings"},media:{label:"View media",tab:"media"}};
+  return {label:LABEL[t]||t, chips:MAP[t]||["What needs my attention today?"], ctxAction:CTXACT[t]||null};
 }
 
 /* Quick-action chips ROW, sat ABOVE the composer bubble (spec) — its own row,
@@ -8137,7 +8152,7 @@ function aiDockHTML(){
      askCoach() — this is a bigger window onto the same conversation, never a
      second chat implementation. */
   if(open&&S.aiMax){
-    return `<div class="aimax-wrap"><section class="aidock-panel talking aimax" role="dialog" aria-label="Sporv AI">
+    return `<div class="aimax-wrap"><section class="aidock-panel talking aimax${S.aiFull?" aifull":""}" role="dialog" aria-label="Sporv AI">
       <div class="aimax-head">
         <div class="aimax-histwrap">
           <button type="button" class="aimax-ic" data-aihist="1"
@@ -8150,16 +8165,19 @@ function aiDockHTML(){
           </button>
           ${S.aiHistOpen?histDropHTML(false):""}
         </div>
-        <span class="aimax-ctx">${esc(aiContext().label)}</span>
+        <span class="aimax-spacer"></span>
         <div class="aimax-actions">
-          <button type="button" class="aimax-ic" data-ainew="1" aria-label="New chat" title="New chat">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+          ${aiContext().ctxAction?`<button type="button" class="aimax-ic aimax-ctxact" data-aictxact="1" data-ctxtab="${esc(aiContext().ctxAction.tab)}" aria-label="${esc(aiContext().ctxAction.label)}" title="${esc(aiContext().ctxAction.label)}">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7-11-7-11-7z"/><circle cx="12" cy="12" r="3"/></svg>
+            <span>${esc(aiContext().ctxAction.label)}</span></button>`:""}
+          <button type="button" class="aimax-ic aimax-newbtn" data-ainew="1" aria-label="New chat" title="New chat">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor"
                  stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
               <path d="M12 20h9M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg></button>
-          <button type="button" class="aimax-ic" data-aiminimize="1" aria-label="Minimize" title="Minimize">
+          <button type="button" class="aimax-ic" data-aifull="1" aria-label="${S.aiFull?"Restore panel":"Expand to fullscreen"}" title="${S.aiFull?"Restore":"Fullscreen"}">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                 stroke-width="2" stroke-linecap="round" aria-hidden="true">
-              <path d="M10 4v6H4M4 10l6-6M14 20v-6h6M20 14l-6 6"/></svg></button>
+                 stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <path d="${S.aiFull?"M9 9H4M9 9V4M15 15h5M15 15v5":"M15 4h5v5M20 4l-6 6M9 20H4v-5M4 20l6-6"}"/></svg></button>
           <button type="button" class="aimax-ic" data-aiclose="1" aria-label="Close Sporv AI">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
                  stroke-width="2" stroke-linecap="round" aria-hidden="true">
@@ -12640,12 +12658,17 @@ document.querySelectorAll('.sig-ai-coach').forEach(sigAiCoachWire);
   /* Amboras state machine. Maximize is only offered from a live conversation;
      minimize returns to the pill; close resets max so the NEXT open starts at
      the bar — "minimizing would be the initial thing" (owner). */
-  $("[data-aimaximize]").forEach(b=>b.onclick=()=>{S.aiMax=true;S.aiHistOpen=false;render();
+  $("[data-aimaximize]").forEach(b=>b.onclick=()=>{S.aiMax=true;S.aiFull=false;S.aiHistOpen=false;render();
     /* Initial focus lands in the composer — the overlay owns the keyboard
        from the first keystroke, pairing with the Tab trap. */
     const inp=document.getElementById("aiDockInput"); if(inp) inp.focus();});
   $("[data-aithread]").forEach(b=>b.onclick=()=>{S.aiThreadHidden=!S.aiThreadHidden;S.aiHistOpen=false;render();});
-  $("[data-aiminimize]").forEach(b=>b.onclick=()=>{S.aiMax=false;S.aiHistOpen=false;render();});
+  /* v2: the diagonal-arrows button toggles PANEL<->FULLSCREEN (replaces the old
+     minimize-to-bar; the bar is reached by X->collapse or click-outside->compact,
+     per the v2 six-control header). */
+  $("[data-aifull]").forEach(b=>b.onclick=()=>{S.aiFull=!S.aiFull;render();});
+  $("[data-aictxact]").forEach(b=>b.onclick=()=>{S.aiMax=false;S.aiFull=false;S.aiHistOpen=false;
+    setCoachTab(b.dataset.ctxtab);window.scrollTo(0,0);render();});
   $("[data-aihist]").forEach(b=>b.onclick=e=>{e.stopPropagation();S.aiHistOpen=!S.aiHistOpen;render();});
   $("[data-ainew]").forEach(b=>b.onclick=()=>chatNew());
   $("[data-aihistpick]").forEach(b=>b.onclick=()=>chatLoadSession(b.dataset.aihistpick));
@@ -12656,7 +12679,7 @@ document.querySelectorAll('.sig-ai-coach').forEach(sigAiCoachWire);
      asked to trust the product. */
   $("[data-aiattach]").forEach(b=>b.onclick=()=>toast("Attachments aren't wired up yet"));
   $("[data-aivoice]").forEach(b=>b.onclick=()=>toast("Voice input isn't wired up yet"));
-  $("[data-aiclose]").forEach(b=>b.onclick=()=>{S.aiOpen=false;S.aiMax=false;S.aiHistOpen=false;render();});
+  $("[data-aiclose]").forEach(b=>b.onclick=()=>{S.aiOpen=false;S.aiMax=false;S.aiFull=false;S.aiHistOpen=false;render();});
   $("[data-waitlist]").forEach(b=>b.onclick=()=>{
     const id=b.dataset.waitlist;
     requireAuth(()=>{S.modal={type:"waitlist",programId:id};render();});
@@ -13841,8 +13864,9 @@ document.addEventListener("keydown",e=>{
      before the maximized view, the maximized view steps DOWN to the pill
      rather than closing outright, and only then does Escape collapse it. */
   else if(S.portal==="coach"&&S.aiHistOpen){S.aiHistOpen=false;render();}
-  else if(S.portal==="coach"&&S.aiMax){S.aiMax=false;render();}
-  else if(S.portal==="coach"&&S.aiOpen!==false){S.aiOpen=false;render();}
+  else if(S.portal==="coach"&&S.aiMax&&S.aiFull){S.aiFull=false;render();}   /* FULLSCREEN -> PANEL */
+  else if(S.portal==="coach"&&S.aiMax){S.aiMax=false;render();}              /* PANEL -> COMPACT */
+  else if(S.portal==="coach"&&S.aiOpen!==false){S.aiOpen=false;render();}    /* COMPACT -> COLLAPSED */
   /* mega-menus are pure CSS :focus-within, so Escape closes them by moving
      focus off the trigger — and the trigger's aria-expanded is kept honest */
   else{
@@ -13858,6 +13882,13 @@ document.addEventListener("click",e=>{
   if(!S.aiHistOpen) return;
   if(e.target.closest(".aimax-hist")||e.target.closest("[data-aihist]")) return;
   S.aiHistOpen=false;render();
+});
+/* v2: a click on the dimmed backdrop — outside the PANEL/FULLSCREEN box and not on
+   the button that opened it — drops to COMPACT (the bar), never to a full close. */
+document.addEventListener("click",e=>{
+  if(!(S.portal==="coach"&&S.aiMax)) return;
+  if(e.target.closest(".aidock-panel.aimax")||e.target.closest("[data-aimaximize]")) return;
+  S.aiMax=false;S.aiFull=false;S.aiHistOpen=false;render();
 });
 /* Click anywhere outside the sport chooser closes it. Clicks INSIDE it are
    selections, and must not close — multi-select means several in a row. */
@@ -27841,7 +27872,7 @@ const EPHEMERAL = new Set([
   "chatThinking", "sportOpen", "sportAnchor", "faqOpen", "forgotSent", "mapPick",
   /* An open dropdown is a gesture, not work — restoring it on reload steals
      the first click. aiMax itself persists, same reasoning as aiOpen. */
-  "aiHistOpen",
+  "aiHistOpen", "aiFull",
   /* In-flight approval decisions — a transient lock, never persisted; a
      reload must start with no row wrongly stuck in "Working…". */
   "qDeciding",
