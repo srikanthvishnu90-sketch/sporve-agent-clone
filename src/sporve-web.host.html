@@ -323,15 +323,17 @@ img{max-width:100%;display:block}
 .topbar .wordmark{text-transform:uppercase;color:#8FA3BC;font-size:var(--text-lg);font-weight:600}
 /* The original S + wordmark lockup stays intact. The crop removes only the
    retired final E; changing the asset itself would also change the S geometry. */
-/* Enlarged for prominence (owner, 2026-08-18): 28->34px desktop, 24->28px
-   mobile. The crop width tracks the height by the fixed image geometry
-   (crop = 3.589 x height) so the retired final E stays clipped at every size —
-   the asset is 330x80, downscaled at both sizes, so it stays crisp. */
-.navlogo-crop{width:122px;height:34px;overflow:hidden;display:block;flex:0 0 auto}
+/* Enlarged for prominence (owner, 2026-08-18): 34px desktop, 28px mobile.
+   Crop point set to image-x 290 of the 330px asset — the measured seam between
+   the "v" and the "e" (per-column ink bottoms out at 290, then the "e" climbs),
+   so the whole "v" shows and the retired final E is fully clipped, no sliver.
+   crop = 0.8788 x 4.125 x height = 3.625 x H, holding that cut at every size.
+   Asset 330x80, downscaled at both sizes, stays crisp. */
+.navlogo-crop{width:123px;height:34px;overflow:hidden;display:block;flex:0 0 auto}
 .navlogo{height:34px;width:auto;max-width:none;display:block;opacity:.95}
 .navlogo:hover{opacity:1}
 @media(max-width:900px){
-  .navlogo-crop{width:100.5px;height:28px}
+  .navlogo-crop{width:101.5px;height:28px}
   .navlogo{height:28px}
 }
 .searchpill{
