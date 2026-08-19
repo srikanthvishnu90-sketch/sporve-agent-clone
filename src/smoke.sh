@@ -1910,12 +1910,11 @@ reg=$($B js "
 ams=$($B js "
 (()=>{const bad=[];
  S.portal='coach';S.auth={status:'coach'};S.route={name:'dashboard',arg:null};
- /* chatThinking leaks true from the endpoint assertion above (its fetch is
-    intercepted and never settles) — and thinking alone shows the maximize
-    control, which is correct for a user and a false MAXBTN_AT_REST here. */
+ /* Maximize is now offered in the compact bar at rest too (v2 spec: maximize + X
+    top-right), so the old MAXBTN_AT_REST tripwire is retired — only NO_MAXBTN
+    (it must still exist once a conversation exists) remains below. */
  S.chat=[];S.chatSessions=[];S.chatSessionId=null;S.aiOpen=true;S.aiMax=false;
  S.chatThinking=false;S.aiHistOpen=false;S.aiCollapsed=false;S.modal=null;S.sportOpen=false;render();
- if(document.querySelector('.aidock-maxbtn'))bad.push('MAXBTN_AT_REST');
  S.chat=[{role:'user',text:'x'},{role:'coach',text:'y'}];render();
  if(!document.querySelector('[data-aimaximize]'))bad.push('NO_MAXBTN');
  document.querySelector('[data-aimaximize]').click();
@@ -2340,11 +2339,11 @@ pill=$($B js "
  const off=Math.abs((pr.left+pr.right)/2 - innerWidth/2);
  if(off>2) return 'OFFCENTRE_'+Math.round(off);
  if(Math.round(innerHeight-pr.bottom)>40) return 'NOT_AT_BOTTOM';
- if(f.textContent.trim()!=='S') return 'FAB_NOT_S';
+ if(!f.querySelector('.aidock-fab-ic')) return 'FAB_NO_CHAT_ICON';
  const pad=parseFloat(getComputedStyle(document.getElementById('app')).paddingBottom);
  if(pad < pr.height) return 'NO_COMPENSATION_'+Math.round(pad);
  return 'OK'})()" 2>/dev/null)
-[ "${pill//\"/}" = "OK" ] && pass "AI pill centred, S separate, content compensated" \
+[ "${pill//\"/}" = "OK" ] && pass "AI pill centred, chat-FAB separate, content compensated" \
   || fail "AI pill invariant broken: $pill"
 
 echo "─────────────────────────────────────────────────────"
