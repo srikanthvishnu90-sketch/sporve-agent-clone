@@ -579,7 +579,9 @@ img{max-width:100%;display:block}
    .tnav-row is untouched. Active .on keeps its slate-tint chip (:not(.on)). */
 .navcenter .tnav{font-size:16.5px}
 .navcenter .tnav:not(.on){color:#FFFFFF}
-.topnav .navlink{font-size:16.5px}
+/* Right-cluster nav links (Become a coach / Log in) match the nav tabs' size —
+   16.5px read as oversized next to the 14.5px tabs (owner 2026-08-20). Inter. */
+.topnav .navlink{font-size:var(--t-body)}
 /* At <=900 the centred menu collapses; the account control becomes the sheet
    hamburger. On the narrowest bars the quiet "Become a coach" link yields
    space to the pill + hamburger. */
@@ -2646,7 +2648,7 @@ h2.ctr{margin-bottom:10px}
 .lastdays{color:var(--faint);font-size:var(--text-sm);margin-top:-42px}
 .dashwelcome{text-align:center;max-width:900px;margin:10px auto 4px;padding:42px 24px 34px}
 .dashhello{font-size:var(--text-base);font-weight:700;color:var(--muted);margin-bottom:16px}
-.greet{font-family:var(--sans);font-size:var(--text-hero);font-weight:800;letter-spacing:-.04em;line-height:1.02;text-wrap:balance}
+.greet{font-family:var(--display);font-size:var(--text-hero);font-weight:800;letter-spacing:-.04em;line-height:1.02;text-wrap:balance}
 .greet span{color:var(--slate-ink)}
 .dashcontext{max-width:58ch;margin:18px auto 0;color:var(--muted);font-size:var(--text-base);line-height:1.55}
 .cmdbar{
@@ -3262,11 +3264,10 @@ h2.ctr{margin-bottom:10px}
    keep the page's display face). Raw sizes 11/14/16px would mint new steps,
    so every size maps to the EXISTING eight-step scale instead. */
 body.reg-coach{
-  /* Coach dashboard keeps its OWN register (the athletic Syne headers are the
-     family/marketing voice; the coach tool + its onboarding deliberately read as
-     Instrument Serif — a standing decision the smoke guards as H1_NOT_SERIF).
-     Body/UI is Inter (its cv05/cv11 below are Inter-specific alternates). */
-  --display:"Instrument Serif",Georgia,"Times New Roman",serif;
+  /* Coach app headers use the ATHLETIC logo voice (Syne) too — owner 2026-08-20:
+     the app header must feel like the logo. Body/UI stays Inter (its cv05/cv11
+     below are Inter-specific alternates). --display inherits Syne from :root, so
+     no override is needed here; --sans is pinned to Inter. */
   --sans:"Inter",system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
   font-family:var(--sans);
   /* cv05 = the straight-leg l, cv11 = the single-storey a — Inter's optical
