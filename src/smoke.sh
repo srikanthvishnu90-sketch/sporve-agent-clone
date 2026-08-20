@@ -817,7 +817,9 @@ if curl -sI "http://127.0.0.1:$CSPPORT/index.html" | grep -qi "^content-security
     var fam=document.querySelectorAll('.aidock-fab,.aidock-panel').length;
     S.auth={status:'verified',user:Object.assign({},SEED.user,{role:'provider'})};S.portal='coach';
     S.coachTab='dashboard';S.route={name:'dashboard',arg:null};render();
-    var coach=document.querySelectorAll('.aidock-fab').length;
+    /* v3: the dock opens DOCKED by default, so the FAB is absent while the
+       panel is up. Presence = fab OR panel (either is the dock rendered). */
+    var coach=document.querySelectorAll('.aidock-fab,.aidock-panel').length;
     var openByDefault=!!document.querySelector('.aidock-panel');
     if(fam) return 'ONFAMILY:'+fam;
     if(!coach) return 'MISSINGONCOACH';
@@ -1599,7 +1601,9 @@ return bad.size?[...bad].join(','):'CLEAN'})()" 2>/dev/null)
 # (white 8.80:1, placeholder 5.37:1). Also asserts the single row, because the
 # two-row version was 148px and was the reason replies had no room.
 comp=$($B js "
-(()=>{S.portal='coach';S.route={name:'dashboard',arg:null};S.aiOpen=true;S.aiCollapsed=false;render();
+(()=>{S.portal='coach';S.route={name:'dashboard',arg:null};S.aiOpen=true;S.aiMax=false;S.aiCollapsed=false;render();
+ /* v3: DOCKED (aiMax) is the default open state now; this probe guards the still-
+    present COMPACT bar path, so it forces aiMax=false to reach the bar. */
  const f=document.querySelector('.aidock-compose'),i=document.querySelector('.aidock-input');
  if(!f||!i) return 'NO_COMPOSER';
  if(getComputedStyle(i).color!=='rgb(255, 255, 255)') return 'TYPE_NOT_WHITE';
@@ -1929,7 +1933,7 @@ ams=$($B js "
  S.aiHistOpen=true;render();
  const esc=()=>document.dispatchEvent(new KeyboardEvent('keydown',{key:'Escape',bubbles:true}));
  esc();if(S.aiHistOpen||!S.aiMax)bad.push('ESC1');
- esc();if(S.aiMax||S.aiOpen===false)bad.push('ESC2');
+ esc();if(S.aiOpen!==false)bad.push('ESC2');
  esc();if(S.aiOpen!==false)bad.push('ESC3');
  S.aiOpen=true;S.aiMax=false;S.modal={type:'addchild'};render();
  esc();if(S.modal)bad.push('MODAL_ESC');

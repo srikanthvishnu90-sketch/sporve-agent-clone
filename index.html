@@ -21,7 +21,7 @@
 <meta name="twitter:description" content="Find coaches, trainers, camps and teams across 20+ sports in Chicagoland.">
 <meta name="twitter:image" content="https://the-sporve-web.vercel.app/og.png">
 <link rel="icon" href="data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%2032%2032'%3E%3Crect%20width='32'%20height='32'%20rx='7'%20fill='%2309090B'/%3E%3Ccircle%20cx='16'%20cy='16'%20r='6'%20fill='white'/%3E%3C/svg%3E">
-<meta name="sporve-build" content="8cf5e3fefb38afb7">
+<meta name="sporve-build" content="0fa3b032f20032a9">
 </head>
 <body>
 <noscript><h1>Sporv — Every sport. One app.</h1><p>Sporv connects families and athletes with coaches, trainers, camps, and teams across more than 20 sports. Please enable JavaScript to use the app.</p></noscript>
@@ -1811,6 +1811,13 @@ img{max-width:100%;display:block}
    painted on #app, and padding inside it keeps that ground behind the pill. */
 :root{--aipill-h:0px}
 #app{padding-bottom:var(--aipill-h)}
+/* v3 DOCKED reflow: at >=1280 the coach content shifts left by the panel width +
+   gutter so the docked assistant never overlaps a dashboard row. render() writes
+   --aidock-w (412px when docked, 0 otherwise); the transition moves the page in
+   sync with the panel's 240ms slide. Below 1280 it stays 0 and the panel overlays. */
+:root{--aidock-w:0px}
+#app{transition:margin-right .24s cubic-bezier(.32,.72,0,1)}
+@media(min-width:1280px){#app{margin-right:var(--aidock-w,0px)}}
 /* SLATE FAB (owner, 2026-08-19 — supersedes the accent/baby-blue button).
    Slate is the one chromatic chrome colour and carries buttons by the colour
    law, so the assistant launcher wears --slate with --slate-on text (#14202C on
@@ -1934,15 +1941,30 @@ img{max-width:100%;display:block}
    wrap is click-through). It still carries everything: history, model selector,
    chips, the six-control header. FULLSCREEN (.aifull) is the big CENTRED view with
    a dim backdrop for reviewing long threads. */
-.aimax-wrap{position:fixed;inset:0;z-index:86;display:flex;align-items:flex-end;
-  justify-content:flex-end;padding:24px;pointer-events:none;background:transparent;
+/* v3 DOCKED (owner, 2026-08-20): the open panel is a NARROW, TALL, phone-
+   proportioned surface pinned to the RIGHT EDGE and vertically centred — the
+   mobile app's chat screen embedded in the page, not a wide centred bar (that
+   centred bar was "the defect being fixed"). At >=1280 the wrap is click-through
+   so the page reflows BESIDE the panel (see --aidock-w / #app margin-right) and
+   the content stays usable; below 1280 the panel overlays with a 20% backdrop. */
+.aimax-wrap{position:fixed;inset:0;z-index:86;display:flex;align-items:center;
+  justify-content:flex-end;padding:16px;pointer-events:none;background:transparent;
   transition:background .2s ease}
 .aimax-wrap:has(.aifull){align-items:center;justify-content:center;pointer-events:auto;
   background:rgba(8,10,12,.20)}
-.aidock-panel.aimax{pointer-events:auto;width:400px;max-width:calc(100vw - 48px);
-  height:min(620px,calc(100vh - 120px));max-height:none;display:flex;flex-direction:column;
+/* Overlay mode: below the reflow breakpoint the panel sits over content, so the
+   wrap dims the page (20% deepest-surface) and catches clicks. */
+@media(max-width:1279px){.aimax-wrap:not(:has(.aifull)){pointer-events:auto;
+  background:rgba(10,12,15,.20)}}
+.aidock-panel.aimax{pointer-events:auto;width:380px;max-width:calc(100vw - 32px);
+  height:calc(100vh - 96px);max-height:840px;display:flex;flex-direction:column;
+  animation:aidock-slidein .24s cubic-bezier(.32,.72,0,1);
   transition:width .24s cubic-bezier(.32,.72,0,1),height .24s cubic-bezier(.32,.72,0,1)}
-.aidock-panel.aimax.aifull{width:calc(100vw - 48px);height:calc(100vh - 48px);max-width:none}
+/* Slide in from the right edge (x:24 -> 0) + fade, matching the reflow easing. */
+@keyframes aidock-slidein{from{opacity:0;transform:translateX(24px)}}
+@media(prefers-reduced-motion:reduce){.aidock-panel.aimax{animation:none}}
+.aidock-panel.aimax.aifull{width:calc(100vw - 48px);height:calc(100vh - 48px);
+  max-width:none;max-height:none;animation:none}
 /* small widget: icon-only context-action (its label would crowd the 400px header) */
 .aidock-panel.aimax:not(.aifull) .aimax-ctxact span{display:none}
 .aimax-head{display:flex;align-items:center;gap:10px;padding:12px 14px;
@@ -5377,8 +5399,8 @@ const S={
   chat:[],
   chatThinking:false,
   aiOpen:true,                     // coach AI dock: open on arrival, X collapses to the S
-  aiMax:false,                     // v2 state 3 PANEL: the expanded centred assistant
-  aiFull:false,                    // v2 state 4 FULLSCREEN (inset:24px); toggles off PANEL — ephemeral
+  aiMax:true,                      // v3 DOCKED is the default open state: the right-edge phone panel
+  aiFull:false,                    // v3 FULLSCREEN (inset:24px); toggles off DOCKED — ephemeral
   aiHistOpen:false,                // history dropdown (either view; ephemeral)
   aiThreadHidden:false,            // state 2 with the thread tucked away — back to "just the bar"
   chatSessions:[],                 // previous assistant conversations [{id,title,ts,msgs}]
@@ -8306,7 +8328,7 @@ function aiDockHTML(){
            the maximized session, so a mid-conversation reload still discloses
            it, not only the fresh-chat empty state. */""}
       <p class="aimax-aihint">Sporv AI can make mistakes. You approve any message or change before it happens.</p>
-    </section></div>${fabHTML(true)}`;
+    </section></div>`;
   }
   /* THE WIDGET IS THE BAR. Owner, 2026-08-13: "all that should show on the
      screen is the exact layout and format of [the reference] at the bottom of
@@ -11836,6 +11858,11 @@ function render(){
     const pill=document.querySelector(".aipill");
     const px=pill?Math.ceil(pill.getBoundingClientRect().height)+24+16:0;
     document.documentElement.style.setProperty("--aipill-h",px+"px");
+    /* v3 DOCKED reflow: only when the docked (not fullscreen) panel is open on a
+       wide viewport does the page shift left; the @media guard makes <1280 a
+       no-op even if the property is set, but keep it 0 there for clarity. */
+    const docked=S.portal==="coach"&&S.aiOpen!==false&&S.aiMax&&!S.aiFull&&window.innerWidth>=1280;
+    document.documentElement.style.setProperty("--aidock-w",docked?"412px":"0px");
   })();
 
   const sc=document.getElementById("msgscroll"); if(sc) sc.scrollTop=sc.scrollHeight;
@@ -12751,7 +12778,7 @@ document.querySelectorAll('.sig-ai-coach').forEach(sigAiCoachWire);
     const i=document.getElementById("aiDockInput");
     if(i){ i.value=b.dataset.aichip; i.focus(); }
   });
-  $("[data-aitoggle]").forEach(b=>b.onclick=()=>{S.aiOpen=!S.aiOpen; if(S.aiOpen)S.aiUnread=0; render();});
+  $("[data-aitoggle]").forEach(b=>b.onclick=()=>{S.aiOpen=!S.aiOpen; if(S.aiOpen){S.aiUnread=0;S.aiMax=true;} render();});
   /* Amboras state machine. Maximize is only offered from a live conversation;
      minimize returns to the pill; close resets max so the NEXT open starts at
      the bar — "minimizing would be the initial thing" (owner). */
@@ -12764,7 +12791,10 @@ document.querySelectorAll('.sig-ai-coach').forEach(sigAiCoachWire);
      minimize-to-bar; the bar is reached by X->collapse or click-outside->compact,
      per the v2 six-control header). */
   $("[data-aifull]").forEach(b=>b.onclick=()=>{S.aiFull=!S.aiFull;render();});
-  $("[data-aictxact]").forEach(b=>b.onclick=()=>{S.aiMax=false;S.aiFull=false;S.aiHistOpen=false;
+  $("[data-aictxact]").forEach(b=>b.onclick=()=>{S.aiOpen=false;S.aiFull=false;S.aiHistOpen=false;
+    /* v3: the context action navigates to a tab, so collapse the docked panel to
+       the FAB (aiMax stays true so re-opening returns to DOCKED, not the retired
+       centred bar) — the coach lands on the tab they asked to see. */
     setCoachTab(b.dataset.ctxtab);window.scrollTo(0,0);render();});
   $("[data-aihist]").forEach(b=>b.onclick=e=>{e.stopPropagation();S.aiHistOpen=!S.aiHistOpen;render();});
   $("[data-ainew]").forEach(b=>b.onclick=()=>chatNew());
@@ -13961,9 +13991,8 @@ document.addEventListener("keydown",e=>{
      before the maximized view, the maximized view steps DOWN to the pill
      rather than closing outright, and only then does Escape collapse it. */
   else if(S.portal==="coach"&&S.aiHistOpen){S.aiHistOpen=false;render();}
-  else if(S.portal==="coach"&&S.aiMax&&S.aiFull){S.aiFull=false;render();}   /* FULLSCREEN -> PANEL */
-  else if(S.portal==="coach"&&S.aiMax){S.aiMax=false;render();}              /* PANEL -> COMPACT */
-  else if(S.portal==="coach"&&S.aiOpen!==false){S.aiOpen=false;render();}    /* COMPACT -> COLLAPSED */
+  else if(S.portal==="coach"&&S.aiMax&&S.aiFull){S.aiFull=false;render();}   /* FULLSCREEN -> DOCKED */
+  else if(S.portal==="coach"&&S.aiOpen!==false){S.aiOpen=false;render();}    /* DOCKED -> COLLAPSED (aiMax stays true) */
   /* mega-menus are pure CSS :focus-within, so Escape closes them by moving
      focus off the trigger — and the trigger's aria-expanded is kept honest */
   else{
