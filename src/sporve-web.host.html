@@ -405,7 +405,7 @@ img{max-width:100%;display:block}
 }
 .tnav-row .tnav{
   display:inline-flex;align-items:center;gap:7px;height:var(--h-compact);padding:0 2px;
-  border-radius:0;font-family:var(--nav-face);font-size:var(--t-body);font-weight:400;
+  border-radius:0;font-family:var(--nav-face);font-size:var(--t-small);font-weight:500;
   letter-spacing:.02em;color:#FFFFFF;background:none;
 }
 .tnav-row .tnav:hover,
@@ -521,12 +521,12 @@ img{max-width:100%;display:block}
 /* §4 CTA — the white pill on the black bar. White, not accent, so it does not
    spend the page's orange budget. */
 .navcta{
-  display:inline-flex;align-items:center;height:44px;padding:0 21px;
-  border-radius:var(--r-pill);background:#FFFFFF;color:#09090B;
-  font-family:var(--nav-face);font-weight:700;font-size:var(--t-body);white-space:nowrap;
+  display:inline-flex;align-items:center;height:40px;padding:0 18px;
+  border-radius:var(--r-pill);background:var(--slate);color:var(--slate-on);
+  font-family:var(--nav-face);font-weight:700;font-size:var(--t-small);white-space:nowrap;
   transition:background .15s;
 }
-.navcta:hover{background:#E9EEF4}
+.navcta:hover{background:var(--slate-deep)}
 /* Account control (T1): the desktop hamburger+avatar PILL is retired. On
    desktop a bare avatar glyph keeps the account menu reachable (sign-in is
    action-triggered per the product's auth model); at <=900 it becomes the
@@ -582,7 +582,7 @@ img{max-width:100%;display:block}
 .navcenter .tnav:not(.on){color:#FFFFFF}
 /* Right-cluster nav links (Become a coach / Log in) match the nav tabs' size —
    16.5px read as oversized next to the 14.5px tabs (owner 2026-08-20). Inter. */
-.topnav .navlink{font-size:var(--t-body)}
+.topnav .navlink{font-size:var(--t-small)}
 /* At <=900 the centred menu collapses; the account control becomes the sheet
    hamburger. On the narrowest bars the quiet "Become a coach" link yields
    space to the pill + hamburger. */
@@ -2176,7 +2176,7 @@ img{max-width:100%;display:block}
 .rail button{
   display:flex;align-items:center;gap:10px;padding:6px 11px;min-height:32px;
   border-radius:var(--r-m);position:relative;
-  font-family:var(--sans);font-size:13px;line-height:1.15;font-weight:500;
+  font-family:var(--sans);font-size:var(--t-small);line-height:1.15;font-weight:500;
   /* The owner asked for white and I set color:#FFFFFF unconditionally. The rail
      also renders on a LIGHT ground — measured 1.00:1 on "Home", text exactly the
      colour of what is behind it, invisible. --ink did not save it either,
@@ -3305,7 +3305,11 @@ body.reg-coach .cal-dow span{font-weight:500}
 body.reg-coach .in-sub b{font-weight:600}
 /* The one off-scale text size in shared chrome, snapped under this register
    only — the family topbar keeps its own value. */
-body.reg-coach .navlink{font-size:var(--text-md)}
+body.reg-coach .navlink{font-size:var(--t-small)}
+/* Coach sidebar toggles smaller/more professional (owner 2026-08-20). Higher
+   specificity than body.reg-coach button{font:inherit}, which was forcing the
+   rail tabs to inherit the 14.5px body size. */
+body.reg-coach .rail button{font-size:var(--t-small)}
 
 /* ═══════════════ INVARIANT: dark ground, light type ═══════════════
    A black or near-black background carries WHITE or SLATE text. Never a
