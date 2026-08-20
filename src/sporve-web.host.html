@@ -161,17 +161,16 @@
      The fallbacks are deliberately NOT the same stack for both roles: if the
      faces ever go missing, the page should still show a visible display/body
      contrast rather than silently collapsing to one family and hiding it. */
-  /* TYPOGRAPHY (owner directive 2026-08-20): two faces only — SYNE for the
-     display/header voice, PLUS JAKARTA SANS for body/UI — everywhere OUTSIDE the
-     coach dashboard (which is pinned back to Instrument Serif + Inter at
-     body.reg-coach). Both faces are already base64-embedded, so this is a token
-     swap; NOT a Google Fonts load (the CSP is default-src 'self'). Supersedes the
-     2026-08-09 Instrument-Serif+Inter default and retires the Archivo per-page
-     accents + the Hanken 'serious' register (its slate ground is kept). */
+  /* TYPOGRAPHY (owner, 2026-08-20 rev.2): SYNE — the athletic display voice from
+     the logo — for LARGE HEADERS only (--display). INTER — the basic body/UI/tab
+     voice — for EVERYTHING ELSE (--sans and --nav-face: all nav tabs, smaller tabs,
+     buttons, body). Supersedes rev.1's Plus-Jakarta body (reverted to Inter). Both
+     faces embedded; a token swap, not a Google Fonts load (CSP default-src 'self').
+     Coach dashboard also follows this (Syne headers, Inter body via reg-coach). */
   --display:"Syne",system-ui,-apple-system,"Segoe UI",sans-serif;
-  /* §3.5 nav face — the header speaks in the display voice (Syne). */
-  --nav-face:"Syne",system-ui,-apple-system,"Segoe UI",sans-serif;
-  --sans:"Plus Jakarta Sans",system-ui,-apple-system,"Segoe UI",Roboto,
+  /* §3.5 nav face + every tab speak in the BASIC voice (Inter), not the display. */
+  --nav-face:"Inter",system-ui,-apple-system,"Segoe UI",sans-serif;
+  --sans:"Inter",system-ui,-apple-system,"Segoe UI",Roboto,
          "Helvetica Neue",Arial,sans-serif;
   --mono:"JetBrains Mono",ui-monospace,SFMono-Regular,"SF Mono",Menlo,Consolas,monospace;
   --shell:1240px;
@@ -387,10 +386,10 @@ img{max-width:100%;display:block}
   font-family:"Inter",system-ui,-apple-system,sans-serif;
 }
 #app.reg-tabs{
-  /* Product-toggle register (coachinfo/trust/pricing). Archivo+Inter RETIRED →
-     Syne+Plus Jakarta (owner 2026-08-20 two-face rule). */
+  /* Product-toggle register (coachinfo/trust/pricing). Syne LARGE HEADERS + INTER
+     body/tabs (owner 2026-08-20 rev.2 — tabs use Inter). */
   --display:"Syne",system-ui,-apple-system,"Segoe UI",sans-serif;
-  --sans:"Plus Jakarta Sans",system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
+  --sans:"Inter",system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
   font-family:var(--sans);
 }
 #app.reg-tabs h1,#app.reg-tabs h2,#app.reg-tabs h3,
@@ -3263,11 +3262,10 @@ h2.ctr{margin-bottom:10px}
    keep the page's display face). Raw sizes 11/14/16px would mint new steps,
    so every size maps to the EXISTING eight-step scale instead. */
 body.reg-coach{
-  /* Coach dashboard is EXCLUDED from the site-wide Syne/Jakarta swap (owner
-     2026-08-20: the new typography applies "everywhere outside the coach
-     dashboard"). Pin this register back to Instrument Serif + Inter — the
-     cv05/cv11 below are Inter-specific optical alternates and would render as
-     garbage on Jakarta, so this pin is mandatory, not cosmetic. */
+  /* Coach dashboard keeps its OWN register (the athletic Syne headers are the
+     family/marketing voice; the coach tool + its onboarding deliberately read as
+     Instrument Serif — a standing decision the smoke guards as H1_NOT_SERIF).
+     Body/UI is Inter (its cv05/cv11 below are Inter-specific alternates). */
   --display:"Instrument Serif",Georgia,"Times New Roman",serif;
   --sans:"Inter",system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
   font-family:var(--sans);
