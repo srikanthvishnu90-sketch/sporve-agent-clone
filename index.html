@@ -21,7 +21,7 @@
 <meta name="twitter:description" content="Find coaches, trainers, camps and teams across 20+ sports in Chicagoland.">
 <meta name="twitter:image" content="https://the-sporve-web.vercel.app/og.png">
 <link rel="icon" href="data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%2032%2032'%3E%3Crect%20width='32'%20height='32'%20rx='7'%20fill='%2309090B'/%3E%3Ccircle%20cx='16'%20cy='16'%20r='6'%20fill='white'/%3E%3C/svg%3E">
-<meta name="sporve-build" content="3684126930b9de38">
+<meta name="sporve-build" content="750eb11ae4fb1a6c">
 </head>
 <body>
 <noscript><h1>Sporv — Every sport. One app.</h1><p>Sporv connects families and athletes with coaches, trainers, camps, and teams across more than 20 sports. Please enable JavaScript to use the app.</p></noscript>
@@ -432,8 +432,8 @@ img{max-width:100%;display:block}
 }
 .tnav-row .tnav{
   display:inline-flex;align-items:center;gap:7px;height:var(--h-compact);padding:0 2px;
-  border-radius:0;font-family:var(--nav-face);font-size:var(--t-body);font-weight:600;
-  letter-spacing:.02em;color:#AEB8C4;background:none;
+  border-radius:0;font-family:var(--nav-face);font-size:var(--t-body);font-weight:400;
+  letter-spacing:.02em;color:#FFFFFF;background:none;
 }
 .tnav-row .tnav:hover,
 .prodwrap:hover>.tnav,.prodwrap:focus-within>.tnav{background:none;color:#FFFFFF}
@@ -1898,15 +1898,22 @@ img{max-width:100%;display:block}
    literals throughout — same palette as the pill panel it grows out of.
    z-index 86: over the pill (84) and the S fab (85); the maximized panel IS
    the assistant, nothing of the dock should poke through it. */
-.aimax-wrap{position:fixed;inset:0;z-index:86;display:flex;align-items:center;
-  justify-content:center;background:rgba(8,10,12,.20);padding:24px}
-/* v2 PANEL: a centred reading window (owner keeps it CENTRED). FULLSCREEN
-   (.aifull) expands to inset:24px; the reading column (.aimax-col) stays 720px in
-   both, so only the chrome grows. */
-.aidock-panel.aimax{width:min(760px,calc(100vw - 48px));height:min(680px,calc(100vh - 96px));
-  max-height:none;display:flex;flex-direction:column;
+/* SIDE WIDGET (owner, 2026-08-20): the PANEL is a SMALL widget docked bottom-right
+   at the FAB anchor — not a big centred box — and it does NOT block the page (the
+   wrap is click-through). It still carries everything: history, model selector,
+   chips, the six-control header. FULLSCREEN (.aifull) is the big CENTRED view with
+   a dim backdrop for reviewing long threads. */
+.aimax-wrap{position:fixed;inset:0;z-index:86;display:flex;align-items:flex-end;
+  justify-content:flex-end;padding:24px;pointer-events:none;background:transparent;
+  transition:background .2s ease}
+.aimax-wrap:has(.aifull){align-items:center;justify-content:center;pointer-events:auto;
+  background:rgba(8,10,12,.20)}
+.aidock-panel.aimax{pointer-events:auto;width:400px;max-width:calc(100vw - 48px);
+  height:min(620px,calc(100vh - 120px));max-height:none;display:flex;flex-direction:column;
   transition:width .24s cubic-bezier(.32,.72,0,1),height .24s cubic-bezier(.32,.72,0,1)}
 .aidock-panel.aimax.aifull{width:calc(100vw - 48px);height:calc(100vh - 48px);max-width:none}
+/* small widget: icon-only context-action (its label would crowd the 400px header) */
+.aidock-panel.aimax:not(.aifull) .aimax-ctxact span{display:none}
 .aimax-head{display:flex;align-items:center;gap:10px;padding:12px 14px;
   border-bottom:1px solid #1C222B;position:relative}
 .aimax-spacer{flex:1}
@@ -2974,14 +2981,10 @@ h2.ctr{margin-bottom:10px}
 .pmgrid4 .eyebrow,.pmgrid5 .eyebrow,.cmgrid .eyebrow{margin-bottom:10px}
 .pmrow2{
   display:flex;align-items:center;height:44px;padding:0 12px;border-radius:var(--r-ctl);
-  /* 700, per the owner's explicit request that mega-menu row titles go bold.
-     Made once here rather than per row, as asked.
-
-     Size stays on the scale. The request said 16px, but 16 is not a step in
-     the shipped 8-step scale AND is not a step in the type scale the same
-     brief specifies (13/15.5/17/19/28/44/64) -- so honouring it literally
-     would break both. The visual ask was weight; weight is what changed. */
-  text-align:left;font-size:var(--t-body);font-weight:700;color:var(--ink);
+  /* Weight 500 (owner, 2026-08-20: "make sure the tabs in these images are not
+     bold" — supersedes the earlier go-bold request for these mega-menu titles).
+     Size stays on the scale. */
+  text-align:left;font-size:var(--t-body);font-weight:500;color:var(--ink);
   transition:background .14s;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
 }
 .pmrow2:hover{background:var(--raise)}
@@ -13883,12 +13886,13 @@ document.addEventListener("click",e=>{
   if(e.target.closest(".aimax-hist")||e.target.closest("[data-aihist]")) return;
   S.aiHistOpen=false;render();
 });
-/* v2: a click on the dimmed backdrop — outside the PANEL/FULLSCREEN box and not on
-   the button that opened it — drops to COMPACT (the bar), never to a full close. */
+/* The small side-widget PANEL is persistent — it does NOT close on a page click
+   (you keep working the dashboard beside it). Only the FULLSCREEN dim backdrop
+   responds to an outside click, restoring the widget (aiFull=false). */
 document.addEventListener("click",e=>{
-  if(!(S.portal==="coach"&&S.aiMax)) return;
-  if(e.target.closest(".aidock-panel.aimax")||e.target.closest("[data-aimaximize]")) return;
-  S.aiMax=false;S.aiFull=false;S.aiHistOpen=false;render();
+  if(!(S.portal==="coach"&&S.aiMax&&S.aiFull)) return;
+  if(e.target.closest(".aidock-panel.aimax")||e.target.closest("[data-aifull]")) return;
+  S.aiFull=false;render();
 });
 /* Click anywhere outside the sport chooser closes it. Clicks INSIDE it are
    selections, and must not close — multi-select means several in a row. */
