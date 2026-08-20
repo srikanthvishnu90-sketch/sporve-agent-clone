@@ -6470,11 +6470,11 @@ function pricingHTML(){
       const P=(window.SporveCoach&&window.SporveCoach.plans&&window.SporveCoach.plans())||
         {free:{name:"Free",price:"$0",per:""},pro:{name:"Sporv Pro",price:"$34.99",per:"/mo"},enterprise:{name:"Sporv Enterprise",price:"$149",per:"/mo"}};
       const CK=`<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6L9 17l-5-5"/></svg>`;
-      const DESC={free:"For a coach just getting started.",pro:"For a coaching business that's growing.",enterprise:"One organization, one operating record for every coach, team, and family."};
+      const DESC={free:"For a coach just getting started.",pro:"For a private trainer or solo coach.",enterprise:"For a club, AAU team, or camp — many coaches, one account."};
       const FEAT={
         free:["Browse & book background-checked coaches","List your services — free to join","3 AI actions a month","1 seat"],
-        pro:["Everything in Free","Unlimited AI actions","Up to 3 seats","Roster, schedule, notes & messages","0% taken from your bookings"],
-        enterprise:["Everything in Pro","Unlimited coach & staff seats","Roles & granular permissions","Per-staff background-check gating","Commission splits & staff payouts","Consolidated org billing & compliance"],
+        pro:["Everything in Free","Unlimited AI actions","Roster, schedule, session notes & messaging","Automatic payouts","0% taken from your bookings"],
+        enterprise:["Everything in Pro","Unlimited coach & staff seats","Roles & granular permissions","Per-staff background-check gating","Commission splits & staff payouts · planned","Consolidated org billing & compliance · planned"],
       };
       const CTA={free:"Start free",pro:"Get Pro",enterprise:"Join early access"};
       const order=["free","pro","enterprise"];
