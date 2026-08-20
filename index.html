@@ -21,7 +21,7 @@
 <meta name="twitter:description" content="Find coaches, trainers, camps and teams across 20+ sports in Chicagoland.">
 <meta name="twitter:image" content="https://the-sporve-web.vercel.app/og.png">
 <link rel="icon" href="data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%2032%2032'%3E%3Crect%20width='32'%20height='32'%20rx='7'%20fill='%2309090B'/%3E%3Ccircle%20cx='16'%20cy='16'%20r='6'%20fill='white'/%3E%3C/svg%3E">
-<meta name="sporve-build" content="418bdc9d37f29145">
+<meta name="sporve-build" content="33ec86180c5ce860">
 </head>
 <body>
 <noscript><h1>Sporv — Every sport. One app.</h1><p>Sporv connects families and athletes with coaches, trainers, camps, and teams across more than 20 sports. Please enable JavaScript to use the app.</p></noscript>
@@ -194,13 +194,17 @@
      The fallbacks are deliberately NOT the same stack for both roles: if the
      faces ever go missing, the page should still show a visible display/body
      contrast rather than silently collapsing to one family and hiding it. */
-  --display:"Instrument Serif",Georgia,"Times New Roman",serif;
-  /* §3.5 nav face — the header + banner speak in one register: the display
-     serif the wordmark used. Set as a LITERAL Instrument Serif stack, not
-     var(--display), so it stays serif even under #app.reg-serious (which
-     re-declares --display to Hanken). The logo <img> is the only exempt node. */
-  --nav-face:"Instrument Serif",Georgia,"Times New Roman",serif;
-  --sans:"Inter",system-ui,-apple-system,"Segoe UI",Roboto,
+  /* TYPOGRAPHY (owner directive 2026-08-20): two faces only — SYNE for the
+     display/header voice, PLUS JAKARTA SANS for body/UI — everywhere OUTSIDE the
+     coach dashboard (which is pinned back to Instrument Serif + Inter at
+     body.reg-coach). Both faces are already base64-embedded, so this is a token
+     swap; NOT a Google Fonts load (the CSP is default-src 'self'). Supersedes the
+     2026-08-09 Instrument-Serif+Inter default and retires the Archivo per-page
+     accents + the Hanken 'serious' register (its slate ground is kept). */
+  --display:"Syne",system-ui,-apple-system,"Segoe UI",sans-serif;
+  /* §3.5 nav face — the header speaks in the display voice (Syne). */
+  --nav-face:"Syne",system-ui,-apple-system,"Segoe UI",sans-serif;
+  --sans:"Plus Jakarta Sans",system-ui,-apple-system,"Segoe UI",Roboto,
          "Helvetica Neue",Arial,sans-serif;
   --mono:"JetBrains Mono",ui-monospace,SFMono-Regular,"SF Mono",Menlo,Consolas,monospace;
   --shell:1240px;
@@ -416,8 +420,10 @@ img{max-width:100%;display:block}
   font-family:"Inter",system-ui,-apple-system,sans-serif;
 }
 #app.reg-tabs{
-  --display:"Archivo","Inter",system-ui,sans-serif;
-  --sans:"Inter",system-ui,-apple-system,sans-serif;
+  /* Product-toggle register (coachinfo/trust/pricing). Archivo+Inter RETIRED →
+     Syne+Plus Jakarta (owner 2026-08-20 two-face rule). */
+  --display:"Syne",system-ui,-apple-system,"Segoe UI",sans-serif;
+  --sans:"Plus Jakarta Sans",system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
   font-family:var(--sans);
 }
 #app.reg-tabs h1,#app.reg-tabs h2,#app.reg-tabs h3,
@@ -3223,8 +3229,11 @@ h2.ctr{margin-bottom:10px}
    relaxes the caps tracking slightly -- Hanken's uppercase is narrower and
    closes up at -.015em. */
 .reg-serious{
-  --display:"Hanken Grotesk",system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
-  --sans:"Hanken Grotesk",system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+  /* Hanken 'serious' register RETIRED (owner 2026-08-20 typography directive:
+     two faces only, Syne + Plus Jakarta, everywhere outside the coach dashboard).
+     This register now carries ONLY the slate ground (#app.reg-serious below);
+     its type inherits the Syne/Jakarta default. font-family still pins the
+     wrapper so inheriting <p>s pick up Plus Jakarta. */
   /* Re-declaring the tokens is not enough on its own. A custom property only
      changes an element that actually EVALUATES it -- headings do, because
      their rule says font-family:var(--display). A <p> has no font-family rule
@@ -3287,6 +3296,14 @@ h2.ctr{margin-bottom:10px}
    keep the page's display face). Raw sizes 11/14/16px would mint new steps,
    so every size maps to the EXISTING eight-step scale instead. */
 body.reg-coach{
+  /* Coach dashboard is EXCLUDED from the site-wide Syne/Jakarta swap (owner
+     2026-08-20: the new typography applies "everywhere outside the coach
+     dashboard"). Pin this register back to Instrument Serif + Inter — the
+     cv05/cv11 below are Inter-specific optical alternates and would render as
+     garbage on Jakarta, so this pin is mandatory, not cosmetic. */
+  --display:"Instrument Serif",Georgia,"Times New Roman",serif;
+  --sans:"Inter",system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
+  font-family:var(--sans);
   /* cv05 = the straight-leg l, cv11 = the single-storey a — Inter's optical
      alternates for UI text. Set here so every descendant that inherits the
      family also inherits the features. */
@@ -3723,7 +3740,7 @@ body.reg-coach .navlink{font-size:var(--text-md)}
 .pg-media-consent{--ps:#AB61D3;--ps-ink:#8E51AF;--ps-bright:#AB61D3}
 .pg-insights{--ps:#537BFD;--ps-ink:#4160C6;--ps-bright:#537BFD}
 .pg-ai-coach{--ps:#7172FA;--ps-ink:#5859C3;--ps-bright:#7172FA}
-.pg-serif{font-family:var(--pg-display,"Instrument Serif",Georgia,"Times New Roman",serif);font-weight:var(--pg-weight,400);
+.pg-serif{font-family:var(--pg-display,var(--display));font-weight:var(--pg-weight,400);
   letter-spacing:-.01em;line-height:1.02;font-style:normal}
 /* The accent phrase renders in the REAL Instrument italic face on every page,
    including Archivo/Syne/Hanken accent pages. Not only a voice decision: those
@@ -3731,7 +3748,7 @@ body.reg-coach .navlink{font-size:var(--text-md)}
    run diverges between CoreText (mac) and FreeType (linux) — measured 5 vs 7
    wrapped lines for the same h1 at the same width, which broke the 45vh hero
    law only on Linux. A declared italic face has one set of metrics everywhere. */
-.pg-serif em,#app.reg-tabs .pg-serif em{font-style:italic;font-family:"Instrument Serif",serif;color:var(--page-accent)}
+.pg-serif em,#app.reg-tabs .pg-serif em{font-style:italic;font-family:var(--display);color:var(--page-accent)}
 /* The second selector is load-bearing: `#app.reg-tabs h1 em` re-points ems at
    var(--display) with (1,1,2) specificity, which silently beat the bare class
    rule and kept the accent phrase in the synthetic-italic display face. */
@@ -3741,8 +3758,10 @@ body.reg-coach .navlink{font-size:var(--text-md)}
    display weight because a grotesque needs more mass than a serif to read as
    display; their em emphasis synthesises an oblique (no italic axis embedded),
    which suits a grotesque. Colour untouched — em keeps its --ps-ink tint. */
-.pg-ai-coach,.pg-insights,.pg-scheduling,.pg-roster,.pg-payments,.pg-instant-booking,.pg-enterprise,.pg-enterprise-roster,.pg-enterprise-finance,.pg-enterprise-compliance{--pg-display:"Archivo","Inter",system-ui,sans-serif;--pg-weight:600}
-.pg-search,.pg-map-search,.pg-saved,.pg-athlete-progress{--pg-display:"Syne","Inter",system-ui,sans-serif;--pg-weight:600}
+/* Archivo per-page accents RETIRED → Syne (owner 2026-08-20 two-face rule). All
+   product-toggle pages now carry the single Syne display voice. */
+.pg-ai-coach,.pg-insights,.pg-scheduling,.pg-roster,.pg-payments,.pg-instant-booking,.pg-enterprise,.pg-enterprise-roster,.pg-enterprise-finance,.pg-enterprise-compliance{--pg-display:"Syne",system-ui,sans-serif;--pg-weight:600}
+.pg-search,.pg-map-search,.pg-saved,.pg-athlete-progress{--pg-display:"Syne",system-ui,sans-serif;--pg-weight:600}
 /* background-checks, media-consent, session-notes, messaging, bookings-receipts
    intentionally KEEP Instrument Serif (trust / consent / money / human record). */
 .pgband{padding:72px 0;border-bottom:1px solid var(--rule)}
@@ -4301,7 +4320,7 @@ body.reg-coach .navlink{font-size:var(--text-md)}
 }
 /* S7 count-up */
 .pg-stats{display:grid;grid-template-columns:repeat(3,1fr);gap:24px;text-align:center}
-.pg-stat .n{font-family:"Instrument Serif",Georgia,serif;font-size:clamp(44px,5vw,64px);
+.pg-stat .n{font-family:var(--display);font-size:clamp(44px,5vw,64px);
   line-height:1;color:var(--ps-ink)}
 .pg-stat .l{color:var(--muted);font-size:var(--text-sm);margin-top:8px}
 @media(max-width:640px){

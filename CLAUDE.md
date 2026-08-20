@@ -94,6 +94,19 @@ superseded by Instrument Serif + Inter, and the per-page Archivo/Syne accents ar
 blessed. Embedded, CSP-safe families: Instrument Serif, Inter, Archivo, Syne, Hanken
 Grotesk, JetBrains Mono (numerals), and Plus Jakarta Sans (legacy)._
 
+_**SUPERSEDED 2026-08-20 (owner typography directive) EVERYWHERE OUTSIDE THE COACH
+DASHBOARD:** two faces only — **Syne** (display/headers, 600/700/800) + **Plus
+Jakarta Sans** (body/UI, 400–700). This reverts the 08-09 default and RETIRES, on
+family/marketing routes, the Archivo per-page accents, the Hanken `reg-serious`
+register (its slate ground is kept), and the residual Instrument-Serif `.pg-serif`
+usage — all now resolve to Syne via `var(--display)`. The **coach dashboard is
+excluded**: `body.reg-coach` is pinned back to Instrument Serif + Inter (its
+cv05/cv11 alternates are Inter-specific). Implemented as a `:root` token swap on
+already-embedded faces — NOT a Google Fonts load (the CSP is `default-src 'self'`;
+`font-src` has no Google host). Material Symbols was NOT adopted (CSP-blocked as a
+network font; the app keeps its inline SVG icons). All sizes stayed on the 8-step
+scale; no layout reflow._
+
 Currently serious: `trust`, `bookings`, `pricing`, `info`, `wallet`, and the
 coach `finances` and `media` tabs. Four of the sixteen product-toggle pages —
 the 25% asked for.
