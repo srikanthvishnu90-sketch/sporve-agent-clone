@@ -161,16 +161,17 @@
      The fallbacks are deliberately NOT the same stack for both roles: if the
      faces ever go missing, the page should still show a visible display/body
      contrast rather than silently collapsing to one family and hiding it. */
-  /* TYPOGRAPHY (owner, 2026-08-20 rev.2): SYNE — the athletic display voice from
-     the logo — for LARGE HEADERS only (--display). INTER — the basic body/UI/tab
-     voice — for EVERYTHING ELSE (--sans and --nav-face: all nav tabs, smaller tabs,
-     buttons, body). Supersedes rev.1's Plus-Jakarta body (reverted to Inter). Both
-     faces embedded; a token swap, not a Google Fonts load (CSP default-src 'self').
-     Coach dashboard also follows this (Syne headers, Inter body via reg-coach). */
+  /* TYPOGRAPHY (owner, 2026-08-20 rev.3): match the reference site sporve.vercel.app
+     — SYNE for LARGE HEADERS (--display, the athletic logo voice) + PLUS JAKARTA SANS
+     for body / smaller text / nav tabs (--sans, --nav-face). The owner's "Nike-level
+     smaller font" is Plus Jakarta (what sporve.vercel.app renders its body in). This
+     reverts rev.2's Inter body on the FAMILY/marketing side. Both embedded; a token
+     swap, not a Google Fonts load (CSP default-src 'self'). The COACH dashboard keeps
+     Inter body (reg-coach --sans pin) — it's the app, not the landing. */
   --display:"Syne",system-ui,-apple-system,"Segoe UI",sans-serif;
-  /* §3.5 nav face + every tab speak in the BASIC voice (Inter), not the display. */
-  --nav-face:"Inter",system-ui,-apple-system,"Segoe UI",sans-serif;
-  --sans:"Inter",system-ui,-apple-system,"Segoe UI",Roboto,
+  /* §3.5 nav face + tabs use the reference body voice (Plus Jakarta). */
+  --nav-face:"Plus Jakarta Sans",system-ui,-apple-system,"Segoe UI",sans-serif;
+  --sans:"Plus Jakarta Sans",system-ui,-apple-system,"Segoe UI",Roboto,
          "Helvetica Neue",Arial,sans-serif;
   --mono:"JetBrains Mono",ui-monospace,SFMono-Regular,"SF Mono",Menlo,Consolas,monospace;
   --shell:1240px;
@@ -386,10 +387,10 @@ img{max-width:100%;display:block}
   font-family:"Inter",system-ui,-apple-system,sans-serif;
 }
 #app.reg-tabs{
-  /* Product-toggle register (coachinfo/trust/pricing). Syne LARGE HEADERS + INTER
-     body/tabs (owner 2026-08-20 rev.2 — tabs use Inter). */
+  /* Product-toggle register (coachinfo/trust/pricing). Syne LARGE HEADERS + PLUS
+     JAKARTA body/tabs (owner 2026-08-20 rev.3 — match sporve.vercel.app). */
   --display:"Syne",system-ui,-apple-system,"Segoe UI",sans-serif;
-  --sans:"Inter",system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
+  --sans:"Plus Jakarta Sans",system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
   font-family:var(--sans);
 }
 #app.reg-tabs h1,#app.reg-tabs h2,#app.reg-tabs h3,

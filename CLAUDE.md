@@ -94,20 +94,21 @@ superseded by Instrument Serif + Inter, and the per-page Archivo/Syne accents ar
 blessed. Embedded, CSP-safe families: Instrument Serif, Inter, Archivo, Syne, Hanken
 Grotesk, JetBrains Mono (numerals), and Plus Jakarta Sans (legacy)._
 
-_**SUPERSEDED 2026-08-20 (owner typography directive, rev.2):** the site is a
-two-voice system — **Syne** (the athletic display voice from the logo) for LARGE
-HEADERS only (`--display`), and **Inter** (basic) for EVERYTHING ELSE — body, UI,
-nav tabs, smaller tabs, buttons (`--sans` + `--nav-face`). This reverts the 08-09
-default's Instrument-Serif headers to Syne, and reverts rev.1's Plus-Jakarta body
-back to Inter. On family/marketing routes the Archivo per-page accents, the Hanken
-`reg-serious` register (slate ground kept), and the residual literal Instrument
-Serif (`.pg-serif`/`.pg-stat`) all now resolve to Syne via `var(--display)`. The
-**coach dashboard + its onboarding keep Instrument Serif headers** (`body.reg-coach
---display`) — a standing decision the smoke guards as `H1_NOT_SERIF` — with Inter
-body. A `:root` token swap on already-embedded faces — NOT a Google Fonts load (CSP
-`default-src 'self'`, no Google `font-src`). Material Symbols NOT adopted
+_**CURRENT 2026-08-20 (owner typography directive, rev.3) — matches the reference
+site sporve.vercel.app:** **Syne** (the athletic display voice from the logo) for
+LARGE HEADERS (`--display`, incl. `.greet` and every family `.display`/h1), and
+**PLUS JAKARTA SANS** for body / smaller text / nav tabs (`--sans` + `--nav-face`)
+on the FAMILY/marketing side. rev.3 reverts rev.2's Inter body back to Plus Jakarta
+(the "Nike-level" smaller font the reference renders). Retired on family routes:
+Archivo per-page accents + Hanken `reg-serious` (slate ground kept) + literal
+Instrument Serif in `.pg-serif`/`.pg-stat` → all resolve to Syne via `var(--display)`.
+The **coach dashboard keeps Inter body** (`body.reg-coach --sans` pin) with Syne
+headers (smoke guards the onboarding h1 as `H1_NOT_ATHLETIC` = Syne, flipped from the
+old serif rule). A `:root` token swap on already-embedded faces — NOT a Google Fonts
+load (CSP `default-src 'self'`, no Google `font-src`). Material Symbols NOT adopted
 (CSP-blocked network font; inline SVGs kept). Sizes stayed on the 8-step scale; no
-reflow._
+reflow. Lineage of the 08-20 whipsaws: rev.1 Syne+Jakarta everywhere → rev.2 Inter
+body → rev.3 Plus-Jakarta body on family (this), Inter body on coach._
 
 Currently serious: `trust`, `bookings`, `pricing`, `info`, `wallet`, and the
 coach `finances` and `media` tabs. Four of the sixteen product-toggle pages —
