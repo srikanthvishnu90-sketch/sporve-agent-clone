@@ -5193,6 +5193,12 @@ const TODAY="2026-08-03";
 
    src/smoke.sh enforces both halves: no stray fee literal, and rendered rates
    limited to FEE_PCT and the 100% coaches keep. */
+/* FEE-MODEL DECISION (owner-confirmed 2026-08-20; model shipped 2026-08-17):
+   subscription / 0% booking fee / Pro $34.99. FEE_PCT below is the ONE source
+   both the prose and mod-payments read; PLANS in mod-coachaccount reconciles the
+   price against plan_entitlements at runtime. The three other models the audit
+   pack lists (18/4/2.5, 15/0 rake, $29 Pro) are retired and appear nowhere in
+   src/ — do not reintroduce them. To change the fee, edit FEE_PCT here only. */
 const FEE_PCT = 0;
 const FEE_RATE = FEE_PCT / 100;
 function dayAfter(n){

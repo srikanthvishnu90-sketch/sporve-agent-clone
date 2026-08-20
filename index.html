@@ -21,7 +21,7 @@
 <meta name="twitter:description" content="Find coaches, trainers, camps and teams across 20+ sports in Chicagoland.">
 <meta name="twitter:image" content="https://the-sporve-web.vercel.app/og.png">
 <link rel="icon" href="data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%2032%2032'%3E%3Crect%20width='32'%20height='32'%20rx='7'%20fill='%2309090B'/%3E%3Ccircle%20cx='16'%20cy='16'%20r='6'%20fill='white'/%3E%3C/svg%3E">
-<meta name="sporve-build" content="3eca438b97d0a516">
+<meta name="sporve-build" content="84790f2ff9dfc562">
 </head>
 <body>
 <noscript><h1>Sporv — Every sport. One app.</h1><p>Sporv connects families and athletes with coaches, trainers, camps, and teams across more than 20 sports. Please enable JavaScript to use the app.</p></noscript>
@@ -5242,6 +5242,12 @@ const TODAY="2026-08-03";
 
    src/smoke.sh enforces both halves: no stray fee literal, and rendered rates
    limited to FEE_PCT and the 100% coaches keep. */
+/* FEE-MODEL DECISION (owner-confirmed 2026-08-20; model shipped 2026-08-17):
+   subscription / 0% booking fee / Pro $34.99. FEE_PCT below is the ONE source
+   both the prose and mod-payments read; PLANS in mod-coachaccount reconciles the
+   price against plan_entitlements at runtime. The three other models the audit
+   pack lists (18/4/2.5, 15/0 rake, $29 Pro) are retired and appear nowhere in
+   src/ — do not reintroduce them. To change the fee, edit FEE_PCT here only. */
 const FEE_PCT = 0;
 const FEE_RATE = FEE_PCT / 100;
 function dayAfter(n){
