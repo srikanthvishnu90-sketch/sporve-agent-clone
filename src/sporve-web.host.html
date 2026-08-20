@@ -8958,8 +8958,9 @@ function profileStrengthHTML(){
       <circle cx="40" cy="40" r="34" fill="none" stroke="var(--slate)" stroke-width="8"
         stroke-linecap="round" stroke-dasharray="${C}" stroke-dashoffset="${C-(C*pct/100)}"
         transform="rotate(-90 40 40)"/>
-      <text x="40" y="45" text-anchor="middle" font-size="18" font-weight="800"
-        fill="var(--ink)" font-family="var(--display)">${pct}%</text>
+      <text x="40" y="45" text-anchor="middle" font-size="18" font-weight="700"
+        fill="var(--ink)" font-family="var(--sans)"
+        style="font-variant-numeric:tabular-nums;letter-spacing:-.02em">${pct}%</text>
     </svg>
     <div>
       <div class="eyebrow">Next best action</div>
