@@ -165,17 +165,19 @@ parts in this order:
    explained with an analogy from sports, lifting or business.
 4. **The risk** — one sentence on what a USER would actually experience if the
    change is wrong ("a parent could be charged twice", "the page loads blank").
-5. **One quiz question** — a single question testing comprehension of THIS
-   change. Grade the answer in the next turn honestly. **Do not flatter it.**
-   Grade like a strict but fair TA and say plainly when it is wrong, and why.
+5. **What comes next** (owner decision 2026-08-20, SUPERSEDES the quiz) — the
+   immediate handoff: what this change now unblocks, what still needs the owner
+   (a deploy, a migration apply, a decision), and what I will pick up next.
+   Concrete and short — the next move, not a comprehension test.
 
 Plain language, first person, concise. Never "refactored the logic" — say what
 the logic actually does. Never skip the section, even for a small change; for
 trivial ones (typos, renames) parts 3 and 5 may be one line each.
 
-**Wrong twice on the same concept → `LEARNING_DEBT.md`.** Append that concept
-with a 5-line explanation, so the weak spots accumulate into a personal
-textbook rather than being re-explained from scratch each time.
+**Quiz-and-grading loop retired 2026-08-20** with the quiz (part 5 above). The
+`LEARNING_DEBT.md` mechanism was fed by graded quiz answers; with no quiz there
+is nothing to grade, so it no longer runs. If the owner asks a direct question,
+answer it honestly and plainly — but do not manufacture a test at turn's end.
 
 The old five-sentence reading is retired as a separate deliverable, but its
 habits still apply INSIDE part 2: use the real names — selector specificity,
