@@ -243,8 +243,8 @@ body{
    tops out at 700, which is why every `font-weight:800` on body-face text was
    dropped to 700 in this pass -- it was already clamping there and only looked
    like a hierarchy. `.num` is NOT display-face; it only sets tabular-nums. */
-.hero .display,h1,h2,h3,h4,.wordmark,.bignum,.t-num,.stat .v,
-.fstats span:first-child,.metric .v,.livecount{font-family:var(--display)}
+.hero .display,h1,h2,h3,.wordmark,.bignum,.t-num,.stat .v,
+.metric .v,.livecount{font-family:var(--display)}
 body,.navlink,.btn,.roleswitch button,.seg2 button,
 .faqq,.stile b,.feat b,.step3 b,.tritem,.tnav,.fchip,.advfilters,.prodcard b,
 .card .ttl,input,select,textarea,button{font-family:var(--sans)}
@@ -259,7 +259,7 @@ body,.navlink,.btn,.roleswitch button,.seg2 button,
    and at -.015em Syne sets tightly and correctly. */
 h1,h2,h3,h4{margin:0;text-wrap:balance;font-weight:700;line-height:1.06;
   letter-spacing:-.02em}
-h1{font-size:var(--text-2xl)}
+h1{font-size:var(--text-hero)}
 h2{font-size:var(--text-2xl)}
 h3{font-size:var(--text-lg)}
 /* Sentence case sets tight. The +.005em that used to live here existed only
