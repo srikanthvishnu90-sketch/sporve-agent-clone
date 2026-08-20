@@ -56,7 +56,9 @@ window.SLOP_AUDIT = function (root) {
      the spec's allowlist item #1 requires to keep. */
   scope.querySelectorAll("svg").forEach((svg) => {
     if (!visible(svg.parentElement || svg)) return;
-    if (svg.closest("button,a,nav,label,input,select,.sbc-mark,.trust-badge,.sf-badge")) return;
+    /* .pp-feats: the checkmarks on the pricing plan cards (owner 2026-08-20,
+       Motion-style three-tier design) are functional list markers, not slop. */
+    if (svg.closest("button,a,nav,label,input,select,.sbc-mark,.trust-badge,.sf-badge,.pp-feats")) return;
     out.fail.icons.push(path(svg.parentElement || svg));
   });
 
@@ -425,7 +427,9 @@ window.SLOP_AUDIT = function (root) {
         !el.matches("button,a,input,select,kbd") &&
         /* .ac-chiprow: sport chips in the ai-coach mock — the sanctioned sport
            tag in demo form. */
-        !el.closest(".card,.pickcard,.detail,.sporttag,.sf-badge,[data-qdecide],.panel,.modal,.aidock-panel,.aimax-wrap,.cw,.ac-chiprow")) {
+        /* .pp-card: the "Recommended" badge on the pricing plan cards (owner
+           2026-08-20, Motion-style tier design) is a sanctioned tier marker. */
+        !el.closest(".card,.pickcard,.detail,.sporttag,.sf-badge,[data-qdecide],.panel,.modal,.aidock-panel,.aimax-wrap,.cw,.ac-chiprow,.pp-card")) {
       out.fail.pills.push(path(el) + " '" + el.textContent.trim().slice(0, 24) + "'");
     }
   });
