@@ -21,7 +21,7 @@
 <meta name="twitter:description" content="Find coaches, trainers, camps and teams across 20+ sports in Chicagoland.">
 <meta name="twitter:image" content="https://the-sporve-web.vercel.app/og.png">
 <link rel="icon" href="data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%2032%2032'%3E%3Crect%20width='32'%20height='32'%20rx='7'%20fill='%2309090B'/%3E%3Ccircle%20cx='16'%20cy='16'%20r='6'%20fill='white'/%3E%3C/svg%3E">
-<meta name="sporve-build" content="84790f2ff9dfc562">
+<meta name="sporve-build" content="f72512347ff12ac7">
 </head>
 <body>
 <noscript><h1>Sporv — Every sport. One app.</h1><p>Sporv connects families and athletes with coaches, trainers, camps, and teams across more than 20 sports. Please enable JavaScript to use the app.</p></noscript>
@@ -28218,7 +28218,7 @@ function hydrateReturn(){
 function hydrateBookings(){
   if(!window.SporveBooking||!window.SporveAuth||!window.SporveAuth.isSignedIn()) return;
   window.SporveBooking.mine().then(function(rows){
-    if(!rows||!rows.length) return;
+    if(!Array.isArray(rows)) return;
     var mapped=rows.map(function(b){
       var p=programById(b.program_id)||{};
       var slot=(slotsFor(b.program_id)||[]).filter(function(x){return x.id===b.session_id;})[0]||{};
@@ -28233,10 +28233,18 @@ function hydrateBookings(){
         createdAt:String(b.created_at||"").slice(0,10), sport:p.sport||"",
       };
     });
-    var seeded=(S.bookings||[]).filter(function(x){return !x.live;});
-    S.bookings=mapped.concat(seeded);
+    /* Server rows REPLACE the seed for a signed-in user — the same rule
+       hydrateAthletes already applies, for the same reason: a seeded booking is
+       not a real one, and concatenating it showed a real parent a fabricated
+       "paid" session for a child they never created (and a real coach a session
+       that never happened). An empty result is the honest empty state, not a cue
+       to keep the demo rows. mine() is RLS-scoped, so it returns the caller's own
+       rows in either role — a parent's bookings, or the sessions booked with a
+       coach. Guests never reach here (isSignedIn gate above), so the signed-out
+       marketing preview keeps its seed. */
+    S.bookings=mapped;
     render();
-  }).catch(function(){ /* stay on the seeded view rather than blanking it */ });
+  }).catch(function(){ /* keep whatever is on screen rather than blanking it */ });
 }
 
 /* THE ATHLETES A PARENT ACTUALLY HAS.
