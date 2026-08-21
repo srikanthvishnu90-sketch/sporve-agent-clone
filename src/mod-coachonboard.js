@@ -21,9 +21,10 @@
    ═══════════════════════════════════════════════════════════════════ */
 (function(){
 
-/* ── the app's pinned demo clock, matching the host's ageOf() ─────── */
-const TODAY = new Date(2026, 7, 3);          // Mon 3 Aug 2026
-const TODAY_ISO = "2026-08-03";
+/* ── the app's clock — de-pinned (WF-5). Only bounds age calc + the DOB input
+   max, so real "now" is correct and safe. ────────────────────────── */
+const TODAY = new Date();
+const TODAY_ISO = (d=>`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`)(TODAY);
 
 /* ── platform economics, 2026-08-17 ────────────────────────────────
    Sporv charges the COACH a subscription, not a cut of a booking. So this

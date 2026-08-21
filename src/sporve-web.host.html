@@ -5490,7 +5490,7 @@ const money=n=>"$"+Number(n).toLocaleString("en-US");
 const modelLabel=m=>({single_session:"per session",monthly:"per month",package:"per package",seasonal:"per season"}[m]||esc(m));
 const fmtDate=d=>{const[y,m,dd]=d.split("-").map(Number);
   return new Date(y,m-1,dd).toLocaleDateString("en-US",{weekday:"short",month:"short",day:"numeric"});};
-const ageOf=dob=>{const b=new Date(dob),n=new Date(2026,7,3);let a=n.getFullYear()-b.getFullYear();
+const ageOf=dob=>{const b=new Date(dob),n=new Date();let a=n.getFullYear()-b.getFullYear();
   const m=n.getMonth()-b.getMonth();if(m<0||(m===0&&n.getDate()<b.getDate()))a--;return a;};
 
 /* provider month calendar — date maths. Dates are plain "YYYY-MM-DD" strings

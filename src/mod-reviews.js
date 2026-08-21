@@ -9,8 +9,11 @@
    ═══════════════════════════════════════════════════════════════════ */
 (function(){
 
-/* the app's "now" — same anchor the host uses inside ageOf() */
-const TODAY="2026-08-03";
+/* The app's "now" — de-pinned (WF-5). This module's data hydrates real (#193),
+   so relative dates, goal-target validation, and new review/goal timestamps must
+   run against the real date, not a frozen Aug-3. Local-date ISO (not UTC) so a
+   near-midnight comparison never slips a day. */
+const TODAY=(d=>`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`)(new Date());
 
 /* ── small date helpers (no library, no network) ─────────────────── */
 const parseISO=d=>{const[y,m,dd]=String(d).split("-").map(Number);return new Date(y,m-1,dd);};
