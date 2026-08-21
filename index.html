@@ -21,7 +21,7 @@
 <meta name="twitter:description" content="Find coaches, trainers, camps and teams across 20+ sports in Chicagoland.">
 <meta name="twitter:image" content="https://the-sporve-web.vercel.app/og.png">
 <link rel="icon" href="data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%2032%2032'%3E%3Crect%20width='32'%20height='32'%20rx='7'%20fill='%2309090B'/%3E%3Ccircle%20cx='16'%20cy='16'%20r='6'%20fill='white'/%3E%3C/svg%3E">
-<meta name="sporve-build" content="2b563a3b6f88fba3">
+<meta name="sporve-build" content="58200f8e6f8fc8cc">
 </head>
 <body>
 <noscript><h1>Sporv — Every sport. One app.</h1><p>Sporv connects families and athletes with coaches, trainers, camps, and teams across more than 20 sports. Please enable JavaScript to use the app.</p></noscript>
@@ -5533,6 +5533,11 @@ function mdCoach(raw){
   return out||esc(String(raw));
 }
 const money=n=>"$"+Number(n).toLocaleString("en-US");
+/* Canonical product domain — ONE source (D8, owner decision 2026-08-21:
+   placeholder until a real domain is acquired). Everything that prints a public
+   URL reads this, so the eventual domain cutover is a one-line change. Machine
+   identifiers and the real support@/safety@ mailboxes stay 'sporve' on purpose. */
+const CANONICAL_DOMAIN="sporv.app";
 /* The ||m fallback echoes a raw data value, so it is escaped at the source
    rather than at each of the ~20 call sites. Safe today (all four RAW values
    hit the map); a new or typo'd model would otherwise reach HTML unescaped. */
@@ -9046,10 +9051,10 @@ function dashboardHTML(){
       <div class="panel sharekit">
         <h3>Share your booking link</h3>
         <div class="sharerow">
-          <code class="shareurl">sporve.com/apex-performance</code>
-          <button class="btn ghost sm" data-copy="sporve.com/apex-performance">Copy</button>
+          <code class="shareurl">${CANONICAL_DOMAIN}/apex-performance</code>
+          <button class="btn ghost sm" data-copy="${CANONICAL_DOMAIN}/apex-performance">Copy</button>
         </div>
-        <div class="qrwrap">${qrHTML("sporve.com/apex-performance")}
+        <div class="qrwrap">${qrHTML(CANONICAL_DOMAIN+"/apex-performance")}
           <p style="color:var(--muted);font-size:var(--text-sm)">Print it and tape it to the gym wall.</p></div>
       </div>
       <div class="panel">

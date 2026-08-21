@@ -61,6 +61,15 @@ wrong here — lives in **`src/design-rules.md`**. Rules 3–5 below are the fro
 subset that `smoke.sh` enforces; read `design-rules.md` before building or
 restyling any screen.
 
+**STYLE FREEZE (WF-9, owner decision 2026-08-21 — active until the first
+test-mode booking charge clears).** Typography, nav, logo, and colour commits are
+capped at **zero** until then, except defects (contrast failures, overflow,
+broken rendering). The last sprint ran ≈20 styling commits and 0 payment commits;
+this freeze is how the next sprint inverts that. **D7 is decided: the type canon
+is Syne (display) + Plus Jakarta Sans (body)** on the family side, Inter body on
+the coach dashboard — both surfaces converge to it, and no further type churn is
+in scope. Lift the freeze only when WF-7's first charge is proven.
+
 ## 3. Colour law
 
 ~6 times, and stated as an absolute: *"DO NOT CHANGE the brand color palette"*,
