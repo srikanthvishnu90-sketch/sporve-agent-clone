@@ -849,6 +849,36 @@ if curl -sI "http://127.0.0.1:$CSPPORT/index.html" | grep -qi "^content-security
     if(x.indexOf('<img')>=0) return 'XSS';
     return 'OK';
   })()" 2>/dev/null | tr -d '\r')
+  # design-rules R6: a dark panel never gets a LIGHT border (reads as a render
+  # bug). Regression guard on the docked assistant: render it live and assert the
+  # panel + its direct surface children carry no visible high-luminance border.
+  brd=$($B js "(function(){
+    S.auth={status:'verified',user:Object.assign({},SEED.user,{role:'provider'})};
+    S.portal='coach';S.coachTab='dashboard';S.route={name:'dashboard',arg:null};
+    S.aiOpen=true;S.aiCollapsed=false;S.aiMax=false;
+    S.chat=[{role:'user',text:'hi'},{role:'assistant',text:'Hello there'}];
+    render();
+    var panel=document.querySelector('.aidock-panel');
+    if(!panel) return 'NOPANEL';
+    var lum=function(c){var m=c.match(/rgba?\(([^)]+)\)/);if(!m)return null;
+      var p=m[1].split(',').map(parseFloat);var a=p.length>3?p[3]:1;
+      if(a<0.15)return null;return (0.2126*p[0]+0.7152*p[1]+0.0722*p[2])/255;};
+    var nodes=[panel].concat([].slice.call(panel.children));
+    var W=['borderTopWidth','borderRightWidth','borderBottomWidth','borderLeftWidth'];
+    var C=['borderTopColor','borderRightColor','borderBottomColor','borderLeftColor'];
+    for(var i=0;i<nodes.length;i++){var s=getComputedStyle(nodes[i]);
+      for(var j=0;j<4;j++){ if(parseFloat(s[W[j]])<0.5)continue;
+        var L=lum(s[C[j]]); if(L!==null&&L>0.6)
+          return 'LIGHT:'+(nodes[i].className||nodes[i].tagName)+':'+s[C[j]];}}
+    return 'OK';
+  })()" 2>/dev/null | tr -d '\r')
+  case "$(printf '%s' "$brd" | tr -d '[:space:]')" in
+    OK)       pass "ai: docked panel carries no light border on its dark ground (design-rules R6)" ;;
+    NOPANEL)  fail "ai: R6 probe could not render the docked panel" ;;
+    LIGHT:*)  fail "ai: a LIGHT border rings the dark AI panel (${brd#LIGHT:}) — reads as a render bug (design-rules R6)" ;;
+    *)        fail "ai: R6 border probe returned nothing ($brd)" ;;
+  esac
+
   case "$(printf '%s' "$md" | tr -d '[:space:]')" in
     OK)        pass "ai: mdCoach renders markdown, strips emoji, escapes HTML (design-rules R12/R13)" ;;
     NOFUNC)    fail "ai: mdCoach() is missing — AI bubbles would render raw markdown to the reader" ;;
