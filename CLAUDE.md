@@ -65,10 +65,14 @@ restyling any screen.
 test-mode booking charge clears).** Typography, nav, logo, and colour commits are
 capped at **zero** until then, except defects (contrast failures, overflow,
 broken rendering). The last sprint ran ≈20 styling commits and 0 payment commits;
-this freeze is how the next sprint inverts that. **D7 is decided: the type canon
-is Syne (display) + Plus Jakarta Sans (body)** on the family side, Inter body on
-the coach dashboard — both surfaces converge to it, and no further type churn is
-in scope. Lift the freeze only when WF-7's first charge is proven.
+this freeze is how the next sprint inverts that. **D7 (revised 2026-08-21 by owner
+directive "Nike/Whoop feeling, professional text"): the type canon is Archivo
+(display) + Plus Jakarta Sans (body)** on the family side, Inter body on the coach
+dashboard, JetBrains Mono numerals — both surfaces converge to it. Archivo is a
+grotesque (athletic-technical, the Nike/Whoop lineage); it replaced Syne, whose
+geometric/editorial voice read "fashion" not "sport". A `--display` token swap on
+an already-embedded face — no page-weight cost. No further type churn is in scope;
+lift the freeze only when WF-7's first charge is proven.
 
 ## 3. Colour law
 

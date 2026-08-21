@@ -21,7 +21,7 @@
 <meta name="twitter:description" content="Find coaches, trainers, camps and teams across 20+ sports in Chicagoland.">
 <meta name="twitter:image" content="https://the-sporve-web.vercel.app/og.png">
 <link rel="icon" href="data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%2032%2032'%3E%3Crect%20width='32'%20height='32'%20rx='7'%20fill='%2309090B'/%3E%3Ccircle%20cx='16'%20cy='16'%20r='6'%20fill='white'/%3E%3C/svg%3E">
-<meta name="sporve-build" content="58200f8e6f8fc8cc">
+<meta name="sporve-build" content="17f6ee5a92de500f">
 </head>
 <body>
 <noscript><h1>Sporv — Every sport. One app.</h1><p>Sporv connects families and athletes with coaches, trainers, camps, and teams across more than 20 sports. Please enable JavaScript to use the app.</p></noscript>
@@ -201,7 +201,13 @@
      reverts rev.2's Inter body on the FAMILY/marketing side. Both embedded; a token
      swap, not a Google Fonts load (CSP default-src 'self'). The COACH dashboard keeps
      Inter body (reg-coach --sans pin) — it's the app, not the landing. */
-  --display:"Syne",system-ui,-apple-system,"Segoe UI",sans-serif;
+  /* DISPLAY = Archivo (owner directive 2026-08-21: "Nike/Whoop feeling, text
+     still very professional"). Archivo is a grotesque built for punchy headlines
+     — the athletic-technical voice Nike/Whoop live in — vs Syne's fashion/
+     editorial geometry. Already embedded (build.py maps archivo→"Archivo" 400-800),
+     so zero CSP/page-weight cost. Body stays Plus Jakarta / Inter (professional);
+     numerals stay JetBrains Mono. Revises D7 from Syne. */
+  --display:"Archivo",system-ui,-apple-system,"Segoe UI",sans-serif;
   /* §3.5 nav face + tabs use the reference body voice (Plus Jakarta). */
   --nav-face:"Plus Jakarta Sans",system-ui,-apple-system,"Segoe UI",sans-serif;
   --sans:"Plus Jakarta Sans",system-ui,-apple-system,"Segoe UI",Roboto,
@@ -420,9 +426,10 @@ img{max-width:100%;display:block}
   font-family:"Inter",system-ui,-apple-system,sans-serif;
 }
 #app.reg-tabs{
-  /* Product-toggle register (coachinfo/trust/pricing). Syne LARGE HEADERS + PLUS
-     JAKARTA body/tabs (owner 2026-08-20 rev.3 — match sporve.vercel.app). */
-  --display:"Syne",system-ui,-apple-system,"Segoe UI",sans-serif;
+  /* Product-toggle register (coachinfo/trust/pricing). Archivo LARGE HEADERS +
+     PLUS JAKARTA body/tabs (owner 2026-08-21: Nike/Whoop display, professional
+     body). Kept in sync with the :root display face above. */
+  --display:"Archivo",system-ui,-apple-system,"Segoe UI",sans-serif;
   --sans:"Plus Jakarta Sans",system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
   font-family:var(--sans);
 }
@@ -4331,7 +4338,7 @@ body.reg-coach .rail button{font-size:var(--t-small)}
    vertical stack. max-width:none so it fills its column; the ≤7-word rule keeps
    it to 3 lines. Section H2s capped to ≤32 via the !important rule below,
    overriding the pages' inline clamps without touching each template. */
-.pg-h1{font-size:clamp(34px,2.9vw,44px);margin:20px 0 0;max-width:none;line-height:1.06}
+.pg-h1{font-size:clamp(34px,2.9vw,44px);margin:20px 0 0;max-width:none;line-height:1.06;letter-spacing:-.03em}
 .pgband h2.pg-serif{font-size:clamp(23px,1.9vw,30px)!important;line-height:1.14}
 .pg-sub{font-size:18px;color:var(--muted);max-width:56ch;margin:18px 0 0;line-height:1.55}
 .pg-cta{display:inline-flex;align-items:center;gap:8px;height:var(--h-ctl);padding:0 22px;
@@ -4575,7 +4582,7 @@ body.reg-coach .rail button{font-size:var(--t-small)}
 
 /* 07 — Booking records: three-column receipt head / rail above a three-column essay. */
 .pg-bookings-receipts .pg-hero-inner{grid-template-columns:minmax(240px,.78fr) minmax(280px,.82fr) minmax(230px,.4fr);align-items:start}
-.pg-bookings-receipts .pg-h1{max-width:11ch}
+.pg-bookings-receipts .pg-h1{max-width:14ch}
 .pg-hero-receipt{font-family:ui-monospace,"SF Mono",Menlo,monospace;border-top:1px solid var(--ink)}
 .pg-hero-receipt div{display:flex;justify-content:space-between;gap:16px;padding:12px 0;border-bottom:1px solid var(--rule);
   font-size:var(--text-xs);line-height:1.4}
@@ -4590,7 +4597,7 @@ body.reg-coach .rail button{font-size:var(--t-small)}
 
 /* 08 — Athlete progress: dark three-part marker / figure before explanation. */
 .pg-athlete-progress .pg-hero-inner{grid-template-columns:minmax(240px,.8fr) minmax(280px,.78fr) minmax(170px,.42fr);align-items:center}
-.pg-athlete-progress .pg-h1{max-width:10ch}
+.pg-athlete-progress .pg-h1{max-width:13ch}
 .pg-hero-progress{display:grid;grid-template-columns:1fr;gap:7px;border-top:1px solid #343A43;border-bottom:1px solid #343A43;
   padding:18px 0;font-family:ui-monospace,"SF Mono",Menlo,monospace}
 .pg-hero-progress span{color:#AEB8C4;font-size:var(--text-xs);letter-spacing:.1em}
@@ -4644,14 +4651,14 @@ body.reg-coach .rail button{font-size:var(--t-small)}
 
 /* 13 — Consent: right-weighted dark declaration / alternating question measure. */
 .pg-media-consent .pg-hero-inner{grid-template-columns:minmax(280px,.9fr) minmax(0,1.1fr);align-items:end}
-.pg-media-consent .pg-hero-title{grid-column:2;text-align:right}.pg-media-consent .pg-h1{margin-left:auto;max-width:12ch}
+.pg-media-consent .pg-hero-title{grid-column:2;text-align:right}.pg-media-consent .pg-h1{margin-left:auto;max-width:15ch}
 .pg-media-consent .pg-hero-copy{grid-column:1;grid-row:1;border-right:1px solid #343A43;padding-right:clamp(30px,5vw,72px)}
 .pg-consent-questions .pg-question-row{width:78%;grid-template-columns:minmax(210px,.72fr) minmax(0,1.28fr)}
 .pg-consent-questions .pg-question-row:nth-child(even){margin-left:22%}
 
 /* 14 — Insights: dark metric head / right-set thesis / compact evidence table. */
 .pg-insights .pg-hero-inner{grid-template-columns:minmax(260px,.78fr) minmax(370px,1fr) minmax(170px,.4fr);align-items:center}
-.pg-insights .pg-h1{max-width:13ch;font-size:clamp(34px,2.8vw,40px)}
+.pg-insights .pg-h1{max-width:16ch;font-size:clamp(34px,2.8vw,40px)}
 .pg-hero-metrics{border-top:1px solid #343A43}
 .pg-hero-metrics div{padding:16px 0;border-bottom:1px solid #343A43}
 .pg-hero-metrics strong{display:block;color:#fff;font-family:ui-monospace,"SF Mono",Menlo,monospace;
