@@ -21,7 +21,7 @@
 <meta name="twitter:description" content="Find coaches, trainers, camps and teams across 20+ sports in Chicagoland.">
 <meta name="twitter:image" content="https://the-sporve-web.vercel.app/og.png">
 <link rel="icon" href="data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%2032%2032'%3E%3Crect%20width='32'%20height='32'%20rx='7'%20fill='%2309090B'/%3E%3Ccircle%20cx='16'%20cy='16'%20r='6'%20fill='white'/%3E%3C/svg%3E">
-<meta name="sporve-build" content="7b38778f7e27e69d">
+<meta name="sporve-build" content="81e5c413ae4647c8">
 </head>
 <body>
 <noscript><h1>Sporv — Every sport. One app.</h1><p>Sporv connects families and athletes with coaches, trainers, camps, and teams across more than 20 sports. Please enable JavaScript to use the app.</p></noscript>
@@ -2147,6 +2147,19 @@ img{max-width:100%;display:block}
 .bub{max-width:70%;padding:11px 15px;border-radius:16px;font-size:var(--text-base);line-height:1.5}
 .bub.them{background:var(--raise2);border-bottom-left-radius:5px;align-self:flex-start}
 .bub.me{background:var(--slate);color:var(--slate-on);border-bottom-right-radius:5px;align-self:flex-end}
+/* Rendered-markdown bubble (AI replies only). Block markup carries the rhythm,
+   so pre-wrap is dropped here to avoid doubling the newlines the model sends.
+   Spacing on the 8/4 grid; no colours beyond the inherited bubble tokens. */
+.bub.md{white-space:normal}
+.bub.md p{margin:0}
+.bub.md p+p{margin-top:8px}
+.bub.md p.md-h{font-weight:700;margin-top:8px}
+.bub.md p.md-h:first-child{margin-top:0}
+.bub.md ul{margin:8px 0 0;padding-left:16px}
+.bub.md ul:first-child{margin-top:0}
+.bub.md li{margin:4px 0}
+.bub.md strong{font-weight:700}
+.bub.md code{font-family:var(--mono,ui-monospace,monospace);font-size:.92em;padding:1px 4px;border-radius:4px;background:rgba(127,127,127,.16)}
 .msg-compose{display:flex;gap:10px;padding:15px;border-top:1px solid var(--rule);background:var(--paper)}
 .msg-compose input{flex:1;padding:12px 15px;border:1px solid var(--rule-strong);border-radius:999px;font:inherit;background:var(--paper);color:var(--ink)}
 .msg-compose input:focus{outline:none;border-color:var(--slate)}
@@ -5481,6 +5494,38 @@ const toggleSport=s=>{
 
 const isVerified=()=>S.auth.status==="verified";
 const esc=s=>String(s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+/* AI-bubble markdown, XSS-safe by construction. The coach + family assistant
+   replies come from the SERVER (coach-command / ai-chat → Anthropic via
+   ai-gateway); the model emits **bold**, `code`, `- lists` and sometimes emoji
+   by default, and no system prompt instructs it away yet, so a raw esc() render
+   showed literal asterisks and hashes to the reader (design-rules.md R12/R13).
+   esc() runs FIRST — the model's text is fully escaped before ANY markup is
+   layered on, so nothing the model returns can inject HTML. Emoji are stripped
+   here as a client-side belt-and-suspenders; the durable fix is the server
+   prompt (staged separately, not deployed). Applied ONLY to AI `them` bubbles,
+   never to human-typed DMs, which must render verbatim. */
+const stripEmoji=s=>s.replace(/[\u{1F000}-\u{1FAFF}\u{2600}-\u{27BF}\u{2B00}-\u{2BFF}\u{2190}-\u{21FF}\u{FE00}-\u{FE0F}\u{200D}]/gu,"").replace(/ {2,}/g," ");
+const mdInline=s=>s
+  .replace(/\*\*([^*]+)\*\*/g,"<strong>$1</strong>")
+  .replace(/`([^`]+)`/g,"<code>$1</code>")
+  .replace(/(^|[\s(])\*([^*\n]+)\*/g,"$1<em>$2</em>")
+  .replace(/(^|[\s(])_([^_\n]+)_/g,"$1<em>$2</em>");
+function mdCoach(raw){
+  const lines=stripEmoji(esc(String(raw))).split("\n");
+  let out="",inList=false;
+  const close=()=>{ if(inList){out+="</ul>";inList=false;} };
+  for(const ln of lines){
+    const li=ln.match(/^\s*[-*]\s+(.+)$/);
+    const h=ln.match(/^\s*#{1,6}\s+(.+)$/);
+    if(li){ if(!inList){out+="<ul>";inList=true;} out+="<li>"+mdInline(li[1])+"</li>"; continue; }
+    close();
+    if(h){ out+='<p class="md-h">'+mdInline(h[1])+"</p>"; continue; }
+    if(ln.trim()==="") continue;
+    out+="<p>"+mdInline(ln)+"</p>";
+  }
+  close();
+  return out||esc(String(raw));
+}
 const money=n=>"$"+Number(n).toLocaleString("en-US");
 /* The ||m fallback echoes a raw data value, so it is escaped at the source
    rather than at each of the ~20 call sites. Safe today (all four RAW values
@@ -8023,7 +8068,7 @@ function assistantHTML(){
         ${S.chat.length?S.chat.map(m=>m.role==="user"
           ? `<div class="bub me" style="max-width:74%">${esc(m.text)}</div>`
           : `<div style="max-width:88%;align-self:flex-start;display:flex;flex-direction:column;gap:11px">
-               <div class="bub them">${esc(m.text)}</div>
+               <div class="bub them md">${mdCoach(m.text)}</div>
                ${(m.picks||[]).length?`<div class="pickgrid">${m.picks.map(id=>{
                  /* Picks are ids parked in PERSISTED chat state, so a
                     conversation from before the catalogue changed carries ids
@@ -8213,7 +8258,7 @@ function aiDockHTML(){
                  get_roster:"your roster",whos_booked:"who's booked"};
                const shown=(m.tools||[]).filter(x=>LB[x]);
                return shown.length?`<div class="aidock-toolsline">Checked ${shown.map(x=>LB[x]).join(", ")}</div>`:"";})()}
-             <div class="bub them${m.err?" bub-err":""}">${esc(m.text)}</div>
+             <div class="bub them md${m.err?" bub-err":""}">${mdCoach(m.text)}</div>
              ${m.err&&m.retry?`<button class="btn ghost sm" data-airetry="${i}" style="align-self:flex-start">Try again</button>`:""}
              ${m.proposal?propCardHTML(m.proposal,i):""}
              ${(m.picks||[]).map(id=>{

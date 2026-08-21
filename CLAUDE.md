@@ -53,6 +53,14 @@ Do not restructure, rename, reword or improve adjacent code, copy or layout. If
 the change appears to require touching something outside its scope, stop and
 ask. List every file touched at the end of the turn.
 
+## Design system
+
+The full composition system — layout, spacing/8px grid, the white-outline rule,
+type scale, AI-surface rendering, and the repo truths that make generic specs
+wrong here — lives in **`src/design-rules.md`**. Rules 3–5 below are the frozen
+subset that `smoke.sh` enforces; read `design-rules.md` before building or
+restyling any screen.
+
 ## 3. Colour law
 
 ~6 times, and stated as an absolute: *"DO NOT CHANGE the brand color palette"*,

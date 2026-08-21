@@ -833,6 +833,33 @@ if curl -sI "http://127.0.0.1:$CSPPORT/index.html" | grep -qi "^content-security
     *)              fail "coach: dock probe returned nothing ($dock)" ;;
   esac
 
+  # design-rules R12/R13: AI replies are server-emitted markdown; mdCoach() must
+  # render it (never leak literal ** / ## to the reader) and strip emoji. Guards
+  # the exact defect the Aug-2026 design brief flagged from regressing.
+  md=$($B js "(function(){
+    if(typeof mdCoach!=='function') return 'NOFUNC';
+    var b=mdCoach('**bold** and '+String.fromCharCode(96)+'code'+String.fromCharCode(96));
+    if(b.indexOf('<strong>bold</strong>')<0) return 'NOBOLD';
+    if(b.indexOf('**')>=0||b.indexOf('##')>=0) return 'RAWSYNTAX';
+    var l=mdCoach('- one\n- two');
+    if(l.indexOf('<ul>')<0||l.indexOf('<li>one</li>')<0) return 'NOLIST';
+    var e=mdCoach('hi '+String.fromCodePoint(0x1F600)+' there');
+    if(/[\uD800-\uDBFF]/.test(e)) return 'EMOJI';
+    var x=mdCoach('<img src=x onerror=alert(1)>');
+    if(x.indexOf('<img')>=0) return 'XSS';
+    return 'OK';
+  })()" 2>/dev/null | tr -d '\r')
+  case "$(printf '%s' "$md" | tr -d '[:space:]')" in
+    OK)        pass "ai: mdCoach renders markdown, strips emoji, escapes HTML (design-rules R12/R13)" ;;
+    NOFUNC)    fail "ai: mdCoach() is missing — AI bubbles would render raw markdown to the reader" ;;
+    NOBOLD)    fail "ai: mdCoach did not render **bold** — literal asterisks reach the user" ;;
+    RAWSYNTAX) fail "ai: mdCoach left literal ** or ## in output — raw markdown syntax to a user (Sev-2)" ;;
+    NOLIST)    fail "ai: mdCoach did not render '- ' bullets as a list" ;;
+    EMOJI)     fail "ai: mdCoach did not strip emoji from AI output (design-rules R13)" ;;
+    XSS)       fail "ai: mdCoach let an <img> tag through — esc() must run before markup" ;;
+    *)         fail "ai: mdCoach probe returned nothing ($md)" ;;
+  esac
+
   # THE SEARCH SPEC'S NON-NEGOTIABLES. Each of these is a rule, not a taste:
   # a background-check FILTER advertises that unvetted adults exist; a second
   # filter entry point makes neither authoritative; an age select in the bar
