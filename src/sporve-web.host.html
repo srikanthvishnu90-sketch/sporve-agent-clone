@@ -14170,6 +14170,7 @@ function hydrateAuth(){
       hydrateBookings();
       hydrateAthletes();
       hydrateRoster();
+      hydrateReviews();
       hydrateQueue();
       if(parked) setTimeout(()=>runIntent(parked),60);
     })
@@ -14339,6 +14340,42 @@ function hydrateAthletes(){
 function hydrateRoster(){
   if(!window.SporveAuth||!window.SporveAuth.isSignedIn()) return;
   if(S.auth&&S.auth.user&&S.auth.user.role==="provider"){ S.trainers=[]; render(); }
+}
+
+/* THE COACH'S REVIEWS.
+   ---------------------------------------------------------------------------
+   S.reviews was seeded with fabricated reviews shown on the coach dashboard as
+   their own. A coach can only legitimately read PUBLISHED reviews on their
+   published programs (RLS reviews_select_published), and every seeded review is
+   unpublished — so the honest set today is empty. Load the coach's real
+   published reviews (keyed on reviewee_id = their provider) and REPLACE the
+   seed; an empty result is the honest "No reviews yet" state the panel already
+   renders. author name is intentionally not exposed to the reviewee, so a real
+   published review shows as an anonymous verified family. Guests keep the seed
+   (isSignedIn gate); a signed-in parent is not a provider, so their listing
+   browse is untouched. */
+function hydrateReviews(){
+  if(!window.SporveCoach||!window.SporveAPI||!window.SporveAuth||!window.SporveAuth.isSignedIn()) return;
+  if(!(S.auth&&S.auth.user&&S.auth.user.role==="provider")) return;
+  window.SporveCoach.load().then(function(prov){
+    if(!prov||!prov.id) return null;
+    return window.SporveAPI.from("reviews",
+      "select=id,program_id,rating,body,created_at,booking_id,response_body"+
+      "&reviewee_id=eq."+encodeURIComponent(prov.id)+
+      "&published_at=not.is.null&order=created_at.desc&limit=100");
+  }).then(function(rows){
+    if(!Array.isArray(rows)) return;
+    S.reviews=rows.map(function(r){
+      return {
+        id:r.id, live:true, programId:r.program_id,
+        rating:Number(r.rating)||0, body:r.body||"",
+        date:String(r.created_at||"").slice(0,10),
+        author:"A Sporv family", initials:"SF",
+        verifiedBooking:!!r.booking_id, response:r.response_body||"",
+      };
+    });
+    render();
+  }).catch(function(){ /* keep whatever is on screen rather than blanking it */ });
 }
 
 function hydrateQueue(){
