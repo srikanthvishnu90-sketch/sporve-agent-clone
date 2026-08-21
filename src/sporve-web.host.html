@@ -9070,7 +9070,7 @@ function coachBody(t){
       <p style="color:var(--muted);font-size:var(--text-base);margin-top:4px">
         Every trainer clears their own background check. Your business being approved never vouches for an individual.</p>
       <div style="display:flex;flex-direction:column;gap:13px;margin-top:17px">
-        ${S.trainers.map(trainerRow).join("")}
+        ${S.trainers.length?S.trainers.map(trainerRow).join(""):'<p style="color:var(--muted);font-size:var(--text-sm)">No trainers on your account yet — anyone you add clears their own background check before they can be booked.</p>'}
       </div>
     </div>
     <div class="panel" style="margin-top:16px">
@@ -9214,7 +9214,7 @@ function coachBody(t){
   if(t==="roster") return `<div class="sec-head" style="margin-top:18px"><h1>Roster</h1>
       <button class="btn" data-addtrainer="1">+ Invite trainer</button></div>
     <div class="panel"><h3>Trainers</h3>
-      <div style="display:flex;flex-direction:column;gap:13px;margin-top:15px">${S.trainers.map(trainerRow).join("")}</div></div>
+      <div style="display:flex;flex-direction:column;gap:13px;margin-top:15px">${S.trainers.length?S.trainers.map(trainerRow).join(""):'<p style="color:var(--muted);font-size:var(--text-sm)">No trainers on your account yet — anyone you add clears their own background check before they can be booked.</p>'}</div></div>
     <div class="panel" style="margin-top:16px"><h3>${esc(SEED.teams[0].name)}</h3>
       <p style="color:var(--muted);font-size:var(--text-base)">${esc(SEED.teams[0].sport)} · ${SEED.teams[0].roster.length} athlete</p>
       <div class="tblwrap" style="margin-top:14px"><table class="tbl">
@@ -14169,6 +14169,7 @@ function hydrateAuth(){
       render();
       hydrateBookings();
       hydrateAthletes();
+      hydrateRoster();
       hydrateQueue();
       if(parked) setTimeout(()=>runIntent(parked),60);
     })
@@ -14324,6 +14325,20 @@ function hydrateAthletes(){
     });
     render();
   }).catch(function(){ /* keep whatever is on screen rather than blanking it */ });
+}
+
+/* THE COACH'S STAFF / SUB-COACHES.
+   ---------------------------------------------------------------------------
+   S.trainers was seeded with fabricated staff. There is no backend for it on
+   the web yet — the organization schema (organization_members) is not applied
+   to production — so a real signed-in coach has NO persisted staff, and the
+   seeded rows were pure invention shown as their own. Replace them with the
+   honest empty state (a solo coach legitimately has none); this is where an
+   organization_members read hydrates once that schema lands. Guests never reach
+   here (isSignedIn gate), so the signed-out preview keeps its seed. */
+function hydrateRoster(){
+  if(!window.SporveAuth||!window.SporveAuth.isSignedIn()) return;
+  if(S.auth&&S.auth.user&&S.auth.user.role==="provider"){ S.trainers=[]; render(); }
 }
 
 function hydrateQueue(){

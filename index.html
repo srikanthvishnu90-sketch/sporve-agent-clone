@@ -21,7 +21,7 @@
 <meta name="twitter:description" content="Find coaches, trainers, camps and teams across 20+ sports in Chicagoland.">
 <meta name="twitter:image" content="https://the-sporve-web.vercel.app/og.png">
 <link rel="icon" href="data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%2032%2032'%3E%3Crect%20width='32'%20height='32'%20rx='7'%20fill='%2309090B'/%3E%3Ccircle%20cx='16'%20cy='16'%20r='6'%20fill='white'/%3E%3C/svg%3E">
-<meta name="sporve-build" content="f72512347ff12ac7">
+<meta name="sporve-build" content="e4fd698c927dbf31">
 </head>
 <body>
 <noscript><h1>Sporv — Every sport. One app.</h1><p>Sporv connects families and athletes with coaches, trainers, camps, and teams across more than 20 sports. Please enable JavaScript to use the app.</p></noscript>
@@ -9119,7 +9119,7 @@ function coachBody(t){
       <p style="color:var(--muted);font-size:var(--text-base);margin-top:4px">
         Every trainer clears their own background check. Your business being approved never vouches for an individual.</p>
       <div style="display:flex;flex-direction:column;gap:13px;margin-top:17px">
-        ${S.trainers.map(trainerRow).join("")}
+        ${S.trainers.length?S.trainers.map(trainerRow).join(""):'<p style="color:var(--muted);font-size:var(--text-sm)">No trainers on your account yet — anyone you add clears their own background check before they can be booked.</p>'}
       </div>
     </div>
     <div class="panel" style="margin-top:16px">
@@ -9263,7 +9263,7 @@ function coachBody(t){
   if(t==="roster") return `<div class="sec-head" style="margin-top:18px"><h1>Roster</h1>
       <button class="btn" data-addtrainer="1">+ Invite trainer</button></div>
     <div class="panel"><h3>Trainers</h3>
-      <div style="display:flex;flex-direction:column;gap:13px;margin-top:15px">${S.trainers.map(trainerRow).join("")}</div></div>
+      <div style="display:flex;flex-direction:column;gap:13px;margin-top:15px">${S.trainers.length?S.trainers.map(trainerRow).join(""):'<p style="color:var(--muted);font-size:var(--text-sm)">No trainers on your account yet — anyone you add clears their own background check before they can be booked.</p>'}</div></div>
     <div class="panel" style="margin-top:16px"><h3>${esc(SEED.teams[0].name)}</h3>
       <p style="color:var(--muted);font-size:var(--text-base)">${esc(SEED.teams[0].sport)} · ${SEED.teams[0].roster.length} athlete</p>
       <div class="tblwrap" style="margin-top:14px"><table class="tbl">
@@ -28121,6 +28121,7 @@ function hydrateAuth(){
       render();
       hydrateBookings();
       hydrateAthletes();
+      hydrateRoster();
       hydrateQueue();
       if(parked) setTimeout(()=>runIntent(parked),60);
     })
@@ -28276,6 +28277,20 @@ function hydrateAthletes(){
     });
     render();
   }).catch(function(){ /* keep whatever is on screen rather than blanking it */ });
+}
+
+/* THE COACH'S STAFF / SUB-COACHES.
+   ---------------------------------------------------------------------------
+   S.trainers was seeded with fabricated staff. There is no backend for it on
+   the web yet — the organization schema (organization_members) is not applied
+   to production — so a real signed-in coach has NO persisted staff, and the
+   seeded rows were pure invention shown as their own. Replace them with the
+   honest empty state (a solo coach legitimately has none); this is where an
+   organization_members read hydrates once that schema lands. Guests never reach
+   here (isSignedIn gate), so the signed-out preview keeps its seed. */
+function hydrateRoster(){
+  if(!window.SporveAuth||!window.SporveAuth.isSignedIn()) return;
+  if(S.auth&&S.auth.user&&S.auth.user.role==="provider"){ S.trainers=[]; render(); }
 }
 
 function hydrateQueue(){
