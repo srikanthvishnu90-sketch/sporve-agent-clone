@@ -21,7 +21,7 @@
 <meta name="twitter:description" content="Find coaches, trainers, camps and teams across 20+ sports in Chicagoland.">
 <meta name="twitter:image" content="https://the-sporve-web.vercel.app/og.png">
 <link rel="icon" href="data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%2032%2032'%3E%3Crect%20width='32'%20height='32'%20rx='7'%20fill='%2309090B'/%3E%3Ccircle%20cx='16'%20cy='16'%20r='6'%20fill='white'/%3E%3C/svg%3E">
-<meta name="sporve-build" content="17f6ee5a92de500f">
+<meta name="sporve-build" content="1b0c9307ffb52902">
 </head>
 <body>
 <noscript><h1>Sporv — Every sport. One app.</h1><p>Sporv connects families and athletes with coaches, trainers, camps, and teams across more than 20 sports. Please enable JavaScript to use the app.</p></noscript>
@@ -208,9 +208,14 @@
      so zero CSP/page-weight cost. Body stays Plus Jakarta / Inter (professional);
      numerals stay JetBrains Mono. Revises D7 from Syne. */
   --display:"Archivo",system-ui,-apple-system,"Segoe UI",sans-serif;
-  /* §3.5 nav face + tabs use the reference body voice (Plus Jakarta). */
-  --nav-face:"Plus Jakarta Sans",system-ui,-apple-system,"Segoe UI",sans-serif;
-  --sans:"Plus Jakarta Sans",system-ui,-apple-system,"Segoe UI",Roboto,
+  /* MAIN HEADERS = Instrument Serif (owner 2026-08-21: "main header a mix of
+     Times New Roman + athletic feeling"). The embedded editorial serif carries
+     the Times/professional half; Archivo (secondary headers) + the sporty logo
+     carry the athletic half. Body/nav/UI pair with INTER, per the same directive. */
+  --serif:"Instrument Serif",Georgia,"Times New Roman",serif;
+  /* §3.5 nav face + tabs → Inter (owner: body/small text paired with Inter). */
+  --nav-face:"Inter",system-ui,-apple-system,"Segoe UI",sans-serif;
+  --sans:"Inter",system-ui,-apple-system,"Segoe UI",Roboto,
          "Helvetica Neue",Arial,sans-serif;
   --mono:"JetBrains Mono",ui-monospace,SFMono-Regular,"SF Mono",Menlo,Consolas,monospace;
   --shell:1240px;
@@ -284,6 +289,13 @@ body{
    like a hierarchy. `.num` is NOT display-face; it only sets tabular-nums. */
 .hero .display,h1,h2,h3,.wordmark,.bignum,.t-num,.stat .v,
 .metric .v,.livecount{font-family:var(--display)}
+/* MAIN HEADERS → Instrument Serif (Times/editorial). Only the top hero moment on
+   each surface — landing hero, product-page title, dashboard greeting — not the
+   section h2/h3s, which stay athletic Archivo ("everything outside the main
+   text"). Natural weight + gentle tracking; a light display serif over-tightened
+   reads broken. The coach onboarding .cw-h1 keeps Archivo on purpose. */
+.hero .display,.exhero h1,.chero-in .display,.greet,.pg-h1,.display{
+  font-family:var(--serif);font-weight:400;letter-spacing:-.01em}
 body,.navlink,.btn,.roleswitch button,.seg2 button,
 .faqq,.stile b,.feat b,.step3 b,.tritem,.tnav,.fchip,.advfilters,.prodcard b,
 .card .ttl,input,select,textarea,button{font-family:var(--sans)}
@@ -430,7 +442,8 @@ img{max-width:100%;display:block}
      PLUS JAKARTA body/tabs (owner 2026-08-21: Nike/Whoop display, professional
      body). Kept in sync with the :root display face above. */
   --display:"Archivo",system-ui,-apple-system,"Segoe UI",sans-serif;
-  --sans:"Plus Jakarta Sans",system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
+  --serif:"Instrument Serif",Georgia,"Times New Roman",serif;
+  --sans:"Inter",system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
   font-family:var(--sans);
 }
 #app.reg-tabs h1,#app.reg-tabs h2,#app.reg-tabs h3,
