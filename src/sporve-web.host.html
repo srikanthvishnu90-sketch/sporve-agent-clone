@@ -1440,6 +1440,9 @@ img{max-width:100%;display:block}
 .bk-empty-ic{width:44px;height:44px;border-radius:12px;background:var(--paper);border:1px solid var(--rule);display:grid;place-items:center;margin:0 auto 14px;color:var(--muted)}
 .bk-empty b{display:block;margin-bottom:5px}
 .bk-empty p{color:var(--muted);font-size:var(--text-sm);max-width:44ch;margin:0 auto 15px}
+.bk-fixform{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-top:16px;padding-top:16px;border-top:1px solid var(--rule)}
+.bk-fixform input,.bk-fixform select{min-height:38px;min-width:0;flex:1 1 130px;max-width:100%;padding:7px 11px;border:1px solid var(--rule-strong);border-radius:8px;font:inherit;background:var(--paper);color:var(--ink)}
+.bk-fixform .btn{min-height:38px;flex:0 0 auto}
 .bk-ticket{position:sticky;top:96px;border:1px solid var(--rule-strong);border-radius:var(--r-l);background:var(--paper);box-shadow:var(--shadow-lift);padding:22px 22px 20px}
 .bk-price{display:flex;align-items:baseline;gap:7px}
 .bk-price b{font-family:var(--mono);font-size:var(--text-xl);font-weight:700;letter-spacing:-.02em;font-variant-numeric:tabular-nums}
@@ -7700,6 +7703,36 @@ function trainingLocHTML(p){
   </section>`;
 }
 
+/* Season schedule (program_fixtures, live table). Fetched on demand when a
+   team/camp detail opens; cached in S.fixtures[id] (null = fetching). RLS returns
+   only a published program's fixtures to the public, and lets the program's owner
+   read/write theirs — so the write below is owner-gated by the DB, not the client. */
+function hydrateFixtures(id){
+  if(!window.SporveAPI||!id) return;
+  S.fixtures=S.fixtures||{};
+  window.SporveAPI.from("program_fixtures",
+    "select=starts_at,kind,opponent,location,home_away&program_id=eq."+encodeURIComponent(id)+
+    "&order=starts_at.asc").then(function(rows){
+    S.fixtures[id]=Array.isArray(rows)?rows:[]; render();
+  }).catch(function(){ S.fixtures[id]=Array.isArray(S.fixtures[id])?S.fixtures[id]:[]; render(); });
+}
+function seasonScheduleHTML(id,p){
+  const f=(S.fixtures||{})[id];
+  const owner=!!(p.providerId&&S.myProviderId&&p.providerId===S.myProviderId);
+  const cap=s=>String(s||"").charAt(0).toUpperCase()+String(s||"").slice(1);
+  const form=owner?`<div class="bk-fixform" data-fixform="${esc(id)}">
+      <input type="datetime-local" data-fx-when aria-label="Date and time">
+      <select data-fx-kind aria-label="Type">${[["game","Game"],["training","Training"],["tournament","Tournament"],["scrimmage","Scrimmage"],["event","Event"]].map(k=>`<option value="${k[0]}">${k[1]}</option>`).join("")}</select>
+      <input type="text" data-fx-opp placeholder="Opponent (optional)" aria-label="Opponent">
+      <input type="text" data-fx-loc placeholder="Location (optional)" aria-label="Location">
+      <button type="button" class="btn sm" data-fixsave="${esc(id)}">Add fixture</button>
+    </div>`:"";
+  let body;
+  if(f===null||f===undefined){ body=`<p style="color:var(--muted)">Loading the schedule…</p>`; }
+  else if(!f.length){ body=`<div class="bk-empty"><b>Schedule coming soon</b><p>${owner?"Add your first fixture below — dates, opponents, and locations appear here for families.":"The club posts fixtures here as the season is set — dates, opponents, and locations."}</p></div>`; }
+  else { body=`<table class="bk-sessions"><thead><tr><th>Date</th><th>Type</th><th>Details</th></tr></thead><tbody>${f.map(x=>`<tr><td class="d">${fmtDate(String(x.starts_at).slice(0,10))}</td><td>${esc(cap(x.kind))}</td><td>${esc([x.opponent&&("vs "+x.opponent),x.location,x.home_away].filter(Boolean).join(" · ")||"—")}</td></tr>`).join("")}</tbody></table>`; }
+  return `<section class="bk-sec"><h2>Season schedule</h2>${body}${form}</section>`;
+}
 function detailHTML(id){
   /* A slot id from a DIFFERENT listing must not survive into this one — it
      would either vanish from the select or, worse, book someone else's
@@ -7720,6 +7753,9 @@ function detailHTML(id){
   /* Default the session pick to the first slot so "Request to book" works even if
      the dropdown is never touched. */
   if(slots.length&&!S.slotPick){ S.slotPick=slots[0].id; }
+  /* Team/camp: fetch the season schedule once (null marks in-flight so re-renders
+     don't re-fetch). Solo has no season, so it is skipped. */
+  if(kind!=="solo"){ S.fixtures=S.fixtures||{}; if(!(id in S.fixtures)){ S.fixtures[id]=null; hydrateFixtures(id); } }
   const svgCard=`<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:-2px"><rect x="2" y="5" width="20" height="14" rx="2"/><path d="M2 10h20"/></svg>`;
   const svgLock=`<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:-1px"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>`;
   const factIc={
@@ -7765,6 +7801,7 @@ function detailHTML(id){
       </section>
 
       ${weeklyAvailHTML(slots)}
+      ${kind!=="solo"?seasonScheduleHTML(id,p):""}
       ${coachAboutHTML(p)}
       ${trainingLocHTML(p)}
 
@@ -12388,6 +12425,22 @@ document.querySelectorAll('.sig-ai-coach').forEach(sigAiCoachWire);
   /* Booking-detail session dropdown (professional layout). Price is constant per
      program, so setting the pick needs no re-render — data-book reads S.slotPick. */
   $("[data-slotselect]").forEach(el=>el.onchange=()=>{ S.slotPick=el.value; });
+  /* Owner adds a season fixture. status/ownership are enforced by RLS (only the
+     program's provider-owner may insert), so the client body is not the gate. */
+  $("[data-fixsave]").forEach(b=>b.onclick=()=>requireAuth(()=>{
+    const id=b.dataset.fixsave;
+    const wrap=b.closest("[data-fixform]")||document;
+    const when=(wrap.querySelector("[data-fx-when]")||{}).value;
+    const kind=(wrap.querySelector("[data-fx-kind]")||{}).value||"game";
+    const opp=((wrap.querySelector("[data-fx-opp]")||{}).value||"").trim()||null;
+    const loc=((wrap.querySelector("[data-fx-loc]")||{}).value||"").trim()||null;
+    if(!when) return toast("Pick a date and time for the fixture.");
+    b.disabled=true;
+    window.SporveAPI.from("program_fixtures","",{method:"POST",body:{
+      program_id:id, starts_at:new Date(when).toISOString(), kind:kind, opponent:opp, location:loc}})
+      .then(()=>{ toast("Fixture added."); if(S.fixtures) delete S.fixtures[id]; hydrateFixtures(id); })
+      .catch(()=>{ b.disabled=false; toast("Could not add that — check you own this program."); });
+  }));
   $("[data-pin]").forEach(b=>b.onclick=()=>{S.mapPick=b.dataset.pin;render();});
   $("[data-info]").forEach(b=>b.onclick=()=>{S.modal=null;go("info",b.dataset.info);});
   /* ── landing wiring ── */
@@ -14531,6 +14584,7 @@ function hydrateReviews(){
   if(!(S.auth&&S.auth.user&&S.auth.user.role==="provider")) return;
   window.SporveCoach.load().then(function(prov){
     if(!prov||!prov.id) return null;
+    S.myProviderId=prov.id;   /* cached so the detail page can owner-gate the fixtures form */
     return window.SporveAPI.from("reviews",
       "select=id,program_id,rating,body,created_at,booking_id,response_body"+
       "&reviewee_id=eq."+encodeURIComponent(prov.id)+
