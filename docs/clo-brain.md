@@ -25,6 +25,12 @@ when two conflict; strike the loser, don't delete the history.
   etc.). No Google Fonts load. A new face needs a real woff2 dropped in that dir.
 
 ## Design law
+- **Product pages render under `#app.reg-tabs`, and `#app.reg-tabs h1/.pg-serif`
+  (id-level, 1,x,0) forces the display face.** Any type change to a product hero
+  MUST out-specify it — a class rule (0,2,0) silently loses and reads as "dead CSS."
+  Product h1s carry `class="pg-serif pg-h1"`; the winning selector is
+  `#app.reg-tabs .pg-serif.pg-h1` (1,3,0). Verify a type change with a rendered-DOM
+  `getComputedStyle(h1).fontFamily`, never by reading the rule you added.
 - **Palette is frozen** (black/white/slate + sport accents). A spec proposing new
   hex is approximating tokens already here. See `src/design-rules.md`, CLAUDE.md 3-5.
 - **Type canon (owner, evolving):** currently Instrument Serif (main hero) / Archivo
