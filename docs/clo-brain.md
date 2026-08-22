@@ -45,6 +45,11 @@ when two conflict; strike the loser, don't delete the history.
   per-month/season pricing. Any booking-page restyle edits this ONE function; keep
   the priceLadder + weeklyAvail sections (smoke `coach profile` enforces them). No
   fabricated fixtures/roster names (data GAP).
+- **The booking detail (`.bk-*`) is intentionally ONE clean sans (Inter) at SMALL
+  sizes** — NOT Instrument Serif, NOT Archivo (owner 2026-08-22 ref-image directive:
+  "too big / too many fonts"). `.bk-h1`=Inter ~21px, section h2=Inter, facts=Inter;
+  mono only on price/total/session-times. This is a deliberate per-surface exception
+  to the Instrument-Serif-main-header canon — do NOT "restore" the serif here.
 - **Type canon (owner, evolving):** currently Instrument Serif (main hero) / Archivo
   (secondary/athletic) / Inter (body) / JetBrains Mono (numerals). A STYLE FREEZE is
   on until the first real charge (CLAUDE.md design-system). All embedded token swaps.
