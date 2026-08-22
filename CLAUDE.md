@@ -77,6 +77,33 @@ faces — token swaps, no Google Fonts load. Lineage: Syne → Archivo → this.
 further type churn is in scope; lift the freeze only when WF-7's first charge is
 proven.
 
+**COMPACT-SERIF SWEEP (owner decision 2026-08-22 — WF-9 lifted for THIS sweep
+only; the freeze otherwise stands until WF-7's first charge).** On the
+FAMILY / non-coach surfaces, every header is now **Instrument Serif 400** —
+hierarchy is size + colour, the serif is NEVER bolded. Archivo is RETIRED as the
+"athletic secondary" face on family headers (the old `#app.reg-tabs` Archivo rule
+was flipped to serif). Compact scale, retuned inside `#app:not(.coachdark)` so
+custom-property inheritance shrinks the family tree only:
+
+| role | token | size (desktop→mobile) |
+|---|---|---|
+| display hero (stages only) | `--text-hero` | 56 → 36 |
+| in-app page title (bare `h1`) | `--text-h1` | 28 → 24 |
+| section header `h2` | `--text-2xl` | 22 → 20 |
+| card/module `h3` | `--text-lg` | 17 → 16 |
+| product stat readout `.pg-stat .n` | — | serif, ≤56 |
+| body | `--text-base` | 14.5 (kept — already compact) |
+
+**The coach portal is EXCLUDED and must stay so.** Anything under
+`#app.coachdark` / `body.reg-coach` keeps Archivo headers + Inter body at the
+`:root` sizes. This is enforced ONLY by selector scoping (`:not(.coachdark)`) —
+smoke CANNOT catch a coach-font leak (its coach gate accepts 21–54px), so never
+edit a shared bare-`h1`/`h2`/`h3` rule without the `:not(.coachdark)` guard.
+Verify any header change by rendered-DOM `getComputedStyle`, never by reading the
+rule. Smoke scale gate widened for the compact sizes (20/16px, ceiling 56).
+Still open (optional polish): per-page `.pg-*` hero clamps, dead inline
+`font-size` on template heads, Flutter TextTheme parity (separate `~/SportsMan-main`).
+
 ## 3. Colour law
 
 ~6 times, and stated as an absolute: *"DO NOT CHANGE the brand color palette"*,
