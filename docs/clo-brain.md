@@ -17,6 +17,11 @@ when two conflict; strike the loser, don't delete the history.
 - **Template-literal strings never appear in served HTML.** Verify a deploy by a
   *source* marker, `wc -c`/build-hash parity, or the rendered DOM — never `grep`
   of `index.html`. (This has cost real timeouts.)
+- **No inline event-handler attributes** (`onclick=`, `onsubmit=`, …). The CSP
+  hashes cover inlined `<script>` blocks only; an inline handler attribute is
+  blocked and `smoke.sh` fails it. Use a `data-*` attribute + a `$("[data-x]")`
+  handler in the wiring function. (A form needing no submit → use a `<div>`, not
+  `<form onsubmit=...>`.)
 - **Inlined modules share NO lexical scope.** `mod-*.js` talk to the host only
   through `window.*`; the host's `const S` (state) and `const esc` are NOT visible
   to modules. Bridge data via a `window.SporveX` global (e.g. `window.SporveOrgCompliance`).
