@@ -67,8 +67,10 @@ when two conflict; strike the loser, don't delete the history.
   NOT on `main`** — applied to prod BY HAND per the migration/commit text, so branch
   state ≠ prod state. The self-verify control is the with_check in `20260822_000200`
   (`is_org_admin(org) and status in ('none','pending')`); `000100` alone has NO status
-  clause and would let an org admin self-set `verified`. Confirm which is live with a
-  read-only `select policyname,with_check from pg_policies where tablename='staff_certifications'`.
+  clause and would let an org admin self-set `verified`. **VERIFIED LIVE 2026-08-22:**
+  prod `with_check` = `is_org_admin(organization_id) AND status = ANY(ARRAY['none','pending'])`
+  — `000200` IS applied; the self-verify lock holds (pentest F1 CLOSED). Also verified:
+  `20260822 staff_certifications` PRs #34 merged to `main` (branch ≠ prod concern resolved).
 - **`check_production_invariants()` (last touched 20260817) PREDATES staff_certifications,
   so "invariant board 0 FAIL" does NOT prove the cert self-verify control is live.**
   The board covers bg-check/fee/webhook invariants only; the cert with_check is unmonitored.
