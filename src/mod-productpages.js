@@ -579,10 +579,33 @@
         "<div><span>Priya N. · assistant</span><b class='pg-cbd pg-cbd-pending'>Pending</b></div>" +
         "<div><span>Tom B. · front desk</span><b class='pg-cbd pg-cbd-expired'>Expired</b></div></aside>";
     }
+    // Slice 6 write path — a signed-in org admin can RECORD a staff cert. It is
+    // stored as 'pending'; the DB rejects a client trying to set 'verified' (only
+    // a vendor/attestation process can), so a director can't self-clear anyone.
+    var kinds = [["cpr", "CPR"], ["first_aid", "First Aid"], ["safesport", "SafeSport"],
+                 ["concussion", "Concussion"], ["waiver", "Waiver"], ["other", "Other"]];
+    var certForm = (oc && oc.total && oc.orgId) ? (
+      "<section class='pgband white pg-certform-band'><div class='shell'>" +
+      "<h2>Record a certification</h2>" +
+      "<p class='pg-certform-note'>Saved as <b>pending</b> — a verification step confirms it. You can record a cert or waiver; you cannot mark it cleared yourself.</p>" +
+      "<div class='pg-certform' data-certform>" +
+      "<select data-cert-member aria-label='Staff member'>" +
+        oc.rows.filter(function (m) { return m.memberId; }).map(function (m) {
+          return "<option value='" + escP(m.memberId) + "'>" + prettyRole(m.role) + " · " + escP(String(m.memberId).slice(0, 4)) + "</option>";
+        }).join("") +
+      "</select>" +
+      "<select data-cert-kind aria-label='Certification'>" +
+        kinds.map(function (k) { return "<option value='" + k[0] + "'>" + k[1] + "</option>"; }).join("") +
+      "</select>" +
+      "<input type='date' data-cert-expiry aria-label='Expiry date'>" +
+      "<button type='button' class='btn' data-certsave data-org='" + escP(oc.orgId) + "'>Record</button>" +
+      "</div></div></section>"
+    ) : "";
     return wrap("enterprise-compliance", "R6", "compliance-board-to-question-ledger", "D-L", hero(meta,
       "Trust that <em>fails closed.</em>",
       "Enterprise compliance is designed to run the trust layer for a whole staff at once: each person's background check orchestrated through an independent vendor, every certificate and waiver tracked to a date, and a single board showing who is clear, pending, or expired. The rule the whole company is built on holds here — an unverified person cannot take a booking. It is in development and shown as a labelled sample.",
       { tone: "dark", layout: "compliance-board", eyebrow: "ENTERPRISE · IN DEVELOPMENT", aside: board }) +
+      certForm +
       questionSection(questions, { tone: "white", layout: "org-compliance-ledger", className: "pg-compliance-questions" }));
   }
 

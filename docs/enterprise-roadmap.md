@@ -54,9 +54,16 @@ communication accountability.**
      (verified AND non-expired only); compliance board shows a "Certs / waivers:
      N current · M exp. · K expired" line for a signed-in org admin (off when the
      table is empty). smoke tripwire guards it (S0). Resolves #313/#316/#323.
-   - ▶ **Slice 6 (next, RED):** extend the booking bg-check gate to org staff (an
-     org cannot book/supply a staff member who isn't cleared) — server/RLS draft.
-     And a cert-management UI (write path) so a director records certs.
+   - ✅ **Slice 6 SHIPPED 2026-08-22 (build 304f4e32):** the cert WRITE path.
+     RLS trust-hardened (applied to prod): the admin policy `with_check` now forbids
+     a client writing `status='verified'` — only service_role (a vendor/attestation
+     process) can, so a director cannot self-clear. Web: a "Record a certification"
+     form on the compliance page for a signed-in org admin (member · kind · expiry →
+     inserts as `pending`, re-hydrates the board). Verified RLS + invariant board 0 FAIL.
+   - ▶ **Slice 7 (next, RED):** extend the booking/supply bg-check gate to org staff
+     (an org cannot put an uncleared staff member into bookable supply — the
+     invariant already asserts an org can't self-verify a trainer). And a
+     service-role verification path (vendor webhook) to move a cert pending→verified.
 2. **Club money transparency** (201–240). `split_pay_links` + `coach_invoices` +
    `commission_rates` are authored on SportsMan-main. RED-set (Stripe) — apply +
    audit as drafts the owner deploys. Family ledger, itemized dues, per-team P&L.

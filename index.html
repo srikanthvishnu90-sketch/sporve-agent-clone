@@ -21,7 +21,7 @@
 <meta name="twitter:description" content="Find coaches, trainers, camps and teams across 20+ sports in Chicagoland.">
 <meta name="twitter:image" content="https://the-sporve-web.vercel.app/og.png">
 <link rel="icon" href="data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%2032%2032'%3E%3Crect%20width='32'%20height='32'%20rx='7'%20fill='%2309090B'/%3E%3Ccircle%20cx='16'%20cy='16'%20r='6'%20fill='white'/%3E%3C/svg%3E">
-<meta name="sporve-build" content="e196fed334fb4b39">
+<meta name="sporve-build" content="304f4e325c62ec71">
 </head>
 <body>
 <noscript><h1>Sporv — Every sport. One app.</h1><p>Sporv connects families and athletes with coaches, trainers, camps, and teams across more than 20 sports. Please enable JavaScript to use the app.</p></noscript>
@@ -4739,6 +4739,11 @@ body.reg-coach .rail button{font-size:var(--t-small)}
 .pg-hero-compliance span{color:#94A3B8}
 .pg-hero-compliance b{font-weight:600}
 .pg-cbd-clear{color:#fff}.pg-cbd-pending{color:#94A3B8}.pg-cbd-expired{color:#94A3B8}
+/* Slice 6 cert-entry form (org admins only). 8px grid; uses the frozen tokens. */
+.pg-certform-band .pg-certform-note{color:var(--muted);font-size:var(--text-sm);margin:8px 0 16px;max-width:60ch}
+.pg-certform{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.pg-certform select,.pg-certform input{min-height:40px;padding:8px 12px;border:1px solid var(--rule-strong);border-radius:8px;font:inherit;background:var(--paper);color:var(--ink)}
+.pg-certform .btn{min-height:40px}
 
 @media(max-width:820px){
   .rebuild-page .pg-hero-inner{grid-template-columns:1fr!important;gap:16px;align-items:start}
@@ -12275,6 +12280,23 @@ document.querySelectorAll('.sig-ai-coach').forEach(sigAiCoachWire);
      write that never happened, which is the difference between an unfinished
      feature and a false statement. */
   $("[data-save]").forEach(b=>b.onclick=()=>toast("Saving isn't connected yet — this won't persist"));
+  /* Enterprise slice 6 — record a staff certification. Always status:'pending';
+     the DB with_check rejects a client 'verified', so a director cannot self-clear.
+     Re-hydrates the board on success. */
+  $("[data-certsave]").forEach(b=>b.onclick=()=>requireAuth(()=>{
+    const wrap=b.closest("[data-certform]")||document;
+    const member=(wrap.querySelector("[data-cert-member]")||{}).value;
+    const kind=(wrap.querySelector("[data-cert-kind]")||{}).value;
+    const expiry=(wrap.querySelector("[data-cert-expiry]")||{}).value;
+    const org=b.dataset.org;
+    if(!member||!kind||!org) return toast("Pick a staff member and a certification.");
+    b.disabled=true;
+    window.SporveAPI.from("staff_certifications","",{method:"POST",body:{
+      organization_id:org, member_user_id:member, kind:kind, status:"pending",
+      expires_at:expiry||null}})
+      .then(()=>{toast("Certification recorded (pending verification)."); hydrateStaffCerts();})
+      .catch(()=>{b.disabled=false; toast("Could not record that. Please try again.");});
+  }));
   /* Reset the portal too. Without it, render() kept short-circuiting to the
      coach dashboard and a signed-out user still looked signed in. */
   $("[data-logout]").forEach(b=>b.onclick=()=>{
@@ -28055,10 +28077,33 @@ window.MOD_COMPANIES = {
         "<div><span>Priya N. · assistant</span><b class='pg-cbd pg-cbd-pending'>Pending</b></div>" +
         "<div><span>Tom B. · front desk</span><b class='pg-cbd pg-cbd-expired'>Expired</b></div></aside>";
     }
+    // Slice 6 write path — a signed-in org admin can RECORD a staff cert. It is
+    // stored as 'pending'; the DB rejects a client trying to set 'verified' (only
+    // a vendor/attestation process can), so a director can't self-clear anyone.
+    var kinds = [["cpr", "CPR"], ["first_aid", "First Aid"], ["safesport", "SafeSport"],
+                 ["concussion", "Concussion"], ["waiver", "Waiver"], ["other", "Other"]];
+    var certForm = (oc && oc.total && oc.orgId) ? (
+      "<section class='pgband white pg-certform-band'><div class='shell'>" +
+      "<h2>Record a certification</h2>" +
+      "<p class='pg-certform-note'>Saved as <b>pending</b> — a verification step confirms it. You can record a cert or waiver; you cannot mark it cleared yourself.</p>" +
+      "<div class='pg-certform' data-certform>" +
+      "<select data-cert-member aria-label='Staff member'>" +
+        oc.rows.filter(function (m) { return m.memberId; }).map(function (m) {
+          return "<option value='" + escP(m.memberId) + "'>" + prettyRole(m.role) + " · " + escP(String(m.memberId).slice(0, 4)) + "</option>";
+        }).join("") +
+      "</select>" +
+      "<select data-cert-kind aria-label='Certification'>" +
+        kinds.map(function (k) { return "<option value='" + k[0] + "'>" + k[1] + "</option>"; }).join("") +
+      "</select>" +
+      "<input type='date' data-cert-expiry aria-label='Expiry date'>" +
+      "<button type='button' class='btn' data-certsave data-org='" + escP(oc.orgId) + "'>Record</button>" +
+      "</div></div></section>"
+    ) : "";
     return wrap("enterprise-compliance", "R6", "compliance-board-to-question-ledger", "D-L", hero(meta,
       "Trust that <em>fails closed.</em>",
       "Enterprise compliance is designed to run the trust layer for a whole staff at once: each person's background check orchestrated through an independent vendor, every certificate and waiver tracked to a date, and a single board showing who is clear, pending, or expired. The rule the whole company is built on holds here — an unverified person cannot take a booking. It is in development and shown as a labelled sample.",
       { tone: "dark", layout: "compliance-board", eyebrow: "ENTERPRISE · IN DEVELOPMENT", aside: board }) +
+      certForm +
       questionSection(questions, { tone: "white", layout: "org-compliance-ledger", className: "pg-compliance-questions" }));
   }
 
@@ -28531,18 +28576,20 @@ window.certState=certState;
 function hydrateOrgCompliance(){
   if(!window.SporveAPI||!window.SporveAuth||!window.SporveAuth.isSignedIn()) return;
   window.SporveAPI.from("organization_members",
-    "select=role,background_check_status,background_check_completed_at,is_active"+
+    "select=organization_id,member_user_id,role,background_check_status,background_check_completed_at,is_active"+
     "&is_active=eq.true").then(function(rows){
     if(!Array.isArray(rows)||!rows.length) return;   // no org membership → sample
     var states=rows.map(orgMemberStatus);
     var count=function(s){return states.filter(function(x){return x===s;}).length;};
     S.orgCompliance={
       total:rows.length,
+      orgId:rows[0].organization_id||null,
       cleared:count("clear"),
       expiring:count("expiring"),
       expired:count("expired"),
       rows:rows.map(function(m){var st=orgMemberStatus(m);return {
         role:m.role||"Staff", cleared:st==="clear", state:st,
+        memberId:m.member_user_id||null,
         daysLeft:bgDaysLeft(m.background_check_completed_at)};})
     };
     /* The product pages are a separate inlined scope that talks to the host only
