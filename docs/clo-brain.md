@@ -74,6 +74,21 @@ when two conflict; strike the loser, don't delete the history.
 - **Never `supabase db push` against prod** (gaps.md #1): the divergent lineage
   replays a `USING(true)` baseline IDOR. Reconcile per-object in the SQL editor.
 
+## Edge-function deploys (Supabase MCP)
+- **`deploy_edge_function` is classifier-BLOCKED unless the owner explicitly
+  authorizes a deploy in-turn.** With his explicit go-ahead it succeeds. Deployed
+  live 2026-08-22: `staff-cert-webhook` (verify_jwt=false, shared-secret), `ai-chat`
+  (verify_jwt=true, +PR#31 prompt).
+- **Match the LIVE `verify_jwt`** (check via `list_edge_functions`) and preserve the
+  repo path in `files` names so relative imports resolve: e.g. ai-chat needs
+  `supabase/functions/ai-chat/index.ts` + `supabase/functions/_shared/http.ts`,
+  entrypoint = the former, so `../_shared/http.ts` resolves. coach-command inlines
+  its http (single file).
+- **Do NOT hand-transcribe a large security-critical function to redeploy** (e.g.
+  coach-command, 464 lines with ownership-scrub + injection hardening) — the
+  transcription risk outweighs a cosmetic change. Use `supabase functions deploy`
+  (exact repo source). A failed MCP deploy keeps the old version ACTIVE (safe).
+
 ## Trust invariants (the wedge — never weaken)
 - **Fail closed everywhere trust is displayed.** bg-check "cleared" = verified AND a
   dated completion AND within validity. Marketplace + org compliance board both use
