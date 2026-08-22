@@ -533,15 +533,18 @@
     var board;
     if (oc && oc.total) {
       var badge = function (m) {
-        if (m.cleared) return "<b class='pg-cbd pg-cbd-clear'>Clear</b>";
-        if (m.status === "expired") return "<b class='pg-cbd pg-cbd-expired'>Expired</b>";
-        if (m.status === "pending") return "<b class='pg-cbd pg-cbd-pending'>Pending</b>";
+        if (m.state === "clear") return "<b class='pg-cbd pg-cbd-clear'>Clear</b>";
+        if (m.state === "expiring") return "<b class='pg-cbd pg-cbd-pending'>Expiring" + (m.daysLeft != null ? " · " + m.daysLeft + "d" : "") + "</b>";
+        if (m.state === "expired") return "<b class='pg-cbd pg-cbd-expired'>Expired</b>";
+        if (m.state === "pending") return "<b class='pg-cbd pg-cbd-pending'>Pending</b>";
         return "<b class='pg-cbd pg-cbd-pending'>Not cleared</b>";
       };
       var headClass = oc.cleared === oc.total ? "pg-cbd-clear" : "pg-cbd-pending";
+      var attention = (oc.expiring || 0) + (oc.expired || 0);
       board = "<aside class='pg-hero-compliance' aria-label='Your organization compliance board'>" +
         "<div class='pg-board-top'><span>COMPLIANCE BOARD</span><span>Live · your organization</span></div>" +
         "<div><span>Adults cleared</span><b class='pg-cbd " + headClass + "'>" + oc.cleared + " of " + oc.total + "</b></div>" +
+        (attention ? "<div><span>Re-run needed</span><b class='pg-cbd pg-cbd-expired'>" + attention + "</b></div>" : "") +
         oc.rows.slice(0, 8).map(function (m) {
           return "<div><span>" + prettyRole(m.role) + "</span>" + badge(m) + "</div>";
         }).join("") + "</aside>";

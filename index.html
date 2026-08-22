@@ -21,7 +21,7 @@
 <meta name="twitter:description" content="Find coaches, trainers, camps and teams across 20+ sports in Chicagoland.">
 <meta name="twitter:image" content="https://the-sporve-web.vercel.app/og.png">
 <link rel="icon" href="data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%2032%2032'%3E%3Crect%20width='32'%20height='32'%20rx='7'%20fill='%2309090B'/%3E%3Ccircle%20cx='16'%20cy='16'%20r='6'%20fill='white'/%3E%3C/svg%3E">
-<meta name="sporve-build" content="00ea16e23901c653">
+<meta name="sporve-build" content="656b845d70baece4">
 </head>
 <body>
 <noscript><h1>Sporv — Every sport. One app.</h1><p>Sporv connects families and athletes with coaches, trainers, camps, and teams across more than 20 sports. Please enable JavaScript to use the app.</p></noscript>
@@ -28009,15 +28009,18 @@ window.MOD_COMPANIES = {
     var board;
     if (oc && oc.total) {
       var badge = function (m) {
-        if (m.cleared) return "<b class='pg-cbd pg-cbd-clear'>Clear</b>";
-        if (m.status === "expired") return "<b class='pg-cbd pg-cbd-expired'>Expired</b>";
-        if (m.status === "pending") return "<b class='pg-cbd pg-cbd-pending'>Pending</b>";
+        if (m.state === "clear") return "<b class='pg-cbd pg-cbd-clear'>Clear</b>";
+        if (m.state === "expiring") return "<b class='pg-cbd pg-cbd-pending'>Expiring" + (m.daysLeft != null ? " · " + m.daysLeft + "d" : "") + "</b>";
+        if (m.state === "expired") return "<b class='pg-cbd pg-cbd-expired'>Expired</b>";
+        if (m.state === "pending") return "<b class='pg-cbd pg-cbd-pending'>Pending</b>";
         return "<b class='pg-cbd pg-cbd-pending'>Not cleared</b>";
       };
       var headClass = oc.cleared === oc.total ? "pg-cbd-clear" : "pg-cbd-pending";
+      var attention = (oc.expiring || 0) + (oc.expired || 0);
       board = "<aside class='pg-hero-compliance' aria-label='Your organization compliance board'>" +
         "<div class='pg-board-top'><span>COMPLIANCE BOARD</span><span>Live · your organization</span></div>" +
         "<div><span>Adults cleared</span><b class='pg-cbd " + headClass + "'>" + oc.cleared + " of " + oc.total + "</b></div>" +
+        (attention ? "<div><span>Re-run needed</span><b class='pg-cbd pg-cbd-expired'>" + attention + "</b></div>" : "") +
         oc.rows.slice(0, 8).map(function (m) {
           return "<div><span>" + prettyRole(m.role) + "</span>" + badge(m) + "</div>";
         }).join("") + "</aside>";
@@ -28441,14 +28444,37 @@ function hydrateReviews(){
 }
 
 /* Fail-closed clearance rule (trust law, same strict gate as the marketplace +
-   invariant board): a staff member is CLEARED only with a real 'verified' status
-   AND a dated completion. A verified flag with no date, or any other status, is
-   NOT cleared. Pure + exported so smoke can prove it never drifts open. */
-function orgMemberCleared(m){
-  return !!m && m.background_check_status==="verified" &&
-         !!m.background_check_completed_at;
+   invariant board). A staff member's derived state:
+     clear    — verified, dated, and within the validity window
+     expiring — clear but within WARN_DAYS of expiry (surface the re-run early)
+     expired  — verified+dated but past the validity window (NO LONGER cleared)
+     pending  — a check is running
+     none     — no usable check
+   Slice 2 adds expiry from background_check_completed_at (the only date we have),
+   so an old check silently aging out can never keep reading as cleared (AAU #33,
+   #316, #345). Annual re-check is the stricter, youth-safety choice. Pure +
+   exported so smoke can prove the gate never drifts open. */
+var BGCHECK_VALID_DAYS=365;   // a check older than this is expired, not cleared
+var BGCHECK_WARN_DAYS=30;     // flag "expiring" this far ahead of expiry
+function bgDaysLeft(completedAt){
+  if(!completedAt) return null;
+  var done=new Date(completedAt); if(isNaN(done.getTime())) return null;
+  return Math.floor((done.getTime()+BGCHECK_VALID_DAYS*864e5-Date.now())/864e5);
 }
+function orgMemberStatus(m){
+  if(!m||m.background_check_status!=="verified"||!m.background_check_completed_at){
+    return (m&&m.background_check_status==="pending")?"pending":"none";
+  }
+  var d=bgDaysLeft(m.background_check_completed_at);
+  if(d===null) return "none";
+  if(d<0) return "expired";
+  if(d<=BGCHECK_WARN_DAYS) return "expiring";
+  return "clear";
+}
+function orgMemberCleared(m){ return orgMemberStatus(m)==="clear"; }
 window.orgMemberCleared=orgMemberCleared;
+window.orgMemberStatus=orgMemberStatus;
+window.bgDaysLeft=bgDaysLeft;
 
 /* Org compliance board — enterprise slice 1. Answers "is every adult around kids
    cleared?" (AAU inventory #345) from the LIVE organization_members table. RLS
@@ -28460,12 +28486,16 @@ function hydrateOrgCompliance(){
     "select=role,background_check_status,background_check_completed_at,is_active"+
     "&is_active=eq.true").then(function(rows){
     if(!Array.isArray(rows)||!rows.length) return;   // no org membership → sample
+    var states=rows.map(orgMemberStatus);
+    var count=function(s){return states.filter(function(x){return x===s;}).length;};
     S.orgCompliance={
       total:rows.length,
-      cleared:rows.filter(orgMemberCleared).length,
-      rows:rows.map(function(m){return {
-        role:m.role||"Staff", cleared:orgMemberCleared(m),
-        status:m.background_check_status||"none"};})
+      cleared:count("clear"),
+      expiring:count("expiring"),
+      expired:count("expired"),
+      rows:rows.map(function(m){var st=orgMemberStatus(m);return {
+        role:m.role||"Staff", cleared:st==="clear", state:st,
+        daysLeft:bgDaysLeft(m.background_check_completed_at)};})
     };
     /* The product pages are a separate inlined scope that talks to the host only
        through window.*, so expose the board data there for the compliance page. */

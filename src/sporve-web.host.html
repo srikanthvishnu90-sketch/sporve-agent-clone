@@ -14456,14 +14456,37 @@ function hydrateReviews(){
 }
 
 /* Fail-closed clearance rule (trust law, same strict gate as the marketplace +
-   invariant board): a staff member is CLEARED only with a real 'verified' status
-   AND a dated completion. A verified flag with no date, or any other status, is
-   NOT cleared. Pure + exported so smoke can prove it never drifts open. */
-function orgMemberCleared(m){
-  return !!m && m.background_check_status==="verified" &&
-         !!m.background_check_completed_at;
+   invariant board). A staff member's derived state:
+     clear    — verified, dated, and within the validity window
+     expiring — clear but within WARN_DAYS of expiry (surface the re-run early)
+     expired  — verified+dated but past the validity window (NO LONGER cleared)
+     pending  — a check is running
+     none     — no usable check
+   Slice 2 adds expiry from background_check_completed_at (the only date we have),
+   so an old check silently aging out can never keep reading as cleared (AAU #33,
+   #316, #345). Annual re-check is the stricter, youth-safety choice. Pure +
+   exported so smoke can prove the gate never drifts open. */
+var BGCHECK_VALID_DAYS=365;   // a check older than this is expired, not cleared
+var BGCHECK_WARN_DAYS=30;     // flag "expiring" this far ahead of expiry
+function bgDaysLeft(completedAt){
+  if(!completedAt) return null;
+  var done=new Date(completedAt); if(isNaN(done.getTime())) return null;
+  return Math.floor((done.getTime()+BGCHECK_VALID_DAYS*864e5-Date.now())/864e5);
 }
+function orgMemberStatus(m){
+  if(!m||m.background_check_status!=="verified"||!m.background_check_completed_at){
+    return (m&&m.background_check_status==="pending")?"pending":"none";
+  }
+  var d=bgDaysLeft(m.background_check_completed_at);
+  if(d===null) return "none";
+  if(d<0) return "expired";
+  if(d<=BGCHECK_WARN_DAYS) return "expiring";
+  return "clear";
+}
+function orgMemberCleared(m){ return orgMemberStatus(m)==="clear"; }
 window.orgMemberCleared=orgMemberCleared;
+window.orgMemberStatus=orgMemberStatus;
+window.bgDaysLeft=bgDaysLeft;
 
 /* Org compliance board — enterprise slice 1. Answers "is every adult around kids
    cleared?" (AAU inventory #345) from the LIVE organization_members table. RLS
@@ -14475,12 +14498,16 @@ function hydrateOrgCompliance(){
     "select=role,background_check_status,background_check_completed_at,is_active"+
     "&is_active=eq.true").then(function(rows){
     if(!Array.isArray(rows)||!rows.length) return;   // no org membership → sample
+    var states=rows.map(orgMemberStatus);
+    var count=function(s){return states.filter(function(x){return x===s;}).length;};
     S.orgCompliance={
       total:rows.length,
-      cleared:rows.filter(orgMemberCleared).length,
-      rows:rows.map(function(m){return {
-        role:m.role||"Staff", cleared:orgMemberCleared(m),
-        status:m.background_check_status||"none"};})
+      cleared:count("clear"),
+      expiring:count("expiring"),
+      expired:count("expired"),
+      rows:rows.map(function(m){var st=orgMemberStatus(m);return {
+        role:m.role||"Staff", cleared:st==="clear", state:st,
+        daysLeft:bgDaysLeft(m.background_check_completed_at)};})
     };
     /* The product pages are a separate inlined scope that talks to the host only
        through window.*, so expose the board data there for the compliance page. */

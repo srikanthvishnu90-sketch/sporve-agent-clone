@@ -37,9 +37,17 @@ communication accountability.**
      verified **and** dated only), feeds the enterprise-compliance board real
      "N of M cleared" for a signed-in org admin; guests keep the labelled sample.
      smoke tripwire guards the fail-closed rule (S0 if it opens).
-   - ▶ **Slice 2 (next):** per-staff cert + waiver expiry tracking; 30/7-day alerts.
-   - ▶ **Slice 3:** extend the booking bg-check gate to org staff (RED — server/RLS,
-     draft only): an org cannot self-verify a trainer (invariant already asserts this).
+   - ✅ **Slice 2 SHIPPED 2026-08-22:** background-check EXPIRY awareness from the
+     live `background_check_completed_at` (no new schema). `orgMemberStatus()` derives
+     clear / expiring (≤30d) / expired / pending / none; an expired check no longer
+     reads as cleared (gate tightened). Board shows per-staff Expiring·Nd / Expired
+     badges + a "Re-run needed" count. smoke tripwire extended (relative dates) to
+     prove expired/pending/undated never read cleared (S0). Resolves #33/#316/#345.
+     Cert/waiver expiry proper (separate docs) waits on a cert/waiver table (GAP).
+   - ▶ **Slice 3 (next):** extend the booking bg-check gate to org staff (RED —
+     server/RLS, draft only): an org cannot self-verify a trainer (invariant already
+     asserts this). Or: a real cert/waiver table (RED migration) to move slice 2
+     beyond the single bg-check date.
 2. **Club money transparency** (201–240). `split_pay_links` + `coach_invoices` +
    `commission_rates` are authored on SportsMan-main. RED-set (Stripe) — apply +
    audit as drafts the owner deploys. Family ledger, itemized dues, per-team P&L.
