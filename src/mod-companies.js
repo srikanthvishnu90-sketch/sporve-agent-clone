@@ -515,7 +515,7 @@ const CSS = `
   display:flex;flex-direction:column;gap:3px;padding:20px;background:var(--paper);
   color:var(--ink);border:1px solid var(--rule);border-radius:var(--r-l);
 }
-.co-fig .v{font-size:var(--text-xl);font-weight:700;letter-spacing:-.03em;font-variant-numeric:tabular-nums}
+.co-fig .v{font-family:var(--serif);font-size:var(--text-xl);font-weight:400;letter-spacing:-.03em;font-variant-numeric:tabular-nums}
 .co-fig .k{font-size:var(--text-xs);font-weight:700;letter-spacing:.09em;text-transform:uppercase;color:var(--faint)}
 .band.dark .co-fig{border-color:#232A34;box-shadow:0 24px 60px -24px rgba(0,0,0,.9)}
 
@@ -539,7 +539,7 @@ const CSS = `
 .co-heroshot img{width:100%;height:100%;object-fit:cover}
 .co-facts{display:flex;gap:26px;flex-wrap:wrap;margin-top:22px;padding-top:20px;border-top:1px solid var(--rule)}
 .co-fact .k{font-size:var(--text-xs);font-weight:700;letter-spacing:.09em;text-transform:uppercase;color:var(--faint)}
-.co-fact .v{font-size:var(--text-lg);font-weight:700;letter-spacing:-.025em;margin-top:3px;font-variant-numeric:tabular-nums}
+.co-fact .v{font-family:var(--serif);font-size:var(--text-lg);font-weight:400;letter-spacing:-.025em;margin-top:3px;font-variant-numeric:tabular-nums}
 
 /* No font-size/letter-spacing override here: an h2 takes the scale's h2 step
    and the display face's tracking from the host base rule. The old -.03em was
@@ -640,7 +640,7 @@ const CSS = `
 }
 .co-foot .co-tot{flex:1;min-width:0}
 .co-foot .co-tot .k{font-size:var(--text-xs);font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--faint)}
-.co-foot .co-tot .v{font-size:var(--text-xl);font-weight:700;letter-spacing:-.03em;font-variant-numeric:tabular-nums}
+.co-foot .co-tot .v{font-family:var(--serif);font-size:var(--text-xl);font-weight:400;letter-spacing:-.03em;font-variant-numeric:tabular-nums}
 .co-foot .co-tot .d{font-size:var(--text-sm);color:var(--muted);margin-top:1px}
 `;
 

@@ -1476,7 +1476,7 @@ img{max-width:100%;display:block}
 .bk-fixform .btn{min-height:38px;flex:0 0 auto}
 .bk-ticket{position:sticky;top:96px;border:1px solid var(--rule-strong);border-radius:var(--r-l);background:var(--paper);box-shadow:var(--shadow-lift);padding:22px 22px 20px}
 .bk-price{display:flex;align-items:baseline;gap:7px}
-.bk-price b{font-family:var(--mono);font-size:var(--text-lg);font-weight:700;letter-spacing:-.02em;font-variant-numeric:tabular-nums}
+.bk-price b{font-family:var(--serif);font-size:var(--text-lg);font-weight:400;letter-spacing:-.02em;font-variant-numeric:tabular-nums}
 .bk-ticket .btn.wide{min-height:0;padding:11px 0;font-size:var(--text-sm);font-weight:600}
 .bk-price span{color:var(--muted);font-weight:500}
 .bk-cancel{color:var(--muted);font-size:var(--text-sm);margin-top:5px}
@@ -1788,7 +1788,7 @@ img{max-width:100%;display:block}
   margin:26px 0 34px;border-top:1px solid var(--rule);border-bottom:1px solid var(--rule)}
 .pr-stats>div{padding:18px 22px 18px 0}
 .pr-stats>div+div{border-left:1px solid var(--rule);padding-left:22px}
-.pr-stats b{display:block;font-size:var(--text-2xl);font-weight:800;letter-spacing:-.02em;font-variant-numeric:tabular-nums}
+.pr-stats b{display:block;font-family:var(--serif);font-size:var(--text-2xl);font-weight:400;letter-spacing:-.02em;font-variant-numeric:tabular-nums}
 .pr-stats span{display:block;margin-top:4px;color:var(--muted);font-size:var(--text-sm);line-height:1.4}
 /* ── three-tier plan cards (owner 2026-08-20) — light family ground, Pro rec ── */
 /* motion.dev replica (owner 2026-08-22): white cards + soft shadow, serif
@@ -1857,7 +1857,7 @@ img{max-width:100%;display:block}
 .cmp thead th{border-top:0;padding-top:0;font-family:var(--sans);
   font-size:var(--text-xs);font-weight:700;letter-spacing:.08em;
   text-transform:uppercase;color:var(--muted)}
-.cmp tbody th{font-weight:700;letter-spacing:-.015em;width:20%;padding-right:28px}
+.cmp tbody th{font-family:var(--serif);font-weight:400;font-size:var(--text-md);letter-spacing:-.01em;width:20%;padding-right:28px}
 .cmp td{color:var(--ink-2);width:40%}
 .cmp td:last-child{color:var(--ink)}
 .cmp-fine{font-size:var(--text-sm);color:var(--muted);margin:18px 0 26px;max-width:64ch}
@@ -1875,7 +1875,7 @@ img{max-width:100%;display:block}
 .cp-tier.on{background:var(--slate-tint)}
 .cp-tier-l{font-family:var(--sans);font-size:var(--text-xs);font-weight:700;
   letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
-.cp-tier-p{font-size:var(--text-xl);font-weight:700;margin-top:6px;font-variant-numeric:tabular-nums}
+.cp-tier-p{font-family:var(--serif);font-size:var(--text-xl);font-weight:400;margin-top:6px;font-variant-numeric:tabular-nums}
 .cp-tier-p span{font-size:var(--text-xs);font-weight:600;color:var(--muted);margin-left:4px}
 .cp-fine{font-size:var(--text-xs);color:var(--muted);margin-top:12px;line-height:1.5}
 /* <details> for the accordion: keyboard and screen-reader behaviour for free,
@@ -3458,7 +3458,7 @@ h2.ctr{margin-bottom:10px}
 #app.reg-serious .band.dark,#app.reg-serious .trustband{background:#000000}
 .reg-serious .panel,.reg-serious .card,.reg-serious .prodcard,
 .reg-serious .sf-card,.reg-serious .co-card{background:var(--paper)}
-.reg-serious h1,.reg-serious h2,.reg-serious h3,.reg-serious h4{
+.reg-serious h1,.reg-serious h2,.reg-serious h3{
   font-weight:800;letter-spacing:-.02em;
 }
 .reg-serious .display,.reg-serious h1,.reg-serious h2{letter-spacing:-.022em}
@@ -3798,7 +3798,7 @@ body.reg-coach .rail button{font-size:var(--t-small)}
 .lstat{background:var(--raise);border:1px solid var(--rule);border-radius:var(--r-ctl);padding:14px}
 .lstat span{font-size:var(--text-xs);font-weight:600;text-transform:uppercase;
   letter-spacing:.14em;color:var(--faint);display:block}
-.lstat b{font-family:var(--display);font-weight:800;font-size:var(--text-xl);
+.lstat b{font-family:var(--serif);font-weight:400;font-size:var(--text-xl);
   letter-spacing:-.02em;line-height:1;display:block;margin-top:7px;color:var(--ink)}
 .lrow{
   display:flex;align-items:center;justify-content:space-between;gap:14px;
@@ -8011,7 +8011,7 @@ function bookingsHTML(){
           <p style="color:var(--muted);font-size:var(--text-base)">Athlete: ${esc(b.athlete)} · Tier: ${esc(b.tier)}</p>
         </div>
         <div style="text-align:right">
-          <div class="num" style="font-size:var(--text-lg);font-weight:700;letter-spacing:-.03em">${money(b.price)}</div>
+          <div class="num" style="font-family:var(--serif);font-size:var(--text-lg);font-weight:400;letter-spacing:-.03em">${money(b.price)}</div>
           <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:9px">
             <button class="btn ghost sm" data-open="${b.programId}">View program</button>
             ${/* ITEM 5 — a parent who paid had NO way to cancel, on a page whose
