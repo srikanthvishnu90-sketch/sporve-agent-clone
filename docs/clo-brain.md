@@ -33,6 +33,13 @@ when two conflict; strike the loser, don't delete the history.
   `getComputedStyle(h1).fontFamily`, never by reading the rule you added.
 - **Palette is frozen** (black/white/slate + sport accents). A spec proposing new
   hex is approximating tokens already here. See `src/design-rules.md`, CLAUDE.md 3-5.
+- **The booking/listing detail is `detailHTML(id)` (host), reached via `data-open`
+  → `go("detail",id)`.** It is the "professional booking" layout (`.bk-*` classes),
+  branched on `ptypeOf(p)` (solo/camp/org): solo = per-session + price ladder, NO
+  roster meter; team/camp = capacity meter (`.bk-meter`, real enrolled/cap) +
+  per-month/season pricing. Any booking-page restyle edits this ONE function; keep
+  the priceLadder + weeklyAvail sections (smoke `coach profile` enforces them). No
+  fabricated fixtures/roster names (data GAP).
 - **Type canon (owner, evolving):** currently Instrument Serif (main hero) / Archivo
   (secondary/athletic) / Inter (body) / JetBrains Mono (numerals). A STYLE FREEZE is
   on until the first real charge (CLAUDE.md design-system). All embedded token swaps.
@@ -71,9 +78,10 @@ when two conflict; strike the loser, don't delete the history.
   prod `with_check` = `is_org_admin(organization_id) AND status = ANY(ARRAY['none','pending'])`
   — `000200` IS applied; the self-verify lock holds (pentest F1 CLOSED). Also verified:
   `20260822 staff_certifications` PRs #34 merged to `main` (branch ≠ prod concern resolved).
-- **`check_production_invariants()` (last touched 20260817) PREDATES staff_certifications,
-  so "invariant board 0 FAIL" does NOT prove the cert self-verify control is live.**
-  The board covers bg-check/fee/webhook invariants only; the cert with_check is unmonitored.
+- **The cert self-verify lock is now MONITORED (2026-08-22).** `check_production_invariants()`
+  gained a `safety` check `'org cannot self-verify a staff cert'` (asserts the admin
+  `with_check` caps status at none/pending). Board = **34 checks, 0 FAIL**, cert check PASS.
+  (Earlier note that it was unmonitored is superseded.) N/A-guarded if the table is absent.
 - **`is_org_admin(uuid)` is `security definer`, `stable`, `set search_path=''`, scoped to
   `auth.uid()`** (providers.owner_id OR active owner/admin org_member). Correctly caller-bound;
   forging another org's `organization_id` in a client write is rejected by RLS.
