@@ -3435,6 +3435,20 @@ h2.ctr{margin-bottom:10px}
 }
 .reg-serious .display,.reg-serious h1,.reg-serious h2{letter-spacing:-.022em}
 .reg-serious .eyebrow,.reg-serious .t-label,.reg-serious .t-chip{font-weight:700}
+/* WF-9 DEFECT FIX (owner 2026-08-22, "narrow defect fix only" — freeze-exempt as a
+   consistency defect, NOT the broader compact sweep). The main header (h1) is
+   already Instrument Serif, but section/card headers (h2/h3) resolved to Archivo,
+   so a serif hero sat over athletic-sans sub-heads. Flip family-side h2/h3 to
+   --serif, weight 400 (serif is never bolded — hierarchy is size+colour). Sizes
+   unchanged (still --text-2xl / --text-lg), so the 8-step scale gate is untouched.
+   COACH PORTAL EXCLUDED via :not(.coachdark): the earnings/media tabs carry
+   reg-serious too, and reg-coach pins its own Archivo/Inter faces + smoke gates.
+   Specificity #app.reg-*:not(.coachdark) h2 = (1,2,1) beats #app.reg-tabs h2
+   (1,1,1) and .reg-serious h2 (0,1,1); placed after both in source. */
+#app.reg-tabs:not(.coachdark) h2,#app.reg-tabs:not(.coachdark) h3,
+#app.reg-serious:not(.coachdark) h2,#app.reg-serious:not(.coachdark) h3{
+  font-family:var(--serif);font-weight:400;letter-spacing:-.01em;
+}
 
 /* ═══════════════ THE COACH UI REGISTER (owner spec, 2026-08-14) ═══════════
    "All text but the large header texts" on the coach dashboard is ONE face:
