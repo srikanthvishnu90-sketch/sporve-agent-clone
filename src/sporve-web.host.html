@@ -310,7 +310,11 @@ h4{font-size:var(--text-base)}
 /* Shrink ONLY in-app page titles; :not(.display):not(.pg-h1) preserves every
    marketing/product hero AND its per-page size tuning. Serif line-height 1.15
    on the compacted headers (heroes keep their tight display line-height). */
-#app:not(.coachdark) h1:not(.display):not(.pg-h1){font-size:var(--text-h1);line-height:1.15}
+/* Only APP page-titles (Bookings, Schedule, Profile… — the `.sec-head h1`s)
+   compact to --text-h1. Marketing statement-heroes (trust, "Everything Sporv
+   does.", saved, assistant) are bare/inline h1s that KEEP the display hero size
+   — the earlier blanket shrink made them read too small (owner 2026-08-22). */
+#app:not(.coachdark) .sec-head h1{font-size:var(--text-h1);line-height:1.15}
 #app:not(.coachdark) h2,#app:not(.coachdark) h3{line-height:1.15}
 
 /* ── ROLE CLASSES ────────────────────────────────────────────────────

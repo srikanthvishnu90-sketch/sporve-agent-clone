@@ -21,7 +21,7 @@
 <meta name="twitter:description" content="Find coaches, trainers, camps and teams across 20+ sports in Chicagoland.">
 <meta name="twitter:image" content="https://the-sporve-web.vercel.app/og.png">
 <link rel="icon" href="data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%2032%2032'%3E%3Crect%20width='32'%20height='32'%20rx='7'%20fill='%2309090B'/%3E%3Ccircle%20cx='16'%20cy='16'%20r='6'%20fill='white'/%3E%3C/svg%3E">
-<meta name="sporve-build" content="570f48e9d02941b8">
+<meta name="sporve-build" content="c3cd2af7bb41c4d1">
 </head>
 <body>
 <noscript><h1>Sporv — Every sport. One app.</h1><p>Sporv connects families and athletes with coaches, trainers, camps, and teams across more than 20 sports. Please enable JavaScript to use the app.</p></noscript>
@@ -343,7 +343,11 @@ h4{font-size:var(--text-base)}
 /* Shrink ONLY in-app page titles; :not(.display):not(.pg-h1) preserves every
    marketing/product hero AND its per-page size tuning. Serif line-height 1.15
    on the compacted headers (heroes keep their tight display line-height). */
-#app:not(.coachdark) h1:not(.display):not(.pg-h1){font-size:var(--text-h1);line-height:1.15}
+/* Only APP page-titles (Bookings, Schedule, Profile… — the `.sec-head h1`s)
+   compact to --text-h1. Marketing statement-heroes (trust, "Everything Sporv
+   does.", saved, assistant) are bare/inline h1s that KEEP the display hero size
+   — the earlier blanket shrink made them read too small (owner 2026-08-22). */
+#app:not(.coachdark) .sec-head h1{font-size:var(--text-h1);line-height:1.15}
 #app:not(.coachdark) h2,#app:not(.coachdark) h3{line-height:1.15}
 
 /* ── ROLE CLASSES ────────────────────────────────────────────────────
