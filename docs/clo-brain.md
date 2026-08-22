@@ -62,6 +62,24 @@ when two conflict; strike the loser, don't delete the history.
   this; smoke tripwires guard them as S0. `check_production_invariants()` on prod is
   the fastest evidence (33 checks, last 33 PASS / 0 FAIL).
 
+## staff_certifications (compliance slice, 2026-08-22)
+- **The staff_certifications table + RLS lives on `origin/feat/staff-certifications-table`,
+  NOT on `main`** — applied to prod BY HAND per the migration/commit text, so branch
+  state ≠ prod state. The self-verify control is the with_check in `20260822_000200`
+  (`is_org_admin(org) and status in ('none','pending')`); `000100` alone has NO status
+  clause and would let an org admin self-set `verified`. Confirm which is live with a
+  read-only `select policyname,with_check from pg_policies where tablename='staff_certifications'`.
+- **`check_production_invariants()` (last touched 20260817) PREDATES staff_certifications,
+  so "invariant board 0 FAIL" does NOT prove the cert self-verify control is live.**
+  The board covers bg-check/fee/webhook invariants only; the cert with_check is unmonitored.
+- **`is_org_admin(uuid)` is `security definer`, `stable`, `set search_path=''`, scoped to
+  `auth.uid()`** (providers.owner_id OR active owner/admin org_member). Correctly caller-bound;
+  forging another org's `organization_id` in a client write is rejected by RLS.
+- **`staff-cert-webhook` is the only path to `verified`** — service_role, matches by `cert_id`
+  only, `verify_jwt=false`, shared-secret in `x-cert-webhook-secret` (empty secret ⇒ 401).
+  NOT deployed. Its sole control is the secret; a leaked secret + a known cert_id verifies
+  any org's cert (cert ids are RLS-scoped so not cross-org enumerable).
+
 ## Process
 - **clo never resolves a D-item; the owner writes the decision, dated.**
 - **Verify a spec's load-bearing claims against the repo BEFORE building** (rule 9).
