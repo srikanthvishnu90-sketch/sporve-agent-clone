@@ -70,8 +70,8 @@
   --gold-tint:#FBF4E3;
   --good:#13A240;
   --good-tint:#E8F6EC;
-  --warn:#B87800;
-  --warn-tint:#FBF2E0;
+  --warn:#4F6A85;
+  --warn-tint:#EEF2F6;
   --danger:#C4362F;
   --shadow:0 1px 2px rgba(10,12,15,.05),0 8px 24px -12px rgba(10,12,15,.16);
   --shadow-lift:0 2px 6px rgba(10,12,15,.07),0 18px 48px -18px rgba(10,12,15,.26);
@@ -87,7 +87,9 @@
      accent inside it would read as "the basketball colour" on a page whose whole
      premise is that sport colour means sport. #C2410C sits darker and redder
      than every sport token. */
-  --accent:#C2410C; --accent-ink:#9A3412; --accent-tint:#FDF0E9;
+  /* Orange retired for slate (owner 2026-08-22, overrides the frozen persimmon
+     accent). Same slate mapping the .noorange route block already proved. */
+  --accent:#475569; --accent-ink:#334155; --accent-tint:#EEF2F6;
   /* Baby blue — owner decision 2026-08-12, the second non-frozen colour.
      #89CFF0 measures 12.5:1 against the #0A0C0F coach ground as a FILL, and
      carries near-black text at ~14:1, so the S mark stays legible without
@@ -95,7 +97,7 @@
      1.7:1 there, which is why it appears only as a filled shape or on black.
      --baby-ink is what sits ON baby blue; never white, which fails at 1.5:1. */
   --baby:#89CFF0; --baby-ink:#0A0C0F; --baby-deep:#5FB8E6;
-  --accent-ring:rgba(194,65,12,.30);
+  --accent-ring:rgba(71,85,105,.30);
 
   /* ── TYPE SCALE: eight steps, no ninth. Carried verbatim from the marketing
      landing (sporve-landing/tokens.css) so the two web surfaces share one
@@ -202,7 +204,7 @@
   --rule:#242932; --rule-strong:#333A45;
   --slate:#8FA3BC; --slate-ink:#B6C6D8; --slate-deep:#A9BACF; --slate-tint:#1A212B; --slate-ring:rgba(143,163,188,.34);
   --gold-ink:#E3C275; --gold-tint:#241E10;
-  --good-tint:#10251A; --warn-tint:#251C0C;
+  --good-tint:#10251A; --warn:#B6C6D8; --warn-tint:#1A212B;
   --shadow:0 1px 2px rgba(0,0,0,.5),0 8px 24px -12px rgba(0,0,0,.7);
   --shadow-lift:0 2px 6px rgba(0,0,0,.55),0 18px 48px -18px rgba(0,0,0,.8);
 }
@@ -2744,8 +2746,8 @@ h2.ctr{margin-bottom:10px}
   --slate:#8FA3BC; --slate-ink:#B6C6D8; --slate-deep:#A9BACF; --slate-tint:#1A212B;
   --slate-ring:rgba(143,163,188,.34);
   --gold-ink:#E3C275; --gold-tint:#241E10;
-  --good-tint:#10251A; --warn-tint:#251C0C;
-  --accent:#F08A62; --accent-ink:#F08A62; --accent-tint:#2A1710;
+  --good-tint:#10251A; --warn:#B6C6D8; --warn-tint:#1A212B;
+  --accent:#8FA3BC; --accent-ink:#B6C6D8; --accent-tint:#1A212B;
   --danger:#F08A8A;
   --shadow:0 1px 2px rgba(0,0,0,.5),0 8px 24px -12px rgba(0,0,0,.7);
   --shadow-lift:0 2px 6px rgba(0,0,0,.55),0 18px 48px -18px rgba(0,0,0,.8);
@@ -2773,7 +2775,7 @@ h2.ctr{margin-bottom:10px}
 #app.coachdark .cmdgo{color:#0A0C0F}
 #app.coachdark .cmdspinner{border-color:rgba(10,12,15,.38);border-top-color:#0A0C0F}
 /* Orange earns one job on this ground: the live send affordance. */
-#app.coachdark .cmdinput.has-value .cmdgo{background:#F08A62}
+#app.coachdark .cmdinput.has-value .cmdgo{background:#8FA3BC}
 #app.coachdark .cmdinput.has-value .cmdgo:hover{background:#F5A183}
 .coachtop{position:sticky;top:77px;z-index:45;border-bottom:1px solid var(--rule);background:rgba(255,255,255,.96)}
 #app.coachdark .coachtop{background:rgba(10,12,15,.96)}
@@ -3578,7 +3580,7 @@ body.reg-coach .rail button{font-size:var(--t-small)}
    for large text but under the 4.5:1 one for body, so it cannot carry a link
    or a label. #F08A62 is the SAME hue lifted in luminance to 8.52:1 and is
    used only inside .band.dark. A legibility variant, not a new colour. */
-:root{--accent-on-dark:#F08A62}
+:root{--accent-on-dark:#94A3B8}
 
 /* Literal black, NOT var(--ink). --ink inverts to near-white under
    :root[data-theme="dark"], which would flip this section to a white ground

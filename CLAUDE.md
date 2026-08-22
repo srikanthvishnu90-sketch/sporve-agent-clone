@@ -109,6 +109,19 @@ Still open (optional polish): per-page `.pg-*` hero clamps, dead inline
 ~6 times, and stated as an absolute: *"DO NOT CHANGE the brand color palette"*,
 *"black background always have white or slate text"*.
 
+**ORANGE RETIRED FOR SLATE (owner decision 2026-08-22, overrides the frozen
+persimmon accent).** The whole orange/amber chrome is gone: `--accent` #C2410C →
+`#475569`, `--accent-ink` → `#334155`, `--accent-tint` → `#EEF2F6`,
+`--accent-on-dark` #F08A62 → `#94A3B8`, and the amber status token `--warn`
+#B87800 → `#4F6A85` (slate-ink) / `--warn-tint` → `#EEF2F6` (light) with a light
+`--warn` #B6C6D8 / dark `--warn-tint` #1A212B on the coach/dark blocks for
+contrast. Coach persimmon (`#app.coachdark .dash --accent`, `.cmdgo`) → slate too.
+KEPT (deliberately, owner scope "chrome + status badges"): **sport-identity
+colours** (basketball etc. still paint their hue — `sportColor()`/`sportInk()`
+unchanged) and the **`--gold` "Background-checked" earned badge** (the one warm
+trust cue; flag for the owner if he wants it slated too). The `#C2410C`/`#F08A62`
+lines below are historical — the tokens now resolve to slate.
+
 - Black, white and slate are frozen. They carry all chrome and are never restyled.
 - **Text on a black ground is white or slate. Never a token that can resolve
   dark** — `--paper` inverts under `data-theme="dark"` and has produced
