@@ -14249,6 +14249,7 @@ function hydrateAuth(){
       hydrateReviews();
       hydrateQueue();
       hydrateOrgCompliance();
+      hydrateStaffCerts();
       if(parked) setTimeout(()=>runIntent(parked),60);
     })
     .catch(()=>{ /* stay a guest; RLS is the real control either way */ });
@@ -14488,6 +14489,30 @@ window.orgMemberCleared=orgMemberCleared;
 window.orgMemberStatus=orgMemberStatus;
 window.bgDaysLeft=bgDaysLeft;
 
+/* Cert/waiver validity (slice 5, staff_certifications). Fail-closed like the
+   bg-check: a cert is VALID only if status==='verified' AND (it has no expiry, or
+   its expiry is in the future). A verified cert past its expiry is 'expired'; one
+   within WARN_DAYS is 'expiring'. pending/none never count as current. */
+function certValid(c){
+  if(!c||c.status!=="verified") return false;
+  if(!c.expires_at) return true;
+  var exp=new Date(c.expires_at);
+  return !isNaN(exp.getTime()) && exp.getTime()>Date.now();
+}
+function certState(c){
+  if(!certValid(c)){
+    if(c&&c.status==="verified"&&c.expires_at) return "expired";
+    return (c&&c.status==="pending")?"pending":"none";
+  }
+  if(c.expires_at){
+    var days=Math.floor((new Date(c.expires_at).getTime()-Date.now())/864e5);
+    if(days<=BGCHECK_WARN_DAYS) return "expiring";
+  }
+  return "current";
+}
+window.certValid=certValid;
+window.certState=certState;
+
 /* Org compliance board — enterprise slice 1. Answers "is every adult around kids
    cleared?" (AAU inventory #345) from the LIVE organization_members table. RLS
    scopes the read to the caller's own org(s); a user in no org gets no rows and
@@ -14514,6 +14539,24 @@ function hydrateOrgCompliance(){
     window.SporveOrgCompliance=S.orgCompliance;
     render();
   }).catch(function(){ /* keep the sample rather than blanking it */ });
+}
+
+/* Slice 5 — cert/waiver expiry from the LIVE staff_certifications table (applied
+   2026-08-22). RLS scopes the read to the caller's own org(s); an empty table (no
+   certs recorded yet) leaves the summary off entirely. Fail-closed via certState. */
+function hydrateStaffCerts(){
+  if(!window.SporveAPI||!window.SporveAuth||!window.SporveAuth.isSignedIn()) return;
+  window.SporveAPI.from("staff_certifications",
+    "select=kind,status,expires_at").then(function(rows){
+    if(!Array.isArray(rows)||!rows.length) return;   // no certs → no summary
+    var states=rows.map(certState);
+    var c=function(s){return states.filter(function(x){return x===s;}).length;};
+    window.SporveStaffCerts={
+      total:rows.length,
+      current:c("current"), expiring:c("expiring"), expired:c("expired")
+    };
+    render();
+  }).catch(function(){ /* table/rows absent → summary simply stays off */ });
 }
 
 function hydrateQueue(){

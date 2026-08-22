@@ -556,10 +556,18 @@
       };
       var headClass = oc.cleared === oc.total ? "pg-cbd-clear" : "pg-cbd-pending";
       var attention = (oc.expiring || 0) + (oc.expired || 0);
+      var sc = (typeof window !== "undefined") ? window.SporveStaffCerts : null;
+      var certLine = (sc && sc.total)
+        ? "<div><span>Certs / waivers</span><b class='pg-cbd " +
+            (sc.expired ? "pg-cbd-expired" : (sc.expiring ? "pg-cbd-pending" : "pg-cbd-clear")) + "'>" +
+            sc.current + " current" + (sc.expiring ? " · " + sc.expiring + " exp." : "") +
+            (sc.expired ? " · " + sc.expired + " expired" : "") + "</b></div>"
+        : "";
       board = "<aside class='pg-hero-compliance' aria-label='Your organization compliance board'>" +
         "<div class='pg-board-top'><span>COMPLIANCE BOARD</span><span>Live · your organization</span></div>" +
         "<div><span>Adults cleared</span><b class='pg-cbd " + headClass + "'>" + oc.cleared + " of " + oc.total + "</b></div>" +
         (attention ? "<div><span>Re-run needed</span><b class='pg-cbd pg-cbd-expired'>" + attention + "</b></div>" : "") +
+        certLine +
         oc.rows.slice(0, 8).map(function (m) {
           return "<div><span>" + prettyRole(m.role) + "</span>" + badge(m) + "</div>";
         }).join("") + "</aside>";

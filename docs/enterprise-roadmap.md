@@ -44,10 +44,19 @@ communication accountability.**
      badges + a "Re-run needed" count. smoke tripwire extended (relative dates) to
      prove expired/pending/undated never read cleared (S0). Resolves #33/#316/#345.
      Cert/waiver expiry proper (separate docs) waits on a cert/waiver table (GAP).
-   - ▶ **Slice 3 (next):** extend the booking bg-check gate to org staff (RED —
-     server/RLS, draft only): an org cannot self-verify a trainer (invariant already
-     asserts this). Or: a real cert/waiver table (RED migration) to move slice 2
-     beyond the single bg-check date.
+   - ✅ **Slice 3-web SHIPPED 2026-08-22 (build a10ba132):** enterprise OVERVIEW
+     board shows real staff count + clearance % for a signed-in org admin.
+   - ✅ **Slice 4 APPLIED to prod 2026-08-22:** `staff_certifications` table (FK →
+     providers, RLS mirrors organization_members: is_org_admin manages, member reads
+     self, no public/USING(true)). Verified RLS on, invariant board 0 FAIL. PR #34.
+   - ✅ **Slice 5 SHIPPED 2026-08-22 (build e196fed3):** `hydrateStaffCerts()` reads
+     the live `staff_certifications` table; `certState()`/`certValid()` fail-closed
+     (verified AND non-expired only); compliance board shows a "Certs / waivers:
+     N current · M exp. · K expired" line for a signed-in org admin (off when the
+     table is empty). smoke tripwire guards it (S0). Resolves #313/#316/#323.
+   - ▶ **Slice 6 (next, RED):** extend the booking bg-check gate to org staff (an
+     org cannot book/supply a staff member who isn't cleared) — server/RLS draft.
+     And a cert-management UI (write path) so a director records certs.
 2. **Club money transparency** (201–240). `split_pay_links` + `coach_invoices` +
    `commission_rates` are authored on SportsMan-main. RED-set (Stripe) — apply +
    audit as drafts the owner deploys. Family ledger, itemized dues, per-team P&L.

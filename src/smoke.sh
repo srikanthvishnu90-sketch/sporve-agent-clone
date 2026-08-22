@@ -921,6 +921,32 @@ if curl -sI "http://127.0.0.1:$CSPPORT/index.html" | grep -qi "^content-security
     *)           fail "enterprise: org clearance probe returned nothing ($oc)" ;;
   esac
 
+  # TRUST-CRITICAL — cert/waiver validity (staff_certifications) must also FAIL
+  # CLOSED: only status 'verified' AND (no expiry or a future expiry) is valid.
+  # pending/none/expired never count as current. Relative dates. (AAU #313/#316/#323)
+  ct=$($B js "(function(){
+    if(typeof certState!=='function'||typeof certValid!=='function') return 'NOFUNC';
+    var d=function(n){return new Date(Date.now()+n*864e5).toISOString().slice(0,10);};
+    if(certValid({status:'pending',expires_at:d(200)}))  return 'OPEN_PENDING';
+    if(certValid({status:'none',expires_at:d(200)}))     return 'OPEN_NONE';
+    if(certValid({status:'verified',expires_at:d(-10)})) return 'OPEN_EXPIRED';
+    if(certState({status:'verified',expires_at:d(-10)})!=='expired')  return 'NOT_EXPIRED';
+    if(certState({status:'verified',expires_at:d(10)})!=='expiring')  return 'NOT_EXPIRING';
+    if(certState({status:'verified',expires_at:d(200)})!=='current')  return 'NOT_CURRENT';
+    return 'OK';
+  })()" 2>/dev/null | tr -d '\r')
+  case "$(printf '%s' "$ct" | tr -d '[:space:]')" in
+    OK)          pass "enterprise: cert/waiver validity fails closed + expiry-aware (AAU #313/#316/#323)" ;;
+    NOFUNC)      fail "enterprise: certState/certValid() missing — cert board has no validity rule" ;;
+    OPEN_PENDING)fail "enterprise: a 'pending' cert read as valid — trust gate open (S0)" ;;
+    OPEN_NONE)   fail "enterprise: an absent cert read as valid — trust gate open (S0)" ;;
+    OPEN_EXPIRED)fail "enterprise: an EXPIRED cert read as valid — trust gate open (S0)" ;;
+    NOT_EXPIRED) fail "enterprise: a past-expiry cert did not resolve to 'expired'" ;;
+    NOT_EXPIRING)fail "enterprise: a soon-to-expire cert did not resolve to 'expiring'" ;;
+    NOT_CURRENT) fail "enterprise: a valid future cert did not resolve to 'current'" ;;
+    *)           fail "enterprise: cert validity probe returned nothing ($ct)" ;;
+  esac
+
   # THE SEARCH SPEC'S NON-NEGOTIABLES. Each of these is a rule, not a taste:
   # a background-check FILTER advertises that unvetted adults exist; a second
   # filter entry point makes neither authoritative; an age select in the bar

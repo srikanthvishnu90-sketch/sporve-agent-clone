@@ -21,7 +21,7 @@
 <meta name="twitter:description" content="Find coaches, trainers, camps and teams across 20+ sports in Chicagoland.">
 <meta name="twitter:image" content="https://the-sporve-web.vercel.app/og.png">
 <link rel="icon" href="data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%2032%2032'%3E%3Crect%20width='32'%20height='32'%20rx='7'%20fill='%2309090B'/%3E%3Ccircle%20cx='16'%20cy='16'%20r='6'%20fill='white'/%3E%3C/svg%3E">
-<meta name="sporve-build" content="a10ba132b41ce236">
+<meta name="sporve-build" content="e196fed334fb4b39">
 </head>
 <body>
 <noscript><h1>Sporv — Every sport. One app.</h1><p>Sporv connects families and athletes with coaches, trainers, camps, and teams across more than 20 sports. Please enable JavaScript to use the app.</p></noscript>
@@ -28032,10 +28032,18 @@ window.MOD_COMPANIES = {
       };
       var headClass = oc.cleared === oc.total ? "pg-cbd-clear" : "pg-cbd-pending";
       var attention = (oc.expiring || 0) + (oc.expired || 0);
+      var sc = (typeof window !== "undefined") ? window.SporveStaffCerts : null;
+      var certLine = (sc && sc.total)
+        ? "<div><span>Certs / waivers</span><b class='pg-cbd " +
+            (sc.expired ? "pg-cbd-expired" : (sc.expiring ? "pg-cbd-pending" : "pg-cbd-clear")) + "'>" +
+            sc.current + " current" + (sc.expiring ? " · " + sc.expiring + " exp." : "") +
+            (sc.expired ? " · " + sc.expired + " expired" : "") + "</b></div>"
+        : "";
       board = "<aside class='pg-hero-compliance' aria-label='Your organization compliance board'>" +
         "<div class='pg-board-top'><span>COMPLIANCE BOARD</span><span>Live · your organization</span></div>" +
         "<div><span>Adults cleared</span><b class='pg-cbd " + headClass + "'>" + oc.cleared + " of " + oc.total + "</b></div>" +
         (attention ? "<div><span>Re-run needed</span><b class='pg-cbd pg-cbd-expired'>" + attention + "</b></div>" : "") +
+        certLine +
         oc.rows.slice(0, 8).map(function (m) {
           return "<div><span>" + prettyRole(m.role) + "</span>" + badge(m) + "</div>";
         }).join("") + "</aside>";
@@ -28252,6 +28260,7 @@ function hydrateAuth(){
       hydrateReviews();
       hydrateQueue();
       hydrateOrgCompliance();
+      hydrateStaffCerts();
       if(parked) setTimeout(()=>runIntent(parked),60);
     })
     .catch(()=>{ /* stay a guest; RLS is the real control either way */ });
@@ -28491,6 +28500,30 @@ window.orgMemberCleared=orgMemberCleared;
 window.orgMemberStatus=orgMemberStatus;
 window.bgDaysLeft=bgDaysLeft;
 
+/* Cert/waiver validity (slice 5, staff_certifications). Fail-closed like the
+   bg-check: a cert is VALID only if status==='verified' AND (it has no expiry, or
+   its expiry is in the future). A verified cert past its expiry is 'expired'; one
+   within WARN_DAYS is 'expiring'. pending/none never count as current. */
+function certValid(c){
+  if(!c||c.status!=="verified") return false;
+  if(!c.expires_at) return true;
+  var exp=new Date(c.expires_at);
+  return !isNaN(exp.getTime()) && exp.getTime()>Date.now();
+}
+function certState(c){
+  if(!certValid(c)){
+    if(c&&c.status==="verified"&&c.expires_at) return "expired";
+    return (c&&c.status==="pending")?"pending":"none";
+  }
+  if(c.expires_at){
+    var days=Math.floor((new Date(c.expires_at).getTime()-Date.now())/864e5);
+    if(days<=BGCHECK_WARN_DAYS) return "expiring";
+  }
+  return "current";
+}
+window.certValid=certValid;
+window.certState=certState;
+
 /* Org compliance board — enterprise slice 1. Answers "is every adult around kids
    cleared?" (AAU inventory #345) from the LIVE organization_members table. RLS
    scopes the read to the caller's own org(s); a user in no org gets no rows and
@@ -28517,6 +28550,24 @@ function hydrateOrgCompliance(){
     window.SporveOrgCompliance=S.orgCompliance;
     render();
   }).catch(function(){ /* keep the sample rather than blanking it */ });
+}
+
+/* Slice 5 — cert/waiver expiry from the LIVE staff_certifications table (applied
+   2026-08-22). RLS scopes the read to the caller's own org(s); an empty table (no
+   certs recorded yet) leaves the summary off entirely. Fail-closed via certState. */
+function hydrateStaffCerts(){
+  if(!window.SporveAPI||!window.SporveAuth||!window.SporveAuth.isSignedIn()) return;
+  window.SporveAPI.from("staff_certifications",
+    "select=kind,status,expires_at").then(function(rows){
+    if(!Array.isArray(rows)||!rows.length) return;   // no certs → no summary
+    var states=rows.map(certState);
+    var c=function(s){return states.filter(function(x){return x===s;}).length;};
+    window.SporveStaffCerts={
+      total:rows.length,
+      current:c("current"), expiring:c("expiring"), expired:c("expired")
+    };
+    render();
+  }).catch(function(){ /* table/rows absent → summary simply stays off */ });
 }
 
 function hydrateQueue(){
