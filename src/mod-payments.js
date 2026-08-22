@@ -1151,6 +1151,17 @@
     if (!bookBtn || !bookBtn.parentNode) return;
     if (document.querySelector("[data-pm-checkout]")) return;
     const pid = bookBtn.dataset.book;
+    /* NEVER on a LIVE listing. [CRITICAL-PATH: money] This module's checkout is a
+       local simulation — confirmCheckout() writes a status:'confirmed',
+       paymentStatus:'paid' booking to S.bookings with ZERO backend/Stripe calls.
+       On a real bookable coach that is the fabricated-paid lie the host book-modal
+       comment (host ~13242) already condemns: the family sees "paid", nothing is
+       charged, the coach never hears. Live listings must go ONLY through the real
+       data-book flow (SporveBooking.create -> .checkout -> stripe-create-checkout).
+       The sim stays for demo/seed listings, where "see how checkout works" is the
+       point and no real charge is possible. */
+    const prog = (typeof PROGRAMS !== "undefined" ? PROGRAMS : []).find(x => x.id === pid);
+    if (prog && prog.live) return;
     const btn = document.createElement("button");
     btn.className = "btn ghost wide";
     btn.setAttribute("data-pm-checkout", pid);

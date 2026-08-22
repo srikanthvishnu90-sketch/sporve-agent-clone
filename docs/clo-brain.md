@@ -146,3 +146,54 @@ when two conflict; strike the loser, don't delete the history.
   outranks pixel-exactness to a reference image. (Caught by clo audit on PR #211.)
 - **`.cmp-*` (comparison table) is NOT pricing-only** — shared at host `:7052`/`:7299`
   too. Safe to leave untouched; do not restyle it inside a pricing-scoped change.
+
+## First-charge gate (ground pass 2026-08-22)
+- **the-sporve-web has a REAL checkout path — it is NOT a pure client sim.** Host
+  `:13265` book-modal confirm, gated on `isLive=p.live&&s.live`, calls
+  `SporveBooking.create()` (`mod-booking.js:150`, inserts a real `bookings` row) →
+  `SporveBooking.checkout(b.id)` (`mod-booking.js:213`) → deployed `stripe-create-checkout`
+  → `window.location.href = r.url`. The SEPARATE `mod-payments.js confirmCheckout()`
+  (`:512`, 0 backend refs) is a simulated wallet modal (`type:"checkout"`, injected
+  "Check out with a card" button) that writes local state only — do not mistake it
+  for the money path. Flutter app path is `booking_flow_screen.dart:_handleConfirmAndPay` (`:859`).
+- **Booking amount is server-derived, client price ignored.** Trigger in
+  `20260630_000003_booking_payment_security.sql:18-26` sets `final_price = programs.price
+  × tier-multiplier` on insert; `stripe-create-checkout` reads `booking.final_price`
+  (never a client figure). Money integrity is sound — say so.
+- **PLATFORM_FEE_BPS secret on prod = "0"** (secrets-list hash `5feceb66…` == SHA-256 of
+  the string "0"). `stripe-create-checkout` OMITS `application_fee_amount` when fee=0
+  (`index.ts` payment_intent_data), so the fee=0 502 is FIXED on the deployed v30. All
+  Stripe/checkout secrets are set (STRIPE_SECRET_KEY, STRIPE_WEBHOOK_SECRET,
+  CHECKOUT_ORIGINS, CONNECT_RETURN_ORIGINS). Test-vs-live mode NOT determinable from
+  hashed secrets — owner must confirm in Stripe dashboard.
+- **Prod (2026-08-22) has 23 anon-visible providers, ALL solo `background_check_status=
+  'none'` → ZERO bg-verified → ZERO bookable.** Confirmed via anon REST
+  `providers?background_check_status=eq.verified` = `*/0`. This corrects the stale "0
+  bookable" only in that coaches now EXIST but none clear the gate. Also: browse RLS
+  gates on `status='approved'` (a `none` provider is publicly visible) — the bg-check
+  gate binds the BOOKING trigger, not browse visibility. Anon has COLUMN-level grants:
+  `id/status/provider_type/background_check_status/business_name` readable;
+  `stripe_account_id/stripe_charges_enabled/account_status/owner_id` denied (42501) —
+  Connect-enabled count is NOT anon-verifiable, needs service-role.
+- **The two hard first-charge blockers are DATA, not code:** (1) no provider is
+  bg-check verified → booking trigger `20260728_000000_universal_bgcheck_gate` blocks
+  the insert; (2) no provider has completed Stripe Connect onboarding
+  (`stripe_charges_enabled=true`) → `stripe-create-checkout` returns 409 "coach can't
+  accept payments yet". Both are RED (service-role/Stripe) — owner-applied only.
+
+## Checkout: the sim-button trap (2026-08-22, launch-critical)
+- **`mod-payments.js confirmCheckout()` is a PURE LOCAL SIMULATION** — it writes a
+  `status:'confirmed', paymentStatus:'paid'` booking to `S.bookings` with ZERO
+  Stripe/backend calls (mod-payments.js:512-579). `injectDetailCheckout()` (~1148)
+  used to add its "Check out with a card" button on EVERY detail page, identical in
+  label to the REAL one, so on a live coach the owner clicked the sim, saw "paid",
+  and NO prod booking/charge existed. This is the exact fabricated-paid lie the host
+  book-modal comment (host ~13242) condemns. FIX shipped: gate injectDetailCheckout
+  with `if (prog && prog.live) return;` — live listings use ONLY the real data-book
+  → SporveBooking.create → .checkout → stripe-create-checkout path; the sim stays for
+  demo/seed listings. **When verifying a real charge, ignore the UI "paid" state —
+  the DB (`bookings.payment_status`) and the webhook are the only authorities.**
+- **First-charge readiness (verified live 2026-08-22):** coach "Vish s"
+  (e82cf7c8-…) is bg-verified + Stripe-Connect-enabled; Stripe is TEST mode
+  (`cs_test_`); 10 bookings all `unpaid`, 4 reached a checkout session, 0 ever paid.
+  The gate to the freeze lifting is one COMPLETED test payment on the real button.

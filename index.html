@@ -21,7 +21,7 @@
 <meta name="twitter:description" content="Find coaches, trainers, camps and teams across 20+ sports in Chicagoland.">
 <meta name="twitter:image" content="https://the-sporve-web.vercel.app/og.png">
 <link rel="icon" href="data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%2032%2032'%3E%3Crect%20width='32'%20height='32'%20rx='7'%20fill='%2309090B'/%3E%3Ccircle%20cx='16'%20cy='16'%20r='6'%20fill='white'/%3E%3C/svg%3E">
-<meta name="sporve-build" content="78b65b7e138366d3">
+<meta name="sporve-build" content="75e81ab8837e8385">
 </head>
 <body>
 <noscript><h1>Sporv — Every sport. One app.</h1><p>Sporv connects families and athletes with coaches, trainers, camps, and teams across more than 20 sports. Please enable JavaScript to use the app.</p></noscript>
@@ -20370,6 +20370,17 @@ window.MOD_COACHOPS = {
     if (!bookBtn || !bookBtn.parentNode) return;
     if (document.querySelector("[data-pm-checkout]")) return;
     const pid = bookBtn.dataset.book;
+    /* NEVER on a LIVE listing. [CRITICAL-PATH: money] This module's checkout is a
+       local simulation — confirmCheckout() writes a status:'confirmed',
+       paymentStatus:'paid' booking to S.bookings with ZERO backend/Stripe calls.
+       On a real bookable coach that is the fabricated-paid lie the host book-modal
+       comment (host ~13242) already condemns: the family sees "paid", nothing is
+       charged, the coach never hears. Live listings must go ONLY through the real
+       data-book flow (SporveBooking.create -> .checkout -> stripe-create-checkout).
+       The sim stays for demo/seed listings, where "see how checkout works" is the
+       point and no real charge is possible. */
+    const prog = (typeof PROGRAMS !== "undefined" ? PROGRAMS : []).find(x => x.id === pid);
+    if (prog && prog.live) return;
     const btn = document.createElement("button");
     btn.className = "btn ghost wide";
     btn.setAttribute("data-pm-checkout", pid);
