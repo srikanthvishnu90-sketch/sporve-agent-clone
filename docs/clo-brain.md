@@ -121,6 +121,15 @@ when two conflict; strike the loser, don't delete the history.
   NOT deployed. Its sole control is the secret; a leaked secret + a known cert_id verifies
   any org's cert (cert ids are RLS-scoped so not cross-org enumerable).
 
+## Pentest / backend verification
+- **Prod pg_policies + the invariant board are queryable read-only WITHOUT an MCP binding.**
+  `POST https://api.supabase.com/v1/projects/tseszaprvtvqrkfpditu/database/query`
+  with `Authorization: Bearer $(cat ~/.supabase/access-token)` runs any SELECT
+  (e.g. `select * from public.check_production_invariants()`). Fastest live evidence.
+- **Board is 34 checks; healthy state is 33 PASS / 1 N/A / 0 FAIL** (2026-08-22).
+  The lone N/A is `money: platform_fees row is 1200 bps` — table not applied to prod;
+  fee=0 shipped via subscription tiers, the flat-12% fees table never landed. Not a regression.
+
 ## Process
 - **clo never resolves a D-item; the owner writes the decision, dated.**
 - **Verify a spec's load-bearing claims against the repo BEFORE building** (rule 9).

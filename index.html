@@ -21,7 +21,7 @@
 <meta name="twitter:description" content="Find coaches, trainers, camps and teams across 20+ sports in Chicagoland.">
 <meta name="twitter:image" content="https://the-sporve-web.vercel.app/og.png">
 <link rel="icon" href="data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%2032%2032'%3E%3Crect%20width='32'%20height='32'%20rx='7'%20fill='%2309090B'/%3E%3Ccircle%20cx='16'%20cy='16'%20r='6'%20fill='white'/%3E%3C/svg%3E">
-<meta name="sporve-build" content="288a4321042619bb">
+<meta name="sporve-build" content="2a04874964811308">
 </head>
 <body>
 <noscript><h1>Sporv — Every sport. One app.</h1><p>Sporv connects families and athletes with coaches, trainers, camps, and teams across more than 20 sports. Please enable JavaScript to use the app.</p></noscript>
@@ -1796,28 +1796,60 @@ img{max-width:100%;display:block}
 .pr-stats b{display:block;font-size:var(--text-2xl);font-weight:800;letter-spacing:-.02em;font-variant-numeric:tabular-nums}
 .pr-stats span{display:block;margin-top:4px;color:var(--muted);font-size:var(--text-sm);line-height:1.4}
 /* ── three-tier plan cards (owner 2026-08-20) — light family ground, Pro rec ── */
-.pp-plans{display:grid;grid-template-columns:repeat(3,1fr);gap:18px;margin:28px 0 46px;align-items:stretch}
-@media(max-width:880px){.pp-plans{grid-template-columns:1fr;max-width:440px;margin-left:auto;margin-right:auto}}
+/* motion.dev replica (owner 2026-08-22): white cards + soft shadow, serif
+   titles/prices, dark checks; the Pro card gets a dark border + an offset
+   outline (::before) + a black CTA pill. All sizes stay on the 8-step scale
+   and every "dark" is --ink (frozen), not a new hex. */
+.pp-plans{display:grid;grid-template-columns:repeat(3,1fr);gap:22px;margin:clamp(40px,6vw,64px) auto 46px;max-width:1120px;align-items:stretch}
+@media(max-width:1024px){.pp-plans{grid-template-columns:1fr;max-width:460px}
+  .pp-card.pp-rec{order:-1}}
 .pp-card{position:relative;display:flex;flex-direction:column;background:var(--paper);
-  border:1px solid var(--rule-strong);border-radius:20px;padding:30px 26px}
-.pp-card.pp-rec{border-color:var(--slate);box-shadow:0 0 0 1px var(--slate),0 24px 60px -26px rgba(118,146,174,.5)}
-.pp-badge{position:absolute;top:-11px;left:26px;background:var(--slate);color:var(--slate-on);
-  font-family:var(--sans);font-size:var(--text-xs);font-weight:800;letter-spacing:.05em;
-  text-transform:uppercase;padding:4px 11px;border-radius:999px}
-.pp-name{font-family:var(--nav-face);font-size:var(--text-lg);color:var(--ink);font-weight:400}
-.pp-price{display:flex;align-items:baseline;gap:5px;margin:14px 0 6px}
-.pp-price b{font-size:var(--text-2xl);font-weight:800;color:var(--ink);letter-spacing:-.02em;font-variant-numeric:tabular-nums}
-.pp-price span{color:var(--muted);font-size:var(--text-base);font-weight:600}
-.pp-desc{color:var(--muted);font-size:var(--text-sm);line-height:1.5;margin-bottom:20px;min-height:40px}
-.pp-feats{list-style:none;display:flex;flex-direction:column;gap:11px;margin:0 0 24px;flex:1}
-.pp-feats li{display:flex;align-items:flex-start;gap:10px;color:var(--ink-2);font-size:var(--text-sm);line-height:1.45}
-.pp-feats li svg{flex:none;margin-top:2px;color:var(--slate-ink)}
-.pp-cta{width:100%}
-.pp-cta-alt{width:100%;display:inline-flex;align-items:center;justify-content:center;height:var(--h-ctl);
-  border-radius:var(--r-ctl);background:var(--paper);border:1px solid var(--rule-strong);color:var(--ink);
-  font-family:var(--sans);font-weight:600;font-size:var(--t-small);cursor:pointer;transition:border-color .15s,background .15s}
-.pp-cta-alt:hover{border-color:var(--ink);background:var(--raise)}
-.pp-dev{margin-top:11px;text-align:center;color:var(--faint);font-size:var(--text-xs)}
+  border:0;border-radius:16px;padding:36px 32px;
+  box-shadow:0 1px 2px rgba(10,12,15,.06),0 10px 30px -12px rgba(10,12,15,.14)}
+.pp-card.pp-rec{border:1.5px solid var(--ink);box-shadow:0 1px 2px rgba(10,12,15,.06),0 20px 50px -20px rgba(10,12,15,.26)}
+.pp-card.pp-rec::before{content:"";position:absolute;inset:0;border:1.5px solid var(--ink);
+  border-radius:inherit;transform:translate(-7px,-7px);z-index:-1;pointer-events:none}
+.pp-badge{position:absolute;top:-12px;left:28px;background:var(--ink);color:#fff;
+  font-family:var(--sans);font-size:var(--text-xs);font-weight:600;letter-spacing:.1em;
+  text-transform:uppercase;padding:6px 13px;border-radius:999px}
+/* pp-name is an <h3>; the id-level #app.reg-tabs h3 rule (1,1,1) forces Archivo
+   700 and silently beats a bare .pp-name class — the documented dead-CSS trap.
+   Scope these two display rules under #app.pricing-stage so the serif wins. */
+#app.pricing-stage .pp-name{font-family:var(--serif);font-size:var(--text-xl);color:var(--ink);font-weight:400;letter-spacing:0}
+.pp-price{display:flex;align-items:baseline;gap:6px;margin:20px 0 0}
+#app.pricing-stage .pp-price b{font-family:var(--serif);font-size:var(--text-2xl);font-weight:400;color:var(--ink);letter-spacing:-.01em;line-height:1;font-variant-numeric:tabular-nums}
+.pp-price span{font-family:var(--sans);color:var(--muted);font-size:var(--text-sm);font-weight:500}
+.pp-desc{font-family:var(--sans);color:var(--muted);font-size:var(--text-base);line-height:1.5;margin:16px 0 0;min-height:42px}
+.pp-feats{list-style:none;display:flex;flex-direction:column;gap:13px;margin:26px 0 0;flex:1}
+.pp-feats li{display:flex;align-items:flex-start;gap:11px;font-family:var(--sans);color:var(--ink);font-size:var(--text-base);line-height:1.5}
+.pp-feats li svg{flex:none;margin-top:2px;color:var(--ink)}
+.pp-cta{margin-top:34px}
+.pp-card.pp-rec .pp-cta.btn{width:100%;height:52px;border-radius:999px;background:var(--ink);color:#fff;
+  font-family:var(--sans);font-weight:500;font-size:var(--text-base);border:0}
+.pp-card.pp-rec .pp-cta.btn:hover{background:#000}
+.pp-cta-alt{width:100%;background:none;border:0;color:var(--ink);text-align:center;
+  font-family:var(--sans);font-weight:500;font-size:var(--text-base);cursor:pointer;padding:8px 0}
+.pp-cta-alt:hover{text-decoration:underline}
+.pp-dev{display:none}
+/* §8 motion — FadeRise entrance (60ms stagger) + hover lift. `backwards` fill
+   (not `both`): it holds the pre-roll frame during the delay but releases to the
+   base value afterward, so the :hover transform still wins — `both`/`forwards`
+   would pin transform:none and silently kill the hover. */
+@keyframes ppRise{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:none}}
+.pp-card{animation:ppRise .5s cubic-bezier(.2,.7,.2,1) backwards;transition:transform .2s ease,box-shadow .2s ease}
+.pp-plans .pp-card:nth-child(2){animation-delay:60ms}
+.pp-plans .pp-card:nth-child(3){animation-delay:120ms}
+.pp-card:hover{transform:translateY(-4px)}
+@media(prefers-reduced-motion:reduce){
+  @keyframes ppRise{from{opacity:0}to{opacity:1}}
+  .pp-card{transition:none}
+  .pp-card:hover{transform:none}
+}
+/* Pricing header — centered serif, no eyebrow, condensed subtitle (image). */
+#app.pricing-stage .pr-head{text-align:center;max-width:720px;margin:0 auto;padding:clamp(40px,7vw,88px) 16px 0}
+#app.pricing-stage .pr-head .eyebrow{display:none}
+#app.pricing-stage .pr-head h1{font-family:var(--serif);font-weight:400;font-size:var(--text-hero);line-height:1.08;letter-spacing:-.01em;color:var(--ink)}
+#app.pricing-stage .pr-head .lede{font-family:var(--sans);font-size:var(--text-lg);line-height:1.5;color:var(--muted);max-width:60ch;margin:18px auto 0;text-align:center}
 @media(max-width:640px){.pr-stats>div+div{border-left:0;border-top:1px solid var(--rule);padding-left:0}}
 .cmp-wrap{overflow-x:auto;padding-bottom:6px}
 .cmp{width:100%;border-collapse:collapse;max-width:980px}
@@ -3393,6 +3425,17 @@ h2.ctr{margin-bottom:10px}
    before this: ground still rgba(0,0,0,0). The id has to be in the selector
    for the ground to change at all. */
 #app.reg-serious{background:var(--raise)}
+/* PRICING STAGE (owner 2026-08-22 motion.dev replica) — a slate-ramp field,
+   built entirely from frozen slate tokens: a light glow upper-left, a soft
+   slate bloom lower-right, and a raise→raise2→rule-strong diagonal base. Placed
+   AFTER the flat reg-serious background so it wins at equal specificity, and
+   scoped to .pricing-stage so it touches this route alone. */
+#app.reg-serious.pricing-stage{
+  background:
+    radial-gradient(80% 70% at 15% 12%, var(--raise) 0%, transparent 60%),
+    radial-gradient(85% 78% at 88% 94%, rgba(118,146,174,.34) 0%, rgba(118,146,174,0) 58%),
+    linear-gradient(135deg, var(--raise) 0%, var(--raise2) 46%, var(--rule-strong) 100%);
+}
 /* Earnings and Media carry BOTH classes: they are money/consent surfaces, so
    they take the serious register, and they are coach-portal tabs, so they take
    the dark ground. The two background rules tie on specificity (1,1,0) and
@@ -6718,9 +6761,7 @@ function pricingHTML(){
     <div class="pr-head">
       <p class="eyebrow">Pricing</p>
       <h1 class="display">Pick the plan that fits your stage.</h1>
-      <p class="lede" style="margin-left:0;max-width:58ch">Sporv takes ${FEE_PCT}% of
-        bookings — families pay the coach's listed price and nothing on top. Coaches
-        run their business on a flat subscription: start free, upgrade when it grows.</p>
+      <p class="lede">Sporv takes ${FEE_PCT}% of bookings — families pay the coach's listed price.<br>Start free, upgrade when it grows.</p>
     </div>
     ${/* THREE-TIER PLAN CARDS (owner, 2026-08-20). Prices/buyable come from
          SporveCoach.plans() -> plan_entitlements (never hard-typed twice). Pro is a
@@ -6731,13 +6772,13 @@ function pricingHTML(){
       const P=(window.SporveCoach&&window.SporveCoach.plans&&window.SporveCoach.plans())||
         {free:{name:"Free",price:"$0",per:""},pro:{name:"Sporv Pro",price:"$34.99",per:"/mo"},enterprise:{name:"Sporv Enterprise",price:"$149",per:"/mo"}};
       const CK=`<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6L9 17l-5-5"/></svg>`;
-      const DESC={free:"For a coach just getting started.",pro:"For a private trainer or solo coach.",enterprise:"For a club, AAU team, or camp — many coaches, one account."};
+      const DESC={free:"For a coach just getting started.",pro:"For a private trainer or solo coach.",enterprise:"For a club, AAU team, or camp."};
       const FEAT={
-        free:["Browse & book background-checked coaches","List your services — free to join","3 AI actions a month","1 seat"],
-        pro:["Everything in Free","Unlimited AI actions","Roster, schedule, session notes & messaging","Automatic payouts","0% taken from your bookings"],
-        enterprise:["Everything in Pro","Unlimited coach & staff seats","Roles & granular permissions","Per-staff background-check gating","Commission splits & staff payouts · planned","Consolidated org billing & compliance · planned"],
+        free:["Browse checked coaches","List services free","3 AI actions a month"],
+        pro:["Unlimited AI actions","Roster, schedule, messaging","0% taken from bookings"],
+        enterprise:["Unlimited coach seats","Roles and permissions","Per-staff check gating"],
       };
-      const CTA={free:"Start free",pro:"Get Pro",enterprise:"Join early access"};
+      const CTA={free:"Start free",pro:"Start free trial",enterprise:"Talk to us"};
       const order=["free","pro","enterprise"];
       return `<section class="pp-plans" aria-label="Plans">${order.map(id=>{
         const p=P[id]||{}; const rec=id==="pro"; const dev=id==="enterprise";
@@ -11994,6 +12035,10 @@ function render(){
      longer claims coach TABS. */
   const app=document.getElementById("app");
   app.classList.toggle("reg-serious",seriousRoute);
+  /* Pricing-only slate stage (owner 2026-08-22 motion.dev replica). Scoped to
+     this one route so the gradient/serif treatment never leaks to the other
+     reg-serious pages (trust/info/wallet/bookings). */
+  app.classList.toggle("pricing-stage",r.name==="pricing");
   /* The marketing surface gets the two-grotesque register: the four tabs AND
      every page reachable from their menus.
      `page` covers all 16 PAGE_META mini-pages — What is Sporv, How background
