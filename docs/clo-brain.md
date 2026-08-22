@@ -54,6 +54,12 @@ when two conflict; strike the loser, don't delete the history.
   `conversations`/`messages`, `billing_subscriptions`. **NOT live (authored):**
   camp_roster, team_blocks, split_pay_links, org_services, shared_inbox,
   coach_invoices, commission_rates, recurring_bookings.
+- **`staff_certifications` (2026-08-22) + `program_fixtures` (2026-08-22) are LIVE.**
+  `program_fixtures` = team season schedule (games/trainings), FK→programs, RLS
+  mirrors programs (public reads a PUBLISHED program's fixtures, provider-owner via
+  `providers.owner_id=auth.uid()` manages; no USING(true)). Web read = a NOT-YET-BUILT
+  frontend slice (fetch on team detail open, honest-empty). `programs` ownership path:
+  `programs.provider_id → providers.owner_id = auth.uid()` (mirror this for any child table).
 - **The AI system prompt is server-side** (`ai-chat`/`coach-command` edge fns →
   ai-gateway, Anthropic-only, service-role-gated). The frontend can only render or
   sanitize model output, never instruct it. Emoji/format fixes belong server-side.
