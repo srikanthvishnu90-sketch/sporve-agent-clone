@@ -289,6 +289,29 @@ h3{font-size:var(--text-lg)}
 .hero .display,.display,.exhero h1,.chero-in .display,.card.feature .fov h3,
 .greet,h1,h2{letter-spacing:-.02em}
 h4{font-size:var(--text-base)}
+/* ── COMPACT-SERIF SWEEP (owner 2026-08-22, WF-9 freeze lifted for this sweep) ──
+   Family / non-coach surfaces only. The coach portal is EXCLUDED at the selector
+   level (`:not(.coachdark)`), because smoke CANNOT catch a coach leak — the coach
+   register gate accepts any 21–54px, so a coach h1 silently shrinking would pass
+   green while breaking the owner's exclusion. Mechanism: retune the size TOKENS
+   inside `#app:not(.coachdark)`; custom-property inheritance shrinks the whole
+   family tree, while `#app.coachdark` never matches, so coach elements inherit the
+   untouched :root sizes (their .greet/.cw-h1/tab h1 render exactly as before). */
+#app:not(.coachdark){
+  --text-hero:clamp(36px,3.6vw,56px);  /* display heroes — ceiling 54→56, floor 36 */
+  --text-h1:clamp(24px,2.4vw,28px);    /* NEW — in-app page titles (Bookings, Schedule…) */
+  --text-2xl:clamp(20px,1.7vw,22px);   /* h2 section headers → compact */
+  --text-lg:clamp(16px,1.1vw,17px);    /* h3 card/module titles → compact */
+}
+/* Every family header is Instrument Serif 400 — hierarchy is size+colour, the
+   serif is NEVER bolded. Coach headers keep Archivo/Inter (excluded above). */
+#app:not(.coachdark) h1,#app:not(.coachdark) h2,#app:not(.coachdark) h3{
+  font-family:var(--serif);font-weight:400;letter-spacing:-.01em}
+/* Shrink ONLY in-app page titles; :not(.display):not(.pg-h1) preserves every
+   marketing/product hero AND its per-page size tuning. Serif line-height 1.15
+   on the compacted headers (heroes keep their tight display line-height). */
+#app:not(.coachdark) h1:not(.display):not(.pg-h1){font-size:var(--text-h1);line-height:1.15}
+#app:not(.coachdark) h2,#app:not(.coachdark) h3{line-height:1.15}
 
 /* ── ROLE CLASSES ────────────────────────────────────────────────────
    The five type roles, named the same as on the marketing landing so markup
@@ -416,9 +439,14 @@ img{max-width:100%;display:block}
   --sans:"Inter",system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
   font-family:var(--sans);
 }
+/* COMPACT-SERIF SWEEP (owner 2026-08-22): this WAS the Archivo "athletic
+   secondary" rule the sweep supersedes — product-page headers now match the
+   Instrument Serif main-header canon (serif 400, hierarchy by size not weight).
+   reg-tabs is a family-only register (product/coachinfo/trust/pricing/page), so
+   this never reaches the coach portal. */
 #app.reg-tabs h1,#app.reg-tabs h2,#app.reg-tabs h3,
 #app.reg-tabs .display,#app.reg-tabs .pg-serif{
-  font-family:var(--display);font-weight:700;letter-spacing:-.02em;
+  font-family:var(--serif);font-weight:400;letter-spacing:-.02em;
 }
 /* MAIN product header → Instrument Serif (owner three-tier). This must out-specify
    the reg-tabs rule above, which is id-level (1,2,0) and forces Archivo on every
