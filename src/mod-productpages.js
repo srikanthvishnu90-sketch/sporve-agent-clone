@@ -439,10 +439,25 @@
        "A weekly picture means opening four tools and hoping the totals agree, which they rarely do once refunds, no-shows, and split pay are counted against each other.",
        "The org dashboard is designed to summarise staff, active athletes, live programs, and a compliance score from the same records that run bookings. Every figure shown on this page is sample data while Enterprise is in development."]
     ];
-    var board = "<aside class='pg-hero-orgboard' aria-label='Sample organization dashboard'>" +
-      "<div class='pg-board-top'><span>ACADEMY OS</span><span>Sample · Enterprise in development</span></div>" +
-      "<div><span>Staff</span><b>18</b></div><div><span>Active athletes</span><b>240</b></div>" +
-      "<div><span>Programs</span><b>12</b></div><div><span>Compliance</span><b>92%</b></div></aside>";
+    // Real org figures for a signed-in org admin (from the same live hydration
+    // as the compliance board); guests see the full labelled sample. Only the two
+    // figures we truly have (staff count, clearance %) go live — athlete/program
+    // counts have no live source yet, so the real board drops them rather than
+    // show a number it cannot back (honesty law).
+    var ocO = (typeof window !== "undefined") ? window.SporveOrgCompliance : null;
+    var board;
+    if (ocO && ocO.total) {
+      board = "<aside class='pg-hero-orgboard' aria-label='Your organization dashboard'>" +
+        "<div class='pg-board-top'><span>ACADEMY OS</span><span>Live · your organization</span></div>" +
+        "<div><span>Staff</span><b>" + ocO.total + "</b></div>" +
+        "<div><span>Cleared</span><b>" + ocO.cleared + " of " + ocO.total + "</b></div>" +
+        "<div><span>Compliance</span><b>" + Math.round((ocO.cleared / ocO.total) * 100) + "%</b></div></aside>";
+    } else {
+      board = "<aside class='pg-hero-orgboard' aria-label='Sample organization dashboard'>" +
+        "<div class='pg-board-top'><span>ACADEMY OS</span><span>Sample · Enterprise in development</span></div>" +
+        "<div><span>Staff</span><b>18</b></div><div><span>Active athletes</span><b>240</b></div>" +
+        "<div><span>Programs</span><b>12</b></div><div><span>Compliance</span><b>92%</b></div></aside>";
+    }
     var table = "<section class='pgband white pg-enterprise-table' data-section='comparison-table' data-layout='org-ledger'><div class='shell pg-comparison-wrap'>" +
       "<table class='pg-comparison'><thead><tr><th>The job</th><th>Elsewhere</th><th>On Sporv</th></tr></thead><tbody>" +
       rows.map(function (row) {

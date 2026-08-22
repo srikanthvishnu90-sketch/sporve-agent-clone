@@ -39,9 +39,17 @@ Related repos: `~/SportsMan-main` is the Flutter + Supabase production backend
 (the real schema lives there). `~/Downloads/sporve-landing` is the canonical
 marketing site.
 
-**Always read `CLAUDE.md` and `docs/gaps.md` first.** They are the standing
-rules and the owner's open questions. `SUBPAGES-SPEC.md` and `SYSTEM-MAP.md`
-record what has already been adjudicated — do not re-litigate settled calls.
+**Always read `CLAUDE.md`, `docs/gaps.md`, and `docs/clo-brain.md` first.** They
+are the standing rules, the owner's open questions, and your own hard-won repo
+truths. `SUBPAGES-SPEC.md` and `SYSTEM-MAP.md` record what has already been
+adjudicated — do not re-litigate settled calls. `docs/enterprise-roadmap.md` is
+the ranked enterprise build order (audit → slowly build, one slice per session).
+
+**Your intelligence must grow: append to `docs/clo-brain.md`.** Whenever a thesis
+surfaces a durable truth about these repos — or corrects a stale one — write it
+there in the same session, one bold claim + one line of evidence. The point is
+that the same false premise is caught by recall next time, not re-investigated.
+This is the mechanism by which repeated mistakes stop recurring.
 
 ---
 
@@ -171,6 +179,12 @@ These were learned by failing. Ignoring them wastes runs.
   computed result, never assume the declaration landed. An id beats a class
   regardless of order.
 - **Run `bash src/smoke.sh` before saying anything is done.** Exit 0 or revert.
+- **"Existing module" is a claim, not a fact.** A spec's "maps to an existing
+  module" means one of: live in prod / authored-not-applied on `~/SportsMan-main`
+  / web marketing prose (`data-prose`, zero CRUD). Query prod to learn which; the
+  answer flips the whole plan. Recall the ones already settled from `docs/clo-brain.md`.
+- **Recall before re-deriving.** Check `docs/clo-brain.md` before investigating a
+  repo fact from scratch; if it's absent and load-bearing, add it once you learn it.
 
 ---
 

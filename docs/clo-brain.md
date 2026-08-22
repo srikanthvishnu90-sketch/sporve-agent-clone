@@ -1,0 +1,62 @@
+# Clo brain — hard-won repo truths (read before every thesis/ground)
+
+This file is Clo's growing memory: facts about *these repos* that specs keep
+getting wrong and that Clo keeps re-deriving from scratch. Every entry was paid
+for by a real thesis or a real failure. **Read it first; append to it whenever a
+thesis surfaces a durable truth or corrects a stale one.** The goal is that the
+same mistake is never re-litigated twice — a spec's false premise is caught by
+recall, not re-investigation.
+
+Format: one bold claim + one line of evidence (file:line or query). Newest wins
+when two conflict; strike the loser, don't delete the history.
+
+## Stack & build (the-sporve-web)
+- **Zero runtime deps. No React/npm/bundler.** "Add react-markdown / any library"
+  is impossible under CSP `default-src 'self'`; the equivalent is a small inline
+  function. Build: `python3 src/build.py` inlines `src/mod-*.js` → `index.html`.
+- **Template-literal strings never appear in served HTML.** Verify a deploy by a
+  *source* marker, `wc -c`/build-hash parity, or the rendered DOM — never `grep`
+  of `index.html`. (This has cost real timeouts.)
+- **Inlined modules share NO lexical scope.** `mod-*.js` talk to the host only
+  through `window.*`; the host's `const S` (state) and `const esc` are NOT visible
+  to modules. Bridge data via a `window.SporveX` global (e.g. `window.SporveOrgCompliance`).
+- **Fonts: only already-embedded faces are usable.** `build.py` maps
+  `assets/fonts/<prefix>-Variable.woff2` → a family (archivo→"Archivo" 400-800,
+  etc.). No Google Fonts load. A new face needs a real woff2 dropped in that dir.
+
+## Design law
+- **Palette is frozen** (black/white/slate + sport accents). A spec proposing new
+  hex is approximating tokens already here. See `src/design-rules.md`, CLAUDE.md 3-5.
+- **Type canon (owner, evolving):** currently Instrument Serif (main hero) / Archivo
+  (secondary/athletic) / Inter (body) / JetBrains Mono (numerals). A STYLE FREEZE is
+  on until the first real charge (CLAUDE.md design-system). All embedded token swaps.
+
+## Backend / Supabase (prod tseszaprvtvqrkfpditu)
+- **"Existing module" in a spec usually means one of three things — verify which:**
+  (a) live in prod, (b) authored-not-applied on `~/SportsMan-main`, (c) web
+  marketing prose (`data-prose`, zero CRUD). Never trust a coverage map; query prod.
+- **Memory can be stale — verify live.** D3 said `organization_members` wasn't in
+  prod; a 2026-08-21 query proved it IS (RLS on, 7 policies, bg-check columns).
+- **LIVE in prod (2026-08-21):** `providers` (bg-check spine), `organization_members`,
+  `conversations`/`messages`, `billing_subscriptions`. **NOT live (authored):**
+  camp_roster, team_blocks, split_pay_links, org_services, shared_inbox,
+  coach_invoices, commission_rates, recurring_bookings.
+- **The AI system prompt is server-side** (`ai-chat`/`coach-command` edge fns →
+  ai-gateway, Anthropic-only, service-role-gated). The frontend can only render or
+  sanitize model output, never instruct it. Emoji/format fixes belong server-side.
+- **Fee model = 0% (subscription).** `platform_fees` table = retired flat-12%, NOT
+  applied. Stripe rejects `application_fee_amount:0` — omit the field when fee is 0
+  (learned on invoice PR #30 and checkout PR #33).
+- **Never `supabase db push` against prod** (gaps.md #1): the divergent lineage
+  replays a `USING(true)` baseline IDOR. Reconcile per-object in the SQL editor.
+
+## Trust invariants (the wedge — never weaken)
+- **Fail closed everywhere trust is displayed.** bg-check "cleared" = verified AND a
+  dated completion AND within validity. Marketplace + org compliance board both use
+  this; smoke tripwires guard them as S0. `check_production_invariants()` on prod is
+  the fastest evidence (33 checks, last 33 PASS / 0 FAIL).
+
+## Process
+- **clo never resolves a D-item; the owner writes the decision, dated.**
+- **Verify a spec's load-bearing claims against the repo BEFORE building** (rule 9).
+  Most pasted specs assume a React app; this is not one.

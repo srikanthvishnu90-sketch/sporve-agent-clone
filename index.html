@@ -21,7 +21,7 @@
 <meta name="twitter:description" content="Find coaches, trainers, camps and teams across 20+ sports in Chicagoland.">
 <meta name="twitter:image" content="https://the-sporve-web.vercel.app/og.png">
 <link rel="icon" href="data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%2032%2032'%3E%3Crect%20width='32'%20height='32'%20rx='7'%20fill='%2309090B'/%3E%3Ccircle%20cx='16'%20cy='16'%20r='6'%20fill='white'/%3E%3C/svg%3E">
-<meta name="sporve-build" content="656b845d70baece4">
+<meta name="sporve-build" content="a10ba132b41ce236">
 </head>
 <body>
 <noscript><h1>Sporv — Every sport. One app.</h1><p>Sporv connects families and athletes with coaches, trainers, camps, and teams across more than 20 sports. Please enable JavaScript to use the app.</p></noscript>
@@ -27915,10 +27915,25 @@ window.MOD_COMPANIES = {
        "A weekly picture means opening four tools and hoping the totals agree, which they rarely do once refunds, no-shows, and split pay are counted against each other.",
        "The org dashboard is designed to summarise staff, active athletes, live programs, and a compliance score from the same records that run bookings. Every figure shown on this page is sample data while Enterprise is in development."]
     ];
-    var board = "<aside class='pg-hero-orgboard' aria-label='Sample organization dashboard'>" +
-      "<div class='pg-board-top'><span>ACADEMY OS</span><span>Sample · Enterprise in development</span></div>" +
-      "<div><span>Staff</span><b>18</b></div><div><span>Active athletes</span><b>240</b></div>" +
-      "<div><span>Programs</span><b>12</b></div><div><span>Compliance</span><b>92%</b></div></aside>";
+    // Real org figures for a signed-in org admin (from the same live hydration
+    // as the compliance board); guests see the full labelled sample. Only the two
+    // figures we truly have (staff count, clearance %) go live — athlete/program
+    // counts have no live source yet, so the real board drops them rather than
+    // show a number it cannot back (honesty law).
+    var ocO = (typeof window !== "undefined") ? window.SporveOrgCompliance : null;
+    var board;
+    if (ocO && ocO.total) {
+      board = "<aside class='pg-hero-orgboard' aria-label='Your organization dashboard'>" +
+        "<div class='pg-board-top'><span>ACADEMY OS</span><span>Live · your organization</span></div>" +
+        "<div><span>Staff</span><b>" + ocO.total + "</b></div>" +
+        "<div><span>Cleared</span><b>" + ocO.cleared + " of " + ocO.total + "</b></div>" +
+        "<div><span>Compliance</span><b>" + Math.round((ocO.cleared / ocO.total) * 100) + "%</b></div></aside>";
+    } else {
+      board = "<aside class='pg-hero-orgboard' aria-label='Sample organization dashboard'>" +
+        "<div class='pg-board-top'><span>ACADEMY OS</span><span>Sample · Enterprise in development</span></div>" +
+        "<div><span>Staff</span><b>18</b></div><div><span>Active athletes</span><b>240</b></div>" +
+        "<div><span>Programs</span><b>12</b></div><div><span>Compliance</span><b>92%</b></div></aside>";
+    }
     var table = "<section class='pgband white pg-enterprise-table' data-section='comparison-table' data-layout='org-ledger'><div class='shell pg-comparison-wrap'>" +
       "<table class='pg-comparison'><thead><tr><th>The job</th><th>Elsewhere</th><th>On Sporv</th></tr></thead><tbody>" +
       rows.map(function (row) {
