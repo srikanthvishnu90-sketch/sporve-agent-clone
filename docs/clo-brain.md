@@ -134,3 +134,15 @@ when two conflict; strike the loser, don't delete the history.
 - **clo never resolves a D-item; the owner writes the decision, dated.**
 - **Verify a spec's load-bearing claims against the repo BEFORE building** (rule 9).
   Most pasted specs assume a React app; this is not one.
+
+## Pricing / honesty (2026-08-22)
+- **The Enterprise plan is `buyable:false` — "multi-player workspace, in development"**
+  (`mod-coachaccount.js` PLANS, the honesty source of truth; `billing-create-checkout`
+  rejects it server-side). Its pricing-card feature bullets are hardcoded in
+  `pricingHTML()` and BYPASS that flag, so they must carry a VISIBLE early-access
+  marker. `.pp-dev` ("In development — early access only", `dev`-flag → Enterprise
+  only) must never be `display:none` — hiding it (which the motion.dev image omits)
+  overclaims an unbuilt product and drops it from the a11y tree too. Honesty law
+  outranks pixel-exactness to a reference image. (Caught by clo audit on PR #211.)
+- **`.cmp-*` (comparison table) is NOT pricing-only** — shared at host `:7052`/`:7299`
+  too. Safe to leave untouched; do not restyle it inside a pricing-scoped change.

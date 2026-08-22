@@ -1797,7 +1797,11 @@ img{max-width:100%;display:block}
 .pp-cta-alt{width:100%;background:none;border:0;color:var(--ink);text-align:center;
   font-family:var(--sans);font-weight:500;font-size:var(--text-base);cursor:pointer;padding:8px 0}
 .pp-cta-alt:hover{text-decoration:underline}
-.pp-dev{display:none}
+/* Enterprise is buyable:false ("multi-player workspace, in development" — see
+   mod-coachaccount PLANS). This marker qualifies its three feature bullets as
+   early-access; it renders ONLY on the Enterprise card (the `dev` flag) and must
+   stay VISIBLE — honesty law outranks the reference image, which omits it. */
+.pp-dev{margin-top:12px;text-align:center;color:var(--muted);font-family:var(--sans);font-size:var(--text-xs)}
 /* §8 motion — FadeRise entrance (60ms stagger) + hover lift. `backwards` fill
    (not `both`): it holds the pre-roll frame during the delay but releases to the
    base value afterward, so the :hover transform still wins — `both`/`forwards`

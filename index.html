@@ -21,7 +21,7 @@
 <meta name="twitter:description" content="Find coaches, trainers, camps and teams across 20+ sports in Chicagoland.">
 <meta name="twitter:image" content="https://the-sporve-web.vercel.app/og.png">
 <link rel="icon" href="data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%2032%2032'%3E%3Crect%20width='32'%20height='32'%20rx='7'%20fill='%2309090B'/%3E%3Ccircle%20cx='16'%20cy='16'%20r='6'%20fill='white'/%3E%3C/svg%3E">
-<meta name="sporve-build" content="2a04874964811308">
+<meta name="sporve-build" content="0c766b2466bde961">
 </head>
 <body>
 <noscript><h1>Sporv — Every sport. One app.</h1><p>Sporv connects families and athletes with coaches, trainers, camps, and teams across more than 20 sports. Please enable JavaScript to use the app.</p></noscript>
@@ -1830,7 +1830,11 @@ img{max-width:100%;display:block}
 .pp-cta-alt{width:100%;background:none;border:0;color:var(--ink);text-align:center;
   font-family:var(--sans);font-weight:500;font-size:var(--text-base);cursor:pointer;padding:8px 0}
 .pp-cta-alt:hover{text-decoration:underline}
-.pp-dev{display:none}
+/* Enterprise is buyable:false ("multi-player workspace, in development" — see
+   mod-coachaccount PLANS). This marker qualifies its three feature bullets as
+   early-access; it renders ONLY on the Enterprise card (the `dev` flag) and must
+   stay VISIBLE — honesty law outranks the reference image, which omits it. */
+.pp-dev{margin-top:12px;text-align:center;color:var(--muted);font-family:var(--sans);font-size:var(--text-xs)}
 /* §8 motion — FadeRise entrance (60ms stagger) + hover lift. `backwards` fill
    (not `both`): it holds the pre-roll frame during the delay but releases to the
    base value afterward, so the :hover transform still wins — `both`/`forwards`
