@@ -60,10 +60,16 @@ communication accountability.**
      process) can, so a director cannot self-clear. Web: a "Record a certification"
      form on the compliance page for a signed-in org admin (member · kind · expiry →
      inserts as `pending`, re-hydrates the board). Verified RLS + invariant board 0 FAIL.
-   - ▶ **Slice 7 (next, RED):** extend the booking/supply bg-check gate to org staff
-     (an org cannot put an uncleared staff member into bookable supply — the
-     invariant already asserts an org can't self-verify a trainer). And a
-     service-role verification path (vendor webhook) to move a cert pending→verified.
+   - ✅ **Slice 7 SHIPPED (draft) 2026-08-22:** the cert VERIFICATION path —
+     `staff-cert-webhook` edge function (sporve-app PR #35), the ONLY route to a
+     'verified' cert (service_role, bypasses the RLS block). Secret-auth
+     (CERT_WEBHOOK_SECRET, constant-time), verified|revoked decisions, fail-closed.
+     NOT deployed — owner deploys + sets the secret; no cert vendor wired yet, so it
+     completes the loop architecturally and waits.
+   - ▶ **Slice 8 (deferred with reason):** extend the bg-check gate to org staff in
+     bookable SUPPLY. Deferred because the org-supply/staffing tables (`org_services`)
+     are authored-not-applied on prod — gating a flow that isn't live is premature.
+     Revisit when org-supply lands; the live booking path is already gated.
 2. **Club money transparency** (201–240). `split_pay_links` + `coach_invoices` +
    `commission_rates` are authored on SportsMan-main. RED-set (Stripe) — apply +
    audit as drafts the owner deploys. Family ledger, itemized dues, per-team P&L.
