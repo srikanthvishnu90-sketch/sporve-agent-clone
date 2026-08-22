@@ -21,7 +21,7 @@
 <meta name="twitter:description" content="Find coaches, trainers, camps and teams across 20+ sports in Chicagoland.">
 <meta name="twitter:image" content="https://the-sporve-web.vercel.app/og.png">
 <link rel="icon" href="data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%2032%2032'%3E%3Crect%20width='32'%20height='32'%20rx='7'%20fill='%2309090B'/%3E%3Ccircle%20cx='16'%20cy='16'%20r='6'%20fill='white'/%3E%3C/svg%3E">
-<meta name="sporve-build" content="0079358e0c923cc2">
+<meta name="sporve-build" content="8f15e9ec0f5ddf55">
 </head>
 <body>
 <noscript><h1>Sporv — Every sport. One app.</h1><p>Sporv connects families and athletes with coaches, trainers, camps, and teams across more than 20 sports. Please enable JavaScript to use the app.</p></noscript>
@@ -1478,6 +1478,11 @@ img{max-width:100%;display:block}
 .bk-price b{font-family:var(--mono);font-size:var(--text-xl);font-weight:700;letter-spacing:-.02em;font-variant-numeric:tabular-nums}
 .bk-price span{color:var(--muted);font-weight:500}
 .bk-cancel{color:var(--muted);font-size:var(--text-sm);margin-top:5px}
+.bk-meter{margin:17px 0 2px}
+.bk-meter-top{display:flex;justify-content:space-between;font-size:var(--text-sm);margin-bottom:7px;color:var(--muted)}
+.bk-meter-top .v{font-family:var(--mono);font-weight:600;color:var(--ink);font-variant-numeric:tabular-nums}
+.bk-meter-bar{height:6px;border-radius:3px;background:var(--rule);overflow:hidden}
+.bk-meter-bar span{display:block;height:100%;background:var(--accent);border-radius:3px}
 .bk-sel-l{font-size:10px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--faint);margin:20px 0 8px}
 .bk-select{width:100%;min-height:44px;padding:11px 13px;border:1px solid var(--rule-strong);border-radius:var(--r-m);font:inherit;background:var(--paper);color:var(--ink)}
 .bk-total{display:flex;justify-content:space-between;align-items:baseline;margin:19px 0 2px;padding-top:16px;border-top:1px solid var(--rule);font-weight:700}
@@ -7754,7 +7759,11 @@ function detailHTML(id){
   const fav=S.favorites.includes(id);
   const spots=p.cap-p.enrolled;
   const kind=(typeof ptypeOf==="function")?ptypeOf(p):"solo";
-  const typeLabel=kind==="org"?"Athletic Program":kind==="camp"?"Camp":"Private Training";
+  const typeLabel=kind==="org"?"Travel Program":kind==="camp"?"Camp":"Private Training";
+  /* Team/camp fill a roster, so the capacity meter is real and meaningful; a 1:1
+     trainer has no roster, so it is hidden for solo. */
+  const hasRoster=kind!=="solo"&&Number(p.cap)>0;
+  const fillPct=hasRoster?Math.min(100,Math.round(p.enrolled/p.cap*100)):0;
   const groupSize=kind==="solo"?"1-on-1":`${p.enrolled} / ${p.cap}`;
   const col=sportColor(p.sport);
   /* Default the session pick to the first slot so "Request to book" works even if
@@ -7822,7 +7831,11 @@ function detailHTML(id){
     <aside class="bk-ticket" aria-label="Booking">
       <div class="bk-price"><b>${money(p.price)}</b><span>${esc(modelLabel(p.model))}</span></div>
       <div class="bk-cancel">${esc(p.cancellationPolicy)} cancellation policy</div>
-      <div class="bk-sel-l">Session selection</div>
+      ${hasRoster?`<div class="bk-meter">
+        <div class="bk-meter-top"><span>Spots filled</span><span class="v">${p.enrolled} of ${p.cap}</span></div>
+        <div class="bk-meter-bar"><span style="width:${fillPct}%"></span></div>
+      </div>`:""}
+      <div class="bk-sel-l">${kind==="solo"?"Session selection":"Enrollment"}</div>
       ${slots.length?`<select class="bk-select" data-slotselect aria-label="Choose a session">${slots.map((s,i)=>`<option value="${esc(s.id)}"${i===0?" selected":""}>${fmtDate(s.date)} · ${esc(s.startTime)}</option>`).join("")}</select>`:`<div class="bk-select" style="color:var(--muted)">No open sessions yet</div>`}
       <div class="bk-total"><span>Total</span><span class="v">${money(p.price)}</span></div>
       <p class="bk-fee">Sporv never adds booking fees — the coach's price is the price.</p>
