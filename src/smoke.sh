@@ -890,6 +890,27 @@ if curl -sI "http://127.0.0.1:$CSPPORT/index.html" | grep -qi "^content-security
     *)         fail "ai: mdCoach probe returned nothing ($md)" ;;
   esac
 
+  # TRUST-CRITICAL — the org compliance board's clearance rule must FAIL CLOSED:
+  # only a 'verified' status WITH a completion date counts as cleared. Guards the
+  # AAU enterprise wedge (#345) the same way the marketplace gate is guarded.
+  oc=$($B js "(function(){
+    if(typeof orgMemberCleared!=='function') return 'NOFUNC';
+    if(orgMemberCleared({background_check_status:'verified',background_check_completed_at:null})) return 'OPEN_NODATE';
+    if(orgMemberCleared({background_check_status:'pending',background_check_completed_at:'2026-01-01'})) return 'OPEN_PENDING';
+    if(orgMemberCleared({background_check_status:'none',background_check_completed_at:null})) return 'OPEN_NONE';
+    if(!orgMemberCleared({background_check_status:'verified',background_check_completed_at:'2026-01-01'})) return 'FALSE_NEG';
+    return 'OK';
+  })()" 2>/dev/null | tr -d '\r')
+  case "$(printf '%s' "$oc" | tr -d '[:space:]')" in
+    OK)          pass "enterprise: org clearance fails closed — verified+dated only (AAU #345)" ;;
+    NOFUNC)      fail "enterprise: orgMemberCleared() missing — the compliance board has no clearance rule" ;;
+    OPEN_NODATE) fail "enterprise: a 'verified' check with NO completion date read as cleared — trust gate open (S0)" ;;
+    OPEN_PENDING)fail "enterprise: a 'pending' check read as cleared — trust gate open (S0)" ;;
+    OPEN_NONE)   fail "enterprise: an unchecked staff member read as cleared — trust gate open (S0)" ;;
+    FALSE_NEG)   fail "enterprise: a real verified+dated check read as NOT cleared — rule too tight" ;;
+    *)           fail "enterprise: org clearance probe returned nothing ($oc)" ;;
+  esac
+
   # THE SEARCH SPEC'S NON-NEGOTIABLES. Each of these is a rule, not a taste:
   # a background-check FILTER advertises that unvetted adults exist; a second
   # filter entry point makes neither authoritative; an age select in the bar

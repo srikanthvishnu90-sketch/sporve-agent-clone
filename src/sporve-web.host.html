@@ -14248,6 +14248,7 @@ function hydrateAuth(){
       hydrateRoster();
       hydrateReviews();
       hydrateQueue();
+      hydrateOrgCompliance();
       if(parked) setTimeout(()=>runIntent(parked),60);
     })
     .catch(()=>{ /* stay a guest; RLS is the real control either way */ });
@@ -14452,6 +14453,40 @@ function hydrateReviews(){
     });
     render();
   }).catch(function(){ /* keep whatever is on screen rather than blanking it */ });
+}
+
+/* Fail-closed clearance rule (trust law, same strict gate as the marketplace +
+   invariant board): a staff member is CLEARED only with a real 'verified' status
+   AND a dated completion. A verified flag with no date, or any other status, is
+   NOT cleared. Pure + exported so smoke can prove it never drifts open. */
+function orgMemberCleared(m){
+  return !!m && m.background_check_status==="verified" &&
+         !!m.background_check_completed_at;
+}
+window.orgMemberCleared=orgMemberCleared;
+
+/* Org compliance board — enterprise slice 1. Answers "is every adult around kids
+   cleared?" (AAU inventory #345) from the LIVE organization_members table. RLS
+   scopes the read to the caller's own org(s); a user in no org gets no rows and
+   the labelled sample stays. Real-or-honest-empty — never a fabricated figure. */
+function hydrateOrgCompliance(){
+  if(!window.SporveAPI||!window.SporveAuth||!window.SporveAuth.isSignedIn()) return;
+  window.SporveAPI.from("organization_members",
+    "select=role,background_check_status,background_check_completed_at,is_active"+
+    "&is_active=eq.true").then(function(rows){
+    if(!Array.isArray(rows)||!rows.length) return;   // no org membership → sample
+    S.orgCompliance={
+      total:rows.length,
+      cleared:rows.filter(orgMemberCleared).length,
+      rows:rows.map(function(m){return {
+        role:m.role||"Staff", cleared:orgMemberCleared(m),
+        status:m.background_check_status||"none"};})
+    };
+    /* The product pages are a separate inlined scope that talks to the host only
+       through window.*, so expose the board data there for the compliance page. */
+    window.SporveOrgCompliance=S.orgCompliance;
+    render();
+  }).catch(function(){ /* keep the sample rather than blanking it */ });
 }
 
 function hydrateQueue(){

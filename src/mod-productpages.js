@@ -518,12 +518,41 @@
       ["How does this handle minors and COPPA?",
        "Athlete records describe children, so the design keeps sensitive data permission-gated, keeps media consent a separate parent decision, and limits which roles can open a child's information. The organization holding a booking does not become an owner of the family's data. These COPPA-minded boundaries are the intended posture; Enterprise is in development, and this page is a labelled sample rather than a live compliance system."]
     ];
-    var board = "<aside class='pg-hero-compliance' aria-label='Sample organization compliance board'>" +
-      "<div class='pg-board-top'><span>COMPLIANCE BOARD</span><span>Sample · in development</span></div>" +
-      "<div><span>Dana W. · director</span><b class='pg-cbd pg-cbd-clear'>Clear</b></div>" +
-      "<div><span>Marcus E. · head coach</span><b class='pg-cbd pg-cbd-clear'>Clear</b></div>" +
-      "<div><span>Priya N. · assistant</span><b class='pg-cbd pg-cbd-pending'>Pending</b></div>" +
-      "<div><span>Tom B. · front desk</span><b class='pg-cbd pg-cbd-expired'>Expired</b></div></aside>";
+    // Enterprise slice 1: a signed-in org admin sees their org's REAL clearance
+    // board (from live organization_members, RLS-scoped, fail-closed); everyone
+    // else sees the labelled sample. window.* is the only channel to the host.
+    var oc = (typeof window !== "undefined") ? window.SporveOrgCompliance : null;
+    var escP = function (s) {
+      return String(s == null ? "" : s).replace(/[&<>"']/g, function (c) {
+        return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c];
+      });
+    };
+    var prettyRole = function (r) {
+      return escP(String(r || "Staff").replace(/[_-]+/g, " ").replace(/\b\w/g, function (m) { return m.toUpperCase(); }));
+    };
+    var board;
+    if (oc && oc.total) {
+      var badge = function (m) {
+        if (m.cleared) return "<b class='pg-cbd pg-cbd-clear'>Clear</b>";
+        if (m.status === "expired") return "<b class='pg-cbd pg-cbd-expired'>Expired</b>";
+        if (m.status === "pending") return "<b class='pg-cbd pg-cbd-pending'>Pending</b>";
+        return "<b class='pg-cbd pg-cbd-pending'>Not cleared</b>";
+      };
+      var headClass = oc.cleared === oc.total ? "pg-cbd-clear" : "pg-cbd-pending";
+      board = "<aside class='pg-hero-compliance' aria-label='Your organization compliance board'>" +
+        "<div class='pg-board-top'><span>COMPLIANCE BOARD</span><span>Live · your organization</span></div>" +
+        "<div><span>Adults cleared</span><b class='pg-cbd " + headClass + "'>" + oc.cleared + " of " + oc.total + "</b></div>" +
+        oc.rows.slice(0, 8).map(function (m) {
+          return "<div><span>" + prettyRole(m.role) + "</span>" + badge(m) + "</div>";
+        }).join("") + "</aside>";
+    } else {
+      board = "<aside class='pg-hero-compliance' aria-label='Sample organization compliance board'>" +
+        "<div class='pg-board-top'><span>COMPLIANCE BOARD</span><span>Sample · in development</span></div>" +
+        "<div><span>Dana W. · director</span><b class='pg-cbd pg-cbd-clear'>Clear</b></div>" +
+        "<div><span>Marcus E. · head coach</span><b class='pg-cbd pg-cbd-clear'>Clear</b></div>" +
+        "<div><span>Priya N. · assistant</span><b class='pg-cbd pg-cbd-pending'>Pending</b></div>" +
+        "<div><span>Tom B. · front desk</span><b class='pg-cbd pg-cbd-expired'>Expired</b></div></aside>";
+    }
     return wrap("enterprise-compliance", "R6", "compliance-board-to-question-ledger", "D-L", hero(meta,
       "Trust that <em>fails closed.</em>",
       "Enterprise compliance is designed to run the trust layer for a whole staff at once: each person's background check orchestrated through an independent vendor, every certificate and waiver tracked to a date, and a single board showing who is clear, pending, or expired. The rule the whole company is built on holds here — an unverified person cannot take a booking. It is in development and shown as a labelled sample.",

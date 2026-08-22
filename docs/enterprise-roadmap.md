@@ -1,0 +1,61 @@
+# Sporve Enterprise (AAU/Travel) — grounded audit + build roadmap
+
+Source: the 555-item AAU/travel problem inventory + Verification Packs A/B (2026-08-21).
+This is the ranked build order for the enterprise product — built **slowly, one safe
+slice per session**, highest-leverage-first. It is NOT a 555-feature build list; the
+inventory itself warns a solo founder building 555 solutions dies. The wedge is the
+depth TeamSnap/SportsEngine ignore: **trust/compliance, money transparency,
+communication accountability.**
+
+## What is LIVE in prod (verified 2026-08-21, project tseszaprvtvqrkfpditu)
+
+| Capability | Table(s) live | Notes |
+|---|---|---|
+| **Background-check gate** | `providers` (31 rows) + universal bg-check gate + date invariant + invariant board | The wedge. Auditable now. |
+| **Multi-team membership** | `organization_members` (RLS on, 7 policies) | Carries `background_check_status/_completed_at/_reference`, `role`, `is_active`, `commission_*`. Corrects the stale D3 note — it IS applied. |
+| **Messaging** | `conversations` (3 policies) + `messages` (2) | Real. Basis for comms accountability. |
+| **Subscriptions** | `billing_subscriptions` | 3 tiers live. |
+
+## What is GAP (authored-not-applied, or web-prose-only)
+
+- **NOT in prod** (authored on SportsMan-main `main`, not applied): `camp_roster`,
+  `camp_checkins`, `team_blocks`, `split_pay_links`, `org_services`, `shared_inbox`,
+  `coach_invoices`, `commission_rates`, `recurring_bookings`.
+- **Web enterprise = marketing prose** (`mod-productpages.js:426-554`, every node
+  `data-prose`, zero CRUD); the Enterprise plan is shipped-OFF
+  (`mod-coachaccount.js:116-148`, `workspace_enabled=false`, "$149/mo, in development").
+- **Pure GAP domains** (discovery/roadmap, not audit targets): tryouts, tournaments,
+  travel, fundraising, uniforms, volunteers/duty-roster, governance/multi-team,
+  recruiting, facilities, lifecycle.
+
+## Build order — ranked by inventory-issues-resolved × leverage × safety
+
+1. **Org compliance board** (inventory 311–345, esp. #345 "one click: is every adult
+   cleared?"). Builds on LIVE `organization_members` + bg-check gate. Lowest risk.
+   - ✅ **Slice 1 SHIPPED 2026-08-21:** `hydrateOrgCompliance()` reads real
+     `organization_members` (RLS-scoped), fail-closed clearance (`orgMemberCleared`:
+     verified **and** dated only), feeds the enterprise-compliance board real
+     "N of M cleared" for a signed-in org admin; guests keep the labelled sample.
+     smoke tripwire guards the fail-closed rule (S0 if it opens).
+   - ▶ **Slice 2 (next):** per-staff cert + waiver expiry tracking; 30/7-day alerts.
+   - ▶ **Slice 3:** extend the booking bg-check gate to org staff (RED — server/RLS,
+     draft only): an org cannot self-verify a trainer (invariant already asserts this).
+2. **Club money transparency** (201–240). `split_pay_links` + `coach_invoices` +
+   `commission_rates` are authored on SportsMan-main. RED-set (Stripe) — apply +
+   audit as drafts the owner deploys. Family ledger, itemized dues, per-team P&L.
+3. **Communication accountability** (161–200). `shared_inbox` over live
+   `conversations`/`messages`: roster-derived membership, must-acknowledge,
+   announcement-mode (replies-off), two-deep (no 1:1 coach↔minor) — the last is
+   TRUST-CRITICAL and already partly guarded.
+4. **Roster/eligibility depth** (31–60): document vault, AAU membership expiry,
+   dual-roster guard, audit trail. `organization_members` is the anchor.
+5. **Roadmap-only (discovery, no build yet):** tryouts (1–30), tournaments/travel
+   (96–160), volunteers/uniforms (266–310), fundraising (241–265), governance
+   (431–460), recruiting (376–405), facilities (461–480), lifecycle (506–530).
+
+## Rules for every enterprise slice
+
+- Audit-only on backend/RLS/Stripe: log defects, draft fixes, never self-apply (RED).
+- Trust displays (bg-check, clearance) FAIL CLOSED and show server-verified state only.
+- Features/schema = YELLOW: branch → smoke → PR → owner merges → verify live.
+- One slice per session; update this file's "SHIPPED/next" markers each time.
