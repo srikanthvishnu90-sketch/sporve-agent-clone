@@ -61,6 +61,13 @@ Numbering matches the owner's Aug-2026 "System Behind Every Page" brief.
     instructed to emit none — this is a prompt fix, not only CSS.
 14. **Text passes 4.5:1 (3:1 large).** Muted text uses the muted token, never
     opacity. See `CLAUDE.md` rule 3 for the frozen palette + on-dark accents.
+15. **Family top nav is Instrument Serif** (owner 2026-08-22, Uber/Airbnb mobile
+    pass — "top tabs + hovering portion all in serif"). `--nav-face` resolves to
+    Instrument Serif; the top tabs (`.tnav`), right-cluster links and the Get-started
+    pill read at `--t-body`, not `--t-small`. REVERSES the earlier Inter-nav rule.
+    Body/small text stays **Inter** (`--sans`). The WF-9 style freeze was lifted by
+    explicit owner override on this date (NOT by a cleared charge — that is still
+    stalled; see the charge report).
 
 ### Component composition
 15. **One height rhythm per interactive row** (inputs/buttons 40px, 44px touch;

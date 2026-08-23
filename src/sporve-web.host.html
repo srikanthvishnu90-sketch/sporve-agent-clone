@@ -182,8 +182,11 @@
      the Times/professional half; Archivo (secondary headers) + the sporty logo
      carry the athletic half. Body/nav/UI pair with INTER, per the same directive. */
   --serif:"Instrument Serif",Georgia,"Times New Roman",serif;
-  /* §3.5 nav face + tabs → Inter (owner: body/small text paired with Inter). */
-  --nav-face:"Inter",system-ui,-apple-system,"Segoe UI",sans-serif;
+  /* §3.5 nav face + tabs → Instrument Serif (owner 2026-08-22, mobile Uber/Airbnb
+     pass: "top tabs portion as well as the hovering portion should all be in serif").
+     REVERSES the earlier Inter-nav rule — the top tabs and the hover mega-menu now
+     carry the editorial serif voice. Body/small text stays Inter (--sans). */
+  --nav-face:"Instrument Serif",Georgia,"Times New Roman",serif;
   --sans:"Inter",system-ui,-apple-system,"Segoe UI",Roboto,
          "Helvetica Neue",Arial,sans-serif;
   --mono:"JetBrains Mono",ui-monospace,SFMono-Regular,"SF Mono",Menlo,Consolas,monospace;
@@ -400,7 +403,7 @@ img{max-width:100%;display:block}
 .searchpill{
   flex:1;max-width:520px;display:flex;align-items:center;gap:0;
   border:1px solid var(--rule-strong);border-radius:999px;box-shadow:var(--shadow);
-  background:var(--paper);height:48px;padding:0 6px 0 4px;transition:box-shadow .18s;
+  background:var(--paper);height:44px;padding:0 5px 0 3px;transition:box-shadow .18s;
 }
 .searchpill:hover{box-shadow:var(--shadow-lift)}
 .searchpill .seg{
@@ -473,8 +476,8 @@ img{max-width:100%;display:block}
 }
 .tnav-row .tnav{
   display:inline-flex;align-items:center;gap:7px;height:var(--h-compact);padding:0 2px;
-  border-radius:0;font-family:var(--nav-face);font-size:var(--t-small);font-weight:500;
-  letter-spacing:.02em;color:#FFFFFF;background:none;
+  border-radius:0;font-family:var(--nav-face);font-size:var(--t-body);font-weight:500;
+  letter-spacing:.01em;color:#FFFFFF;background:none;
 }
 .tnav-row .tnav:hover,
 .prodwrap:hover>.tnav,.prodwrap:focus-within>.tnav{background:none;color:#FFFFFF}
@@ -591,7 +594,7 @@ img{max-width:100%;display:block}
 .navcta{
   display:inline-flex;align-items:center;height:40px;padding:0 18px;
   border-radius:var(--r-pill);background:#FFFFFF;color:#09090B;
-  font-family:var(--nav-face);font-weight:700;font-size:var(--t-small);white-space:nowrap;
+  font-family:var(--nav-face);font-weight:600;font-size:var(--t-body);white-space:nowrap;
   transition:background .15s;
 }
 .navcta:hover{background:#E9EEF4}
@@ -649,8 +652,8 @@ img{max-width:100%;display:block}
 .navcenter .tnav{font-size:16.5px}
 .navcenter .tnav:not(.on){color:#FFFFFF}
 /* Right-cluster nav links (Become a coach / Log in) match the nav tabs' size —
-   16.5px read as oversized next to the 14.5px tabs (owner 2026-08-20). Inter. */
-.topnav .navlink{font-size:var(--t-small)}
+   16.5px read as oversized next to the 14.5px tabs (owner 2026-08-20). Serif nav. */
+.topnav .navlink{font-size:var(--t-body)}
 /* At <=900 the centred menu collapses; the account control becomes the sheet
    hamburger. On the narrowest bars the quiet "Become a coach" link yields
    space to the pill + hamburger. */
@@ -801,15 +804,15 @@ img{max-width:100%;display:block}
    the old bar read as generic. */
 /* T2 — Zillow single-field hero search. On-scale input (var(--text-lg) = 17-19px
    named clamp, >=16 so no iOS zoom); white field, obsidian submit. */
-.hero-search{margin:40px auto 0;max-width:720px;width:100%;display:flex;align-items:center;
-  background:#FFFFFF;border-radius:14px;padding:6px 6px 6px 24px;
+.hero-search{margin:36px auto 0;max-width:620px;width:100%;display:flex;align-items:center;
+  background:#FFFFFF;border-radius:12px;padding:5px 5px 5px 20px;
   box-shadow:0 8px 24px rgba(0,0,0,.35),0 32px 80px rgba(0,0,0,.45)}
 /* #app-scoped to beat `#app input{font-size:--text-base}` (id specificity):
    --text-lg is a named clamp (17-19px, on-scale) and >=16 so iOS won't zoom. */
 #app .hero-search input{flex:1;border:0;outline:none;background:none;font-family:var(--sans);
-  font-size:var(--text-lg);font-weight:400;color:var(--ink);height:52px}
+  font-size:var(--text-lg);font-weight:400;color:var(--ink);height:46px}
 .hero-search input::placeholder{color:rgba(10,14,19,.45)}
-.hero-search button{width:52px;height:52px;border-radius:10px;flex-shrink:0;background:var(--ink);
+.hero-search button{width:44px;height:44px;border-radius:9px;flex-shrink:0;background:var(--ink);
   color:#fff;display:flex;align-items:center;justify-content:center;transition:transform .15s ease}
 .hero-search button svg{width:20px;height:20px}
 .hero-search button:hover{transform:scale(1.04)}
@@ -817,9 +820,9 @@ img{max-width:100%;display:block}
 @media(prefers-reduced-motion:reduce){.hero-search button{transition:none}}
 @media(max-width:720px){.hero-search{margin-top:32px;padding-left:18px}}
 .hero .searchpill{
-  width:min(720px,100%);max-width:none;height:64px;margin-top:16px;flex:0 0 auto;
-  align-items:stretch;gap:0;padding:0 8px 0 0;
-  border:1px solid var(--rule);border-radius:var(--r-pill);
+  width:min(680px,100%);max-width:none;height:56px;margin-top:16px;flex:0 0 auto;
+  align-items:stretch;gap:0;padding:0 6px 0 0;
+  border:1px solid var(--rule-strong);border-radius:var(--r-pill);
   background:var(--paper);box-shadow:var(--shadow);
   transition:box-shadow .18s;
 }
@@ -827,7 +830,7 @@ img{max-width:100%;display:block}
 .hero .searchpill:focus-within{box-shadow:var(--shadow-lift),0 0 0 3px var(--slate-ring)}
 .sp-seg{
   display:flex;flex-direction:column;justify-content:center;gap:2px;text-align:left;
-  flex:1;min-width:0;padding:0 24px;cursor:text;
+  flex:1;min-width:0;padding:0 18px;cursor:text;
   border-radius:var(--r-pill);transition:background .15s;
 }
 .sp-seg:focus-within{background:var(--raise)}
@@ -843,10 +846,10 @@ img{max-width:100%;display:block}
 .sp-val{display:flex;align-items:center;gap:8px;min-width:0}
 .sp-val svg{width:16px;height:16px;flex:0 0 auto;color:var(--faint)}
 .hero .searchpill .seg{padding:0;font-size:var(--t-body);line-height:1.3;height:auto}
-.hero .searchpill .divider{height:34px;align-self:center;background:var(--rule)}
+.hero .searchpill .divider{height:28px;align-self:center;background:var(--rule)}
 .hero .searchpill:focus-within .divider{background:transparent}
 .hero .searchpill .go{
-  width:46px;height:46px;align-self:center;flex:0 0 auto;
+  width:42px;height:42px;align-self:center;flex:0 0 auto;
   /* slate, not accent: the hero search submit is the page's primary action and
      under the token law a primary CTA is neutral/slate, not a sport hue. */
   background:var(--slate);color:var(--slate-on);transition:background .15s,transform .12s;
@@ -1358,6 +1361,22 @@ img{max-width:100%;display:block}
 .card .verifline svg,.card .pendline svg{width:11px;height:11px}
 .verifline{display:flex;align-items:center;gap:5px;font-size:var(--text-sm);font-weight:600;color:var(--gold-ink)}
 .pendline{display:flex;align-items:center;gap:5px;font-size:var(--text-sm);font-weight:600;color:var(--warn)}
+/* MOBILE: rectangular (Uber-style) listing cards — image on the LEFT, details on
+   the RIGHT, so a company reads as a wide rectangle instead of a tall portrait
+   (owner 2026-08-22, Uber/Airbnb mobile pass). CSS grid keeps the existing child
+   markup untouched: .shot spans the full height in column 1, the text blocks
+   auto-flow down column 2. Scoped to :not(.feature) so the wide hero card and all
+   desktop (>640) layouts are unchanged. */
+@media(max-width:640px){
+  .card:not(.feature){
+    display:grid;grid-template-columns:42% 1fr;column-gap:0;row-gap:0;align-items:start;
+  }
+  .card:not(.feature) .shot{
+    grid-row:1 / -1;grid-column:1;aspect-ratio:auto;height:100%;min-height:122px;
+  }
+  .card:not(.feature)>*:not(.shot){grid-column:2}
+  .card:not(.feature) .row1{padding-top:12px}
+}
 
 /* ── generic ui ──────────────────────────────────────────────────── */
 /* §3 — three variants, two heights, nothing else.
