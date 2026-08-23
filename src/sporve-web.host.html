@@ -5113,6 +5113,24 @@ body.reg-coach .rail button{font-size:var(--t-small)}
 .pg-certform select,.pg-certform input{min-height:40px;min-width:0;flex:1 1 140px;max-width:100%;padding:8px 12px;border:1px solid var(--rule-strong);border-radius:8px;font:inherit;background:var(--paper);color:var(--ink)}
 .pg-certform .btn{min-height:40px}
 
+/* ── Slate-centered rhythm: split-band helpers (owner 2026-08-23) ──────────
+   Under the shared house rhythm (one slate band held in the centre) the R3
+   essay+rail and R4 copy+figure pairs that used to share a single side-by-side
+   band are split into separate full-width bands. These rules keep a standalone
+   figure from stretching edge-to-edge and lay a lone stat rail out as one row. */
+.pg-split-figure .pg-flat-figure{max-width:760px;margin:0 auto}
+.pg-booking-record[data-section="stat-rail"] .pg-stat-rail,
+.pg-payment-ledger[data-section="stat-rail"] .pg-stat-rail,
+.pg-enterprise-ledger[data-section="stat-rail"] .pg-stat-rail{
+  display:grid;grid-template-columns:repeat(3,1fr);gap:clamp(24px,4vw,54px);
+  border-top:0;border-right:0;padding-right:0;max-width:960px}
+@media(max-width:820px){
+  .pg-booking-record[data-section="stat-rail"] .pg-stat-rail,
+  .pg-payment-ledger[data-section="stat-rail"] .pg-stat-rail,
+  .pg-enterprise-ledger[data-section="stat-rail"] .pg-stat-rail{grid-template-columns:1fr;gap:20px}
+  .pg-split-figure .pg-flat-figure{max-width:none}
+}
+
 @media(max-width:820px){
   .rebuild-page .pg-hero-inner{grid-template-columns:1fr!important;gap:16px;align-items:start}
   .rebuild-page .pg-hero-inner>aside{display:none}

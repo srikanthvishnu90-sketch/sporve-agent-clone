@@ -38,6 +38,27 @@ when two conflict; strike the loser, don't delete the history.
   `getComputedStyle(h1).fontFamily`, never by reading the rule you added.
 - **Palette is frozen** (black/white/slate + sport accents). A spec proposing new
   hex is approximating tokens already here. See `src/design-rules.md`, CLAUDE.md 3-5.
+- **The product-page rhythm gate lives in TWO files, not one.** `scripts/slop-audit.js`
+  pins each page's `expectedRhythm`/`expectedComposition` (D/L string, slate=L) and
+  COMPUTES `out.warn.fingerprint`; the "no two pages alike" FAIL is in `src/smoke.sh`
+  (`DUPLICATE_RENDERED_SILHOUETTE` + `ADJACENT_FINGERPRINT`, ~L1378-1387) comparing
+  those fingerprints. To let pages share a rhythm without touching smoke.sh, prefix
+  the fingerprint with the page id — every fp becomes unique, the comparison can't
+  fire (owner 2026-08-23, `feat/product-pages-5band-rhythm`).
+- **`.pg-mono-ui{background:var(--paper)}` is a WHITE card (family app isn't
+  `data-theme=dark`), so every `.pg-flat-figure` is ground-agnostic** — a demo figure
+  renders fine on a dark, white, or slate band. But `.pg-search-match .pg-mono-ui`
+  is overridden to transparent+white text, so it ONLY works on dark; don't move that
+  section to slate.
+- **On `.pgband.dark`, ONLY `h2/.pg-serif/p/.pg-eyebrow/.pg-sub` + `.rebuild-page
+  .pgband.dark [data-prose]` get light text.** A `dt`/`dd` (question/definition
+  ledger), `.pg-rail-value`, or `.pg-hero-orgboard b{color:var(--ink)}` inherit DARK
+  text → invisible on a dark ground. So question-ledgers, stat-rails, and the
+  enterprise orgboard must stay on white/slate; `.pg-hero-compliance` (uses #94A3B8/
+  #343A43) is the one board that IS dark-native.
+- **`.pg-instant-product .pg-r4-copy{color:#fff}` forces the copy white** (was on a
+  dark band). Moving that copy to a light band means dropping the `.pg-instant-product`
+  class from the copy wrapper (rename to `.pg-instant-copy`), not deleting the rule.
 - **The booking/listing detail is `detailHTML(id)` (host), reached via `data-open`
   → `go("detail",id)`.** It is the "professional booking" layout (`.bk-*` classes),
   branched on `ptypeOf(p)` (solo/camp/org): solo = per-session + price ladder, NO
