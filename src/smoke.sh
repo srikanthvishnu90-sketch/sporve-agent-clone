@@ -951,9 +951,9 @@ if curl -sI "http://127.0.0.1:$CSPPORT/index.html" | grep -qi "^content-security
   # a background-check FILTER advertises that unvetted adults exist; a second
   # filter entry point makes neither authoritative; an age select in the bar
   # treats a child as a query parameter.
-  # Filter model REVISED (owner 2026-08-23, FIX 3): the single Filters drawer and
-  # the three native selects are replaced by EXACTLY THREE popover dropdowns —
-  # Sport / Price / Age — in the bar. That is the one authoritative filter surface;
+  # Filter model REVISED (owner 2026-08-23, prototype): the single Filters drawer and
+  # the native selects are replaced by EXACTLY FOUR popover chips — Sport / Price /
+  # Age / All filters — in the bar. That is the one authoritative filter surface;
   # the drawer catch-all is unlinked, so there is no second entry point to make it
   # ambiguous. The old "one data-openfilters entry" and "one toolbar row" rules are
   # retired with the drawer link and the intentional bar/chips two-row layout.
@@ -974,11 +974,11 @@ if curl -sI "http://127.0.0.1:$CSPPORT/index.html" | grep -qi "^content-security
     if(document.querySelectorAll('[data-openfilters]').length) return 'DRAWER_LINK';
     if(tb.querySelector('.tb-filters select')) return 'NATIVE_SELECT';
     var drops=tb.querySelectorAll('[data-tbdrop]').length;
-    if(drops!==3) return 'DROPS:'+drops;
+    if(drops!==4) return 'DROPS:'+drops;
     return 'OK:'+drops;
   })()" 2>/dev/null | tr -d '\r')
   case "$(printf '%s' "$sb" | tr -d '[:space:]')" in
-    OK:*)         pass "browse: filter bar is exactly $(printf '%s' "$sb" | cut -d: -f2) dropdowns (Sport/Price/Age), one authoritative surface" ;;
+    OK:*)         pass "browse: filter bar is exactly $(printf '%s' "$sb" | cut -d: -f2) chips (Sport/Price/Age/All filters), one authoritative surface" ;;
     BGFILTER)     fail "search: a 'Background-checked only' filter is back — it advertises that unvetted coaches exist" ;;
     AGEINBAR)     fail "search: a native select is in the search capsule — the athlete is a profile, not a query parameter" ;;
     CAPSULE_BACK) fail "browse: the duplicate Sport/Where/When capsule is back" ;;
@@ -986,7 +986,7 @@ if curl -sI "http://127.0.0.1:$CSPPORT/index.html" | grep -qi "^content-security
     NO_SEGMENTS)  fail "browse: the segmented control is missing" ;;
     DRAWER_LINK)  fail "search: a Filters drawer link is back in the bar — the three dropdowns are the surface now" ;;
     NATIVE_SELECT) fail "search: a native filter <select> is back in the bar — use the popover dropdowns" ;;
-    DROPS:*)      fail "search: the filter bar has $(printf '%s' "$sb" | cut -d: -f2) dropdowns; there must be exactly three (Sport/Price/Age)" ;;
+    DROPS:*)      fail "search: the filter bar has $(printf '%s' "$sb" | cut -d: -f2) chips; there must be exactly four (Sport/Price/Age/All filters)" ;;
     EMPTYPANEL)   fail "search: a segment panel rendered empty — an empty dropdown is a dead end" ;;
     NODESCRIPTOR) fail "search: panel rows have no supporting line — it is required to carry supply signal" ;;
     *)            fail "search: probe returned nothing ($sb)" ;;

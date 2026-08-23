@@ -252,6 +252,30 @@ when two conflict; strike the loser, don't delete the history.
   non-purchasable/unknown plan server-side. So a "START GROWING" button is an
   overclaim of the same class as the Enterprise "in development" issue.
 
+## Browse filter bar (verified 2026-08-23, PR #231 prototype)
+- **The browse filter bar is ALREADY a pill-chip popover system in the host, not
+  a set of native `<select>`s.** `toolbarHTML()` (host ~6825) renders `.tbd`
+  pill triggers → `.tbd-pop` popovers: `tbSportPop()` (sport-colour `.tbd-dot` +
+  real catalogue counts), `tbPricePop()` (dual-handle `.tbd-range` slider + 24-bar
+  `tbHistogram()` over real prices, `TB_SLO=20`/`TB_SHI=1000`), `tbAgePop()`
+  (`AGE_BANDS`). Open state = `S.tbMenu`; every pick writes the same state
+  `visiblePrograms()` reads (`S.sports`/`S.priceMin`/`S.priceMax`/`S.ageBands`/
+  `S.filters`/`S.sortBy`). A spec asking to "build a filter bar from scratch /
+  add a dual-range slider / add sport dots" is asking for what exists — extend it.
+- **A "background-checked / verified-only" filter toggle is BANNED here** — smoke
+  `BGFILTER` tripwire fails on the text "Background-checked only", and it violates
+  the wedge (every coach is background-checked, so the filter implies unvetted ones
+  exist). `S.filters.verifiedOnly` exists in code but must not be surfaced as a UI
+  control. Honest overflow filters instead: `S.filters.model` (pricing model,
+  wired host ~6356), `S.filters.hasReviews` (added PR #231), `S.sortBy`.
+- **The `.tb-seg` type tabs (All coaches/Private/Camps/Team) are scroll-NAVIGATION,
+  not a filter** — `data-kindjump` scrolls to a `.kind-band` section, an
+  IntersectionObserver scroll-spy (host ~14153) toggles `.on`. They set nothing on
+  `S`; `S.kind` is a separate, now-dead mechanism (only `data-kindfilter` from the
+  removed kindShowcase set it). smoke requires `.tb-seg` present (`NO_SEGMENTS`),
+  so don't fold them into a filter menu. Bar blends with slate because `.tb-bar`
+  is transparent; only the chips are white (`--paper`) pills.
+
 ## Family top-nav (verified 2026-08-23, rendered-DOM getComputedStyle)
 - **`.navcenter .tnav{font-size:16.5px}` and `.navcenter .tnav:not(.on)` (host
   ~652-653) are DEAD rules — no element in the DOM ever carries `navcenter`.**

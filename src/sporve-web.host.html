@@ -1163,6 +1163,9 @@ img{max-width:100%;display:block}
 .tbd.on{border-color:var(--slate);background:var(--slate-tint);color:var(--slate);box-shadow:none}
 .tbd.open{border-color:var(--slate);box-shadow:0 0 0 3px var(--slate-ring)}
 .tbd-cv{flex:0 0 auto;opacity:.7}
+/* the gear that leads the "All filters" chip (no new hex — inherits currentColor) */
+.tbd-ic{display:inline-flex;align-items:center;flex:0 0 auto;opacity:.75;margin:0 -1px 0 -2px}
+.tbd-ic svg{width:15px;height:15px}
 /* popover */
 .tbd-pop{position:absolute;top:calc(100% + 8px);left:0;z-index:40;width:min(300px,86vw);
   background:var(--paper);border:1px solid var(--rule-strong);border-radius:var(--r-m);
@@ -1200,6 +1203,13 @@ img{max-width:100%;display:block}
 .tbd-range:focus-visible::-moz-range-thumb{outline:2px solid var(--slate);outline-offset:2px}
 .tbd-prow{display:flex;align-items:center;justify-content:space-between;gap:12px;margin:12px 0}
 .tbd-pval{font-size:13px;font-weight:700;color:var(--ink);font-variant-numeric:tabular-nums}
+/* All-filters overflow popover — grouped sections of the existing .tbd-opt rows */
+.tbd-pop-all{width:min(300px,88vw)}
+.tbd-sect{display:flex;flex-direction:column;gap:2px}
+.tbd-sect + .tbd-sect{margin-top:8px;padding-top:8px;border-top:1px solid var(--rule)}
+.tbd-sech{font-family:var(--sans);font-size:11px;font-weight:700;letter-spacing:.05em;
+  text-transform:uppercase;color:var(--faint);padding:2px 10px 4px}
+.tbd-sub{display:block;font-size:12px;font-weight:500;color:var(--faint);margin-top:1px}
 /* row 3 — active-filter chips */
 .tb-chips2{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
 .tb-chip2{display:inline-flex;align-items:center;gap:6px;height:30px;padding:0 6px 0 12px;
@@ -5805,7 +5815,7 @@ const S={
   tbFocus:null,                // transient: element id to re-focus after a slider-commit render
   whereQuery:null,             // search bar: location segment
   whenLabel:null,              // search bar: schedule segment
-  filters:{maxPrice:null,verifiedOnly:false,model:null},
+  filters:{maxPrice:null,verifiedOnly:false,hasReviews:false,model:null},
   athletes:JSON.parse(JSON.stringify(SEED.athletes)),
   bookings:JSON.parse(JSON.stringify(SEED.bookings)),
   conversations:JSON.parse(JSON.stringify(SEED.conversations)),
@@ -6352,6 +6362,7 @@ function visiblePrograms(overrideFilters){
     }));
   }
   if(S.filters.verifiedOnly) list=list.filter(p=>p.verified);
+  if(S.filters.hasReviews) list=list.filter(p=>Number(p.reviews)>0);
   if(S.filters.maxPrice!=null) list=list.filter(p=>p.price<=S.filters.maxPrice);
   if(S.filters.model) list=list.filter(p=>p.model===S.filters.model);
   return list;
@@ -6822,6 +6833,53 @@ function tbPricePop(){
   </div>`;
 }
 
+/* The "All filters" overflow popover (owner prototype 2026-08-23). Holds the
+   secondary controls that don't earn a primary chip: Sort, the pricing-model
+   (commitment) filter, and a Has-reviews toggle. Every control here is wired to
+   real state visiblePrograms() reads — Sort→S.sortBy, model→S.filters.model,
+   reviews→S.filters.hasReviews. A model option renders only if a listing with
+   that model exists (no dead controls), exactly like the drawer's rule.
+   DELIBERATELY OMITTED: a "background-checked only" / verified toggle. Every
+   Sporve coach is background-checked (the wedge), so offering it as a filter
+   would advertise that unvetted coaches exist — banned by product-honesty law
+   and by smoke's BGFILTER tripwire. */
+const TB_SORTS=[["rec","Recommended"],["price","Price, low to high"],["rating","Rating"]];
+const TB_MODELS=[["single_session","Single session"],["package","Package"],["monthly","Season-long"]];
+function tbAllPop(){
+  const f=S.filters;
+  const models=TB_MODELS.filter(([v])=>PROGRAMS.some(p=>p.model===v));
+  const anyOn=f.hasReviews||!!f.model||S.sortBy!=="rec";
+  const modelSect=models.length>1?`<div class="tbd-sect" role="radiogroup" aria-label="Pricing model">
+      <div class="tbd-sech">Pricing model</div>
+      ${models.map(([v,l])=>{const on=f.model===v;const n=PROGRAMS.filter(p=>p.model===v).length;
+        return `<button class="tbd-opt${on?" on":""}" role="radio" aria-checked="${on}" data-tbmodel="${v}">
+          <span class="tbd-box" aria-hidden="true">${ICON.check}</span>
+          <span class="tbd-ot">${esc(l)}</span><span class="tbd-n num">${n}</span></button>`;}).join("")}
+    </div>`:"";
+  const reviewsN=PROGRAMS.filter(p=>Number(p.reviews)>0).length;
+  return `<div class="tbd-pop tbd-pop-all" role="dialog" aria-label="All filters">
+    <div class="tbd-sect" role="radiogroup" aria-label="Sort results">
+      <div class="tbd-sech">Sort</div>
+      ${TB_SORTS.map(([v,l])=>{const on=S.sortBy===v;
+        return `<button class="tbd-opt${on?" on":""}" role="radio" aria-checked="${on}" data-tbsort="${v}">
+          <span class="tbd-box" aria-hidden="true">${ICON.check}</span>
+          <span class="tbd-ot">${esc(l)}</span></button>`;}).join("")}
+    </div>
+    ${modelSect}
+    <div class="tbd-sect">
+      <div class="tbd-sech">Refine</div>
+      <button class="tbd-opt${f.hasReviews?" on":""}" role="checkbox" aria-checked="${f.hasReviews}" data-tbtoggle="reviews">
+        <span class="tbd-box" aria-hidden="true">${ICON.check}</span>
+        <span class="tbd-ot">Has reviews<span class="tbd-sub">Listings with a published review.</span></span>
+        <span class="tbd-n num">${reviewsN}</span></button>
+    </div>
+    <div class="tbd-foot">
+      <button class="lnk" data-tballclear="1"${anyOn?"":" disabled"}>Clear</button>
+      <button class="btn sm" data-tbdone="1">Done</button>
+    </div>
+  </div>`;
+}
+
 function toolbarHTML(list, kinds){
   const seg = kinds.length ? `
     <div class="tb-seg" role="tablist" aria-label="Coaching type">
@@ -6843,22 +6901,22 @@ function toolbarHTML(list, kinds){
   const priceLab=priceOn?`${money(pmin)} – ${pmax>=TB_SHI?"$1,000+":money(pmax)}`:"Price";
   const ab=S.ageBands||[];
   const ageLab=ab.length===0?"Age":ab.length===1?AGE_BANDS[ab[0]][0]:`${AGE_BANDS[ab[0]][0]} +${ab.length-1}`;
+  /* "All filters" summarises its overflow controls: sort (if non-default),
+     pricing-model, and the has-reviews toggle. Its dot-count sits in the label. */
+  const allN=(S.sortBy!=="rec"?1:0)+(S.filters.model?1:0)+(S.filters.hasReviews?1:0);
+  const allLab=allN?`All filters · ${allN}`:"All filters";
+  /* The gear leads the "All filters" trigger; every other trigger is label-only. */
   const trig=(key,lab,on)=>`<div class="tbd-wrap">
-      <button class="tbd${on?" on":""}${open===key?" open":""}" data-tbdrop="${key}"
+      <button class="tbd${on?" on":""}${open===key?" open":""}${key==="all"?" tbd-all":""}" data-tbdrop="${key}"
         aria-haspopup="true" aria-expanded="${open===key}">
-        <span class="tbd-lab">${esc(lab)}</span>${CV}</button>
-      ${open===key?(key==="sport"?tbSportPop():key==="price"?tbPricePop():tbAgePop()):""}
+        ${key==="all"?`<span class="tbd-ic" aria-hidden="true">${ICON.sliders}</span>`:""}<span class="tbd-lab">${esc(lab)}</span>${CV}</button>
+      ${open===key?(key==="sport"?tbSportPop():key==="price"?tbPricePop():key==="age"?tbAgePop():tbAllPop()):""}
     </div>`;
 
-  /* active-filter chips — each removes exactly its own control */
-  const chips=[];
-  S.sports.forEach(s=>chips.push([`sport:${s}`,s]));
-  if(priceOn) chips.push(["price",priceLab]);
-  ab.forEach(k=>chips.push([`age:${k}`,AGE_BANDS[k][0]]));
-  const chipRow=chips.length?`<div class="tb-chips2">
-    ${chips.map(([k,l])=>`<button class="tb-chip2" data-tbchip="${esc(k)}">${esc(l)}<span class="tb-chipx" aria-hidden="true">${ICON.xs}</span><span class="vis-hide">Remove ${esc(l)} filter</span></button>`).join("")}
-    <button class="lnk tb-chipclear" data-tbclearall="1">Clear all</button>
-  </div>`:"";
+  /* The bar rides the slate browse canvas: .tb-bar is transparent, so only the
+     white chips read as pills. A single Clear on the right resets every filter
+     and appears ONLY while something is active. */
+  const anyActive=S.sports.length>0||priceOn||ab.length>0||S.filters.hasReviews||!!S.filters.model||S.sortBy!=="rec";
 
   return `<div class="tb">
     ${seg}
@@ -6867,18 +6925,13 @@ function toolbarHTML(list, kinds){
         ${trig("sport",sportLab,S.sports.length>0)}
         ${trig("price",priceLab,priceOn)}
         ${trig("age",ageLab,ab.length>0)}
+        ${trig("all",allLab,allN>0)}
       </div>
       <div class="tb-right">
         ${count}
-        <label class="tb-sort"><span class="vis-hide">Sort</span>
-          <select id="resSort" aria-label="Sort results">
-            <option value="rec"${S.sortBy==="rec"?" selected":""}>Recommended</option>
-            <option value="price"${S.sortBy==="price"?" selected":""}>Price, low to high</option>
-            <option value="rating"${S.sortBy==="rating"?" selected":""}>Rating</option>
-          </select></label>
+        ${anyActive?`<button class="lnk tb-clear" data-tbclearall="1">Clear</button>`:""}
       </div>
     </div>
-    ${chipRow}
   </div>`;
 }
 
@@ -13589,6 +13642,16 @@ document.querySelectorAll('.sig-ai-coach').forEach(sigAiCoachWire);
   $("[data-tbaclear]").forEach(b=>b.onclick=e=>{e.stopPropagation();S.ageBands=[];render();});
   $("[data-tbpclear]").forEach(b=>b.onclick=e=>{e.stopPropagation();S.priceMin=null;S.priceMax=null;render();});
   $("[data-tbdone]").forEach(b=>b.onclick=e=>{e.stopPropagation();S.tbMenu=null;render();});
+  /* All-filters overflow menu. Each writes the SAME state visiblePrograms()
+     reads, so the count and grid stay in lockstep. Menu stays open on pick so
+     the visitor can set several at once; Done (above) closes it. */
+  $("[data-tbsort]").forEach(b=>b.onclick=e=>{e.stopPropagation();S.sortBy=b.dataset.tbsort;render();});
+  $("[data-tbmodel]").forEach(b=>b.onclick=e=>{e.stopPropagation();
+    const m=b.dataset.tbmodel;S.filters.model=(S.filters.model===m)?null:m;render();});
+  $("[data-tbtoggle]").forEach(b=>b.onclick=e=>{e.stopPropagation();
+    if(b.dataset.tbtoggle==="reviews") S.filters.hasReviews=!S.filters.hasReviews;render();});
+  $("[data-tballclear]").forEach(b=>b.onclick=e=>{e.stopPropagation();
+    S.sortBy="rec";S.filters.model=null;S.filters.hasReviews=false;render();});
   /* Price dual-handle slider. During a drag we repaint the fill, labels and
      histogram IN PLACE (no render, so the drag is not interrupted); on release
      or an arrow keypress (the `change` event) we commit — render() re-filters
@@ -13623,7 +13686,8 @@ document.querySelectorAll('.sig-ai-coach').forEach(sigAiCoachWire);
     else if(v.indexOf("age:")===0){const k=v.slice(4);S.ageBands=(S.ageBands||[]).filter(x=>x!==k);}
     render();
   });
-  $("[data-tbclearall]").forEach(b=>b.onclick=()=>{S.sports=[];S.priceMin=null;S.priceMax=null;S.ageBands=[];render();});
+  $("[data-tbclearall]").forEach(b=>b.onclick=()=>{S.sports=[];S.priceMin=null;S.priceMax=null;S.ageBands=[];
+    S.filters.model=null;S.filters.hasReviews=false;S.sortBy="rec";render();});
   /* Sort — previously a dead <select>; now writes S.sortBy and re-renders. */
   const rs=document.getElementById("resSort");
   if(rs) rs.onchange=e=>{S.sortBy=e.target.value;render();};
