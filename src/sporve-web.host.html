@@ -264,8 +264,9 @@ body{
    a light display serif over-tightened reads broken. NOTE the compound
    `.pg-serif.pg-h1` (0,2,0) — product h1s carry both classes, so this must out-
    specify the bare `.pg-serif` rule (:~3760) that would otherwise win on source
-   order. The coach dashboard `.greet` stays Archivo (the app voice, not editorial)
-   and the onboarding `.cw-h1` stays Archivo on purpose. */
+   order. NOTE (owner 2026-08-22): coach headers are now Instrument Serif too —
+   `#app h1,h2,h3` (id-level) forces serif on `.greet`/`.cw-h1`, superseding the
+   earlier "coach stays Archivo" rule. Coach BODY stays Inter. */
 .hero .display,.exhero h1,.chero-in .display,.pg-serif.pg-h1,.display{
   font-family:var(--serif);font-weight:400;letter-spacing:-.01em}
 body,.navlink,.btn,.roleswitch button,.seg2 button,
@@ -3690,7 +3691,6 @@ body.reg-coach .rail button{font-size:var(--t-small)}
 .band.dark :focus-visible{outline-color:#E8EDF3}
 /* The validation checklist sits directly on the black, not inside a card. */
 .band.dark .lcheck{color:#DDE3EA}
-.band.dark .lcheck i{background:rgba(240,138,98,.16);color:var(--accent-on-dark)}
 /* A HARDCODED rgba the token override could not reach. #app.noorange
    redefines --accent-on-dark, but this rule spelled the colour out, so the
    picker sweep still found it three times on the landing. Literals are exactly
@@ -6427,7 +6427,7 @@ function whenRows(){
     {key:"when:any",title:"Any time",color:"#6B7280",sub:"Widest choice of coaches"},
     {key:"when:weekday-eve",title:"Weekday evenings",color:"#2563EB",sub:"Most booked window"},
     {key:"when:weekend-am",title:"Weekend mornings",color:"#10B981",sub:"Best for younger athletes"},
-    {key:"when:before-school",title:"Before school",color:"#C2410C",sub:"Quietest — easiest to get a slot"},
+    {key:"when:before-school",title:"Before school",color:"#64748B",sub:"Quietest — easiest to get a slot"},
   ];
 }
 
@@ -6850,7 +6850,7 @@ function pricingHTML(){
       const TIERS=[
         {id:"pro",name:"Pro",mo:"$34.99",yr:"$27.99",per:"/mo",cta:"Start coaching",
          blurb:"Everything a solo coach needs to run and grow.",plus:"Everything in Free, plus",
-         feats:["Unlimited AI actions — drafts, recaps & parent updates (fair use)","Roster, schedule, session notes & messaging","Client import — bring your existing clients, keep 100% · planned","Automatic payouts","Session packs & recurring memberships","Cash-hybrid booking (deposit online, rest in person)","Up to 3 seats","0% taken from bookings"]},
+         feats:["Unlimited AI actions — drafts, recaps & parent updates (fair use)","Roster, schedule, session notes & messaging","Client import — bring your existing clients, keep 100% · planned","Automatic payouts","Session packs & recurring memberships · planned","Cash-hybrid booking (deposit online, rest in person)","Up to 3 seats","0% taken from bookings"]},
         {id:"grow",name:"Grow",mo:"$99.99",yr:"$79.99",per:"/mo",cta:"Talk to us",popular:true,
          blurb:"For a growing training business — more people, more AI, more reach.",plus:"Everything in Pro, plus",
          feats:["5x AI usage — recaps, progress reports & campaigns","Up to 10 staff seats with roles","Priority placement in family searches · planned","Group sessions, camps & clinic pages with open-spot syndication · planned","Instant payouts · planned","Staff background-check management (checks billed per adult)","Retention & revenue analytics · planned","0% taken from bookings"]},
@@ -11210,7 +11210,7 @@ function pageHTML(id){
 
     <section class="pgband white"><div class="shell" data-rev>
       <div class="pg-rows">
-        ${[["01","Twenty sports, one bar","One account and one search covers every sport your family plays — soccer this season, swim the next. No ten apps, no ten logins."],
+        ${[["01","Every sport, one bar","One account and one search covers every sport your family plays — soccer this season, swim the next. No ten apps, no ten logins."],
            ["02","Verified, not vouched","Every coach clears their <span class=\"hl\">own background check</span> before a single slot is bookable. A business can never vouch for an individual in their place."],
            ["03","A slot, not a callback","Pick a real opening and <span class=\"hl\">pay in the same flow</span>. No enquiry form that vanishes into a voicemail, no waiting to hear back."]]
           .map(([n,b,p])=>`<div class="pg-row"><div class="pg-rnum">${esc(n)}</div><div class="pg-rclaim"><b>${esc(b)}</b></div><div class="pg-rproof">${p}</div></div>`).join("")}

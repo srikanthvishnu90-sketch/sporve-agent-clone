@@ -114,8 +114,8 @@
       adds: "Unlimited AI actions and up to three seats.", buyable: true,
     },
     enterprise: {
-      id: "enterprise", name: "Sporv Enterprise", price: "$149", per: "/mo",
-      adds: "Multi-player workspace, in development.", buyable: false,
+      id: "enterprise", name: "Sporv Enterprise", price: "Custom", per: "",
+      adds: "Multi-player workspace — talk to us. In development.", buyable: false,
     },
   };
 
@@ -134,7 +134,9 @@
       (rows || []).forEach(function (r) {
         var p = PLANS[r.plan]; if (!p) return;
         var price = Number(r.price_usd_month);
-        if (isFinite(price)) { p.price = "$" + (price % 1 ? price.toFixed(2) : String(price)); p.per = price > 0 ? "/mo" : ""; }
+        // Enterprise is "Custom" (talk to us) — never overwrite it with the DB
+        // numeric price, so the billing tab agrees with the /pricing page.
+        if (isFinite(price) && r.plan !== "enterprise") { p.price = "$" + (price % 1 ? price.toFixed(2) : String(price)); p.per = price > 0 ? "/mo" : ""; }
         p.buyable = !!r.purchasable;
         var seats = r.seat_limit;
         var seatTxt = seats == null ? "" : seats + (seats === 1 ? " seat" : " seats");

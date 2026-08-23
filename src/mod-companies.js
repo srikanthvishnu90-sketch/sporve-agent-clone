@@ -68,9 +68,9 @@ const COMPANIES = [
   {
     id:"apex", name:"Apex Performance Club", verified:true,
     tagline:"Elite training clinics for junior athletes",
-    bio:"Dedicated sports academy providing elite training clinics for junior athletes. Five programmes across five sports, run out of a single campus in Lincoln Park.",
+    bio:"Dedicated sports academy providing training clinics for junior athletes. Five programmes across five sports, run out of a single campus in Lincoln Park.",
     hood:"Lincoln Park, Chicago", founded:2016, coaches:14, seed:"apex",
-    look:"Multi-sport, sunlit, premium — clean modern facility, branded kit, wide angle.",
+    look:"Multi-sport, sunlit — clean modern facility, branded kit, wide angle.",
   },
   {
     id:"coral", name:"Coral Reef Aquatics", verified:true,
@@ -1152,10 +1152,10 @@ function wire(){
 
     if(typeof toast === "function"){
       toast(kind === "team"
-          ? `Tryout registered for ${fmt(rec.tryoutDate)} · ${usd(rec.price)} fee charged`
+          ? `Tryout registered for ${fmt(rec.tryoutDate)} · sample flow, nothing charged`
           : kind === "camp"
           ? `Seat reserved · ${usd(rec.price)} deposit${rec.balanceCents ? ` · ${usd(rec.balanceCents / 100)} due by ${fmt(rec.balanceDueBy)}` : ""}`
-          : `Session booked · ${usd(rec.price)} charged`);
+          : `Session booked · sample flow, nothing charged`);
     }
   });
 }

@@ -21,7 +21,7 @@
 <meta name="twitter:description" content="Find coaches, trainers, camps and teams across 20+ sports in Chicagoland.">
 <meta name="twitter:image" content="https://the-sporve-web.vercel.app/og.png">
 <link rel="icon" href="data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%2032%2032'%3E%3Crect%20width='32'%20height='32'%20rx='7'%20fill='%2309090B'/%3E%3Ccircle%20cx='16'%20cy='16'%20r='6'%20fill='white'/%3E%3C/svg%3E">
-<meta name="sporve-build" content="453af082e5012134">
+<meta name="sporve-build" content="20e1b3314c888b7d">
 </head>
 <body>
 <noscript><h1>Sporv — Every sport. One app.</h1><p>Sporv connects families and athletes with coaches, trainers, camps, and teams across more than 20 sports. Please enable JavaScript to use the app.</p></noscript>
@@ -297,8 +297,9 @@ body{
    a light display serif over-tightened reads broken. NOTE the compound
    `.pg-serif.pg-h1` (0,2,0) — product h1s carry both classes, so this must out-
    specify the bare `.pg-serif` rule (:~3760) that would otherwise win on source
-   order. The coach dashboard `.greet` stays Archivo (the app voice, not editorial)
-   and the onboarding `.cw-h1` stays Archivo on purpose. */
+   order. NOTE (owner 2026-08-22): coach headers are now Instrument Serif too —
+   `#app h1,h2,h3` (id-level) forces serif on `.greet`/`.cw-h1`, superseding the
+   earlier "coach stays Archivo" rule. Coach BODY stays Inter. */
 .hero .display,.exhero h1,.chero-in .display,.pg-serif.pg-h1,.display{
   font-family:var(--serif);font-weight:400;letter-spacing:-.01em}
 body,.navlink,.btn,.roleswitch button,.seg2 button,
@@ -3723,7 +3724,6 @@ body.reg-coach .rail button{font-size:var(--t-small)}
 .band.dark :focus-visible{outline-color:#E8EDF3}
 /* The validation checklist sits directly on the black, not inside a card. */
 .band.dark .lcheck{color:#DDE3EA}
-.band.dark .lcheck i{background:rgba(240,138,98,.16);color:var(--accent-on-dark)}
 /* A HARDCODED rgba the token override could not reach. #app.noorange
    redefines --accent-on-dark, but this rule spelled the colour out, so the
    picker sweep still found it three times on the landing. Literals are exactly
@@ -6476,7 +6476,7 @@ function whenRows(){
     {key:"when:any",title:"Any time",color:"#6B7280",sub:"Widest choice of coaches"},
     {key:"when:weekday-eve",title:"Weekday evenings",color:"#2563EB",sub:"Most booked window"},
     {key:"when:weekend-am",title:"Weekend mornings",color:"#10B981",sub:"Best for younger athletes"},
-    {key:"when:before-school",title:"Before school",color:"#C2410C",sub:"Quietest — easiest to get a slot"},
+    {key:"when:before-school",title:"Before school",color:"#64748B",sub:"Quietest — easiest to get a slot"},
   ];
 }
 
@@ -6899,7 +6899,7 @@ function pricingHTML(){
       const TIERS=[
         {id:"pro",name:"Pro",mo:"$34.99",yr:"$27.99",per:"/mo",cta:"Start coaching",
          blurb:"Everything a solo coach needs to run and grow.",plus:"Everything in Free, plus",
-         feats:["Unlimited AI actions — drafts, recaps & parent updates (fair use)","Roster, schedule, session notes & messaging","Client import — bring your existing clients, keep 100% · planned","Automatic payouts","Session packs & recurring memberships","Cash-hybrid booking (deposit online, rest in person)","Up to 3 seats","0% taken from bookings"]},
+         feats:["Unlimited AI actions — drafts, recaps & parent updates (fair use)","Roster, schedule, session notes & messaging","Client import — bring your existing clients, keep 100% · planned","Automatic payouts","Session packs & recurring memberships · planned","Cash-hybrid booking (deposit online, rest in person)","Up to 3 seats","0% taken from bookings"]},
         {id:"grow",name:"Grow",mo:"$99.99",yr:"$79.99",per:"/mo",cta:"Talk to us",popular:true,
          blurb:"For a growing training business — more people, more AI, more reach.",plus:"Everything in Pro, plus",
          feats:["5x AI usage — recaps, progress reports & campaigns","Up to 10 staff seats with roles","Priority placement in family searches · planned","Group sessions, camps & clinic pages with open-spot syndication · planned","Instant payouts · planned","Staff background-check management (checks billed per adult)","Retention & revenue analytics · planned","0% taken from bookings"]},
@@ -11259,7 +11259,7 @@ function pageHTML(id){
 
     <section class="pgband white"><div class="shell" data-rev>
       <div class="pg-rows">
-        ${[["01","Twenty sports, one bar","One account and one search covers every sport your family plays — soccer this season, swim the next. No ten apps, no ten logins."],
+        ${[["01","Every sport, one bar","One account and one search covers every sport your family plays — soccer this season, swim the next. No ten apps, no ten logins."],
            ["02","Verified, not vouched","Every coach clears their <span class=\"hl\">own background check</span> before a single slot is bookable. A business can never vouch for an individual in their place."],
            ["03","A slot, not a callback","Pick a real opening and <span class=\"hl\">pay in the same flow</span>. No enquiry form that vanishes into a voicemail, no waiting to hear back."]]
           .map(([n,b,p])=>`<div class="pg-row"><div class="pg-rnum">${esc(n)}</div><div class="pg-rclaim"><b>${esc(b)}</b></div><div class="pg-rproof">${p}</div></div>`).join("")}
@@ -15510,8 +15510,8 @@ document.addEventListener("click",e=>{
       adds: "Unlimited AI actions and up to three seats.", buyable: true,
     },
     enterprise: {
-      id: "enterprise", name: "Sporv Enterprise", price: "$149", per: "/mo",
-      adds: "Multi-player workspace, in development.", buyable: false,
+      id: "enterprise", name: "Sporv Enterprise", price: "Custom", per: "",
+      adds: "Multi-player workspace — talk to us. In development.", buyable: false,
     },
   };
 
@@ -15530,7 +15530,9 @@ document.addEventListener("click",e=>{
       (rows || []).forEach(function (r) {
         var p = PLANS[r.plan]; if (!p) return;
         var price = Number(r.price_usd_month);
-        if (isFinite(price)) { p.price = "$" + (price % 1 ? price.toFixed(2) : String(price)); p.per = price > 0 ? "/mo" : ""; }
+        // Enterprise is "Custom" (talk to us) — never overwrite it with the DB
+        // numeric price, so the billing tab agrees with the /pricing page.
+        if (isFinite(price) && r.plan !== "enterprise") { p.price = "$" + (price % 1 ? price.toFixed(2) : String(price)); p.per = price > 0 ? "/mo" : ""; }
         p.buyable = !!r.purchasable;
         var seats = r.seat_limit;
         var seatTxt = seats == null ? "" : seats + (seats === 1 ? " seat" : " seats");
@@ -18361,7 +18363,7 @@ function seedSlots(){
 function seedMessages(){
   const body = {
     booking_confirmed:
-      "Hi! {{athlete_first_name}} is booked into {{program_title}} on {{session_date}} at {{session_time}}. " +
+      "Hi {{athlete_first_name}} is booked into {{program_title}} on {{session_date}} at {{session_time}}. " +
       "Arrive ten minutes early so we can start on time. — {{coach_name}}",
     session_reminder_24h:
       "Reminder: {{athlete_first_name}} has {{program_title}} tomorrow, {{session_date}}, at {{session_time}}. " +
@@ -26694,9 +26696,9 @@ const COMPANIES = [
   {
     id:"apex", name:"Apex Performance Club", verified:true,
     tagline:"Elite training clinics for junior athletes",
-    bio:"Dedicated sports academy providing elite training clinics for junior athletes. Five programmes across five sports, run out of a single campus in Lincoln Park.",
+    bio:"Dedicated sports academy providing training clinics for junior athletes. Five programmes across five sports, run out of a single campus in Lincoln Park.",
     hood:"Lincoln Park, Chicago", founded:2016, coaches:14, seed:"apex",
-    look:"Multi-sport, sunlit, premium — clean modern facility, branded kit, wide angle.",
+    look:"Multi-sport, sunlit — clean modern facility, branded kit, wide angle.",
   },
   {
     id:"coral", name:"Coral Reef Aquatics", verified:true,
@@ -27778,10 +27780,10 @@ function wire(){
 
     if(typeof toast === "function"){
       toast(kind === "team"
-          ? `Tryout registered for ${fmt(rec.tryoutDate)} · ${usd(rec.price)} fee charged`
+          ? `Tryout registered for ${fmt(rec.tryoutDate)} · sample flow, nothing charged`
           : kind === "camp"
           ? `Seat reserved · ${usd(rec.price)} deposit${rec.balanceCents ? ` · ${usd(rec.balanceCents / 100)} due by ${fmt(rec.balanceDueBy)}` : ""}`
-          : `Session booked · ${usd(rec.price)} charged`);
+          : `Session booked · sample flow, nothing charged`);
     }
   });
 }

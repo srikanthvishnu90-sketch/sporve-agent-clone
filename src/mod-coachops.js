@@ -200,7 +200,7 @@ function seedSlots(){
 function seedMessages(){
   const body = {
     booking_confirmed:
-      "Hi! {{athlete_first_name}} is booked into {{program_title}} on {{session_date}} at {{session_time}}. " +
+      "Hi {{athlete_first_name}} is booked into {{program_title}} on {{session_date}} at {{session_time}}. " +
       "Arrive ten minutes early so we can start on time. — {{coach_name}}",
     session_reminder_24h:
       "Reminder: {{athlete_first_name}} has {{program_title}} tomorrow, {{session_date}}, at {{session_time}}. " +

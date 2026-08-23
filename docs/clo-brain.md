@@ -129,6 +129,26 @@ when two conflict; strike the loser, don't delete the history.
 - **Board is 34 checks; healthy state is 33 PASS / 1 N/A / 0 FAIL** (2026-08-22).
   The lone N/A is `money: platform_fees row is 1200 bps` — table not applied to prod;
   fee=0 shipped via subscription tiers, the flat-12% fees table never landed. Not a regression.
+- **The Management-API curl is NOT always available: the auto-mode classifier can block
+  any `curl` carrying `~/.supabase/access-token`** (observed 2026-08-22 pass 4/4 — the
+  token in the request body tripped the secret guard). Do not try to bypass it. When the
+  MCP `execute_sql` tool is also absent from the callable set, a pass falls back to the
+  last-verified board state above; say so and mark static-only findings SUSPECTED.
+- **Money path is sound (static, 2026-08-22):** `stripe-webhook` verifies the raw-body
+  signature via `constructEventAsync` BEFORE parsing (400 on missing/invalid), routes to
+  service-role RPCs, and dead-letters failures; `stripe-create-checkout` derives amount
+  from `booking.final_price` (never client-sent) and OMITS `application_fee_amount` when
+  it computes to 0 (index.ts:207) — **gap #18 is code-fixed** (prod-deploy of checkout
+  unverified this session). `apply_stripe_booking_event` is `revoke ... from public` +
+  `grant execute ... to service_role` (20260814_000100:165-170).
+- **ai-gateway model routing gates correctly (v-current, static):** `USER_MODELS =
+  {haiku, sonnet, opus-4.8}` — gpt-4o / Opus-5 / Fable-5 are NOT reachable by a user
+  JWT (index.ts:143). Untrusted `system` is discarded and replaced by `SYSTEM_REGISTRY`
+  (trusted = isService || internalOk; index.ts:483-493). Rate limit via
+  `consume_edge_rate_limit` RPC. STALE COMMENT: index.ts:8 says "A user JWT can never
+  escalate to Opus" — false since Opus-4.8 joined USER_MODELS; harmless (intended) but
+  misleads a future auditor, and users forcing opus is a 25x-output cost lane (rate-
+  limited, not gated).
 
 ## Process
 - **clo never resolves a D-item; the owner writes the decision, dated.**
