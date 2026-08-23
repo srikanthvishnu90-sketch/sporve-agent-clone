@@ -21,7 +21,7 @@
 <meta name="twitter:description" content="Find coaches, trainers, camps and teams across 20+ sports in Chicagoland.">
 <meta name="twitter:image" content="https://the-sporve-web.vercel.app/og.png">
 <link rel="icon" href="data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%2032%2032'%3E%3Crect%20width='32'%20height='32'%20rx='7'%20fill='%2309090B'/%3E%3Ccircle%20cx='16'%20cy='16'%20r='6'%20fill='white'/%3E%3C/svg%3E">
-<meta name="sporve-build" content="75e81ab8837e8385">
+<meta name="sporve-build" content="e1c372cff793bcfe">
 </head>
 <body>
 <noscript><h1>Sporv — Every sport. One app.</h1><p>Sporv connects families and athletes with coaches, trainers, camps, and teams across more than 20 sports. Please enable JavaScript to use the app.</p></noscript>
@@ -1889,6 +1889,56 @@ img{max-width:100%;display:block}
 #app.pricing-stage .pr-head h1{font-family:var(--serif);font-weight:400;font-size:var(--text-hero);line-height:1.08;letter-spacing:-.01em;color:var(--ink)}
 #app.pricing-stage .pr-head .lede{font-family:var(--sans);font-size:var(--text-lg);line-height:1.5;color:var(--muted);max-width:60ch;margin:18px auto 0;text-align:center}
 @media(max-width:640px){.pr-stats>div+div{border-left:0;border-top:1px solid var(--rule);padding-left:0}}
+/* ── 5-tier Amboras pricing (owner 2026-08-22): slate + serif, display toggle,
+   dark-slate popular tile (NO orange), dotted-rule checklists. All figures use
+   scale tokens; every "dark" is --ink/frozen slate. ── */
+.pg-title{font-family:var(--serif);font-weight:400;font-size:var(--text-2xl);color:var(--ink);letter-spacing:-.01em;line-height:1.1}
+.pr-sub{font-family:var(--sans);font-size:var(--text-base);color:var(--muted);margin-top:6px}
+.pr-toolbar{display:flex;justify-content:flex-end;margin:18px 0 14px}
+@media(max-width:720px){.pr-toolbar{justify-content:center}}
+.billtog{display:inline-flex;background:var(--raise2);border:1px solid var(--rule);border-radius:999px;padding:4px}
+.billtog-seg{display:inline-flex;align-items:center;gap:8px;border:0;background:none;cursor:pointer;
+  font-family:var(--sans);font-size:var(--text-sm);font-weight:600;letter-spacing:.08em;text-transform:uppercase;
+  color:var(--muted);padding:8px 16px;border-radius:999px;transition:background .15s,color .15s}
+.billtog-seg.on{background:var(--paper);color:var(--ink);box-shadow:0 1px 2px rgba(10,12,15,.1)}
+.billtog-save{font-size:var(--text-xs);font-weight:700;letter-spacing:.04em;background:var(--ink);color:#fff;padding:3px 7px;border-radius:999px;text-transform:uppercase}
+.pr-strip{display:flex;align-items:center;justify-content:space-between;gap:16px;background:var(--raise2);border:1px solid var(--rule);border-radius:12px;padding:16px 22px;margin-bottom:22px;min-height:72px}
+.pr-strip-l{display:flex;align-items:baseline;flex-wrap:wrap;gap:4px 12px}
+.pr-strip-name{font-family:var(--serif);font-weight:400;font-size:var(--text-lg);color:var(--ink)}
+.pr-strip-sub{font-family:var(--sans);font-size:var(--text-sm);color:var(--muted)}
+.pr-strip-cta{flex:none;border:1px solid var(--ink);background:none;color:var(--ink);cursor:pointer;
+  font-family:var(--sans);font-size:var(--text-xs);font-weight:700;letter-spacing:.1em;text-transform:uppercase;padding:11px 20px;border-radius:999px;transition:background .15s,color .15s}
+.pr-strip-cta:hover{background:var(--ink);color:#fff}
+@media(max-width:720px){.pr-strip{flex-direction:column;align-items:flex-start;gap:12px}.pr-strip-cta{width:100%}}
+.pt-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:0;max-width:1180px;margin:0 auto;border-top:1px solid var(--rule-strong)}
+.pt-card{display:flex;flex-direction:column;padding:26px 22px;border-left:1px dotted var(--rule-strong);position:relative}
+.pt-card:first-child{border-left:0}
+.pt-card:not(:first-child)::before{content:"";position:absolute;top:-4px;left:-4px;width:7px;height:7px;border-radius:999px;background:var(--rule-strong)}
+@media(max-width:1200px){.pt-grid{grid-template-columns:repeat(2,1fr);gap:22px;border-top:0}
+  .pt-card{border-left:0;border:1px solid var(--rule);border-radius:16px}
+  .pt-card::before{display:none}}
+@media(max-width:720px){.pt-grid{grid-template-columns:1fr}.pt-pop{order:-1}}
+.pt-tile{position:relative;border-radius:12px;background:var(--raise2);padding:18px;aspect-ratio:16/10;display:flex;flex-direction:column;justify-content:space-between;overflow:hidden}
+.pt-tile-pop{background:linear-gradient(135deg,#0A0C0F 0%,#33404E 60%,#5B6E82 100%)}
+.pt-name{font-family:var(--serif);font-weight:400;font-size:var(--text-2xl);color:var(--ink);line-height:1}
+.pt-tile-pop .pt-name{color:#fff}
+.pt-price{display:flex;align-items:baseline;gap:5px}
+.pt-price b{font-family:var(--serif);font-weight:400;font-size:var(--text-hero);color:var(--ink);letter-spacing:-.02em;line-height:1;font-variant-numeric:tabular-nums}
+.pt-price i{font-family:var(--sans);font-style:normal;font-size:var(--text-sm);color:var(--muted)}
+.pt-tile-pop .pt-price b{color:#fff}
+.pt-tile-pop .pt-price i{color:#C3CBD4}
+.pt-poppill{position:absolute;top:14px;right:14px;font-family:var(--sans);font-size:var(--text-xs);font-weight:600;letter-spacing:.12em;text-transform:uppercase;color:#fff;background:rgba(255,255,255,.14);border:1px solid rgba(255,255,255,.4);padding:4px 10px;border-radius:999px}
+.pt-cta{width:100%;height:52px;border:0;border-radius:999px;background:var(--ink);color:#fff;cursor:pointer;font-family:var(--sans);font-size:var(--text-sm);font-weight:600;letter-spacing:.1em;text-transform:uppercase;margin-top:16px}
+.pt-cta:hover{background:#000}
+.pt-cancel{text-align:center;font-family:var(--sans);font-size:var(--text-sm);color:var(--muted);margin-top:10px}
+.pt-blurb{font-family:var(--sans);font-size:var(--text-base);color:var(--ink);line-height:1.5;margin-top:16px;min-height:44px}
+.pt-plus{font-family:var(--sans);font-size:var(--text-sm);font-weight:700;color:var(--ink);margin-top:14px}
+.pt-feats{list-style:none;margin:8px 0 0;padding:0}
+.pt-feats li{display:flex;align-items:flex-start;gap:10px;font-family:var(--sans);font-size:var(--text-sm);color:var(--ink-2);line-height:1.45;padding:14px 0;border-top:1px dotted var(--rule-strong)}
+.pt-feats li:first-child{border-top:0}
+.pt-feats li svg{flex:none;margin-top:2px;color:var(--ink)}
+.pt-planned{font-style:normal;font-size:var(--text-xs);color:var(--faint)}
+.pt-fine{max-width:1180px;margin:20px auto 0;font-family:var(--sans);font-size:var(--text-sm);color:var(--muted);line-height:1.5}
 .cmp-wrap{overflow-x:auto;padding-bottom:6px}
 .cmp{width:100%;border-collapse:collapse;max-width:980px}
 .cmp th,.cmp td{text-align:left;vertical-align:top;padding:16px 22px 16px 0;
@@ -6811,39 +6861,61 @@ function pricingHTML(){
          three real numbers, bare on hairlines, then the table. FEE_PCT is the
          single constant checkout charges; it is never retyped as prose. */""}
     <div class="pr-head">
-      <p class="eyebrow">Pricing</p>
-      <h1 class="display">Pick the plan that fits your stage.</h1>
-      <p class="lede">Sporv takes ${FEE_PCT}% of bookings — families pay the coach's listed price.<br>Start free, upgrade when it grows.</p>
+      <h1 class="pg-title">Pricing</h1>
+      <p class="pr-sub">Simple plans. ${FEE_PCT}% of bookings, on every plan.</p>
     </div>
-    ${/* THREE-TIER PLAN CARDS (owner, 2026-08-20). Prices/buyable come from
-         SporveCoach.plans() -> plan_entitlements (never hard-typed twice). Pro is a
-         REAL checkout via startCheckout('pro'); Enterprise is buyable:false, so it
-         gets early-access, never a pay button (honesty law + the server rejects it).
-         Our black-chrome palette, not the reference's cream. */""}
+    ${/* 5-TIER PRICING (owner 2026-08-22, Amboras format). Backend has ONE real
+         purchasable plan — Pro monthly, via SporveCoach.startCheckout('pro').
+         Grow/Max/Enterprise do NOT exist in plan_entitlements, so they are honest
+         "Talk to us" display tiles, never a fake checkout (owner decision). The
+         Monthly/Yearly toggle flips DISPLAYED prices only; annual self-serve isn't
+         live (fine print says so). Prices are config constants (they change often).
+         No orange: the popular Grow tile is a dark SLATE gradient, per the
+         retire-orange decision. */""}
     ${(()=>{
-      const P=(window.SporveCoach&&window.SporveCoach.plans&&window.SporveCoach.plans())||
-        {free:{name:"Free",price:"$0",per:""},pro:{name:"Sporv Pro",price:"$34.99",per:"/mo"},enterprise:{name:"Sporv Enterprise",price:"$149",per:"/mo"}};
-      const CK=`<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6L9 17l-5-5"/></svg>`;
-      const DESC={free:"For a coach just getting started.",pro:"For a private trainer or solo coach.",enterprise:"For a club, AAU team, or camp."};
-      const FEAT={
-        free:["Browse checked coaches","List services free","3 AI actions a month"],
-        pro:["Unlimited AI actions","Roster, schedule, messaging","0% taken from bookings"],
-        enterprise:["Unlimited coach seats","Roles and permissions","Per-staff check gating"],
-      };
-      const CTA={free:"Start free",pro:"Start free trial",enterprise:"Talk to us"};
-      const order=["free","pro","enterprise"];
-      return `<section class="pp-plans" aria-label="Plans">${order.map(id=>{
-        const p=P[id]||{}; const rec=id==="pro"; const dev=id==="enterprise";
-        return `<div class="pp-card${rec?" pp-rec":""}">
-          ${rec?`<span class="pp-badge">Recommended</span>`:""}
-          <h3 class="pp-name">${esc(p.name||id)}</h3>
-          <div class="pp-price"><b>${esc(p.price||"")}</b>${p.per?`<span>${esc(p.per)}</span>`:""}</div>
-          <p class="pp-desc">${esc(DESC[id])}</p>
-          <ul class="pp-feats">${(FEAT[id]||[]).map(f=>`<li>${CK}<span>${esc(f)}</span></li>`).join("")}</ul>
-          <button class="${rec?"btn pp-cta":"pp-cta pp-cta-alt"}" data-planbuy="${id}">${esc(CTA[id])}</button>
-          ${dev?`<p class="pp-dev">In development — early access only</p>`:""}
+      const yr=S.billYearly!==false; /* defaults to Yearly (the −20% highlighted state) */
+      const CK=`<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6L9 17l-5-5"/></svg>`;
+      const TIERS=[
+        {id:"pro",name:"Pro",mo:"$34.99",yr:"$27.99",per:"/mo",cta:"Start coaching",
+         blurb:"Everything a solo coach needs to run and grow.",plus:"Everything in Free, plus",
+         feats:["Unlimited AI actions — drafts, recaps & parent updates (fair use)","Roster, schedule, session notes & messaging","Client import — bring your existing clients, keep 100% · planned","Automatic payouts","Session packs & recurring memberships","Cash-hybrid booking (deposit online, rest in person)","Up to 3 seats","0% taken from bookings"]},
+        {id:"grow",name:"Grow",mo:"$99.99",yr:"$79.99",per:"/mo",cta:"Talk to us",popular:true,
+         blurb:"For a growing training business — more people, more AI, more reach.",plus:"Everything in Pro, plus",
+         feats:["5x AI usage — recaps, progress reports & campaigns","Up to 10 staff seats with roles","Priority placement in family searches · planned","Group sessions, camps & clinic pages with open-spot syndication · planned","Instant payouts · planned","Staff background-check management (checks billed per adult)","Retention & revenue analytics · planned","0% taken from bookings"]},
+        {id:"max",name:"Max",mo:"$249.99",yr:"$199.99",per:"/mo",cta:"Talk to us",
+         blurb:"Built for clubs, AAU teams, and academies.",plus:"Everything in Grow, plus",
+         feats:["Unlimited coach & staff seats","Roles & granular permissions","Per-staff background-check gating — unbookable until cleared","Compliance dashboard — certs, SafeSport & waivers in one view","Consolidated org billing & family ledgers · planned","Multi-team rosters, schedules & club-wide messaging","Commission splits & staff payouts · planned","Tournament & travel management · planned","0% taken from bookings"]},
+        {id:"enterprise",name:"Enterprise",mo:"Custom",yr:"Custom",per:"",custom:true,cta:"Talk to team",
+         blurb:"Volume pricing and dedicated support at scale.",plus:"Built around your operation, plus everything in Max",
+         feats:["Multi-location & multi-org structure","Dedicated onboarding & white-glove migration (TeamSnap, SportsEngine, Sports Connect)","Custom compliance reporting & audits","Clone your org setup for new locations","API access & SSO · planned","Dedicated success manager","Volume pricing"]},
+      ];
+      const feat=f=>{const i=f.indexOf(" · planned");return i<0?esc(f):esc(f.slice(0,i))+`<em class="pt-planned"> · planned</em>`;};
+      const toggle=`<div class="pr-toolbar"><div class="billtog" role="tablist" aria-label="Billing period">
+        <button class="billtog-seg${yr?"":" on"}" data-billtoggle="0" role="tab" aria-selected="${!yr}">Monthly</button>
+        <button class="billtog-seg${yr?" on":""}" data-billtoggle="1" role="tab" aria-selected="${yr}">Yearly<span class="billtog-save">Save 20%</span></button>
+      </div></div>`;
+      const strip=`<div class="pr-strip">
+        <div class="pr-strip-l"><b class="pr-strip-name">Free — $0</b>
+          <span class="pr-strip-sub">Browse, list, message, and 3 AI actions a month.</span></div>
+        <button class="pr-strip-cta" data-planbuy="free">Start free</button></div>`;
+      const cards=TIERS.map(t=>{
+        const price=t.custom?"Custom":(yr?t.yr:t.mo);
+        const pop=!!t.popular;
+        return `<div class="pt-card${pop?" pt-pop":""}">
+          <div class="pt-tile${pop?" pt-tile-pop":""}">
+            ${pop?`<span class="pt-poppill">Popular</span>`:""}
+            <span class="pt-name">${esc(t.name)}</span>
+            <span class="pt-price"><b>${esc(price)}</b>${(t.per&&!t.custom)?`<i>${esc(t.per)}</i>`:""}</span>
+          </div>
+          <button class="pt-cta" data-planbuy="${t.id}">${esc(t.cta)}</button>
+          ${t.custom?"":`<p class="pt-cancel">Cancel anytime</p>`}
+          <p class="pt-blurb">${esc(t.blurb)}</p>
+          <p class="pt-plus">${esc(t.plus)}</p>
+          <ul class="pt-feats">${t.feats.map(f=>`<li>${CK}<span>${feat(f)}</span></li>`).join("")}</ul>
         </div>`;
-      }).join("")}</section>`;
+      }).join("");
+      return `${toggle}${strip}<section class="pt-grid" aria-label="Plans">${cards}</section>
+        <p class="pt-fine">Yearly plans billed annually — the figure shown is the effective monthly rate. Annual self-serve checkout is coming; Pro currently starts on the monthly plan. Grow, Max and Enterprise aren't self-serve yet — talk to us and we'll set you up.</p>`;
     })()}
     <div class="pr-stats" role="list">
       <div role="listitem"><b class="num">${FEE_PCT}%</b><span>of a booking taken by Sporv — coaches keep 100%</span></div>
@@ -6857,9 +6929,8 @@ function pricingHTML(){
       </table>
     </div>
     <p class="cmp-fine">Joining, listing, browsing and messaging are free on both sides.
-      Pro is $34.99 a month; Enterprise — a multi-player workspace for larger
-      operations, $149 a month — is in development, by early access only.
-      No plan takes a percentage of a booking.</p>
+      Pro is the one self-serve plan today ($34.99 a month); Grow, Max and
+      Enterprise are set up by our team. No plan takes a percentage of a booking.</p>
     <div class="cmp-ctas">
       <button class="btn" data-becomecoach="1">Become a coach</button>
       <button class="btn ghost" data-nav="explore">Find a coach</button>
@@ -12475,9 +12546,17 @@ document.querySelectorAll('.sig-ai-coach').forEach(sigAiCoachWire);
       window.SporveCoach.startCheckout("pro").catch(()=>toast("Couldn't start checkout — please try again"));
       return;
     }
-    if(plan==="enterprise") toast("Enterprise is in development — start free and we'll bring you in for early access");
+    if(plan==="grow"||plan==="max"||plan==="enterprise"){
+      /* Not in plan_entitlements — never a fake checkout. Honest "talk to us":
+         start a free coach account; our team sets up the bigger plans by hand. */
+      toast("That plan isn't self-serve yet — start free and our team will set you up");
+    }
     S.signupRole="coach";S.pendingIntent={kind:"coachOnboard"};S.modal={type:"authsheet"};render();
   });
+  /* Pricing Monthly/Yearly toggle — flips displayed prices only (no real annual
+     checkout exists yet; the fine print says so). A full re-render is cheap and
+     keeps the toggle the single source of truth. */
+  $("[data-billtoggle]").forEach(b=>b.onclick=()=>{ S.billYearly = b.dataset.billtoggle==="1"; render(); });
   $("[data-acct]").forEach(b=>b.onclick=()=>{S.modal={type:"account"};render();});
   $("[data-addchild]").forEach(b=>b.onclick=()=>{S.modal={type:"addchild"};render();});
   /* Guest gating: every coach action that WRITES goes through requireAuth(),

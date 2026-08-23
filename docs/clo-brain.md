@@ -197,3 +197,16 @@ when two conflict; strike the loser, don't delete the history.
   (e82cf7c8-…) is bg-verified + Stripe-Connect-enabled; Stripe is TEST mode
   (`cs_test_`); 10 bookings all `unpaid`, 4 reached a checkout session, 0 ever paid.
   The gate to the freeze lifting is one COMPLETED test payment on the real button.
+
+## Pricing / plans (verified 2026-08-22, prod REST read)
+- **`plan_entitlements` has exactly THREE rows: free ($0), pro ($34.99/mo,
+  purchasable), enterprise ($149/mo, purchasable=false).** No "Grow"/"Max" tier
+  exists; enterprise is $149 not "Custom". Column is `price_usd_month` only — no
+  annual/yearly price source anywhere, so any "$X/yr −20%" toggle is fabricated.
+  A spec proposing 5 buyable tiers is proposing 2 tiers + a yearly price that the
+  backend cannot charge. Verify: `GET /rest/v1/plan_entitlements` w/ anon key.
+- **Only `plan==="pro"` does a real `startCheckout`** (host ~12421). enterprise
+  toasts "in development"; any unknown plan id falls through to the coach-onboard
+  auth sheet — a dead CTA, not a purchase. billing-create-checkout rejects any
+  non-purchasable/unknown plan server-side. So a "START GROWING" button is an
+  overclaim of the same class as the Enterprise "in development" issue.
