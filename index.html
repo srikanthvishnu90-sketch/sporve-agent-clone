@@ -21,7 +21,7 @@
 <meta name="twitter:description" content="Find coaches, trainers, camps and teams across 20+ sports in Chicagoland.">
 <meta name="twitter:image" content="https://the-sporve-web.vercel.app/og.png">
 <link rel="icon" href="data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%2032%2032'%3E%3Crect%20width='32'%20height='32'%20rx='7'%20fill='%2309090B'/%3E%3Ccircle%20cx='16'%20cy='16'%20r='6'%20fill='white'/%3E%3C/svg%3E">
-<meta name="sporve-build" content="395a0becd7a60816">
+<meta name="sporve-build" content="66a83c083f55c0c9">
 </head>
 <body>
 <noscript><h1>Sporv — Every sport. One app.</h1><p>Sporv connects families and athletes with coaches, trainers, camps, and teams across more than 20 sports. Please enable JavaScript to use the app.</p></noscript>
@@ -1178,17 +1178,20 @@ img{max-width:100%;display:block}
 .tb-count{font-family:var(--sans);font-size:13px;color:var(--muted);font-variant-numeric:tabular-nums}
 .tb-sort select{font-family:var(--sans);font-size:13px;color:var(--ink);
   background:none;border:0;padding:2px 0;cursor:pointer}
-/* dropdown trigger */
+/* dropdown trigger — a confident, tappable filter pill (owner: "make it premium,
+   not a ghosted strip"). White fill + crisp slate border + a subtle token shadow
+   give it real presence on the slate browse band; 40px tall, full-pill radius. */
 .tbd-wrap{position:relative}
-.tbd{display:inline-flex;align-items:center;gap:8px;height:40px;padding:0 14px;
-  border:1px solid var(--rule-strong);border-radius:var(--r-ctl);background:var(--paper);
+.tbd{display:inline-flex;align-items:center;gap:9px;height:40px;padding:0 16px;
+  border:1px solid var(--rule-strong);border-radius:999px;background:var(--paper);
+  box-shadow:var(--shadow);
   font-family:var(--sans);font-size:13px;font-weight:600;color:var(--ink);cursor:pointer;
-  white-space:nowrap;transition:border-color .14s,background .14s}
-.tbd:hover{border-color:var(--ink-2)}
+  white-space:nowrap;transition:border-color .14s,background .14s,box-shadow .14s,color .14s}
+.tbd:hover{border-color:var(--ink-2);box-shadow:var(--shadow-lift)}
 .tbd:focus-visible{outline:none;border-color:var(--slate);box-shadow:0 0 0 3px var(--slate-ring)}
-.tbd.on{border-color:var(--slate);background:var(--slate-tint);color:var(--slate)}
+.tbd.on{border-color:var(--slate);background:var(--slate-tint);color:var(--slate);box-shadow:none}
 .tbd.open{border-color:var(--slate);box-shadow:0 0 0 3px var(--slate-ring)}
-.tbd-cv{flex:0 0 auto;opacity:.55}
+.tbd-cv{flex:0 0 auto;opacity:.7}
 /* popover */
 .tbd-pop{position:absolute;top:calc(100% + 8px);left:0;z-index:40;width:min(300px,86vw);
   background:var(--paper);border:1px solid var(--rule-strong);border-radius:var(--r-m);

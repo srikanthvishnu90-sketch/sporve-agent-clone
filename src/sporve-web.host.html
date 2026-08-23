@@ -1145,17 +1145,20 @@ img{max-width:100%;display:block}
 .tb-count{font-family:var(--sans);font-size:13px;color:var(--muted);font-variant-numeric:tabular-nums}
 .tb-sort select{font-family:var(--sans);font-size:13px;color:var(--ink);
   background:none;border:0;padding:2px 0;cursor:pointer}
-/* dropdown trigger */
+/* dropdown trigger — a confident, tappable filter pill (owner: "make it premium,
+   not a ghosted strip"). White fill + crisp slate border + a subtle token shadow
+   give it real presence on the slate browse band; 40px tall, full-pill radius. */
 .tbd-wrap{position:relative}
-.tbd{display:inline-flex;align-items:center;gap:8px;height:40px;padding:0 14px;
-  border:1px solid var(--rule-strong);border-radius:var(--r-ctl);background:var(--paper);
+.tbd{display:inline-flex;align-items:center;gap:9px;height:40px;padding:0 16px;
+  border:1px solid var(--rule-strong);border-radius:999px;background:var(--paper);
+  box-shadow:var(--shadow);
   font-family:var(--sans);font-size:13px;font-weight:600;color:var(--ink);cursor:pointer;
-  white-space:nowrap;transition:border-color .14s,background .14s}
-.tbd:hover{border-color:var(--ink-2)}
+  white-space:nowrap;transition:border-color .14s,background .14s,box-shadow .14s,color .14s}
+.tbd:hover{border-color:var(--ink-2);box-shadow:var(--shadow-lift)}
 .tbd:focus-visible{outline:none;border-color:var(--slate);box-shadow:0 0 0 3px var(--slate-ring)}
-.tbd.on{border-color:var(--slate);background:var(--slate-tint);color:var(--slate)}
+.tbd.on{border-color:var(--slate);background:var(--slate-tint);color:var(--slate);box-shadow:none}
 .tbd.open{border-color:var(--slate);box-shadow:0 0 0 3px var(--slate-ring)}
-.tbd-cv{flex:0 0 auto;opacity:.55}
+.tbd-cv{flex:0 0 auto;opacity:.7}
 /* popover */
 .tbd-pop{position:absolute;top:calc(100% + 8px);left:0;z-index:40;width:min(300px,86vw);
   background:var(--paper);border:1px solid var(--rule-strong);border-radius:var(--r-m);
