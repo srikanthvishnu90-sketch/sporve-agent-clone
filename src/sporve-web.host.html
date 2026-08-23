@@ -745,17 +745,15 @@ img{max-width:100%;display:block}
   position:absolute;inset:0;background-position:center;background-size:cover;
   background-repeat:no-repeat;
 }
-/* THE SCRIM IS GRADED LEFT, not top-to-bottom. The headline sits at the left
-   content margin, so the darkness has to be where the type is; the previous
-   vertical gradient darkened the sky (where nothing is written) and left the
-   lit bleachers under the text. Two layers: a strong left wedge for contrast,
-   and a light global veil so the right side still reads as evening rather than
-   as a photograph with a stripe on it. */
+/* CENTRE POOL scrim (owner 2026-08-23: hero text centred, Devin-style). The
+   headline now sits centred, so the darkness pools behind the CENTRE via a
+   radial, plus a light vertical veil so the bottom slice (where the first card
+   peeks) still reads dark. Replaces the old left-wedge grade. */
 .hero-media::after{
   content:"";position:absolute;inset:0;
   background:
-    linear-gradient(90deg,rgba(6,8,12,.90) 0%,rgba(6,8,12,.78) 32%,rgba(6,8,12,.28) 62%,rgba(6,8,12,.10) 100%),
-    linear-gradient(180deg,rgba(6,8,12,.30) 0%,rgba(6,8,12,.22) 60%,rgba(6,8,12,.46) 100%);
+    radial-gradient(88% 74% at 50% 44%,rgba(6,8,12,.80) 0%,rgba(6,8,12,.44) 52%,rgba(6,8,12,.14) 100%),
+    linear-gradient(180deg,rgba(6,8,12,.24) 0%,rgba(6,8,12,.24) 55%,rgba(6,8,12,.52) 100%);
 }
 @media(max-width:767px){
   /* On a phone the text spans the full width, so a left wedge would leave the
@@ -780,11 +778,17 @@ img{max-width:100%;display:block}
    <em> for the semantic emphasis; font-style is reset because the tint IS the
    emphasis here and italic display type on a photograph loses its edges. */
 .h1-slate{color:var(--slate);font-style:normal}
+/* Centred hero (owner 2026-08-23, Devin reference): primary text centred, the
+   search field sitting centred below with generous air — the panel's own scrim
+   is re-graded to a centre pool (below) so the darkness follows the type. */
 .hero-panel .hero-in{
-  text-align:left;max-width:var(--shell);
-  align-items:flex-start;margin-right:auto;
+  text-align:center;max-width:920px;
+  align-items:center;margin-left:auto;margin-right:auto;
+  padding-top:112px;padding-bottom:104px;gap:20px;
 }
-.hero-panel .hero-in .hero-lede{max-width:60ch;margin-left:0}
+.hero-panel .hero-in .hero-lede{max-width:52ch;margin-left:auto;margin-right:auto}
+/* Devin-style breathing room between the headline block and the search field. */
+.hero-panel .hero-search,.hero-panel .searchpill{margin-top:34px}
 /* Scoped to .hero-panel, NOT .hero. These were written for the explore page's
    dark panel and leaked onto every `class="band hero"` section — which is the
    family landing AND the coach landing, rendering both headlines white on
