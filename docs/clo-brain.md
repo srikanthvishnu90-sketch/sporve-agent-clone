@@ -230,3 +230,19 @@ when two conflict; strike the loser, don't delete the history.
   auth sheet — a dead CTA, not a purchase. billing-create-checkout rejects any
   non-purchasable/unknown plan server-side. So a "START GROWING" button is an
   overclaim of the same class as the Enterprise "in development" issue.
+
+## Family top-nav (verified 2026-08-23, rendered-DOM getComputedStyle)
+- **`.navcenter .tnav{font-size:16.5px}` and `.navcenter .tnav:not(.on)` (host
+  ~652-653) are DEAD rules — no element in the DOM ever carries `navcenter`.**
+  The live top-tab rule is `.tnav-row .tnav` (specificity 0,2,0), which beats the
+  base `.tnav` (0,1,0). Editing `.navcenter .tnav` changes nothing; change
+  `.tnav-row .tnav`. Verify: `getComputedStyle(document.querySelector('.tnav-row .tnav'))`.
+- **The family top nav switched from Instrument Serif (`--nav-face`) to Inter
+  (`--sans`) at 16px on 2026-08-23 (FIX 4, freeze lifted by owner).** This REVERSES
+  design-rules #15 (2026-08-22 "top tabs + hover portion in serif"). `--nav-face`
+  still resolves to Instrument Serif and is retained by the mega-menu label rows +
+  coach-portal `.navlink` container; only `.tnav-row .tnav`, `.topnav .navlink`,
+  `.acct-name`, and `.acct-sheet` were repointed to `--sans`.
+- **Nav logo crop math: crop-width = 3.625 × logo-height** (host ~394 comment).
+  24px→87, 22px→80. The `<img>` carries `width="99" height="24"` attributes but CSS
+  `.navlogo{height;width:auto}` governs; attributes are inert intrinsic hints.

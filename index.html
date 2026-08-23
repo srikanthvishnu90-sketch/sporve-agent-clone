@@ -21,7 +21,7 @@
 <meta name="twitter:description" content="Find coaches, trainers, camps and teams across 20+ sports in Chicagoland.">
 <meta name="twitter:image" content="https://the-sporve-web.vercel.app/og.png">
 <link rel="icon" href="data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%2032%2032'%3E%3Crect%20width='32'%20height='32'%20rx='7'%20fill='%2309090B'/%3E%3Ccircle%20cx='16'%20cy='16'%20r='6'%20fill='white'/%3E%3C/svg%3E">
-<meta name="sporve-build" content="59c1403fc9d46055">
+<meta name="sporve-build" content="43e8a9a81cf1c522">
 </head>
 <body>
 <noscript><h1>Sporv — Every sport. One app.</h1><p>Sporv connects families and athletes with coaches, trainers, camps, and teams across more than 20 sports. Please enable JavaScript to use the app.</p></noscript>
@@ -426,12 +426,12 @@ img{max-width:100%;display:block}
    so the whole "v" shows and the retired final E is fully clipped, no sliver.
    crop = 0.8788 x 4.125 x height = 3.625 x H, holding that cut at every size.
    Asset 330x80, downscaled at both sizes, stays crisp. */
-.navlogo-crop{width:123px;height:34px;overflow:hidden;display:block;flex:0 0 auto}
-.navlogo{height:34px;width:auto;max-width:none;display:block;opacity:.95}
+.navlogo-crop{width:87px;height:24px;overflow:hidden;display:block;flex:0 0 auto}
+.navlogo{height:24px;width:auto;max-width:none;display:block;opacity:.95}
 .navlogo:hover{opacity:1}
 @media(max-width:900px){
-  .navlogo-crop{width:102px;height:28px}
-  .navlogo{height:28px}
+  .navlogo-crop{width:80px;height:22px}
+  .navlogo{height:22px}
 }
 .searchpill{
   flex:1;max-width:520px;display:flex;align-items:center;gap:0;
@@ -452,7 +452,7 @@ img{max-width:100%;display:block}
    Sits where the search pill used to, at Amboras' nav scale rather than the
    14px the folded-away subnav used. */
 /* Centred menu group on the black bar: slate labels, white on hover/active. */
-.tnav-row{display:flex;align-items:center;gap:30px;flex:0 0 auto;min-width:0}
+.tnav-row{display:flex;align-items:center;gap:28px;flex:0 0 auto;min-width:0}
 /* ═══ THE MARKETING TABS SPEAK IN TWO GROTESQUES ═════════════════════════
    Owner, 2026-08-14, with two reference images: a clean grotesque for body and
    most headings, and a geometric display face carrying an italic accent.
@@ -509,11 +509,16 @@ img{max-width:100%;display:block}
 }
 .tnav-row .tnav{
   display:inline-flex;align-items:center;gap:7px;height:var(--h-compact);padding:0 2px;
-  border-radius:0;font-family:var(--nav-face);font-size:var(--t-body);font-weight:500;
+  border-radius:0;font-family:var(--sans);font-size:16px;font-weight:500;
   letter-spacing:.01em;color:#FFFFFF;background:none;
 }
+/* FIX 4 (owner 2026-08-23, freeze lifted): nav is UI chrome, so the top tabs
+   switch from --nav-face (Instrument Serif) to --sans (Inter) at 16px. This
+   REVERSES design-rules #15 (2026-08-22 "top tabs in serif"). Hover resolves to
+   the established topbar slate literal #8FA3BC (same as .navlink:hover / the
+   wordmark), not white — no new hex. Active .on keeps its italic indicator. */
 .tnav-row .tnav:hover,
-.prodwrap:hover>.tnav,.prodwrap:focus-within>.tnav{background:none;color:#FFFFFF}
+.prodwrap:hover>.tnav,.prodwrap:focus-within>.tnav{background:none;color:#8FA3BC}
 /* THE ITALIC IS THE ACCENT. Instrument Serif's italic is the expressive part of
    the family, and using it only on the ACTIVE item makes selection legible
    without a pill, a underline or a colour change doing the work — the same
@@ -612,7 +617,7 @@ img{max-width:100%;display:block}
 .getstarted .cta-arrow{transition:transform .15s ease}
 .getstarted:hover .cta-arrow{transform:translateX(3px)}
 .acct:has(.acct-name){gap:8px;width:auto;padding:0 8px 0 12px}
-.acct-name{font-family:var(--sans);font-size:15px;font-weight:600;color:#E9EEF4;white-space:nowrap;max-width:120px;overflow:hidden;text-overflow:ellipsis}
+.acct-name{font-family:var(--sans);font-size:16px;font-weight:500;color:#FFFFFF;white-space:nowrap;max-width:120px;overflow:hidden;text-overflow:ellipsis}
 /* Logged-out family on desktop: no avatar glyph — Log in + Get started stand in.
    The account button (and its mobile hamburger) returns at <=900. */
 .topbar.guest .acct{display:none}
@@ -675,8 +680,8 @@ img{max-width:100%;display:block}
 /* §3 — "Become a coach" is plain white nav text: no border, no fill, no pill.
    Weight 500, resting opacity .85, brightening to full on hover (colour held
    at white — it must not resolve to slate like a generic .navlink). */
-.topnav .navlink.becomecoach{font-weight:500;color:#FFFFFF;opacity:.85;transition:opacity .15s}
-.topnav .navlink.becomecoach:hover{color:#FFFFFF;opacity:1}
+.topnav .navlink.becomecoach{font-weight:500;color:#FFFFFF;opacity:1;transition:color .15s}
+.topnav .navlink.becomecoach:hover{color:#8FA3BC;opacity:1}
 /* Top-bar nav sizing/colour (owner ask): larger, Squarespace-scale type across
    the whole bar, and the centre menu resting WHITE. Safe on colour law — the
    topbar is always #09090B (no scroll flip to a light ground), so white text
@@ -684,9 +689,11 @@ img{max-width:100%;display:block}
    .tnav-row is untouched. Active .on keeps its slate-tint chip (:not(.on)). */
 .navcenter .tnav{font-size:16.5px}
 .navcenter .tnav:not(.on){color:#FFFFFF}
-/* Right-cluster nav links (Become a coach / Log in) match the nav tabs' size —
-   16.5px read as oversized next to the 14.5px tabs (owner 2026-08-20). Serif nav. */
-.topnav .navlink{font-size:var(--t-body)}
+/* Right-cluster nav links (Become a coach / Log in) match the nav tabs exactly:
+   --sans (Inter), 16px, medium weight, pure white (FIX 4, owner 2026-08-23). The
+   base .navlink hover (#8FA3BC slate) already applies. Coach-portal .navlink rows
+   are a different container and keep the base --nav-face. */
+.topnav .navlink{font-family:var(--sans);font-size:16px;font-weight:500}
 /* At <=900 the centred menu collapses; the account control becomes the sheet
    hamburger. On the narrowest bars the quiet "Become a coach" link yields
    space to the pill + hamburger. */
@@ -942,8 +949,13 @@ img{max-width:100%;display:block}
   font-weight:700;font-size:var(--text-sm)}
 /* §3.5 — the account sheet (the mobile hamburger target) inherits the nav face
    too, so header chrome reads as one register at every breakpoint. Scoped to
-   this one modal so the shared .modal component is untouched elsewhere. */
-.acct-sheet{font-family:var(--nav-face)}
+   this one modal so the shared .modal component is untouched elsewhere.
+   FIX 4 (owner 2026-08-23): the nav is now --sans, so the sheet follows, and its
+   links read at 16px to match the desktop tabs. The sheet is a LIGHT modal (paper
+   ground, ink text), so the brief's "white" does not apply here — contrast is
+   kept dark-on-light; only face + size track the nav. */
+.acct-sheet{font-family:var(--sans)}
+.acct-sheet .rail-lite{font-size:16px}
 /* ── coach entry gate (split-screen: login left, welcome video right) ── */
 /* ═══ COACH ONBOARDING FLOW — owner palette spec, 2026-08-12 ═══════════════
    The owner supplied these and asked for them literally. Recording what that
@@ -6889,7 +6901,7 @@ function topbarHTML(){
    belong to the grid they filter, and Saved is a route in the account menu.
    Four labels a parent recognises, two of which open mega-menus. */
 function primaryNavHTML(){
-  const chev=`<svg class="chev" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+  const chev=`<svg class="chev" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor"
        stroke-width="3" stroke-linecap="round" aria-hidden="true"><path d="M5 9l7 7 7-7"/></svg>`;
   return `<nav class="tnav-row" aria-label="Primary">
     <span class="prodwrap">
