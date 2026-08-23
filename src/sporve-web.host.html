@@ -1123,7 +1123,7 @@ img{max-width:100%;display:block}
   font-family:var(--sans);font-size:14px;font-weight:600;cursor:pointer;max-width:130px}
 .tb-f select:focus{outline:none;border-color:var(--slate);box-shadow:0 0 0 3px var(--slate-ring)}
 @media(max-width:900px){.tb-filters{overflow-x:auto;scrollbar-width:none}}
-.tb-right{display:flex;align-items:center;gap:16px;margin-left:auto;flex-wrap:nowrap;
+.tb-right{display:flex;align-items:center;gap:16px;margin:0 auto;flex-wrap:nowrap;
   min-width:0;overflow-x:auto;scrollbar-width:none}
 .tb-right::-webkit-scrollbar{display:none}
 .tb-seg{flex:0 0 auto}
@@ -2144,8 +2144,12 @@ img{max-width:100%;display:block}
    centred bar was "the defect being fixed"). At >=1280 the wrap is click-through
    so the page reflows BESIDE the panel (see --aidock-w / #app margin-right) and
    the content stays usable; below 1280 the panel overlays with a 20% backdrop. */
+/* Maximized = a CENTERED dark modal (owner 2026-08-22). Was a right-docked
+   380px widget with a transparent wrap, so on desktop the panel floated over the
+   untouched light page — the "white barrier." Now the wrap is a full dark scrim
+   and the panel centers, so there is no white surround and nothing is cramped. */
 .aimax-wrap{position:fixed;inset:0;z-index:86;display:flex;align-items:center;
-  justify-content:flex-end;padding:16px;pointer-events:none;background:transparent;
+  justify-content:center;padding:16px;pointer-events:auto;background:rgba(8,10,12,.62);
   transition:background .2s ease}
 .aimax-wrap:has(.aifull){align-items:center;justify-content:center;pointer-events:auto;
   background:rgba(8,10,12,.20)}
@@ -2153,7 +2157,7 @@ img{max-width:100%;display:block}
    wrap dims the page (20% deepest-surface) and catches clicks. */
 @media(max-width:1279px){.aimax-wrap:not(:has(.aifull)){pointer-events:auto;
   background:rgba(10,12,15,.20)}}
-.aidock-panel.aimax{pointer-events:auto;width:380px;max-width:calc(100vw - 32px);
+.aidock-panel.aimax{pointer-events:auto;width:min(640px,calc(100vw - 48px));max-width:calc(100vw - 32px);
   height:calc(100vh - 96px);max-height:840px;display:flex;flex-direction:column;
   animation:aidock-slidein .24s cubic-bezier(.32,.72,0,1);
   transition:width .24s cubic-bezier(.32,.72,0,1),height .24s cubic-bezier(.32,.72,0,1)}
@@ -2253,7 +2257,7 @@ img{max-width:100%;display:block}
   color:#C3CBD4;cursor:pointer;transition:background .15s,color .15s}
 .aidock-x:hover{background:rgba(255,255,255,.14);color:#FFFFFF}
 /* Room for it, so a long first line never runs under the X. */
-.aidock-compose .aidock-input{padding-right:34px}
+.aidock-compose .aidock-input{padding-right:120px}
 .aidock-row{display:flex;align-items:center;gap:8px;width:100%}
 .aidock-row .aidock-input{flex:1 1 auto;min-width:0}
 
@@ -2290,6 +2294,15 @@ img{max-width:100%;display:block}
   color:#C3CBD4;font-size:var(--text-sm);white-space:nowrap}
 .aidock-model b{color:#FFFFFF;font-weight:600}
 .aidock-effort{color:#C3CBD4}
+/* Real model picker (owner 2026-08-22): Haiku / Sonnet / Opus 4.8, Haiku default;
+   the gateway caps the ladder so a client can't reach Fable 5 / Opus 5 / gpt. */
+.aidock-model select{appearance:none;-webkit-appearance:none;background:#1B2129;color:#F5F7F9;
+  border:1px solid #333A45;border-radius:8px;padding:5px 26px 5px 11px;font-family:var(--sans);
+  font-size:var(--text-xs);font-weight:600;cursor:pointer;line-height:1;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='10' viewBox='0 0 24 24' fill='none' stroke='%239AA6B2' stroke-width='2.6' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
+  background-repeat:no-repeat;background-position:right 9px center}
+.aidock-model select:hover{border-color:#4A5462}
+.aidock-model select:focus-visible{outline:2px solid var(--slate);outline-offset:1px}
 @media(max-width:560px){
   /* The model label is the first thing to go — the input and the send button
      are the two controls that must survive a narrow screen. */
@@ -8628,7 +8641,7 @@ function aiDockHTML(){
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
                  stroke-width="1.9" stroke-linecap="round" aria-hidden="true">
               <path d="M12 5v14M5 12h14"/></svg></button>
-          <span class="aidock-model" style="margin-left:auto"><b>Sporv AI</b></span>
+          <label class="aidock-model" style="margin-left:auto"><select data-aimodel aria-label="Choose AI model"><option value="claude-haiku-4-5-20251001"${(S.aiModel||"claude-haiku-4-5-20251001")==="claude-haiku-4-5-20251001"?" selected":""}>Haiku</option><option value="claude-sonnet-4-6"${S.aiModel==="claude-sonnet-4-6"?" selected":""}>Sonnet</option><option value="claude-opus-4-8"${S.aiModel==="claude-opus-4-8"?" selected":""}>Opus 4.8</option></select></label>
           <button type="button" class="aidock-ic" data-aivoice="1" aria-label="Dictate a message">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor"
                  stroke-width="1.8" stroke-linecap="round" aria-hidden="true">
@@ -8687,7 +8700,7 @@ function aiDockHTML(){
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
                  stroke-width="1.9" stroke-linecap="round" aria-hidden="true">
               <path d="M12 5v14M5 12h14"/></svg></button>
-          <span class="aidock-model" style="margin-left:auto"><b>Sporv AI</b></span>
+          <label class="aidock-model" style="margin-left:auto"><select data-aimodel aria-label="Choose AI model"><option value="claude-haiku-4-5-20251001"${(S.aiModel||"claude-haiku-4-5-20251001")==="claude-haiku-4-5-20251001"?" selected":""}>Haiku</option><option value="claude-sonnet-4-6"${S.aiModel==="claude-sonnet-4-6"?" selected":""}>Sonnet</option><option value="claude-opus-4-8"${S.aiModel==="claude-opus-4-8"?" selected":""}>Opus 4.8</option></select></label>
           <button type="button" class="aidock-ic" data-aivoice="1" aria-label="Dictate a message">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor"
                  stroke-width="1.8" stroke-linecap="round" aria-hidden="true">
@@ -12506,6 +12519,9 @@ document.querySelectorAll('.sig-ai-coach').forEach(sigAiCoachWire);
      checkout exists yet; the fine print says so). A full re-render is cheap and
      keeps the toggle the single source of truth. */
   $("[data-billtoggle]").forEach(b=>b.onclick=()=>{ S.billYearly = b.dataset.billtoggle==="1"; render(); });
+  /* AI model picker (owner 2026-08-22): Haiku (default) / Sonnet / Opus 4.8.
+     No re-render — the next send reads S.aiModel; the gateway caps the ladder. */
+  $("[data-aimodel]").forEach(el=>el.onchange=()=>{ S.aiModel=el.value; });
   $("[data-acct]").forEach(b=>b.onclick=()=>{S.modal={type:"account"};render();});
   $("[data-addchild]").forEach(b=>b.onclick=()=>{S.modal={type:"addchild"};render();});
   /* Guest gating: every coach action that WRITES goes through requireAuth(),
@@ -14022,7 +14038,7 @@ function askCoach(q){
        request itself isn't aborted (API.fn has no cancellation), but the UI
        recovers and offers retry. */
     const timeout=new Promise((_,rej)=>setTimeout(()=>rej(new Error("timeout")),45000));
-    Promise.race([API.fn("coach-command",{text,history}),timeout]).then(r=>{
+    Promise.race([API.fn("coach-command",{text,history,model:S.aiModel||"claude-haiku-4-5-20251001"}),timeout]).then(r=>{
       /* The coach switched threads while this turn was in flight — its reply
          belongs to a conversation that is no longer on screen. Drop it. */
       if(epoch!==chatEpoch) return;
@@ -14056,7 +14072,7 @@ function askCoach(q){
      family user on thinking-dots forever. On timeout the .catch falls back to a
      plain catalogue match rather than hanging. */
   const aiTimeout=new Promise((_,rej)=>setTimeout(()=>rej(new Error("timeout")),45000));
-  Promise.race([API.fn("ai-chat",{messages:history}),aiTimeout]).then(r=>{
+  Promise.race([API.fn("ai-chat",{messages:history,model:S.aiModel||"claude-haiku-4-5-20251001"}),aiTimeout]).then(r=>{
     const reply=r&&typeof r.text==="string"?r.text.trim():"";
     if(!reply) return fallback("I couldn't reach the assistant, so here's a catalogue match:");
     /* Ground the picks: only listings the model NAMED and that actually exist. */
