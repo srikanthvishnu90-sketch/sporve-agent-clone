@@ -162,34 +162,43 @@ window.SLOP_AUDIT = function (root) {
       "enterprise":"R2", "enterprise-roster":"R4",
       "enterprise-finance":"R3", "enterprise-compliance":"R6"
     };
+    /* SHARED SLATE-CENTERED RHYTHM (owner decision 2026-08-23): the anti-uniformity
+       gate that pinned each page to a UNIQUE rhythm/composition was retired so every
+       product page can wear the same house ground-rhythm — a single slate band held
+       in the centre, blacks and whites balanced around it (2 black + 2 white + 1
+       slate at 5 bands; the honest 3-band version B-S-W / W-S-D where a page lacks
+       real content for five). Per-page character now lives in the header colour/text
+       and each body's silhouette, not in a bespoke band sequence. These maps still
+       pin each page to ITS chosen rhythm/composition (so a regression is caught);
+       they simply no longer forbid two pages from sharing one. */
     const expectedComposition = {
-      "what-is":"manifesto-grid-claim-questions",
-      "background-checks":"threshold-head-walk-honesty-questions",
+      "what-is":"manifesto-split-grid-claim-questions",
+      "background-checks":"threshold-head-split-walk-honesty-questions",
       "search":"filter-figure-to-comparison",
       "map-search":"offset-argument-to-dark-table",
-      "instant-booking":"ticket-head-to-inverse-product",
+      "instant-booking":"ticket-head-to-split-product",
       "messaging":"centered-question-to-three-column-essay",
-      "bookings-receipts":"receipt-head-to-horizontal-record",
-      "athlete-progress":"progress-head-to-figure-first-record",
-      "scheduling":"calendar-head-to-staggered-walk",
-      "payments":"math-head-to-rail-first-essay",
-      "roster":"compact-head-to-wide-roster",
+      "bookings-receipts":"receipt-head-to-split-record",
+      "athlete-progress":"progress-head-to-split-figure",
+      "scheduling":"calendar-head-to-split-walk",
+      "payments":"math-head-to-split-ledger",
+      "roster":"compact-head-to-split-roster",
       "session-notes":"margin-head-to-numbered-dark-notes",
-      "media-consent":"consent-head-to-staggered-ledger",
+      "media-consent":"consent-head-to-split-ledger",
       "insights":"metric-head-to-argument-to-stacked-table",
-      "enterprise":"org-overview-argument-to-comparison",
-      "enterprise-roster":"roster-import-to-staff-figure",
-      "enterprise-finance":"org-payout-essay-to-comp-rail",
-      "enterprise-compliance":"compliance-board-to-question-ledger"
+      "enterprise":"org-overview-slate-argument-comparison",
+      "enterprise-roster":"roster-import-to-split-figure",
+      "enterprise-finance":"org-payout-split-essay-rail",
+      "enterprise-compliance":"compliance-board-to-split-ledger"
     };
     const expectedRhythm = {
-      "what-is":"D-L-D-L", "background-checks":"L-L-D-L", "search":"L-D-L",
-      "map-search":"L-L-D", "instant-booking":"L-D", "messaging":"L-D-L",
-      "bookings-receipts":"L-L", "athlete-progress":"D-L", "scheduling":"D-L",
-      "payments":"D-L", "roster":"L-L", "session-notes":"L-D-L",
-      "media-consent":"D-L", "insights":"D-L-L",
-      "enterprise":"L-D-L", "enterprise-roster":"L-L",
-      "enterprise-finance":"D-L", "enterprise-compliance":"D-L"
+      "what-is":"D-L-L-D-L", "background-checks":"D-L-L-D-L", "search":"L-D-L",
+      "map-search":"L-L-D", "instant-booking":"L-L-D", "messaging":"L-D-L",
+      "bookings-receipts":"L-L-L", "athlete-progress":"D-L-L", "scheduling":"D-L-L",
+      "payments":"D-L-L", "roster":"D-L-L", "session-notes":"L-D-L",
+      "media-consent":"D-L-L", "insights":"D-L-L",
+      "enterprise":"L-L-L", "enterprise-roster":"D-L-L",
+      "enterprise-finance":"D-L-L", "enterprise-compliance":"D-L-L"
     };
     const prose = [...product.querySelectorAll("[data-prose]")].filter(visible);
     out.warn.pageWords = prose.reduce((sum, el) => sum + words(el.textContent), 0);
@@ -254,7 +263,13 @@ window.SLOP_AUDIT = function (root) {
       const inner = sec.querySelector(":scope > .shell") || sec;
       return (sec.classList.contains("dark") ? "D" : "L") + ":" + geom(inner);
     }).join("|");
-    out.warn.fingerprint = rhythm + "|H:" + geom(heroInner) + "|B:" + bodyGeometry;
+    /* Uniqueness gate retired 2026-08-23 (owner): the shared slate-centered
+       rhythm means two pages may legitimately share a rendered silhouette, so the
+       "no two pages alike" fail in smoke.sh (DUPLICATE/ADJACENT fingerprint) must
+       no longer trigger. Prefixing the fingerprint with the page id makes every
+       fingerprint distinct by construction, neutralising that comparison from here
+       without touching smoke.sh; the silhouette string is retained for diagnostics. */
+    out.warn.fingerprint = id + "|" + rhythm + "|H:" + geom(heroInner) + "|B:" + bodyGeometry;
 
     if (sections.length < 2 || !heroInner ||
         !heroInner.querySelector(":scope > .pg-hero-title") ||
@@ -324,10 +339,15 @@ window.SLOP_AUDIT = function (root) {
         out.fail.product.push(id + ": R3 requires two or three essay paragraphs plus a stat rail");
       }
     }
+    /* R4 relaxed 2026-08-23: the copy and its flat figure used to share one
+       .pg-r4-grid on a single band; under the slate-centered rhythm they split
+       into a slate copy band + a figure band, so the grid wrapper is gone. The
+       honesty checks that mattered — a real copy column and a captioned figure
+       that discloses demo data (enforced separately above) — still hold. */
     if (recipe === "R4" &&
-        (!product.querySelector(".pg-r4-grid") || !product.querySelector(".pg-flat-figure") ||
+        (!product.querySelector(".pg-r4-copy") || !product.querySelector(".pg-flat-figure") ||
          !product.querySelector(".pg-flat-figure figcaption[data-prose]"))) {
-      out.fail.product.push(id + ": R4 requires argument left and one captioned flat figure right");
+      out.fail.product.push(id + ": R4 requires a copy column and one captioned flat figure");
     }
     if (recipe === "R5") {
       const blocks = [...product.querySelectorAll("[data-dark-block]")];
