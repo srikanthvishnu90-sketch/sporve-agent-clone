@@ -951,41 +951,42 @@ if curl -sI "http://127.0.0.1:$CSPPORT/index.html" | grep -qi "^content-security
   # a background-check FILTER advertises that unvetted adults exist; a second
   # filter entry point makes neither authoritative; an age select in the bar
   # treats a child as a query parameter.
+  # Filter model REVISED (owner 2026-08-23, FIX 3): the single Filters drawer and
+  # the three native selects are replaced by EXACTLY THREE popover dropdowns —
+  # Sport / Price / Age — in the bar. That is the one authoritative filter surface;
+  # the drawer catch-all is unlinked, so there is no second entry point to make it
+  # ambiguous. The old "one data-openfilters entry" and "one toolbar row" rules are
+  # retired with the drawer link and the intentional bar/chips two-row layout.
   sb=$($B js "(function(){
-    S.auth={status:'guest'};S.portal='family';S.sports=[];S.segOpen=null;
+    S.auth={status:'guest'};S.portal='family';S.sports=[];S.segOpen=null;S.tbMenu=null;
+    S.priceMin=null;S.priceMax=null;S.ageBands=[];
     S.route={name:'explore',arg:null};render();
     var app=document.getElementById('app');
     if(/Background-checked only/i.test(app.innerText)) return 'BGFILTER';
     if(document.querySelector('.sb select')) return 'AGEINBAR';
-    var entries=document.querySelectorAll('[data-openfilters]').length;
-    var n=PROGRAMS.length;
-    if(n<25&&entries) return 'FILTERSHOWN';
-    if(n>=25&&entries!==1) return 'ENTRIES:'+entries;
     /* The Sport/Where/When capsule is DELETED (owner spec 2026-08-13): the hero
-       search is the only search on the page. What replaced it is one toolbar
-       row, so this now asserts the toolbar rather than the capsule. */
+       search is the only search on the page. */
     if(document.querySelector('.sb')) return 'CAPSULE_BACK';
     var tb=document.querySelector('.tb');
     if(!tb) return 'NO_TOOLBAR';
     if(!tb.querySelector('.tb-seg')) return 'NO_SEGMENTS';
-    if(document.querySelector('.res-head')) return 'SECOND_ROW';
-    /* Height, not top-coordinates. Comparing child .top flagged a false wrap:
-       the 40px segmented control and the shorter right group legitimately sit
-       on one row with different tops. One row is a property of the CONTAINER. */
-    if(tb.getBoundingClientRect().height>72) return 'TOOLBAR_WRAPPED';
-    return 'OK:'+tb.querySelectorAll('.tb-segbtn').length;
+    /* One authoritative filter surface: no drawer link, no loose native selects. */
+    if(document.querySelectorAll('[data-openfilters]').length) return 'DRAWER_LINK';
+    if(tb.querySelector('.tb-filters select')) return 'NATIVE_SELECT';
+    var drops=tb.querySelectorAll('[data-tbdrop]').length;
+    if(drops!==3) return 'DROPS:'+drops;
+    return 'OK:'+drops;
   })()" 2>/dev/null | tr -d '\r')
   case "$(printf '%s' "$sb" | tr -d '[:space:]')" in
-    OK:*)         pass "browse: ONE toolbar row, $(printf '%s' "$sb" | cut -d: -f2) segments, no second search capsule" ;;
+    OK:*)         pass "browse: filter bar is exactly $(printf '%s' "$sb" | cut -d: -f2) dropdowns (Sport/Price/Age), one authoritative surface" ;;
     BGFILTER)     fail "search: a 'Background-checked only' filter is back — it advertises that unvetted coaches exist" ;;
-    AGEINBAR)     fail "search: an age select is in the search bar — the athlete is a profile, not a query parameter" ;;
-    FILTERSHOWN)  fail "search: the Filters button shows under 25 results — filtering a short list only produces empty states" ;;
-    ENTRIES:*)    fail "search: there are $(printf '%s' "$sb" | cut -d: -f2) filter entry points; there must be exactly one" ;;
+    AGEINBAR)     fail "search: a native select is in the search capsule — the athlete is a profile, not a query parameter" ;;
     CAPSULE_BACK) fail "browse: the duplicate Sport/Where/When capsule is back" ;;
     NO_TOOLBAR)   fail "browse: the toolbar is missing" ;;
     NO_SEGMENTS)  fail "browse: the segmented control is missing" ;;
-    SECOND_ROW)   fail "browse: a second results row is back — the toolbar must be ONE row" ;;
-    TOOLBAR_WRAPPED) fail "browse: the toolbar wrapped onto more than one row" ;;
+    DRAWER_LINK)  fail "search: a Filters drawer link is back in the bar — the three dropdowns are the surface now" ;;
+    NATIVE_SELECT) fail "search: a native filter <select> is back in the bar — use the popover dropdowns" ;;
+    DROPS:*)      fail "search: the filter bar has $(printf '%s' "$sb" | cut -d: -f2) dropdowns; there must be exactly three (Sport/Price/Age)" ;;
     EMPTYPANEL)   fail "search: a segment panel rendered empty — an empty dropdown is a dead end" ;;
     NODESCRIPTOR) fail "search: panel rows have no supporting line — it is required to carry supply signal" ;;
     *)            fail "search: probe returned nothing ($sb)" ;;

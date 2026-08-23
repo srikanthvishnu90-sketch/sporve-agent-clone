@@ -393,8 +393,8 @@ img{max-width:100%;display:block}
    so the whole "v" shows and the retired final E is fully clipped, no sliver.
    crop = 0.8788 x 4.125 x height = 3.625 x H, holding that cut at every size.
    Asset 330x80, downscaled at both sizes, stays crisp. */
-.navlogo-crop{width:87px;height:24px;overflow:hidden;display:block;flex:0 0 auto}
-.navlogo{height:24px;width:auto;max-width:none;display:block;opacity:.95}
+.navlogo-crop{width:80px;height:22px;overflow:hidden;display:block;flex:0 0 auto}
+.navlogo{height:22px;width:auto;max-width:none;display:block;opacity:.95}
 .navlogo:hover{opacity:1}
 @media(max-width:900px){
   .navlogo-crop{width:80px;height:22px}
@@ -584,7 +584,7 @@ img{max-width:100%;display:block}
 .getstarted .cta-arrow{transition:transform .15s ease}
 .getstarted:hover .cta-arrow{transform:translateX(3px)}
 .acct:has(.acct-name){gap:8px;width:auto;padding:0 8px 0 12px}
-.acct-name{font-family:var(--sans);font-size:16px;font-weight:500;color:#FFFFFF;white-space:nowrap;max-width:120px;overflow:hidden;text-overflow:ellipsis}
+.acct-name{font-family:var(--sans);font-size:var(--text-base);font-weight:500;color:#FFFFFF;white-space:nowrap;max-width:120px;overflow:hidden;text-overflow:ellipsis}
 /* Logged-out family on desktop: no avatar glyph — Log in + Get started stand in.
    The account button (and its mobile hamburger) returns at <=900. */
 .topbar.guest .acct{display:none}
@@ -654,13 +654,14 @@ img{max-width:100%;display:block}
    topbar is always #09090B (no scroll flip to a light ground), so white text
    never lands on white. Scoped to .navcenter/.topnav so the product-page
    .tnav-row is untouched. Active .on keeps its slate-tint chip (:not(.on)). */
-.navcenter .tnav{font-size:16.5px}
+.navcenter .tnav{font-size:var(--text-base)}
 .navcenter .tnav:not(.on){color:#FFFFFF}
 /* Right-cluster nav links (Become a coach / Log in) match the nav tabs exactly:
-   --sans (Inter), 16px, medium weight, pure white (FIX 4, owner 2026-08-23). The
+   --sans (Inter), 14.5px (--text-base), medium weight, pure white (owner 2026-08-23,
+   nudged down from 16px — "top bar too large, meet in the middle"). The
    base .navlink hover (#8FA3BC slate) already applies. Coach-portal .navlink rows
    are a different container and keep the base --nav-face. */
-.topnav .navlink{font-family:var(--sans);font-size:16px;font-weight:500}
+.topnav .navlink{font-family:var(--sans);font-size:var(--text-base);font-weight:500}
 /* At <=900 the centred menu collapses; the account control becomes the sheet
    hamburger. On the narrowest bars the quiet "Become a coach" link yields
    space to the pill + hamburger. */
@@ -1119,38 +1120,100 @@ img{max-width:100%;display:block}
    and its overflow scrolls rather than dropping to a second line, because a
    toolbar that wraps stops reading as a toolbar. Mobile gets an explicit
    two-line layout below instead of wrapping by accident. */
-.tb{display:flex;align-items:center;gap:16px;flex-wrap:nowrap;
-  min-height:52px;padding:0 0 12px;margin-bottom:24px;
+/* ═══ BROWSE FILTER BAR (owner 2026-08-23) ═══════════════════════════════════
+   Row 1: section type-tabs (navigation, kept out of the filter bar). Row 2: the
+   filter bar itself — exactly three popover dropdowns (Sport / Price / Age) on
+   the left, result count + a quiet sort on the right, and nothing else. Row 3:
+   the active filters as removable chips. */
+.tb{display:flex;flex-direction:column;gap:14px;padding:0 0 14px;margin-bottom:24px;
   border-bottom:1px solid var(--rule)}
 /* The segmented control: one container, one hairline, dividers between. */
-.tb-seg{display:inline-flex;align-items:center;height:40px;flex:0 0 auto;
+.tb-seg{display:inline-flex;align-self:flex-start;align-items:center;height:40px;flex:0 0 auto;
   border:1px solid var(--rule);border-radius:var(--r-ctl);overflow:hidden;background:var(--paper)}
 .tb-segbtn{height:100%;padding:0 16px;border:0;background:none;cursor:pointer;
-  font-family:var(--sans);font-size:14px;font-weight:600;color:var(--ink);
+  font-family:var(--sans);font-size:13px;font-weight:600;color:var(--ink);
   white-space:nowrap;transition:background .14s,color .14s}
 .tb-segbtn + .tb-segbtn{border-left:1px solid var(--rule)}
 .tb-segbtn:hover:not(.on){background:var(--raise2)}
 /* Active = slate fill with --slate-on type. §3 freezes black for chrome and the
    spec bans black fills here, so the active state is the brand slate. */
 .tb-segbtn.on{background:var(--slate);color:var(--slate-on)}
-.tb-filters{display:flex;align-items:center;gap:8px;flex:0 1 auto;min-width:0}
-.tb-f select{height:36px;padding:0 10px;border:1px solid var(--rule);
-  border-radius:var(--r-ctl);background:var(--paper);color:var(--ink);
-  font-family:var(--sans);font-size:14px;font-weight:600;cursor:pointer;max-width:130px}
-.tb-f select:focus{outline:none;border-color:var(--slate);box-shadow:0 0 0 3px var(--slate-ring)}
-@media(max-width:900px){.tb-filters{overflow-x:auto;scrollbar-width:none}}
-.tb-right{display:flex;align-items:center;gap:16px;margin:0 auto;flex-wrap:nowrap;
-  min-width:0;overflow-x:auto;scrollbar-width:none}
-.tb-right::-webkit-scrollbar{display:none}
-.tb-seg{flex:0 0 auto}
-.tb-count{font-family:var(--sans);font-size:14px;color:var(--muted);font-variant-numeric:tabular-nums}
-.tb-sort select{font-family:var(--sans);font-size:14px;color:var(--ink);
+/* row 2 — the filter bar */
+.tb-bar{display:flex;align-items:center;gap:16px;flex-wrap:wrap}
+.tb-drops{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+.tb-right{display:flex;align-items:center;gap:16px;margin-left:auto}
+.tb-count{font-family:var(--sans);font-size:13px;color:var(--muted);font-variant-numeric:tabular-nums}
+.tb-sort select{font-family:var(--sans);font-size:13px;color:var(--ink);
   background:none;border:0;padding:2px 0;cursor:pointer}
-.tb-lnk{font-size:14px}
+/* dropdown trigger */
+.tbd-wrap{position:relative}
+.tbd{display:inline-flex;align-items:center;gap:8px;height:40px;padding:0 14px;
+  border:1px solid var(--rule-strong);border-radius:var(--r-ctl);background:var(--paper);
+  font-family:var(--sans);font-size:13px;font-weight:600;color:var(--ink);cursor:pointer;
+  white-space:nowrap;transition:border-color .14s,background .14s}
+.tbd:hover{border-color:var(--ink-2)}
+.tbd:focus-visible{outline:none;border-color:var(--slate);box-shadow:0 0 0 3px var(--slate-ring)}
+.tbd.on{border-color:var(--slate);background:var(--slate-tint);color:var(--slate)}
+.tbd.open{border-color:var(--slate);box-shadow:0 0 0 3px var(--slate-ring)}
+.tbd-cv{flex:0 0 auto;opacity:.55}
+/* popover */
+.tbd-pop{position:absolute;top:calc(100% + 8px);left:0;z-index:40;width:min(300px,86vw);
+  background:var(--paper);border:1px solid var(--rule-strong);border-radius:var(--r-m);
+  box-shadow:var(--shadow-lift);padding:12px}
+.tbd-opts{display:flex;flex-direction:column;gap:2px;max-height:300px;overflow-y:auto}
+.tbd-opt{display:flex;align-items:center;gap:10px;padding:9px 10px;border:0;border-radius:var(--r-s);
+  background:none;cursor:pointer;text-align:left;font-family:var(--sans);font-size:14.5px;
+  font-weight:600;color:var(--ink-2)}
+.tbd-opt:hover{background:var(--raise)}
+.tbd-opt.on{background:var(--slate-tint);color:var(--slate)}
+.tbd-box{display:grid;place-items:center;width:18px;height:18px;flex:0 0 auto;border-radius:5px;
+  border:1.5px solid var(--rule-strong);color:transparent}
+.tbd-opt.on .tbd-box{background:var(--slate);border-color:var(--slate);color:var(--paper)}
+.tbd-dot{width:10px;height:10px;border-radius:999px;flex:0 0 auto}
+.tbd-ot{flex:1 1 auto;min-width:0}
+.tbd-n{color:var(--faint);font-size:13px;font-weight:600}
+.tbd-foot{display:flex;align-items:center;justify-content:space-between;gap:12px;
+  margin-top:10px;padding-top:10px;border-top:1px solid var(--rule)}
+/* price popover */
+.tbd-pop-price{width:min(320px,90vw)}
+.tbd-hist{display:flex;align-items:flex-end;gap:2px;height:44px;margin-bottom:8px}
+.tbd-hbar{flex:1 1 0;min-height:2px;border-radius:2px 2px 0 0;background:var(--rule-strong);transition:background .1s}
+.tbd-hbar.on{background:var(--slate)}
+.tbd-dual{position:relative;height:34px}
+.tbd-track{position:absolute;left:0;right:0;top:15px;height:4px;border-radius:999px;background:var(--raise2)}
+.tbd-fill{position:absolute;top:0;bottom:0;border-radius:999px;background:var(--slate)}
+.tbd-range{position:absolute;left:0;top:0;width:100%;height:34px;margin:0;background:none;
+  pointer-events:none;-webkit-appearance:none;appearance:none}
+.tbd-range:focus{outline:none}
+.tbd-range::-webkit-slider-thumb{-webkit-appearance:none;pointer-events:auto;width:20px;height:20px;
+  border-radius:999px;background:var(--paper);border:2px solid var(--slate);cursor:pointer}
+.tbd-range::-moz-range-thumb{pointer-events:auto;width:18px;height:18px;border-radius:999px;
+  background:var(--paper);border:2px solid var(--slate);cursor:pointer}
+.tbd-range:focus-visible::-webkit-slider-thumb{outline:2px solid var(--slate);outline-offset:2px}
+.tbd-range:focus-visible::-moz-range-thumb{outline:2px solid var(--slate);outline-offset:2px}
+.tbd-prow{display:flex;align-items:center;justify-content:space-between;gap:12px;margin:12px 0}
+.tbd-pval{font-size:13px;font-weight:700;color:var(--ink);font-variant-numeric:tabular-nums}
+/* row 3 — active-filter chips */
+.tb-chips2{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.tb-chip2{display:inline-flex;align-items:center;gap:6px;height:30px;padding:0 6px 0 12px;
+  border:1px solid var(--rule-strong);border-radius:999px;background:var(--paper);
+  font-family:var(--sans);font-size:13px;font-weight:600;color:var(--ink-2);cursor:pointer}
+.tb-chip2:hover{border-color:var(--ink-2)}
+.tb-chipx{display:grid;place-items:center;width:18px;height:18px;border-radius:999px;color:var(--faint)}
+.tb-chip2:hover .tb-chipx{background:var(--raise2);color:var(--ink)}
+.tb-chipx svg{width:12px;height:12px}
+.tb-chipclear{font-size:13px}
 @media(max-width:560px){
-  .tb{gap:10px;min-height:0;padding-bottom:10px;margin-bottom:18px;flex-wrap:wrap}
+  .tb{gap:12px;margin-bottom:18px}
   .tb-seg{height:36px}.tb-segbtn{padding:0 12px;font-size:13px}
-  .tb-right{margin-left:0;gap:12px}
+  .tb-right{margin-left:0}
+  .tbd{height:38px;padding:0 12px}
+  /* Mobile: a popover anchored to a middle/right trigger would run off-screen at
+     320px wide. Anchor it to the whole drops row instead (full width under the
+     bar), so it can never overflow the viewport. */
+  .tb-drops{position:relative}
+  .tbd-wrap{position:static}
+  .tbd-pop,.tbd-pop-price{left:0;right:0;width:auto;top:calc(100% + 8px)}
 }
 .kindtabs{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:18px}
 .kindtab{display:inline-flex;align-items:center;height:var(--h-compact);padding:0 16px;
@@ -1324,6 +1387,41 @@ img{max-width:100%;display:block}
 }
 @media(max-width:640px){.card.feature{grid-column:span 1}.card.feature .shot{aspect-ratio:20/19}}
 .card .shot img{width:100%;height:100%;object-fit:cover;transition:transform .5s cubic-bezier(.2,.7,.3,1)}
+/* Designed no-photo fallback (owner 2026-08-23): retires the pastel-blob SVG.
+   A slate field with a soft wash of the sport's own colour, the sport glyph in
+   its ink, and the provider's initials. Tokens only; --sc is the sport colour. */
+.shot-ph{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;
+  gap:9px;background:var(--raise2)}
+.shot-ph-init{font-family:var(--display);font-size:28px;font-weight:700;letter-spacing:.02em;line-height:1}
+.shot-ph-sport{display:inline-flex;align-items:center;gap:6px;font-size:13px;font-weight:600;color:var(--muted)}
+.shot-ph-dot{width:8px;height:8px;border-radius:999px;flex:0 0 auto}
+
+/* ── Bookings list cards (owner 2026-08-23) ──────────────────────────────────
+   Modernised to the marketplace card language: a bordered white card, a compact
+   media tile (photo or the designed slate fallback), a clear title/meta column,
+   and price + actions on the right. Behaviour is unchanged — same data-open and
+   data-cancelbooking hooks, same status/payment pills. */
+.bklist{display:flex;flex-direction:column;gap:13px;padding-bottom:60px}
+.bkcard{display:flex;gap:16px;align-items:center;flex-wrap:wrap;
+  padding:16px;border:1px solid var(--rule);border-radius:var(--r-l);background:var(--paper)}
+.bkcard-media{width:88px;height:88px;flex:0 0 auto;border-radius:var(--r-m);overflow:hidden}
+.bkcard-img{width:100%;height:100%;object-fit:cover}
+.bkcard-ph{position:relative;width:100%;height:100%;display:flex;align-items:center;justify-content:center;
+  background:var(--raise2)}
+.bkcard-ph-init{font-family:var(--display);font-size:21px;font-weight:700;letter-spacing:.02em;line-height:1}
+.bkcard-ph-dot{position:absolute;left:8px;bottom:8px;width:8px;height:8px;border-radius:999px}
+.bkcard-main{flex:1 1 200px;min-width:0}
+.bkcard-badges{display:flex;gap:8px;align-items:center;margin-bottom:7px;flex-wrap:wrap}
+.bkcard-title{font-size:var(--text-lg);margin:0}
+.bkcard-meta{color:var(--muted);font-size:var(--text-sm);margin-top:3px}
+.bkcard-side{display:flex;flex-direction:column;align-items:flex-end;gap:9px;margin-left:auto}
+.bkcard-price{font-size:var(--text-lg);font-weight:700;letter-spacing:-.02em}
+.bkcard-actions{display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end}
+@media(max-width:560px){
+  .bkcard-main{flex-basis:calc(100% - 104px)}
+  .bkcard-side{align-items:center;margin-left:0;width:100%;flex-direction:row;justify-content:space-between}
+  .bkcard-actions{justify-content:flex-end}
+}
 
 .heart{
   position:absolute;top:8px;right:8px;width:32px;height:32px;border-radius:999px;
@@ -5674,6 +5772,12 @@ const S={
   locQuery:"",
   authIdentifier:"",
   ageQuery:null,
+  priceMin:null,               // browse filter bar: min price ($), null = unbounded
+  priceMax:null,               // browse filter bar: max price ($), null = unbounded ("$1,000+")
+  ageBands:[],                 // browse filter bar: selected age bands (U6–U8 … Adult)
+  sortBy:"rec",                // browse results sort: rec | price | rating
+  tbMenu:null,                 // which browse filter dropdown popover is open: sport|price|age|null
+  tbFocus:null,                // transient: element id to re-focus after a slider-commit render
   whereQuery:null,             // search bar: location segment
   whenLabel:null,              // search bar: schedule segment
   filters:{maxPrice:null,verifiedOnly:false,model:null},
@@ -5768,6 +5872,7 @@ const S_BASELINE = (typeof structuredClone === "function")
 /* Fields a signed-out visitor keeps. Everything NOT here is reset. */
 const GUEST_KEEP = new Set([
   "route", "portal", "theme", "kind", "sports", "locQuery", "ageQuery",
+  "priceMin", "priceMax", "ageBands",
   "query", "filters", "fdraft", "sortBy", "showcaseSide", "coachPromptShown",
   "sportOpen", "sportAnchor", "segOpen", "toast", "modal",
 ]);
@@ -6210,6 +6315,17 @@ function visiblePrograms(overrideFilters){
     const a=Number(S.ageQuery);
     list=list.filter(p=>a>=p.minAge&&a<=p.maxAge);
   }
+  /* Browse filter bar (owner 2026-08-23). Price is a real dollar window read
+     straight off p.price; the age BANDS keep any listing whose own [minAge,maxAge]
+     overlaps a selected band, so a U9–U11 filter keeps a coach who takes ages 8–12. */
+  if(S.priceMin!=null) list=list.filter(p=>Number(p.price)>=Number(S.priceMin));
+  if(S.priceMax!=null) list=list.filter(p=>Number(p.price)<=Number(S.priceMax));
+  if(Array.isArray(S.ageBands)&&S.ageBands.length){
+    list=list.filter(p=>S.ageBands.some(k=>{
+      const r=AGE_BANDS[k];
+      return r&&Number(p.minAge)<=r[2]&&Number(p.maxAge)>=r[1];
+    }));
+  }
   if(S.filters.verifiedOnly) list=list.filter(p=>p.verified);
   if(S.filters.maxPrice!=null) list=list.filter(p=>p.price<=S.filters.maxPrice);
   if(S.filters.model) list=list.filter(p=>p.model===S.filters.model);
@@ -6233,6 +6349,28 @@ const ICON={
   google:'<svg width="17" height="17" viewBox="0 0 48 48"><path fill="#4285F4" d="M45 24c0-1.6-.1-2.7-.4-4H24v7.5h12c-.2 2-1.6 5-4.5 7l6.9 5.3C42.5 36.2 45 30.6 45 24z"/><path fill="#34A853" d="M24 46c6 0 11-2 14.6-5.3l-6.9-5.3c-1.9 1.3-4.4 2.2-7.7 2.2-5.9 0-10.9-3.9-12.7-9.2l-7.2 5.5C7.7 41 15.3 46 24 46z"/><path fill="#FBBC05" d="M11.3 28.4c-.5-1.4-.7-2.9-.7-4.4s.3-3 .7-4.4l-7.2-5.5C2.7 17 2 20.4 2 24s.7 7 2.1 9.9z"/><path fill="#EA4335" d="M24 10.2c3.3 0 5.6 1.4 6.9 2.6l5-4.9C32.9 5 28.9 3 24 3 15.3 3 7.7 8 4.1 14.1l7.2 5.5C13.1 14.1 18.1 10.2 24 10.2z"/></svg>',
 };
 
+/* Provider initials from the business name, for the no-photo card fallback. */
+function bizInitials(name){
+  const w=String(name||"").trim().split(/\s+/).filter(Boolean);
+  if(!w.length) return "—";
+  return (w[0][0]+(w[1]?w[1][0]:"")).toUpperCase();
+}
+/* A listing's cover media. Real photos (jpeg/png/self-host) render as-is; a
+   listing with only the SVG placeholder (phShot — the pastel blob) gets a
+   DESIGNED fallback instead: a slate field carrying the provider's initials in
+   the sport's own ink, over a sport-colour dot + sport label. Reuses
+   sportColor/sportInk (no emoji — explore bans emoji, and a native glyph renders
+   differently per OS), no raw hex. The FIX 2 spec calls the blob a defect, not a
+   state, so this is where it is retired. */
+function isPhotoImg(src){ return !!src && !/^data:image\/svg\+xml/.test(src); }
+function shotMedia(p,alt){
+  if(isPhotoImg(p.img)) return `<img src="${p.img}" alt="${esc(alt)}" loading="lazy">`;
+  return `<div class="shot-ph" role="img" aria-label="${esc(alt)}">
+    <span class="shot-ph-init" style="color:${sportInk(p.sport)}">${esc(bizInitials(p.biz))}</span>
+    <span class="shot-ph-sport"><span class="shot-ph-dot" aria-hidden="true" style="background:${sportColor(p.sport)}"></span>${esc(p.sport)}</span>
+  </div>`;
+}
+
 function cardHTML(p){
   const fav=S.favorites.includes(p.id);
   /* Uber-Eats VERTICAL card (owner 2026-08-23): image on top, then name, a
@@ -6253,7 +6391,7 @@ function cardHTML(p){
     : `New${tail}`;
   return `<div class="card">
     <div class="shot">
-      <img src="${p.img}" alt="${esc(p.biz)}" loading="lazy">
+      ${shotMedia(p,p.biz)}
       ${badge}
       <button class="heart ${fav?"on":""}" data-fav="${p.id}" aria-label="${fav?"Remove from saved":"Save"} ${esc(p.biz)}">${ICON.heart(fav)}</button>
     </div>
@@ -6546,6 +6684,119 @@ function athleteChipHTML(){
    is on"; four pills say "these are four buttons" and let their widths drift.
    Active is a slate FILL with --slate-on type (§3: never black), inactive is
    transparent with ink. */
+/* ═══ BROWSE FILTER-BAR MODEL (owner 2026-08-23) ═══════════════════════════
+   The three native <select>s (Sport / Area / Age) are replaced by three popover
+   dropdowns — Sport (multi-select), Price (histogram + dual-handle range), Age
+   (multi-select bands). Area filtering leaves the bar; the hero search and the
+   Where segment still write S.locQuery, so location is not lost as a concept.
+   Sort now actually sorts (it was a dead <select> with no handler before). */
+const AGE_BANDS={
+  "u6-8":["U6–U8",6,8],
+  "u9-11":["U9–U11",9,11],
+  "u12-14":["U12–U14",12,14],
+  "u15-18":["U15–U18",15,18],
+  "adult":["Adult",19,99],
+};
+const TB_SLO=20, TB_SHI=1000, TB_BINS=24;   /* slider domain; TB_SHI = "$1,000+" (unbounded top) */
+
+/* Recommended = catalogue order (a curated default, unchanged). Price/rating do
+   a stable, total sort. Pure — returns a new array, mutates nothing. */
+function sortResults(list,key){
+  if(key==="price") return list.slice().sort((a,b)=>(Number(a.price)||0)-(Number(b.price)||0));
+  if(key==="rating") return list.slice().sort((a,b)=>(Number(b.rating)||0)-(Number(a.rating)||0));
+  return list;
+}
+
+/* Bucket the REAL catalogue prices into TB_BINS bars across [TB_SLO,TB_SHI].
+   Bars inside the selected window carry .on. Heights are % of the tallest bar. */
+function tbHistogram(){
+  const width=(TB_SHI-TB_SLO)/TB_BINS;
+  const bins=new Array(TB_BINS).fill(0);
+  PROGRAMS.forEach(p=>{
+    const v=Number(p.price); if(!Number.isFinite(v)) return;
+    let i=Math.floor((v-TB_SLO)/width);
+    if(i<0)i=0; if(i>=TB_BINS)i=TB_BINS-1;
+    bins[i]++;
+  });
+  const max=Math.max(1,...bins);
+  const pmin=S.priceMin==null?TB_SLO:S.priceMin;
+  const pmax=S.priceMax==null?TB_SHI:S.priceMax;
+  return bins.map((c,i)=>{
+    const bl=TB_SLO+i*width, bh=bl+width;
+    const on=bh>=pmin&&bl<=pmax;
+    const h=Math.round(c/max*100);
+    return `<span class="tbd-hbar${on?" on":""}" style="height:${h}%"></span>`;
+  }).join("");
+}
+
+function tbSportPop(){
+  const sports=[...new Set(PROGRAMS.map(p=>p.sport))].sort();
+  return `<div class="tbd-pop tbd-pop-list" role="listbox" aria-multiselectable="true" aria-label="Filter by sport">
+    <div class="tbd-opts">
+      ${sports.map(s=>{
+        const on=S.sports.includes(s);
+        const n=PROGRAMS.filter(p=>p.sport===s).length;
+        return `<button class="tbd-opt${on?" on":""}" role="option" aria-selected="${on}" data-tbsport="${esc(s)}">
+          <span class="tbd-box" aria-hidden="true">${ICON.check}</span>
+          <span class="tbd-dot" aria-hidden="true" style="background:${sportColor(s)}"></span>
+          <span class="tbd-ot">${esc(s)}</span><span class="tbd-n num">${n}</span></button>`;
+      }).join("")}
+    </div>
+    <div class="tbd-foot">
+      <button class="lnk" data-tbsclear="1"${S.sports.length?"":" disabled"}>Clear</button>
+      <button class="btn sm" data-tbdone="1">Done</button>
+    </div>
+  </div>`;
+}
+
+function tbAgePop(){
+  const bands=S.ageBands||[];
+  return `<div class="tbd-pop tbd-pop-list" role="listbox" aria-multiselectable="true" aria-label="Filter by age band">
+    <div class="tbd-opts">
+      ${Object.keys(AGE_BANDS).map(k=>{
+        const [lab,lo,hi]=AGE_BANDS[k];
+        const on=bands.includes(k);
+        const n=PROGRAMS.filter(p=>Number(p.minAge)<=hi&&Number(p.maxAge)>=lo).length;
+        return `<button class="tbd-opt${on?" on":""}" role="option" aria-selected="${on}" data-tbage="${k}">
+          <span class="tbd-box" aria-hidden="true">${ICON.check}</span>
+          <span class="tbd-ot">${esc(lab)}</span><span class="tbd-n num">${n}</span></button>`;
+      }).join("")}
+    </div>
+    <div class="tbd-foot">
+      <button class="lnk" data-tbaclear="1"${bands.length?"":" disabled"}>Clear</button>
+      <button class="btn sm" data-tbdone="1">Done</button>
+    </div>
+  </div>`;
+}
+
+function tbPricePop(){
+  const pmin=S.priceMin==null?TB_SLO:S.priceMin;
+  const pmax=S.priceMax==null?TB_SHI:S.priceMax;
+  const span=TB_SHI-TB_SLO;
+  const loPct=((pmin-TB_SLO)/span*100).toFixed(2);
+  const hiPct=((TB_SHI-pmax)/span*100).toFixed(2);
+  const hiLab=pmax>=TB_SHI?"$1,000+":money(pmax);
+  return `<div class="tbd-pop tbd-pop-price" role="dialog" aria-label="Filter by price">
+    <div class="tbd-hist" aria-hidden="true">${tbHistogram()}</div>
+    <div class="tbd-dual">
+      <div class="tbd-track" aria-hidden="true"><span class="tbd-fill" id="tbPriceFill" style="left:${loPct}%;right:${hiPct}%"></span></div>
+      <label class="vis-hide" for="tbPriceLo">Minimum price</label>
+      <input type="range" class="tbd-range" id="tbPriceLo" data-tbprice="lo"
+        min="${TB_SLO}" max="${TB_SHI}" step="10" value="${pmin}"
+        aria-valuemin="${TB_SLO}" aria-valuemax="${TB_SHI}" aria-valuenow="${pmin}" aria-valuetext="Minimum ${money(pmin)}">
+      <label class="vis-hide" for="tbPriceHi">Maximum price</label>
+      <input type="range" class="tbd-range" id="tbPriceHi" data-tbprice="hi"
+        min="${TB_SLO}" max="${TB_SHI}" step="10" value="${pmax}"
+        aria-valuemin="${TB_SLO}" aria-valuemax="${TB_SHI}" aria-valuenow="${pmax}" aria-valuetext="Maximum ${hiLab}">
+    </div>
+    <div class="tbd-prow">
+      <span class="tbd-pval num" id="tbPriceVal">${money(pmin)} – ${hiLab}</span>
+      <button class="lnk" data-tbpclear="1"${(S.priceMin!=null||S.priceMax!=null)?"":" disabled"}>Clear</button>
+    </div>
+    <button class="btn sm wide" data-tbdone="1">Done</button>
+  </div>`;
+}
+
 function toolbarHTML(list, kinds){
   const seg = kinds.length ? `
     <div class="tb-seg" role="tablist" aria-label="Coaching type">
@@ -6557,51 +6808,52 @@ function toolbarHTML(list, kinds){
      list renders no count at all and the empty state carries the message. */
   const count = list.length
     ? `<span class="tb-count num">${list.length} ${list.length===1?"result":"results"}</span>` : "";
-  /* FILTER CONTROLS: area, sport, age. The Sport/Where/When capsule was deleted
-     as a duplicate SEARCH, but the three things it actually let you narrow by
-     still have to be reachable — a browse surface with no way to say "basketball,
-     near me, for a 12-year-old" is a list, not a marketplace. These are three
-     compact selects in the toolbar rather than a second capsule: they filter
-     what is already on screen instead of starting a new search. */
-  const sports=[...new Set(PROGRAMS.map(p=>p.sport))].sort();
-  const areas=[...new Set(PROGRAMS.map(p=>(p.address||"").split(",")[0].trim()).filter(Boolean))].sort();
-  /* Reads the REAL query state — S.sports / S.locQuery / S.ageQuery, the same
-     fields applyHeroSearch() writes and visiblePrograms() filters on. My first
-     version read an invented S.filters.sport/.area shape, which would have
-     rendered controls that showed nothing and changed nothing. */
-  const curSport=(S.sports&&S.sports[0])||"";
-  const curArea=S.locQuery||"";
-  const curAge=S.ageQuery||"";
-  const sel=(id,label,val,opts)=>`
-    <label class="tb-f"><span class="vis-hide">${esc(label)}</span>
-      <select id="${id}" aria-label="${esc(label)}">
-        <option value="">${esc(label)}</option>
-        ${opts.map(o=>`<option value="${esc(String(o))}"${String(val)===String(o)?" selected":""}>${esc(String(o))}</option>`).join("")}
-      </select></label>`;
-  const filters=`
-    ${sel("tbSport","Sport",curSport,sports)}
-    ${sel("tbArea","Area",curArea,areas)}
-    ${sel("tbAge","Age",curAge,[5,6,7,8,9,10,11,12,13,14,15,16,17,18])}`;
+
+  const open=S.tbMenu;
+  const CV=`<svg class="tbd-cv" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg>`;
+  /* trigger labels — the closed-state summary of each dropdown */
+  const sportLab=S.sports.length===0?"Sport":S.sports.length===1?S.sports[0]:`${S.sports[0]} +${S.sports.length-1}`;
+  const pmin=S.priceMin==null?TB_SLO:S.priceMin, pmax=S.priceMax==null?TB_SHI:S.priceMax;
+  const priceOn=S.priceMin!=null||S.priceMax!=null;
+  const priceLab=priceOn?`${money(pmin)} – ${pmax>=TB_SHI?"$1,000+":money(pmax)}`:"Price";
+  const ab=S.ageBands||[];
+  const ageLab=ab.length===0?"Age":ab.length===1?AGE_BANDS[ab[0]][0]:`${AGE_BANDS[ab[0]][0]} +${ab.length-1}`;
+  const trig=(key,lab,on)=>`<div class="tbd-wrap">
+      <button class="tbd${on?" on":""}${open===key?" open":""}" data-tbdrop="${key}"
+        aria-haspopup="true" aria-expanded="${open===key}">
+        <span class="tbd-lab">${esc(lab)}</span>${CV}</button>
+      ${open===key?(key==="sport"?tbSportPop():key==="price"?tbPricePop():tbAgePop()):""}
+    </div>`;
+
+  /* active-filter chips — each removes exactly its own control */
+  const chips=[];
+  S.sports.forEach(s=>chips.push([`sport:${s}`,s]));
+  if(priceOn) chips.push(["price",priceLab]);
+  ab.forEach(k=>chips.push([`age:${k}`,AGE_BANDS[k][0]]));
+  const chipRow=chips.length?`<div class="tb-chips2">
+    ${chips.map(([k,l])=>`<button class="tb-chip2" data-tbchip="${esc(k)}">${esc(l)}<span class="tb-chipx" aria-hidden="true">${ICON.xs}</span><span class="vis-hide">Remove ${esc(l)} filter</span></button>`).join("")}
+    <button class="lnk tb-chipclear" data-tbclearall="1">Clear all</button>
+  </div>`:"";
+
   return `<div class="tb">
     ${seg}
-    <div class="tb-filters">${filters}</div>
-    <div class="tb-right">
-      ${count}
-      <label class="tb-sort"><span class="vis-hide">Sort</span>
-        <select id="resSort" aria-label="Sort results">
-          <option value="rec">Recommended</option>
-          <option value="price">Price, low to high</option>
-          <option value="rating">Rating</option>
-        </select></label>
-      ${/* Filters appears only when there is enough to filter. Below 25 results
-           narrowing further just produces empty states, and the only way back is
-           the zero-results screen — smoke asserts this threshold because that
-           dead end shipped once. Also shown whenever a filter is already on, so
-           there is always a route to clear it. */""}
-      ${(list.length>=25||(typeof anyFilterActive==="function"&&anyFilterActive()))
-        ? `<button class="lnk tb-lnk" data-openfilters="1">Filters</button>` : ""}
-      <button class="lnk tb-lnk" data-savesearch="1">Save search</button>
+    <div class="tb-bar">
+      <div class="tb-drops">
+        ${trig("sport",sportLab,S.sports.length>0)}
+        ${trig("price",priceLab,priceOn)}
+        ${trig("age",ageLab,ab.length>0)}
+      </div>
+      <div class="tb-right">
+        ${count}
+        <label class="tb-sort"><span class="vis-hide">Sort</span>
+          <select id="resSort" aria-label="Sort results">
+            <option value="rec"${S.sortBy==="rec"?" selected":""}>Recommended</option>
+            <option value="price"${S.sortBy==="price"?" selected":""}>Price, low to high</option>
+            <option value="rating"${S.sortBy==="rating"?" selected":""}>Rating</option>
+          </select></label>
+      </div>
     </div>
+    ${chipRow}
   </div>`;
 }
 
@@ -7661,6 +7913,9 @@ function exploreHTML(){
   /* Kind tabs narrow the SAME result set by provider type, derived per-listing
      via ptypeOf() — no new field, no schema change, no rails. */
   if(S.kind) list=list.filter(p=>ptypeOf(p)===S.kind);
+  /* Sort the whole result set BEFORE the kind bands slice it, so every band shows
+     the chosen order. resSort was a dead control until now — this wires it. */
+  list=sortResults(list,S.sortBy);
   const dirty=f.verifiedOnly||f.maxPrice||f.model||S.sports.length||S.query||S.kind;
   const chip=(key,label,on)=>`<button class="fchip ${on?"on":""}" data-filter="${key}" aria-pressed="${!!on}">
     ${key==="verified"?ICON.shield:""}${esc(label)}${on?`<span class="xm" aria-hidden="true">${ICON.xs}</span>`:""}</button>`;
@@ -8145,6 +8400,16 @@ function guestPreviewHTML({eyebrow,title,lede,points,frame}){
 }
 
 /* ── bookings / saved / profile ──────────────────────────────────── */
+/* A booking row's media: the program photo if there is one, else the same
+   designed slate fallback the marketplace cards use (glyph + initials), compact. */
+function bookingMedia(b,p){
+  const src=p&&p.img, sport=b.sport||(p&&p.sport)||"";
+  if(isPhotoImg(src)) return `<img src="${src}" alt="" class="bkcard-img">`;
+  return `<div class="bkcard-ph" title="${esc(sport)}">
+    <span class="bkcard-ph-init" style="color:${sportInk(sport)}">${esc(bizInitials((p&&p.biz)||b.program||sport))}</span>
+    <span class="bkcard-ph-dot" aria-hidden="true" style="background:${sportColor(sport)}"></span>
+  </div>`;
+}
 function bookingsHTML(){
   if(!isVerified()) return guestPreviewHTML({
     eyebrow:"Bookings & receipts",
@@ -8156,32 +8421,31 @@ function bookingsHTML(){
     frame:"Bookings"});
   return `${subnavHTML()}<main class="shell">
     <div class="sec-head"><h1>Bookings</h1></div>
-    ${S.bookings.length?`<div style="display:flex;flex-direction:column;gap:13px;padding-bottom:60px">
-      ${S.bookings.map(b=>{const p=programById(b.programId);return `<div class="panel" style="display:flex;gap:18px;align-items:center;flex-wrap:wrap">
-        ${/* `src=""` is not an empty image — the browser resolves it against the
-             document URL and re-requests the PAGE, then paints a broken-image
-             glyph. Fall back to the generated per-sport placeholder, or omit
-             the element entirely if there is nothing to key it on. */""}
-        ${(p&&p.img)||b.sport?`<img src="${(p&&p.img)||phShot(b.sport)}" alt="" style="width:96px;height:96px;border-radius:var(--r-m);object-fit:cover;flex:0 0 auto">`:""}
-        <div style="flex:1;min-width:190px">
-          <div style="display:flex;gap:8px;align-items:center;margin-bottom:5px">
-            <span class="pill good">${esc(b.status)}</span><span class="pill slate">${esc(b.paymentStatus)}</span></div>
-          <h3>${esc(b.program)}</h3>
-          <p class="num" style="color:var(--muted);font-size:var(--text-base);margin-top:3px">
-            ${esc(b.session)} · ${fmtDate(b.date)} · ${b.startTime}</p>
-          <p style="color:var(--muted);font-size:var(--text-base)">Athlete: ${esc(b.athlete)} · Tier: ${esc(b.tier)}</p>
+    ${S.bookings.length?`<div class="bklist">
+      ${S.bookings.map(b=>{const p=programById(b.programId);const cancelled=b.status==="cancelled";return `<div class="bkcard">
+        ${/* Media: real photo, else the designed slate fallback (bookingMedia).
+             The old `src=""`/phShot blob is retired — an empty src re-requests
+             the PAGE and paints a broken-image glyph, and the blob was a defect. */""}
+        <div class="bkcard-media">${bookingMedia(b,p)}</div>
+        <div class="bkcard-main">
+          <div class="bkcard-badges">
+            <span class="pill ${cancelled?"warn":"good"}">${esc(b.status)}</span>
+            <span class="pill slate">${esc(b.paymentStatus)}</span>
+          </div>
+          <h3 class="bkcard-title">${esc(b.program)}</h3>
+          <p class="bkcard-meta num">${esc(b.session)} · ${fmtDate(b.date)} · ${b.startTime}</p>
+          <p class="bkcard-meta">Athlete: ${esc(b.athlete)} · Tier: ${esc(b.tier)}</p>
         </div>
-        <div style="text-align:right">
-          <div class="num" style="font-family:var(--serif);font-size:var(--text-lg);font-weight:400;letter-spacing:-.03em">${money(b.price)}</div>
-          <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:9px">
+        <div class="bkcard-side">
+          <div class="bkcard-price num">${money(b.price)}</div>
+          <div class="bkcard-actions">
             <button class="btn ghost sm" data-open="${b.programId}">View program</button>
             ${/* ITEM 5 — a parent who paid had NO way to cancel, on a page whose
                  own copy promises "the refund trail". Only live bookings get
                  this: a seeded demo row has nothing to cancel. */""}
-            ${b.live&&b.status!=="cancelled"
+            ${b.live&&!cancelled
               ? `<button class="btn ghost sm" data-cancelbooking="${esc(b.id)}">Cancel booking</button>`
               : ""}
-            ${b.status==="cancelled"?`<span class="pill warn">Cancelled</span>`:""}
           </div>
         </div></div>`}).join("")}</div>`
     :`<div class="empty"><div class="big">${PICON.receipt}</div><h3>No bookings yet</h3>
@@ -13271,16 +13535,73 @@ document.querySelectorAll('.sig-ai-coach').forEach(sigAiCoachWire);
   // Age dimension moved out of the hero into the browse filter row (.fchips).
   const qa=document.getElementById("qage2");
   if(qa) qa.onchange=e=>{S.ageQuery=e.target.value||null;S.route={name:"explore",arg:null};render();};
-  /* The three toolbar filters. Each writes the SAME state applyHeroSearch()
-     writes, so the hero search and the toolbar cannot disagree about what is
-     filtered — one model, two ways in. A control that renders but does not
-     filter is the defect class the audit found three of. */
-  const tbS=document.getElementById("tbSport");
-  if(tbS) tbS.onchange=e=>{ S.sports=e.target.value?[e.target.value]:[]; render(); };
-  const tbA=document.getElementById("tbArea");
-  if(tbA) tbA.onchange=e=>{ S.locQuery=e.target.value||""; render(); };
-  const tbG=document.getElementById("tbAge");
-  if(tbG) tbG.onchange=e=>{ S.ageQuery=e.target.value?Number(e.target.value):null; render(); };
+  /* ── Browse filter-bar dropdowns (owner 2026-08-23) ──────────────────────
+     Three popovers replace the native selects. Open state lives on S.tbMenu;
+     the document-level outside-click and Esc handlers (near the sport-chooser
+     ones) close them. Each pick writes the SAME state visiblePrograms() filters
+     on, so the bar and the grid cannot disagree. stopPropagation keeps the
+     document outside-click handler from closing the popover on the same click. */
+  $("[data-tbdrop]").forEach(b=>b.onclick=e=>{
+    e.stopPropagation();
+    const k=b.dataset.tbdrop;
+    S.tbMenu=S.tbMenu===k?null:k;
+    render();
+  });
+  $("[data-tbsport]").forEach(b=>b.onclick=e=>{
+    e.stopPropagation();
+    const s=b.dataset.tbsport, i=S.sports.indexOf(s);
+    if(i<0) S.sports.push(s); else S.sports.splice(i,1);
+    render();
+  });
+  $("[data-tbage]").forEach(b=>b.onclick=e=>{
+    e.stopPropagation();
+    if(!Array.isArray(S.ageBands)) S.ageBands=[];
+    const k=b.dataset.tbage, i=S.ageBands.indexOf(k);
+    if(i<0) S.ageBands.push(k); else S.ageBands.splice(i,1);
+    render();
+  });
+  $("[data-tbsclear]").forEach(b=>b.onclick=e=>{e.stopPropagation();S.sports=[];render();});
+  $("[data-tbaclear]").forEach(b=>b.onclick=e=>{e.stopPropagation();S.ageBands=[];render();});
+  $("[data-tbpclear]").forEach(b=>b.onclick=e=>{e.stopPropagation();S.priceMin=null;S.priceMax=null;render();});
+  $("[data-tbdone]").forEach(b=>b.onclick=e=>{e.stopPropagation();S.tbMenu=null;render();});
+  /* Price dual-handle slider. During a drag we repaint the fill, labels and
+     histogram IN PLACE (no render, so the drag is not interrupted); on release
+     or an arrow keypress (the `change` event) we commit — render() re-filters
+     the grid and re-focuses the handle via S.tbFocus so keyboard use is smooth. */
+  (function(){
+    const lo=document.getElementById("tbPriceLo"), hi=document.getElementById("tbPriceHi");
+    if(!lo||!hi) return;
+    if(S.tbFocus){const f=document.getElementById(S.tbFocus); if(f) f.focus(); S.tbFocus=null;}
+    const fill=document.getElementById("tbPriceFill"), val=document.getElementById("tbPriceVal");
+    const span=TB_SHI-TB_SLO;
+    const paint=()=>{
+      let a=Number(lo.value), b=Number(hi.value);
+      if(a>b){ if(document.activeElement===lo){b=a;hi.value=String(b);} else {a=b;lo.value=String(a);} }
+      S.priceMin=a<=TB_SLO?null:a;
+      S.priceMax=b>=TB_SHI?null:b;
+      if(fill){fill.style.left=((a-TB_SLO)/span*100).toFixed(2)+"%";fill.style.right=((TB_SHI-b)/span*100).toFixed(2)+"%";}
+      const hiLab=b>=TB_SHI?"$1,000+":money(b);
+      if(val) val.textContent=`${money(a)} – ${hiLab}`;
+      lo.setAttribute("aria-valuenow",String(a)); hi.setAttribute("aria-valuenow",String(b));
+      const w=span/TB_BINS;
+      document.querySelectorAll(".tbd-hbar").forEach((el,i)=>{const bl=TB_SLO+i*w,bh=bl+w;el.classList.toggle("on",bh>=a&&bl<=b);});
+    };
+    const commit=()=>{S.tbFocus=(document.activeElement&&document.activeElement.id)||null;render();};
+    lo.oninput=paint; hi.oninput=paint;
+    lo.onchange=commit; hi.onchange=commit;
+  })();
+  /* Removable chips — each drops exactly its own filter. */
+  $("[data-tbchip]").forEach(b=>b.onclick=()=>{
+    const v=b.dataset.tbchip;
+    if(v==="price"){S.priceMin=null;S.priceMax=null;}
+    else if(v.indexOf("sport:")===0){const s=v.slice(6);S.sports=S.sports.filter(x=>x!==s);}
+    else if(v.indexOf("age:")===0){const k=v.slice(4);S.ageBands=(S.ageBands||[]).filter(x=>x!==k);}
+    render();
+  });
+  $("[data-tbclearall]").forEach(b=>b.onclick=()=>{S.sports=[];S.priceMin=null;S.priceMax=null;S.ageBands=[];render();});
+  /* Sort — previously a dead <select>; now writes S.sortBy and re-renders. */
+  const rs=document.getElementById("resSort");
+  if(rs) rs.onchange=e=>{S.sortBy=e.target.value;render();};
 
   const sf=document.getElementById("signupForm");
   if(sf) sf.onsubmit=e=>{
@@ -14469,6 +14790,17 @@ document.addEventListener("click",e=>{
   if(!S.sportOpen) return;
   if(e.target.closest(".sportmenu")||e.target.closest("[data-sportmenu]")) return;
   S.sportOpen=false;render();
+});
+/* Browse filter-bar dropdowns: outside-click and Esc close the open popover.
+   Closing commits the grid (the price popover repaints in place while open, so
+   this render is where a price change actually re-filters the results). */
+document.addEventListener("click",e=>{
+  if(!S.tbMenu) return;
+  if(e.target.closest(".tbd-pop")||e.target.closest("[data-tbdrop]")) return;
+  S.tbMenu=null;render();
+});
+document.addEventListener("keydown",e=>{
+  if(e.key==="Escape"&&S.tbMenu){S.tbMenu=null;render();}
 });
 /* Outside-click closes the open search panel. Registered before the command
    -menu handler so both can coexist on the same click. */
