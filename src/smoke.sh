@@ -1476,7 +1476,12 @@ chp=$($B js "
 (()=>{const bad=[];
  S.portal='family';S.auth={status:'guest'};S.route={name:'explore',arg:null};render();
  const shot=document.querySelector('.card .shot'); if(!shot)return 'NO_CARD';
- if(getComputedStyle(shot.querySelector('.cardchips')).pointerEvents!=='none')bad.push('CHIPS_INTERACTIVE');
+ // Owner 2026-08-23 Uber-Eats vertical card: the single over-image badge
+ // (.demochip on a demo seed, .cardbadge on a live listing) replaces the old
+ // .cardchips wrapper. Whichever renders must stay click-transparent so it
+ // cannot swallow a tap meant for the open button.
+ const bdg=shot.querySelector('.demochip,.cardbadge');
+ if(bdg&&getComputedStyle(bdg).pointerEvents!=='none')bad.push('BADGE_INTERACTIVE');
  // elementFromPoint only sees the VIEWPORT — scroll the card into view first,
  // then measure. (At 1440 the first card can sit below the fold; probing
  // offscreen coordinates returns whatever chrome is at that point instead.)
