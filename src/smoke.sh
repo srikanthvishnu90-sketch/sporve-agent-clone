@@ -1481,9 +1481,14 @@ chp=$($B js "
  // then measure. (At 1440 the first card can sit below the fold; probing
  // offscreen coordinates returns whatever chrome is at that point instead.)
  shot.scrollIntoView({block:'center'});
- const d=shot.querySelector('.demochip').getBoundingClientRect();
- const el=document.elementFromPoint(Math.min(d.right+12,window.innerWidth-2),d.top+d.height/2);
- if(!el||!el.closest('[data-open]'))bad.push('DEADZONE:'+(el?(el.className||el.tagName):'null'));
+ // Owner 2026-08-23 image+name card: the WHOLE rectangle opens the listing, so a
+ // tap on the company NAME (not just the photo) must reach the open button rather
+ // than fall into a deadzone. Stronger than the old 'beside the chip' probe.
+ const nm=shot.closest('.card').querySelector('.cardname');
+ if(!nm){bad.push('NO_CARDNAME');}
+ else{const r=nm.getBoundingClientRect();
+   const el=document.elementFromPoint(r.left+r.width/2,r.top+r.height/2);
+   if(!el||!el.closest('[data-open]'))bad.push('DEADZONE:'+(el?(el.className||el.tagName):'null'));}
  const h=shot.querySelector('.heart').getBoundingClientRect();
  const he=document.elementFromPoint(h.left+h.width/2,h.top+h.height/2);
  if(!he||!he.closest('.heart'))bad.push('HEART_BLOCKED');

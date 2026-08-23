@@ -1194,8 +1194,8 @@ img{max-width:100%;display:block}
 
 /* ── cards ───────────────────────────────────────────────────────── */
 .grid{
-  display:grid;gap:24px 22px;
-  grid-template-columns:repeat(auto-fill,minmax(220px,1fr));
+  display:grid;gap:20px 20px;
+  grid-template-columns:repeat(auto-fill,minmax(300px,1fr));
   padding:30px 0 56px;
 }
 
@@ -1216,11 +1216,11 @@ img{max-width:100%;display:block}
 .rail-track{display:flex;gap:20px;overflow-x:auto;scroll-snap-type:x proximity;
   scrollbar-width:none;-webkit-overflow-scrolling:touch;padding:4px 2px 8px;margin:0 -2px}
 .rail-track::-webkit-scrollbar{display:none}
-.rail-track>.card{flex:0 0 228px;scroll-snap-align:start}
+.rail-track>.card{flex:0 0 300px;scroll-snap-align:start}
 @media(max-width:640px){
   .rail-head h2{font-size:var(--text-xl)}
   .rail-arrows{display:none}
-  .rail-track>.card{flex-basis:80vw}
+  .rail-track>.card{flex-basis:86vw}
 }
 
 /* ── T4 · Zillow-style kind bands ─────────────────────────────────────
@@ -1257,11 +1257,11 @@ img{max-width:100%;display:block}
 .kindrow{display:flex;gap:16px;overflow-x:auto;scroll-snap-type:x mandatory;
   scrollbar-width:none;-webkit-overflow-scrolling:touch;padding:4px 0}
 .kindrow::-webkit-scrollbar{display:none}
-.kindrow>.card{flex:0 0 228px;scroll-snap-align:start}
+.kindrow>.card{flex:0 0 300px;scroll-snap-align:start}
 .kindrow-empty{color:var(--muted);font-size:var(--text-sm);padding:8px 2px}
 @media(max-width:640px){
   .pagers{display:none}
-  .kindrow>.card{flex-basis:80vw}
+  .kindrow>.card{flex-basis:86vw}
 }
 .card{
   text-align:left;display:flex;flex-direction:column;gap:7px;position:relative;
@@ -1361,22 +1361,27 @@ img{max-width:100%;display:block}
 .card .verifline svg,.card .pendline svg{width:11px;height:11px}
 .verifline{display:flex;align-items:center;gap:5px;font-size:var(--text-sm);font-weight:600;color:var(--gold-ink)}
 .pendline{display:flex;align-items:center;gap:5px;font-size:var(--text-sm);font-weight:600;color:var(--warn)}
-/* MOBILE: rectangular (Uber-style) listing cards — image on the LEFT, details on
-   the RIGHT, so a company reads as a wide rectangle instead of a tall portrait
-   (owner 2026-08-22, Uber/Airbnb mobile pass). CSS grid keeps the existing child
-   markup untouched: .shot spans the full height in column 1, the text blocks
-   auto-flow down column 2. Scoped to :not(.feature) so the wide hero card and all
-   desktop (>640) layouts are unchanged. */
-@media(max-width:640px){
-  .card:not(.feature){
-    display:grid;grid-template-columns:42% 1fr;column-gap:0;row-gap:0;align-items:start;
-  }
-  .card:not(.feature) .shot{
-    grid-row:1 / -1;grid-column:1;aspect-ratio:auto;height:100%;min-height:122px;
-  }
-  .card:not(.feature)>*:not(.shot){grid-column:2}
-  .card:not(.feature) .row1{padding-top:12px}
+/* Uber-Eats company card (owner 2026-08-23): ONE rectangular figure, IDENTICAL on
+   mobile and web — the company's own image on the left, the company name on the
+   right, and nothing else on the card face. Applied at every width (not just
+   mobile), scoped :not(.feature) so the wide hero card is untouched. */
+.card:not(.feature){
+  display:grid;grid-template-columns:44% 1fr;column-gap:0;align-items:stretch;
+  min-height:108px;
 }
+.card:not(.feature) .shot{
+  grid-column:1;aspect-ratio:auto;height:auto;align-self:stretch;
+}
+.cardname{
+  grid-column:2;align-self:center;padding:12px 16px;
+  font-family:var(--sans);font-weight:600;font-size:var(--text-lg);
+  letter-spacing:-.01em;line-height:1.25;color:var(--ink);
+  overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;
+}
+/* The whole card opens the listing (image AND name), not just the photo. Sits
+   below the heart (z3) and the pointer-transparent chips (z2) so both still work. */
+.card-open{position:absolute;inset:0;width:100%;height:100%;z-index:1;background:none}
+.card .heart{z-index:3}
 
 /* ── generic ui ──────────────────────────────────────────────────── */
 /* §3 — three variants, two heights, nothing else.
@@ -6192,28 +6197,20 @@ const ICON={
 
 function cardHTML(p){
   const fav=S.favorites.includes(p.id);
+  /* Uber-Eats card (owner 2026-08-23): the ONLY things on the card face are the
+     company's own image and the company name, as one rectangular figure that is
+     identical on mobile and web. Rating, program title, ages, verification line
+     and price were removed from the card — they live on the listing detail the
+     card opens. The Demo chip stays (honesty: a non-bookable seed must never read
+     as a real, bookable coach). */
   return `<div class="card">
     <div class="shot">
-      <img src="${p.img}" alt="${esc(p.title)}" loading="lazy">
-      <span class="cardchips">
-        <span class="sporttag"><i style="background:${sportColor(p.sport)}"></i>${esc(p.sport)}</span>
-        ${isDemo(p)?`<span class="demochip">Demo</span>`:""}
-      </span>
-      <button class="heart ${fav?"on":""}" data-fav="${p.id}" aria-label="${fav?"Remove from saved":"Save"} ${esc(p.title)}">${ICON.heart(fav)}</button>
-      <button data-open="${p.id}" style="position:absolute;inset:0;width:100%;height:100%" aria-label="View ${esc(p.title)}"></button>
+      <img src="${p.img}" alt="${esc(p.biz)}" loading="lazy">
+      ${isDemo(p)?`<span class="cardchips"><span class="demochip">Demo</span></span>`:""}
+      <button class="heart ${fav?"on":""}" data-fav="${p.id}" aria-label="${fav?"Remove from saved":"Save"} ${esc(p.biz)}">${ICON.heart(fav)}</button>
     </div>
-    <div class="row1">
-      <span class="biz">${esc(p.biz)}</span>
-      ${showsRating(p)?`<span class="rate num">${ICON.star}&nbsp;${p.rating}</span>`:""}
-    </div>
-    <div class="ttl">${esc(p.title)}</div>
-    <div class="meta num">Ages ${p.minAge}–${p.maxAge} · ${esc(p.skill)}</div>
-    ${isDemo(p)
-      ? `<div class="demoline">${ICON.shield} Demo listing — not bookable</div>`
-      : showsVerified(p)
-        ? `<div class="verifline">${ICON.shield} Background-checked</div>`
-        : `<div class="pendline">${ICON.shield} Verification pending</div>`}
-    <div class="price num"><b>${money(p.price)}</b> <span style="color:var(--muted)">${modelLabel(p.model)}</span></div>
+    <div class="cardname">${esc(p.biz)}</div>
+    <button class="card-open" data-open="${p.id}" aria-label="View ${esc(p.biz)}"></button>
   </div>`;
 }
 
