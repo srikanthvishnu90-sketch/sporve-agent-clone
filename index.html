@@ -21,7 +21,7 @@
 <meta name="twitter:description" content="Find coaches, trainers, camps and teams across 20+ sports in Chicagoland.">
 <meta name="twitter:image" content="https://the-sporve-web.vercel.app/og.png">
 <link rel="icon" href="data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%2032%2032'%3E%3Crect%20width='32'%20height='32'%20rx='7'%20fill='%2309090B'/%3E%3Ccircle%20cx='16'%20cy='16'%20r='6'%20fill='white'/%3E%3C/svg%3E">
-<meta name="sporve-build" content="e1c372cff793bcfe">
+<meta name="sporve-build" content="eb280012fb0055d7">
 </head>
 <body>
 <noscript><h1>Sporv — Every sport. One app.</h1><p>Sporv connects families and athletes with coaches, trainers, camps, and teams across more than 20 sports. Please enable JavaScript to use the app.</p></noscript>
@@ -338,9 +338,12 @@ h4{font-size:var(--text-base)}
   --text-2xl:clamp(20px,1.7vw,22px);   /* h2 section headers → compact */
   --text-lg:clamp(16px,1.1vw,17px);    /* h3 card/module titles → compact */
 }
-/* Every family header is Instrument Serif 400 — hierarchy is size+colour, the
-   serif is NEVER bolded. Coach headers keep Archivo/Inter (excluded above). */
-#app:not(.coachdark) h1,#app:not(.coachdark) h2,#app:not(.coachdark) h3{
+/* Every header is Instrument Serif 400 — hierarchy is size+colour, the serif is
+   NEVER bolded. Owner 2026-08-22: coach headers are now serif too ("all large
+   text serif, including the coach dashboard"). Coach keeps its own SIZES (the
+   compact --text-* retune above stays :not(.coachdark)); only the FACE flips, and
+   coach BODY stays Inter (body.reg-coach --sans pin). */
+#app h1,#app h2,#app h3{
   font-family:var(--serif);font-weight:400;letter-spacing:-.01em}
 /* Shrink ONLY in-app page titles; :not(.display):not(.pg-h1) preserves every
    marketing/product hero AND its per-page size tuning. Serif line-height 1.15
@@ -1121,7 +1124,7 @@ img{max-width:100%;display:block}
 .cg-fine{margin-top:26px;color:#8FA3BC;font-family:var(--sans);font-size:var(--text-sm)}
 .cg-fine button{background:none;border:0;color:#F7F9FF;cursor:pointer;text-decoration:underline;font:inherit}
 .cg-right{position:relative;overflow:hidden;background:#000;display:grid;place-items:center}
-.cg-welcome{font-family:var(--display);font-size:var(--text-hero);color:#F7F9FF;letter-spacing:-.02em;text-align:center;padding:24px;line-height:1.05}
+.cg-welcome{font-family:var(--serif);font-weight:400;font-size:var(--text-hero);color:#F7F9FF;letter-spacing:-.02em;text-align:center;padding:24px;line-height:1.05}
 .cg-type{display:inline-block;white-space:nowrap;border-right:.055em solid #F7F9FF;clip-path:inset(0 100% 0 0);animation:cgtype 1.9s steps(17,end) .15s forwards,cgcaret .75s step-end infinite}
 @keyframes cgtype{to{clip-path:inset(0 -.12em 0 0)}}
 @keyframes cgcaret{50%{border-color:transparent}}
@@ -2107,6 +2110,11 @@ img{max-width:100%;display:block}
   box-shadow:0 0 0 1px rgba(154,166,178,.14),
              0 10px 20px rgba(0,0,0,.45),
              0 0 60px rgba(154,166,178,.22)}
+/* Coach dashboard: the chatbox is a PURE BLACK portion — no slate glow (owner
+   2026-08-22). Those light rings read as a white outrim on the dark coach ground;
+   drop the shadow and darken the border so the panel is just black. The aidock
+   lives in the #layer sibling, so scope by the adjacent #app.coachdark. */
+#app.coachdark + #layer .aidock-panel{box-shadow:none;border-color:#1B1F26}
 /* THE BLANK WHITE BOX. .bub.them is background:var(--raise2), which is #EFF2F5
    on the light theme — and the panel sets its text to #F5F7F9. White on white:
    the reply rendered as an empty rectangle, which is exactly what the owner
