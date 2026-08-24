@@ -3883,6 +3883,12 @@ body.reg-coach{
      --sans is pinned to Inter. */
   --sans:"Inter",system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
   font-family:var(--sans);
+  /* Coach ground on the BODY (owner 2026-08-24: "a grey area that overturns it").
+     #app.coachdark paints its own #0A0C0F, but #app is pushed left by the 400px AI
+     gutter — so the reserved right strip showed the WHITE family body underneath,
+     a grey area breaking the all-dark design. Painting the body the SAME coach
+     ground (no new colour) makes every uncovered area dark. */
+  background:var(--canvas-dark);
   /* cv05 = the straight-leg l, cv11 = the single-storey a — Inter's optical
      alternates for UI text. Set here so every descendant that inherits the
      family also inherits the features. */
