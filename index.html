@@ -21,7 +21,7 @@
 <meta name="twitter:description" content="Find coaches, trainers, camps and teams across 20+ sports in Chicagoland.">
 <meta name="twitter:image" content="https://the-sporve-web.vercel.app/og.png">
 <link rel="icon" href="data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%2032%2032'%3E%3Crect%20width='32'%20height='32'%20rx='7'%20fill='%2309090B'/%3E%3Ccircle%20cx='16'%20cy='16'%20r='6'%20fill='white'/%3E%3C/svg%3E">
-<meta name="sporve-build" content="e13700fb5b591f68">
+<meta name="sporve-build" content="85be9f69653e67e9">
 </head>
 <body>
 <noscript><h1>Sporv — Every sport. One app.</h1><p>Sporv connects families and athletes with coaches, trainers, camps, and teams across more than 20 sports. Please enable JavaScript to use the app.</p></noscript>
@@ -3365,7 +3365,18 @@ h2.ctr{margin-bottom:10px}
   display:grid;place-items:center;color:#fff;flex:0 0 auto;
 }
 .gsitem.done .gscheck{background:var(--good);border-color:var(--good)}
-.gsitem.done span:last-child{color:var(--muted);text-decoration:line-through}
+/* B1.3 Get-set-up module: value promise + time estimate per row, slate accent
+   ring on the current step (persimmon retired -> slate, rule 3). */
+.gsitem .gs-main{display:flex;flex-direction:column;gap:1px;min-width:0;text-align:left}
+.gsitem .gs-main b{font-weight:500;font-size:var(--text-sm)}
+.gsitem .gs-main em{font-style:normal;color:var(--muted);font-size:var(--text-xs)}
+.gsitem .gs-time{margin-left:auto;flex:none;color:var(--muted);font-size:var(--text-xs)}
+.gsitem.done .gs-main b{color:var(--muted);text-decoration:line-through}
+.gsitem.gs-current .gscheck{border-color:var(--slate);box-shadow:0 0 0 3px rgba(71,85,105,.20)}
+.gs-next{font-size:var(--text-sm);color:var(--muted);margin:2px 0 12px}
+.gs-next b{color:var(--ink);font-weight:600}
+.gs-live{display:flex;align-items:center;gap:8px;font-size:var(--text-sm);color:var(--ink);margin-top:6px}
+.gs-live .gslink{margin-left:auto;color:var(--slate-ink,#334155);font-weight:600;text-decoration:underline;flex:none}
 .strengthwrap{display:flex;gap:16px;align-items:center;margin-top:10px}
 .payflow{display:flex;gap:8px;margin:14px 0 12px}
 .payst{flex:1;border:1px solid var(--rule);border-radius:var(--r-s);padding:9px 10px}
@@ -9854,7 +9865,23 @@ function gettingStarted(){
        platform would refuse their first booking. */
     ["Connect payouts",!!(S.coachProvider&&S.coachProvider.stripe_charges_enabled)||!!(pp.stripeAccountId&&!S.coachProvider),"finances"],
   ];
-  return {steps,done:steps.filter(s=>s[1]).length,total:steps.length};
+  /* B1.3 (owner 2026-08-24): each step carries a value-promise, a time
+     estimate, and an importance WEIGHT (sum 100, ranked make-money /
+     discoverable / admin). The module shows weighted % and always names the
+     highest-weight incomplete step "next" — no "N of 7" chore counter. */
+  const META={
+    "Create your profile":["So families can find you",3,15],
+    "Add photos":["Cards with photos get booked more",2,8],
+    "Add an intro video":["Show your coaching in action",2,7],
+    "Set services & pricing":["So parents can book you",3,15],
+    "Set availability":["So families can pick a time",2,15],
+    "Pass your background check":["Earn the Verified badge families filter for",2,20],
+    "Connect payouts":["So you get paid automatically",3,20],
+  };
+  const rich=steps.map(([t,done,tab])=>{const m=META[t]||["",2,0];return [t,done,tab,m[0],m[1],m[2]];});
+  const pct=Math.round(rich.filter(s=>s[1]).reduce((a,s)=>a+s[5],0));
+  const next=rich.filter(s=>!s[1]).sort((a,b)=>b[5]-a[5])[0]||null;
+  return {steps:rich,done:rich.filter(s=>s[1]).length,total:rich.length,pct,next};
 }
 
 /* THE COACH'S REAL STATE, not the seed's.
@@ -10039,14 +10066,19 @@ function dashboardHTML(){
 
     <section class="cardrow">
       <div class="panel">
-        <h3>Getting started</h3>
-        <div class="gsline"><span class="gsbar big"><i style="width:${Math.round(gs.done/gs.total*100)}%"></i></span>
-          <span class="num">${gs.done} of ${gs.total}</span></div>
-        <div class="gslist">
-          ${gs.steps.map(([t,done,tab])=>`<button class="gsitem ${done?"done":""}" data-ctab="${tab}">
-            <span class="gscheck">${done?ICON.check:""}</span>
-            <span>${esc(t)}</span></button>`).join("")}
-        </div>
+        <h3>Get set up</h3>
+        ${gs.pct>=100
+          ? `<p class="gs-live">${ICON.check}<span>You're live — families can find and book you.</span>
+               <button class="gslink" data-ctab="profile">View your page</button></p>`
+          : `<div class="gsline"><span class="gsbar big"><i style="width:${gs.pct}%"></i></span>
+               <span class="num">${gs.pct}%</span></div>
+             ${gs.next?`<p class="gs-next">Next: <b>${esc(gs.next[0])}</b> — ${esc(gs.next[3])}</p>`:""}
+             <div class="gslist">
+               ${gs.steps.map(([t,done,tab,promise,mins])=>`<button class="gsitem ${done?"done":""}${(!done&&gs.next&&gs.next[0]===t)?" gs-current":""}" data-ctab="${tab}">
+                 <span class="gscheck">${done?ICON.check:""}</span>
+                 <span class="gs-main"><b>${esc(t)}</b><em>${esc(promise)}</em></span>
+                 <span class="gs-time num">${done?"":mins+" min"}</span></button>`).join("")}
+             </div>`}
       </div>
       <div class="panel">
         <h3>Profile strength</h3>
