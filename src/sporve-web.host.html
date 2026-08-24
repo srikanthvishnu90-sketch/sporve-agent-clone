@@ -315,6 +315,20 @@ h4{font-size:var(--text-base)}
   --text-2xl:clamp(16px,1.7vw,18px);   /* h2 section headers    (−2 more, owner 08-23) */
   --text-lg:clamp(12px,1.1vw,13px);    /* h3 card/module titles (−2 more, owner 08-23) */
 }
+/* Coach DASHBOARD only (owner 2026-08-23: "make the dashboard text ~2 sizes
+   larger"). The global −2 left the coach portal too small; this bumps the coach
+   tokens +2 — reverting the −2 for #app.coachdark alone, so the family/product
+   side stays at the smaller sizes. Scoped by selector; family never matches. */
+#app.coachdark{
+  --text-xs:12.5px;                    /* +2 */
+  --text-sm:12px;                      /* +2 */
+  --text-base:14.5px;                  /* +2 — coach body back to comfortable */
+  --text-md:15.5px;                    /* +2 */
+  --text-lg:clamp(15px,1.3vw,17px);    /* +2 */
+  --text-xl:clamp(23px,1.9vw,29px);    /* +2 — stat numerals */
+  --text-2xl:clamp(22px,2.2vw,30px);   /* +2 */
+  --text-hero:clamp(30px,3.6vw,52px);  /* +2 */
+}
 /* Every header is Instrument Serif 400 — hierarchy is size+colour, the serif is
    NEVER bolded. Owner 2026-08-22: coach headers are now serif too ("all large
    text serif, including the coach dashboard"). Coach keeps its own SIZES (the
