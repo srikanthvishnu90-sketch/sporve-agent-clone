@@ -10,6 +10,48 @@ recall, not re-investigation.
 Format: one bold claim + one line of evidence (file:line or query). Newest wins
 when two conflict; strike the loser, don't delete the history.
 
+## Founder thesis — where the labor is (owner, 2026-08-24). THE governing lens; read before any thesis/sequencing call.
+- **The payable labor is NOT the solo coach.** A private coach's pain is an empty
+  calendar + parents who pay late — that is *demand generation*, i.e. the
+  marketplace problem in a coach costume. Automating solo admin saves ~1hr/week;
+  nobody expenses that. "AI agent for coaches" = a thing people like, don't pay
+  for, and that loops straight back to needing supply + demand.
+- **The labor with a check-signer is the club/org director.** Registration,
+  roster across dozens of families, scheduling, background-check tracking,
+  tournament logistics, invoice-chasing, parent comms — a drowning volunteer /
+  part-time admin on spreadsheets + a Sports Connect instance that **sunsets
+  2027**. Quantifiable, painful, currently-PAID-FOR labor with a buyer who signs.
+- **The 530-issue AAU inventory is the tell — the code already drifts org-ward.**
+  `org_members` + messaging LIVE; a compliance-board slice shipped (see
+  staff_certifications). The product's own gravity agrees with the thesis.
+- **The wedge = a done-for-you agent that takes ONE painful workflow fully off a
+  director's plate.** Bet: *payment collection + roster/waiver compliance* —
+  "collect every family's payment, chase the stragglers, keep roster + waivers
+  current, draft the weekly parent email for the director to approve." Cognition-
+  shaped. The **draft-first invariant IS the product** for a director (verified in
+  the coach AI: every write returns as an Approve-first review card, does nothing
+  until tapped).
+- **Flip the story, don't re-architect the company.** The mistake is treating the
+  marketplace as the product and the OS as a feature. The marketplace is the
+  *eventual distribution layer* clubs/coaches pour their families into; the wedge
+  is the workflow you take off a plate. Stacked thesis (coach OS → clubs →
+  marketplace) is right on paper — invert which end is the product.
+- **"Is this a bad product" is unknowable — nobody uses it.** 4 launch blockers,
+  0 signed coaches, 0 real payments. Re-architecting around "agentic" is
+  high-status procrastination: it feels like progress and delays the only thing
+  that produces information — a real club director paying to make one thing vanish.
+- **What this means for Clo's hands (do not re-litigate):**
+  (1) The first real charge is **atom #1 of the collections agent**, not a launch
+  checkbox — you cannot sell "collect + chase" on a rail that has never moved a
+  dollar. Prove the charge first.
+  (2) "Build end-to-end for one org" is gated on a **committed** org, not a built
+  agent; building the loop for a hypothetical director is the same procrastination
+  in a suit. Sequence: working payment rail → one signed director → build the
+  collections+compliance loop for THEM → let their next ask decide platform-vs-agent.
+  (3) Do **not** scaffold a "club agent" speculatively. Hold this as the lens;
+  when the charge clears, the next honest unit of work is the org collections+
+  compliance loop for a specific buyer — not more marketplace/design surface.
+
 ## Stack & build (the-sporve-web)
 - **Zero runtime deps. No React/npm/bundler.** "Add react-markdown / any library"
   is impossible under CSP `default-src 'self'`; the equivalent is a small inline
