@@ -3350,7 +3350,8 @@ h2.ctr{margin-bottom:10px}
 .gsitem .gs-time{margin-left:auto;flex:none;color:var(--muted);font-size:var(--text-xs)}
 .gsitem.done .gs-main b{color:var(--muted);text-decoration:line-through}
 .gsitem.gs-current .gscheck{border-color:var(--slate);box-shadow:0 0 0 3px rgba(71,85,105,.20)}
-.gs-next{font-size:var(--text-sm);color:var(--muted);margin:2px 0 12px}
+.gs-continue{align-self:stretch;width:100%;justify-content:center;margin:0 0 14px}
+.gs-next{font-size:var(--text-sm);color:var(--muted);margin:2px 0 10px}
 .gs-next b{color:var(--ink);font-weight:600}
 .gs-live{display:flex;align-items:center;gap:8px;font-size:var(--text-sm);color:var(--ink);margin-top:6px}
 .gs-live .gslink{margin-left:auto;color:var(--slate-ink,#334155);font-weight:600;text-decoration:underline;flex:none}
@@ -10047,7 +10048,8 @@ function dashboardHTML(){
                <button class="gslink" data-ctab="profile">View your page</button></p>`
           : `<div class="gsline"><span class="gsbar big"><i style="width:${gs.pct}%"></i></span>
                <span class="num">${gs.pct}%</span></div>
-             ${gs.next?`<p class="gs-next">Next: <b>${esc(gs.next[0])}</b> — ${esc(gs.next[3])}</p>`:""}
+             ${gs.next?`<p class="gs-next">Next: <b>${esc(gs.next[0])}</b> — ${esc(gs.next[3])}</p>
+               <button class="btn gs-continue" data-ctab="${esc(gs.next[2])}">Continue setup →</button>`:""}
              <div class="gslist">
                ${gs.steps.map(([t,done,tab,promise,mins])=>`<button class="gsitem ${done?"done":""}${(!done&&gs.next&&gs.next[0]===t)?" gs-current":""}" data-ctab="${tab}">
                  <span class="gscheck">${done?ICON.check:""}</span>

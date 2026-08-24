@@ -21,7 +21,7 @@
 <meta name="twitter:description" content="Find coaches, trainers, camps and teams across 20+ sports in Chicagoland.">
 <meta name="twitter:image" content="https://the-sporve-web.vercel.app/og.png">
 <link rel="icon" href="data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%2032%2032'%3E%3Crect%20width='32'%20height='32'%20rx='7'%20fill='%2309090B'/%3E%3Ccircle%20cx='16'%20cy='16'%20r='6'%20fill='white'/%3E%3C/svg%3E">
-<meta name="sporve-build" content="01215c4c693d4370">
+<meta name="sporve-build" content="1dd242a962cff85f">
 </head>
 <body>
 <noscript><h1>Sporv — Every sport. One app.</h1><p>Sporv connects families and athletes with coaches, trainers, camps, and teams across more than 20 sports. Please enable JavaScript to use the app.</p></noscript>
@@ -3378,7 +3378,8 @@ h2.ctr{margin-bottom:10px}
 .gsitem .gs-time{margin-left:auto;flex:none;color:var(--muted);font-size:var(--text-xs)}
 .gsitem.done .gs-main b{color:var(--muted);text-decoration:line-through}
 .gsitem.gs-current .gscheck{border-color:var(--slate);box-shadow:0 0 0 3px rgba(71,85,105,.20)}
-.gs-next{font-size:var(--text-sm);color:var(--muted);margin:2px 0 12px}
+.gs-continue{align-self:stretch;width:100%;justify-content:center;margin:0 0 14px}
+.gs-next{font-size:var(--text-sm);color:var(--muted);margin:2px 0 10px}
 .gs-next b{color:var(--ink);font-weight:600}
 .gs-live{display:flex;align-items:center;gap:8px;font-size:var(--text-sm);color:var(--ink);margin-top:6px}
 .gs-live .gslink{margin-left:auto;color:var(--slate-ink,#334155);font-weight:600;text-decoration:underline;flex:none}
@@ -10091,7 +10092,8 @@ function dashboardHTML(){
                <button class="gslink" data-ctab="profile">View your page</button></p>`
           : `<div class="gsline"><span class="gsbar big"><i style="width:${gs.pct}%"></i></span>
                <span class="num">${gs.pct}%</span></div>
-             ${gs.next?`<p class="gs-next">Next: <b>${esc(gs.next[0])}</b> — ${esc(gs.next[3])}</p>`:""}
+             ${gs.next?`<p class="gs-next">Next: <b>${esc(gs.next[0])}</b> — ${esc(gs.next[3])}</p>
+               <button class="btn gs-continue" data-ctab="${esc(gs.next[2])}">Continue setup →</button>`:""}
              <div class="gslist">
                ${gs.steps.map(([t,done,tab,promise,mins])=>`<button class="gsitem ${done?"done":""}${(!done&&gs.next&&gs.next[0]===t)?" gs-current":""}" data-ctab="${tab}">
                  <span class="gscheck">${done?ICON.check:""}</span>
