@@ -627,11 +627,11 @@ img{max-width:100%;display:block}
    spend the page's orange budget. */
 .navcta{
   display:inline-flex;align-items:center;height:40px;padding:0 18px;
-  border-radius:var(--r-pill);background:#FFFFFF;color:#09090B;
+  border-radius:var(--r-pill);background:#556B84;color:#FFFFFF;
   font-family:var(--nav-face);font-weight:600;font-size:var(--t-body);white-space:nowrap;
   transition:background .15s;
 }
-.navcta:hover{background:#E9EEF4}
+.navcta:hover{background:#46586E}
 /* Account control (T1): the desktop hamburger+avatar PILL is retired. On
    desktop a bare avatar glyph keeps the account menu reachable (sign-in is
    action-triggered per the product's auth model); at <=900 it becomes the
@@ -756,7 +756,9 @@ img{max-width:100%;display:block}
   /* Full-bleed, not shell-width. The grid below stays capped at --shell; the
      panel breaks out of it and runs edge to edge on a 20px gutter, so the
      photograph is the widest thing on the page. */
-  width:calc(100% - 40px);max-width:1760px;margin:0 auto;
+  /* Full-bleed edge to edge (owner 2026-08-24, match the reference): the photo
+     fills the whole top of the screen, no side gutters, no rounded frame. */
+  width:100%;max-width:none;margin:0;
   /* One photograph now, so the frame is ITS proportion exactly and nothing is
      cropped or stretched: hero-stadium.webp is 1376x768. The old 1000/612 was a
      geometric mean splitting the difference between two photos that no longer
@@ -770,8 +772,8 @@ img{max-width:100%;display:block}
      just below the search bar, cut by the viewport: the slice IS the scroll cue.
      The image crops rather than squashes, because aspect-ratio still governs the
      box and max-height only trims it. */
-  max-height:82vh;
-  border-radius:var(--r-card);
+  max-height:90vh;
+  border-radius:0;
   display:grid;place-items:center;
   /* Cap the single implicit column at the panel width (minmax(0,1fr)) instead of
      letting it grow to the content's max-content. The search pill's SEARCH label
@@ -796,6 +798,27 @@ img{max-width:100%;display:block}
    1376x768, inlined as a data URI like everything else so the page survives the
    CSP that blocks external requests. */
 .hero-media{position:absolute;inset:0;overflow:hidden}
+/* Hero sport cycler — the word rolls sport→sport (owner 2026-08-24). Text is
+   WHITE (the dark-ground invariant needs high-contrast type; sport hues are dark
+   accents and fail as text on near-black), and the sport's identity colour is
+   carried as the UNDERLINE — colour law: sport colours are accent-only, never
+   body text. Words scroll vertically in normal flow inside a clipped window, so
+   they never overlap (the absolute stack tripped the overlap audit). --text-xl
+   is an on-scale token. Reduced-motion shows one static word. */
+.hero-sports{font-family:var(--display);font-weight:800;font-size:var(--text-xl);
+  letter-spacing:-.01em;color:#F5F7F9;margin:20px 0 0;display:flex;gap:.4em;
+  align-items:baseline;justify-content:center;line-height:1.25}
+.hs-rot{position:relative;display:inline-block;min-width:6.8em;height:1.25em;overflow:hidden;
+  vertical-align:bottom;text-align:left}
+.hs-col{position:absolute;left:0;top:0;display:flex;flex-direction:column;animation:hsRoll 11s infinite}
+.hs-col b{height:1.25em;line-height:1.25em;color:#F5F7F9;font-weight:inherit;white-space:nowrap;
+  border-bottom:3px solid;box-sizing:border-box}
+@keyframes hsRoll{
+  0%,14%{transform:translateY(0)}     20%,34%{transform:translateY(-1.25em)}
+  40%,54%{transform:translateY(-2.5em)} 60%,74%{transform:translateY(-3.75em)}
+  80%,94%{transform:translateY(-5em)}  100%{transform:translateY(-6.25em)}}
+@media(prefers-reduced-motion:reduce){.hs-col{animation:none}
+  .hs-col b:not(:first-child){display:none}}
 .hero-still{
   position:absolute;inset:0;background-position:center;background-size:cover;
   background-repeat:no-repeat;
@@ -7482,7 +7505,7 @@ function topbarHTML(){
             + avatar, opening the same account menu. Hidden <=900 (the sheet
             hamburger owns auth there). */""}
       ${guestFam?`<button class="navlink navlogin" data-signin="1">Log in</button>
-        <button class="navcta getstarted" data-signin="1">Get started<svg class="cta-arrow" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg></button>`:""}
+        <button class="navcta getstarted" data-signin="1">Join waitlist</button>`:""}
       <button class="acct" data-acct="1" aria-label="Account menu">
         <span class="burger" aria-hidden="true"><span></span><span></span><span></span></span>
         ${u&&S.portal==="family"&&firstName?`<span class="acct-name">${esc(firstName)}</span>`:""}
@@ -8285,6 +8308,21 @@ function heroMediaHTML(){
      <div class="hero-still" style="background-image:url('${HERO_IMGS[0]}')"></div>
    </div>`;
 }
+/* Hero sport cycler (owner 2026-08-24): "Every sport" where the name rotates
+   through the real Sporv sports, each painted its identity colour (sportColor()).
+   Pure CSS — a stack of absolutely-positioned words fading in sequence — so there
+   is no JS interval to leak across render(). The row is min-width'd + clipped so
+   nothing reflows or overflows. Falls back to one static word under
+   prefers-reduced-motion (WCAG 2.3.3). */
+function heroSportCycleHTML(){
+  const sports=['Basketball','Soccer','Baseball','Tennis','Swimming'];
+  const items=[...sports, sports[0]];   // repeat the first for a seamless loop back to 0
+  return `<p class="hero-sports" aria-label="Every sport on Sporv">
+    <span class="hs-lead">Every</span>
+    <span class="hs-rot"><span class="hs-col">${items.map(s=>
+      `<b style="border-color:${sportColor(s)}">${esc(s)}</b>`).join("")}</span></span></p>`;
+}
+
 function heroHTML(){
   return `<section class="hero">
     <div class="hero-panel">
@@ -8308,6 +8346,7 @@ function heroHTML(){
              talks about 'book a background checked coach'". */""}
         <h1 class="hero-ai">Sporv, the AI <span>for youth sports.</span></h1>
         ${searchPillHTML()}
+        ${heroSportCycleHTML()}
       </div>
     </div>
   </section>`;
