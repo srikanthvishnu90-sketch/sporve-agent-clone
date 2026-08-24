@@ -21,7 +21,7 @@
 <meta name="twitter:description" content="Find coaches, trainers, camps and teams across 20+ sports in Chicagoland.">
 <meta name="twitter:image" content="https://the-sporve-web.vercel.app/og.png">
 <link rel="icon" href="data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%2032%2032'%3E%3Crect%20width='32'%20height='32'%20rx='7'%20fill='%2309090B'/%3E%3Ccircle%20cx='16'%20cy='16'%20r='6'%20fill='white'/%3E%3C/svg%3E">
-<meta name="sporve-build" content="2084df80ac0b8097">
+<meta name="sporve-build" content="8acd517a7aa6fa20">
 </head>
 <body>
 <noscript><h1>Sporv — Every sport. One app.</h1><p>Sporv connects families and athletes with coaches, trainers, camps, and teams across more than 20 sports. Please enable JavaScript to use the app.</p></noscript>
@@ -2398,7 +2398,12 @@ html.coldock .aidock-fab{display:none}
    defect the panel ground itself was fixed for. */
 .aidock-panel .bub.them{background:#1B2129;color:#F5F7F9;border:1px solid #2A313B}
 .aidock-panel .bub.me{background:#3E4C5A;color:#FFFFFF}
-.aidock-panel .bub{max-width:100%;white-space:pre-wrap;word-break:break-word}
+/* Chat message text matches Claude/GPT reading comfort (owner 2026-08-23: "the
+   same exact text used in claude and gpt") — 15px Inter, 1.6 line-height, not the
+   compact 12.5px app body. Scoped to the AI dock messages only. */
+.aidock-panel .bub{max-width:100%;white-space:pre-wrap;word-break:break-word;
+  font-family:var(--sans);font-size:15px;line-height:1.6}
+.aidock-panel .bub.md,.aidock-panel .bub.md p,.aidock-panel .bub.md li{font-size:15px;line-height:1.6}
 .aidock-panel .aidock-scroll,.aidock-panel .aidock-empty h3,.aidock-panel b{color:#F5F7F9}
 .aidock-panel .aidock-sub,.aidock-panel .aidock-empty p{color:#9AA6B2}
 .aidock-panel .aidock-pick{background:#131519;border-color:#333A45;color:#F5F7F9}

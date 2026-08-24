@@ -2370,7 +2370,12 @@ html.coldock .aidock-fab{display:none}
    defect the panel ground itself was fixed for. */
 .aidock-panel .bub.them{background:#1B2129;color:#F5F7F9;border:1px solid #2A313B}
 .aidock-panel .bub.me{background:#3E4C5A;color:#FFFFFF}
-.aidock-panel .bub{max-width:100%;white-space:pre-wrap;word-break:break-word}
+/* Chat message text matches Claude/GPT reading comfort (owner 2026-08-23: "the
+   same exact text used in claude and gpt") — 15px Inter, 1.6 line-height, not the
+   compact 12.5px app body. Scoped to the AI dock messages only. */
+.aidock-panel .bub{max-width:100%;white-space:pre-wrap;word-break:break-word;
+  font-family:var(--sans);font-size:15px;line-height:1.6}
+.aidock-panel .bub.md,.aidock-panel .bub.md p,.aidock-panel .bub.md li{font-size:15px;line-height:1.6}
 .aidock-panel .aidock-scroll,.aidock-panel .aidock-empty h3,.aidock-panel b{color:#F5F7F9}
 .aidock-panel .aidock-sub,.aidock-panel .aidock-empty p{color:#9AA6B2}
 .aidock-panel .aidock-pick{background:#131519;border-color:#333A45;color:#F5F7F9}
