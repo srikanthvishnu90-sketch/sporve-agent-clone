@@ -2263,7 +2263,7 @@ img{max-width:100%;display:block}
   background:#0A0C0F;display:flex;flex-direction:column}
 .aipill.aidock-col .aidock-scroll{flex:1 1 auto;min-height:0}
 .aipill.aidock-col .aidock-empty{margin:auto 0}
-.aipill.aidock-col .aidock-chips{max-width:100%;overflow-x:auto;flex:0 0 auto}
+.aipill.aidock-col .aidock-chips{max-width:100%;flex-wrap:wrap;flex:0 0 auto}   /* column: chips wrap, never clip off the rail edge (owner 2026-08-24) */
 .aipill.aidock-col .aidock-compose{flex:0 0 auto}
 /* The floating FAB is redundant while the panel is a permanent column. */
 html.coldock .aidock-fab{display:none}
