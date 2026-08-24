@@ -82,6 +82,7 @@ FAMILY_BY_PREFIX = {
     "archivo": "Archivo",               # display / large text
     "jetbrainsmono": "JetBrains Mono",  # NUMERALS only (prices/ratings/counts)
     "inter": "Inter",                   # body / small text
+    "robotocondensed": "Roboto Condensed",  # landing hero headline ONLY (weight 700-800)
     "sentinel": "Sentinel",
 }
 # Google serves ONE variable woff2 per family — every weight URL in a css2
@@ -99,7 +100,11 @@ VARIABLE_RANGE = {"Syne": "600 800", "Plus Jakarta Sans": "400 700",
                   # JetBrains Mono: tabular numerals only (prices, ratings,
                   # counts, distances). Instrument Serif ships as static
                   # Regular/Italic faces, so it needs no variable range here.
-                  "JetBrains Mono": "400 700"}
+                  "JetBrains Mono": "400 700",
+                  # Roboto Condensed: landing hero headline (800) + search button
+                  # (800); Google's latin subset ships one variable woff2 covering
+                  # the range, so one file (RobotoCondensed-Variable.woff2) suffices.
+                  "Roboto Condensed": "700 800"}
 font_files = sorted(glob.glob(os.path.join(ROOT, "assets", "fonts", "*.woff2")))
 faces, fam_seen = [], set()
 for fp in font_files:

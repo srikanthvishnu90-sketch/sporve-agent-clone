@@ -110,6 +110,7 @@
   --text-xl:clamp(21px,1.9vw,27px);    /* stat numerals, sub-headers          */
   --text-2xl:clamp(24px,2.2vw,32px);   /* section headers (h2)                */
   --text-hero:clamp(32px,3.6vw,54px);  /* h1 only                             */
+  --text-hero-lp:clamp(35px,4.5vw,61px);/* landing hero headline ONLY (Roboto Condensed) — owner 2026-08-23, prototype size −3px; on-scale clamp, gate widened to 61 */
   /* The ONE class of exception: a `font-size` that sizes a GLYPH rather than
      text -- an avatar initial, an emoji, a chevron, a sport badge's icon.
      Those are icon dimensions expressed in font-size units, and a fluid clamp
@@ -190,6 +191,10 @@
   --sans:"Inter",system-ui,-apple-system,"Segoe UI",Roboto,
          "Helvetica Neue",Arial,sans-serif;
   --mono:"JetBrains Mono",ui-monospace,SFMono-Regular,"SF Mono",Menlo,Consolas,monospace;
+  /* Landing hero headline ONLY (owner 2026-08-23). Embedded OFL Roboto Condensed,
+     weights 700-800, base64 @font-face like every other face — no Google Fonts
+     load, no CSP change. Used exclusively by .hero-ai and the search button. */
+  --roboto-cond:"Roboto Condensed","Arial Narrow",system-ui,sans-serif;
   --shell:1240px;
 }
 /* The app is dark; this web surface is deliberately light. A viewer in dark
@@ -367,10 +372,17 @@ img{max-width:100%;display:block}
 .topbar{
   position:sticky;top:0;z-index:60;background:#09090B;
   border-bottom:1px solid #1C222B;
-  transition:box-shadow .2s ease;
+  transition:background .2s ease,border-color .2s ease,box-shadow .2s ease;
 }
 .topbar.scrolled{box-shadow:0 8px 26px rgba(0,0,0,.38)}
-.topbar-in{display:flex;align-items:center;gap:40px;height:72px}
+/* Nav stays SOLID #09090B on every route. An earlier prototype made it
+   transparent via #app:has(.hero-panel) on the false premise that .hero-panel
+   is the landing hero — it is the EXPLORE hero, so transparency landed on a
+   white content page (white-on-white nav, colour-law §3 failure) and never on
+   the home stadium where it was wanted. Transparent-over-the-home-hero is
+   deferred to the dedicated nav task, scoped to the home route and verified the
+   nav actually overlaps the dark hero. */
+.topbar-in{display:flex;align-items:center;gap:40px;height:60px}
 .nav-left{display:flex;align-items:center;gap:40px;min-width:0}
 .brand{display:flex;align-items:center;gap:9px;flex:0 0 auto}
 .mark{
@@ -474,18 +486,19 @@ img{max-width:100%;display:block}
 #app.reg-tabs h1 em,#app.reg-tabs h2 em,#app.reg-tabs .display em{
   font-family:var(--display);font-style:italic;font-weight:700;
 }
+/* Prototype nav link (owner, 2026-08-23): Inter 14.5px/500 white, a padded pill
+   that lights a faint white wash on hover — no colour flip, the wash is the
+   affordance. padding 7px 12px + radius 8px per the prototype .nl. */
 .tnav-row .tnav{
-  display:inline-flex;align-items:center;gap:7px;height:var(--h-compact);padding:0 2px;
-  border-radius:0;font-family:var(--sans);font-size:16px;font-weight:500;
-  letter-spacing:.01em;color:#FFFFFF;background:none;
+  display:inline-flex;align-items:center;gap:7px;padding:7px 12px;
+  border-radius:8px;font-family:var(--sans);font-size:var(--text-base);font-weight:500;
+  letter-spacing:.01em;color:#FFFFFF;background:none;transition:background .15s;
 }
-/* FIX 4 (owner 2026-08-23, freeze lifted): nav is UI chrome, so the top tabs
-   switch from --nav-face (Instrument Serif) to --sans (Inter) at 16px. This
-   REVERSES design-rules #15 (2026-08-22 "top tabs in serif"). Hover resolves to
-   the established topbar slate literal #8FA3BC (same as .navlink:hover / the
-   wordmark), not white — no new hex. Active .on keeps its italic indicator. */
+/* Hover/menu-open = a faint white wash (rgba white .08), text stays white — the
+   prototype affordance. Replaces the old slate-text hover. Active .on keeps its
+   italic accent. */
 .tnav-row .tnav:hover,
-.prodwrap:hover>.tnav,.prodwrap:focus-within>.tnav{background:none;color:#8FA3BC}
+.prodwrap:hover>.tnav,.prodwrap:focus-within>.tnav{background:rgba(255,255,255,.08);color:#FFFFFF}
 /* THE ITALIC IS THE ACCENT. Instrument Serif's italic is the expressive part of
    the family, and using it only on the ACTIVE item makes selection legible
    without a pill, a underline or a colour change doing the work — the same
@@ -608,14 +621,21 @@ img{max-width:100%;display:block}
    action-triggered per the product's auth model); at <=900 it becomes the
    hamburger that opens the account/nav sheet. */
 .acct{
-  display:flex;align-items:center;justify-content:center;height:40px;width:40px;padding:0;
+  display:flex;align-items:center;justify-content:center;height:36px;width:36px;padding:0;
   border:0;border-radius:var(--r-pill);background:transparent;color:#FFFFFF;
   transition:background .15s;
 }
 .acct:hover{background:rgba(255,255,255,.10)}
 .acct .burger{display:none;width:18px;height:12px;grid-template-rows:repeat(3,1px);gap:4px}
 .acct .burger span{height:1.5px;background:#FFFFFF;display:block}
-.acct .avatar{width:32px;height:32px;font-size:12.5px}
+/* Prototype account avatar (owner 2026-08-23): a 32px DARK disc with white
+   initials and a hairline ring, brightening on hover. Scoped to .acct so the
+   global .avatar (auth sheet, fallbacks) keeps its slate fill. #1C222B is the
+   existing topbar/mega-menu border literal (≈ the prototype's #1C1C20) — no new
+   hex; the ring is a faint white inset via box-shadow. */
+.acct .avatar{width:32px;height:32px;font-size:12.5px;
+  background:#1C222B;color:#FFFFFF;box-shadow:inset 0 0 0 1px rgba(255,255,255,.14)}
+.acct:hover .avatar{box-shadow:inset 0 0 0 1px rgba(255,255,255,.30)}
 .avatar{
   width:32px;height:32px;border-radius:var(--r-pill);background:var(--slate);color:var(--slate-on);
   display:grid;place-items:center;font-size:var(--text-sm);font-weight:600;overflow:hidden;flex:0 0 auto;
@@ -647,8 +667,8 @@ img{max-width:100%;display:block}
 /* §3 — "Become a coach" is plain white nav text: no border, no fill, no pill.
    Weight 500, resting opacity .85, brightening to full on hover (colour held
    at white — it must not resolve to slate like a generic .navlink). */
-.topnav .navlink.becomecoach{font-weight:500;color:#FFFFFF;opacity:1;transition:color .15s}
-.topnav .navlink.becomecoach:hover{color:#8FA3BC;opacity:1}
+.topnav .navlink.becomecoach{font-weight:500;color:#FFFFFF;opacity:1;transition:background .15s,color .15s}
+.topnav .navlink.becomecoach:hover{background:rgba(255,255,255,.08);color:#FFFFFF;opacity:1}
 /* Top-bar nav sizing/colour (owner ask): larger, Squarespace-scale type across
    the whole bar, and the centre menu resting WHITE. Safe on colour law — the
    topbar is always #09090B (no scroll flip to a light ground), so white text
@@ -661,7 +681,10 @@ img{max-width:100%;display:block}
    nudged down from 16px — "top bar too large, meet in the middle"). The
    base .navlink hover (#8FA3BC slate) already applies. Coach-portal .navlink rows
    are a different container and keep the base --nav-face. */
-.topnav .navlink{font-family:var(--sans);font-size:var(--text-base);font-weight:500}
+.topnav .navlink{font-family:var(--sans);font-size:var(--text-base);font-weight:500;
+  padding:7px 12px;border-radius:8px;height:auto;transition:background .15s,color .15s}
+/* Right-cluster links share the prototype .nl pill wash on hover (white text held). */
+.topnav .navlink:hover{background:rgba(255,255,255,.08);color:#FFFFFF}
 /* At <=900 the centred menu collapses; the account control becomes the sheet
    hamburger. On the narrowest bars the quiet "Become a coach" link yields
    space to the pill + hamburger. */
@@ -703,6 +726,15 @@ img{max-width:100%;display:block}
    around the inset rounded animation reads black, not the white body. Light
    home/coachinfo heroes (no .hero-panel, dark text) stay untouched. */
 .hero:has(.hero-panel){background:var(--ink)}
+/* Nav-overlay (owner prototype, 2026-08-23): the transparent landing nav must sit
+   OVER the hero photo, not on the white body above it. Pull the hero up under the
+   60px sticky nav (margin-top:-60px, padding-top:0) so the panel's top slides
+   behind the bar, and square the panel's top corners so the photo meets the nav
+   flush instead of showing rounded gaps under a see-through bar. The .hero-in top
+   padding (112px) still clears the 60px nav, so the headline never tucks under it.
+   Scoped to :has(.hero-panel) — landing only. */
+#app:has(.hero-panel) .hero{margin-top:-60px;padding-top:0}
+#app:has(.hero-panel) .hero-panel{border-top-left-radius:0;border-top-right-radius:0}
 .hero-panel{
   position:relative;overflow:hidden;
   /* Full-bleed, not shell-width. The grid below stays capped at --shell; the
@@ -725,6 +757,12 @@ img{max-width:100%;display:block}
   max-height:82vh;
   border-radius:var(--r-card);
   display:grid;place-items:center;
+  /* Cap the single implicit column at the panel width (minmax(0,1fr)) instead of
+     letting it grow to the content's max-content. The search pill's SEARCH label
+     pushes its natural width past a narrow phone panel, and an `auto` track would
+     size to that and be clipped by overflow:hidden; a 0-floored 1fr track tracks
+     the panel and lets the pill's min-width:0 input shrink to fit. */
+  grid-template-columns:minmax(0,1fr);
   /* near-black with a slate tint under ~4% lightness variance — material,
      not a void, and no visible banding. Stays as the base layer so a panel
      with no photographs still puts white type on something dark. */
@@ -779,6 +817,19 @@ img{max-width:100%;display:block}
    <em> for the semantic emphasis; font-style is reset because the tint IS the
    emphasis here and italic display type on a photograph loses its edges. */
 .h1-slate{color:var(--slate);font-style:normal}
+/* Landing hero headline (owner 2026-08-23): Roboto Condensed 800, UPPERCASE, over
+   the stadium photo. #app-scoped ON PURPOSE — `#app h1` (id-level, specificity
+   1,0,1) sets the serif face + weight 400, so a bare `.hero-ai` (0,1,0) would lose
+   the cascade to the id; `#app .hero-ai` (1,1,0) out-specifies it. White main words
+   on the dark scrim; the <span> "for youth sports." carries --slate (#7692AE, the
+   steel the owner extracted from the reference), 5.6:1 at display size. Its own
+   named clamp (--text-hero-lp) is OUTSIDE the compact-serif token retune, so it is
+   not shrunk with the family tree. */
+#app .hero-ai{
+  font-family:var(--roboto-cond);font-weight:800;text-transform:uppercase;
+  font-size:var(--text-hero-lp);line-height:1;letter-spacing:-.01em;
+  color:var(--on-dark);max-width:none;margin:0}
+#app .hero-ai span{color:var(--slate)}
 /* Centred hero (owner 2026-08-23, Devin reference): primary text centred, the
    search field sitting centred below with generous air — the panel's own scrim
    is re-graded to a centre pool (below) so the darkness follows the type. */
@@ -814,23 +865,32 @@ img{max-width:100%;display:block}
    not a heavy border. Each side carries a micro-label so the field still says
    what it is after the placeholder is typed over — the single biggest reason
    the old bar read as generic. */
-/* T2 — Zillow single-field hero search. On-scale input (var(--text-lg) = 17-19px
-   named clamp, >=16 so no iOS zoom); white field, obsidian submit. */
-.hero-search{margin:36px auto 0;max-width:620px;width:100%;display:flex;align-items:center;
-  background:#FFFFFF;border-radius:12px;padding:5px 5px 5px 20px;
+/* Prototype hero pill (owner 2026-08-23): white rounded-12 field carrying a grey
+   icon square, the input, and a black uppercase "Search" button. Same #hero-q
+   input + same <form class="hero-search"> wrapper, so the existing submit handler
+   in wire() (heroq.closest('form').onsubmit → applyHeroSearch) stays wired. */
+.hero-search{margin:36px auto 0;max-width:640px;width:100%;display:flex;align-items:center;gap:10px;
+  background:var(--paper);border-radius:12px;padding:8px 8px 8px 12px;
   box-shadow:0 8px 24px rgba(0,0,0,.35),0 32px 80px rgba(0,0,0,.45)}
+/* grey rounded square holding the search glyph — --raise2 is the neutral surface-2
+   token, --faint the low-emphasis ink. */
+.hs-ic{flex:0 0 auto;width:40px;height:40px;border-radius:9px;background:var(--raise2);
+  display:flex;align-items:center;justify-content:center;color:var(--faint)}
+.hs-ic svg{width:20px;height:20px}
 /* #app-scoped to beat `#app input{font-size:--text-base}` (id specificity):
    --text-lg is a named clamp (17-19px, on-scale) and >=16 so iOS won't zoom. */
-#app .hero-search input{flex:1;border:0;outline:none;background:none;font-family:var(--sans);
-  font-size:var(--text-lg);font-weight:400;color:var(--ink);height:46px}
+#app .hero-search input.hs-cell{flex:1;min-width:0;border:0;outline:none;background:none;
+  font-family:var(--sans);font-size:var(--text-lg);font-weight:400;color:var(--ink);height:44px}
 .hero-search input::placeholder{color:rgba(10,14,19,.45)}
-.hero-search button{width:44px;height:44px;border-radius:9px;flex-shrink:0;background:var(--ink);
-  color:#fff;display:flex;align-items:center;justify-content:center;transition:transform .15s ease}
-.hero-search button svg{width:20px;height:20px}
-.hero-search button:hover{transform:scale(1.04)}
+.hs-go{flex:0 0 auto;height:44px;padding:0 20px;border:0;border-radius:9px;background:var(--ink);
+  color:var(--paper);font-family:var(--roboto-cond);font-weight:800;text-transform:uppercase;
+  letter-spacing:.02em;font-size:var(--text-base);display:flex;align-items:center;gap:8px;
+  cursor:pointer;transition:transform .15s ease}
+.hs-go svg{width:18px;height:18px}
+.hs-go:hover{transform:scale(1.03)}
 .hero-search:focus-within{box-shadow:0 0 0 3px rgba(255,255,255,.25),0 8px 24px rgba(0,0,0,.35),0 32px 80px rgba(0,0,0,.45)}
-@media(prefers-reduced-motion:reduce){.hero-search button{transition:none}}
-@media(max-width:720px){.hero-search{margin-top:32px;padding-left:18px}}
+@media(prefers-reduced-motion:reduce){.hs-go{transition:none}}
+@media(max-width:720px){.hero-search{margin-top:32px}.hs-go{padding:0 14px}}
 .hero .searchpill{
   width:min(680px,100%);max-width:none;height:56px;margin-top:16px;flex:0 0 auto;
   align-items:stretch;gap:0;padding:0 6px 0 0;
@@ -8026,13 +8086,19 @@ function searchPillHTML(){
      on submit (see the #hero-q handler in wire()); the child's-age dimension moved
      to an Age filter pill in the browse row (.fchips). */
   return `<form class="hero-search" role="search" aria-label="Find a coach">
-    <input type="text" id="hero-q" autocomplete="off"
-      placeholder="Enter a sport, city, or ZIP code"
-      aria-label="Search by sport, city, or ZIP code" value="${esc(S.query||"")}">
-    <button type="submit" aria-label="Search">
-      <svg viewBox="0 0 20 20" fill="none" aria-hidden="true">
+    <span class="hs-ic" aria-hidden="true">
+      <svg viewBox="0 0 20 20" fill="none">
         <circle cx="9" cy="9" r="6.5" stroke="currentColor" stroke-width="2"/>
         <path d="M14 14l4.5 4.5" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+      </svg>
+    </span>
+    <input type="text" id="hero-q" class="hs-cell" autocomplete="off"
+      placeholder="Enter a sport, city, or ZIP code"
+      aria-label="Search by sport, city, or ZIP code" value="${esc(S.query||"")}">
+    <button type="submit" class="hs-go">Search
+      <svg viewBox="0 0 20 20" fill="none" aria-hidden="true">
+        <path d="M4 10h11M11 5l5 5-5 5" stroke="currentColor" stroke-width="2"
+          stroke-linecap="round" stroke-linejoin="round"/>
       </svg>
     </button>
   </form>`;
@@ -8068,9 +8134,7 @@ function heroHTML(){
              product, rather than an inventory state that does not exist yet.
              Owner instruction, 2026-08-13: "don't include the portion that
              talks about 'book a background checked coach'". */""}
-        <h1 class="display">Every sport.<br><em class="h1-slate">One app.</em></h1>
-        <p class="hero-lede">Find coaches, trainers, camps and teams near you —
-          and no one takes a booking here until they have cleared a background check.</p>
+        <h1 class="hero-ai">Sporv, the AI <span>for youth sports.</span></h1>
         ${searchPillHTML()}
       </div>
     </div>

@@ -1713,7 +1713,7 @@ document.querySelectorAll('body *').forEach(el=>{if(!el.offsetParent)return;
  if(s>=16&&s<=20)return;    // --text-lg (16-17) + compact h2-mobile (20)
  if(s>=21&&s<=27)return;    // --text-xl clamp
  if(s>=24&&s<=32)return;    // --text-2xl clamp
- if(s>=32&&s<=56)return;    // --text-hero clamp (family display ceiling 56)
+ if(s>=32&&s<=61)return;    // --text-hero clamp 56 + landing hero --text-hero-lp ceiling 61 (Roboto Condensed, owner 2026-08-23)
  bad.add(s)});
 return bad.size?[...bad].join(','):'CLEAN'})()" 2>/dev/null)
 [ "${off//\"/}" = "CLEAN" ] && pass "every rendered size is on the 8-step scale" \
