@@ -106,11 +106,11 @@
   --text-sm:12px;                      /* meta lines, captions, buttons       */
   --text-base:14.5px;                  /* body paragraphs                     */
   --text-md:15.5px;                    /* lead paragraph only (hero support)  */
-  --text-lg:clamp(17px,1.3vw,19px);    /* card titles, coach name             */
-  --text-xl:clamp(21px,1.9vw,27px);    /* stat numerals, sub-headers          */
-  --text-2xl:clamp(24px,2.2vw,32px);   /* section headers (h2)                */
-  --text-hero:clamp(32px,3.6vw,54px);  /* h1 only                             */
-  --text-hero-lp:clamp(35px,4.5vw,61px);/* landing hero headline ONLY (Roboto Condensed) — owner 2026-08-23, prototype size −3px; on-scale clamp, gate widened to 61 */
+  --text-lg:clamp(15px,1.3vw,17px);    /* card titles, coach name  (−2, owner #3) */
+  --text-xl:clamp(21px,1.9vw,27px);    /* stat numerals — NOT a header, unchanged */
+  --text-2xl:clamp(22px,2.2vw,30px);   /* section headers (h2)     (−2, owner #3) */
+  --text-hero:clamp(30px,3.6vw,52px);  /* h1 only                  (−2, owner #3) */
+  --text-hero-lp:clamp(33px,4.5vw,59px);/* landing hero headline (Roboto Condensed) — owner #3 headers −2 */
   /* The ONE class of exception: a `font-size` that sizes a GLYPH rather than
      text -- an avatar initial, an emoji, a chevron, a sport badge's icon.
      Those are icon dimensions expressed in font-size units, and a fluid clamp
@@ -177,17 +177,17 @@
      editorial geometry. Already embedded (build.py maps archivo→"Archivo" 400-800),
      so zero CSP/page-weight cost. Body stays Plus Jakarta / Inter (professional);
      numerals stay JetBrains Mono. Revises D7 from Syne. */
-  --display:"Archivo",system-ui,-apple-system,"Segoe UI",sans-serif;
-  /* MAIN HEADERS = Instrument Serif (owner 2026-08-21: "main header a mix of
-     Times New Roman + athletic feeling"). The embedded editorial serif carries
-     the Times/professional half; Archivo (secondary headers) + the sporty logo
-     carry the athletic half. Body/nav/UI pair with INTER, per the same directive. */
-  --serif:"Instrument Serif",Georgia,"Times New Roman",serif;
-  /* §3.5 nav face + tabs → Instrument Serif (owner 2026-08-22, mobile Uber/Airbnb
-     pass: "top tabs portion as well as the hovering portion should all be in serif").
-     REVERSES the earlier Inter-nav rule — the top tabs and the hover mega-menu now
-     carry the editorial serif voice. Body/small text stays Inter (--sans). */
-  --nav-face:"Instrument Serif",Georgia,"Times New Roman",serif;
+  /* GLOBAL TYPEFACE SWAP (owner 2026-08-23): the entire app runs on three
+     embedded families only — Roboto Condensed (display, UPPERCASE, never bold →
+     weight 500), Inter (body/nav/UI), JetBrains Mono (numerals/data). Instrument
+     Serif, Archivo, Syne, Hanken, Plus Jakarta, Bricolage and Sentinel are
+     retired: --display and --serif now both resolve to Roboto Condensed, so every
+     heading, accent phrase and secondary header renders in the one display face. */
+  --display:"Roboto Condensed","Arial Narrow",system-ui,sans-serif;
+  --serif:"Roboto Condensed","Arial Narrow",system-ui,sans-serif;
+  /* Nav links and the hover mega-menu → Inter (body face), per the swap. The
+     wordmark logo is a PNG and is untouched. */
+  --nav-face:"Inter",system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
   --sans:"Inter",system-ui,-apple-system,"Segoe UI",Roboto,
          "Helvetica Neue",Arial,sans-serif;
   --mono:"JetBrains Mono",ui-monospace,SFMono-Regular,"SF Mono",Menlo,Consolas,monospace;
@@ -309,10 +309,11 @@ h4{font-size:var(--text-base)}
    family tree, while `#app.coachdark` never matches, so coach elements inherit the
    untouched :root sizes (their .greet/.cw-h1/tab h1 render exactly as before). */
 #app:not(.coachdark){
-  --text-hero:clamp(36px,3.6vw,56px);  /* display heroes — ceiling 54→56, floor 36 */
-  --text-h1:clamp(24px,2.4vw,28px);    /* NEW — in-app page titles (Bookings, Schedule…) */
-  --text-2xl:clamp(20px,1.7vw,22px);   /* h2 section headers → compact */
-  --text-lg:clamp(16px,1.1vw,17px);    /* h3 card/module titles → compact */
+  /* Headers −2px (owner 2026-08-23 #3), on top of the compact sweep. */
+  --text-hero:clamp(34px,3.6vw,54px);  /* h1 hero */
+  --text-h1:clamp(22px,2.4vw,26px);    /* in-app page titles */
+  --text-2xl:clamp(18px,1.7vw,20px);   /* h2 section headers */
+  --text-lg:clamp(14px,1.1vw,15px);    /* h3 card/module titles */
 }
 /* Every header is Instrument Serif 400 — hierarchy is size+colour, the serif is
    NEVER bolded. Owner 2026-08-22: coach headers are now serif too ("all large
@@ -456,11 +457,11 @@ img{max-width:100%;display:block}
   font-family:"Inter",system-ui,-apple-system,sans-serif;
 }
 #app.reg-tabs{
-  /* Product-toggle register (coachinfo/trust/pricing). Archivo LARGE HEADERS +
-     PLUS JAKARTA body/tabs (owner 2026-08-21: Nike/Whoop display, professional
-     body). Kept in sync with the :root display face above. */
-  --display:"Archivo",system-ui,-apple-system,"Segoe UI",sans-serif;
-  --serif:"Instrument Serif",Georgia,"Times New Roman",serif;
+  /* Global typeface swap (owner 2026-08-23): family register inherits the same
+     three faces as :root — Roboto Condensed display, Inter body. No Archivo /
+     Instrument Serif here any more. */
+  --display:"Roboto Condensed","Arial Narrow",system-ui,sans-serif;
+  --serif:"Roboto Condensed","Arial Narrow",system-ui,sans-serif;
   --sans:"Inter",system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
   font-family:var(--sans);
 }
@@ -4279,6 +4280,62 @@ body.reg-coach .rail button{font-size:var(--t-small)}
 /* A dark band promotes the shared page accent to its AA-on-dark ramp. The
    italic phrase and CTA therefore resolve to the exact same computed colour. */
 .pgband.dark .pg-eyebrow,.pgband.dark .pg-sub{color:#94A3B8}
+/* ===== PRODUCT-PAGE FIVE-FORMAT SYSTEM · foundation (owner 2026-08-23) ========
+   Every product page (.rebuild-page) adopts the prototype's look: Roboto
+   Condensed UPPERCASE headers, and — the owner's law — BLACK text on any band
+   that is not black; the dark band alone keeps light text. Scoped to
+   .rebuild-page so coach (#app.coachdark) and family surfaces never inherit it.
+   The condensed face is the SAME embedded woff2 as the landing hero, now drawn
+   at a true medium 500 (build.py widened its range to 500 800). ============= */
+#app .rebuild-page .pg-serif,
+#app .rebuild-page .pg-serif.pg-h1,
+#app .rebuild-page h2,
+#app .rebuild-page h3,
+#app .rebuild-page .pg-eyebrow{
+  font-family:var(--roboto-cond)!important;text-transform:uppercase;font-weight:500!important;
+  letter-spacing:.01em;font-style:normal;
+}
+#app .rebuild-page .pg-eyebrow{font-size:12px;letter-spacing:.14em}
+
+/* THE BLACK-TEXT LAW — white + slate bands: every text token is near-black.
+   !important is deliberate and scoped: several pages carry inline colour on
+   spans (e.g. "/ session"), and only !important overrides an inline style. */
+#app .rebuild-page .pgband.white,
+#app .rebuild-page .pgband.slate{color:#0F1419}
+#app .rebuild-page .pgband.white :where(h1,h2,h3,p,li,b,strong,a,.pg-serif,.pg-sub,.pg-eyebrow,.pg-h1,.pg-rclaim,.pg-rproof,.pg-rnum,figcaption,.pg-stat .n,.pg-stat .l,.pg-walk-num,.pg-walk-step h2,.pg-walk-step p,.pg-ui-key,.pg-ui-value,.pg-rail-value,.pg-rail-label),
+#app .rebuild-page .pgband.slate :where(h1,h2,h3,p,li,b,strong,a,.pg-serif,.pg-sub,.pg-eyebrow,.pg-h1,.pg-rclaim,.pg-rproof,.pg-rnum,figcaption,.pg-stat .n,.pg-stat .l,.pg-walk-num,.pg-walk-step h2,.pg-walk-step p,.pg-ui-key,.pg-ui-value,.pg-rail-value,.pg-rail-label){color:#0F1419!important}
+/* Mono keys/labels read as black rather than a faded grey on a light band. */
+#app .rebuild-page .pgband.white .k,
+#app .rebuild-page .pgband.slate .k{opacity:1;color:#0F1419!important}
+/* ===== end five-format foundation ========================================== */
+
+/* ===== GLOBAL TYPEFACE SWAP — display headings (owner 2026-08-23) ============
+   Every heading, hero and eyebrow across the WHOLE app (family, product AND the
+   coach portal) renders in Roboto Condensed, UPPERCASE, weight 500 — never bold.
+   Applied app-wide with !important so the scattered legacy rules (reg-tabs serif
+   400, Archivo 800 secondaries, coach .cw-h1, Syne heroes) all resolve to the one
+   display voice. Body stays Inter; numerals stay JetBrains Mono. Layout, spacing,
+   colour and copy are untouched — this is a typeface swap. ==================== */
+#app h1,#app h2,#app h3,#app h4,
+#app .display,#app .pg-serif,#app .pg-h1,#app .greet,#app .cw-h1,
+#app .exhero h1,#app .chero-in .display,#app .eyebrow,#app .pg-eyebrow,#app .kicker,
+#app .wordmark{
+  font-family:var(--display)!important;
+  text-transform:uppercase!important;
+  font-weight:500!important;
+  font-style:normal!important;
+}
+/* Accent phrase inside a heading: drop the italic + serif, KEEP the accent
+   colour, render in the same display uppercase (spec point 10). */
+#app h1 em,#app h2 em,#app h3 em,#app .display em,#app .pg-serif em{
+  font-family:var(--display)!important;font-style:normal!important;font-weight:500!important;
+  text-transform:uppercase;
+}
+/* Buttons / CTAs → Roboto Condensed uppercase, weight 500 (never bold). */
+#app .btn,#app .navcta,#app .cmdgo,#app .pg-textlink,#app button.btn{
+  font-family:var(--display)!important;text-transform:uppercase;font-weight:500!important;letter-spacing:.04em;
+}
+/* ===== end global typeface swap ============================================ */
 /* The dark section carries a real product demo, rendered dark, behind a
    Demo-data pill — not recoloured prose. */
 .pg-demo{margin-top:28px;max-width:540px;background:#111318;border:1px solid #1C222B;
@@ -4995,6 +5052,10 @@ body.reg-coach .rail button{font-size:var(--t-small)}
 .pg-search-match .pg-mono-ui{background:transparent;border-color:#fff;color:#fff}
 .pg-search-match .pg-ui-head,.pg-search-match .pg-ui-row{border-color:#2A3038}
 .pg-search-match .pg-ui-key,.pg-search-match .pg-flat-figure figcaption{color:#AEB8C4}
+/* Bug (owner "verify for bugs" 2026-08-23): the "DEMO DATA" label kept --muted
+   #3E4753 on this near-black demo panel — 2.08:1, unreadable. Lighten it on any
+   dark band so it reads (search demo header). */
+.pgband.dark .pg-ui-head span:last-child{color:#AEB8C4}
 .pg-search-match .pg-ui-value{color:#fff}
 .pg-search-compare .pg-comparison tbody th{font-size:var(--text-base)}
 

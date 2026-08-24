@@ -1710,7 +1710,7 @@ document.querySelectorAll('body *').forEach(el=>{if(!el.offsetParent)return;
  if(![...el.childNodes].some(n=>n.nodeType===3&&n.textContent.trim()))return;
  const s=parseFloat(getComputedStyle(el).fontSize);
  if(ok.includes(s))return;
- if(s>=16&&s<=20)return;    // --text-lg (16-17) + compact h2-mobile (20)
+ if(s>=14&&s<=20)return;    // headers −2 (owner 2026-08-23): compact --text-lg now 14-15, coach --text-lg 15-17
  if(s>=21&&s<=27)return;    // --text-xl clamp
  if(s>=24&&s<=32)return;    // --text-2xl clamp
  if(s>=32&&s<=61)return;    // --text-hero clamp 56 + landing hero --text-hero-lp ceiling 61 (Roboto Condensed, owner 2026-08-23)
@@ -2007,7 +2007,7 @@ reg=$($B js "
 (()=>{const tabs=['dashboard','roster','inbox','finances','schedule','listings','media','operations','profile'];
  S.portal='coach';S.auth={status:'coach'};const bad=[];
  const okS=new Set(['10.5px','12px','13px','14.5px','15.5px','21px','22px']);
- const clampOK=px=>(px>=17&&px<=19)||(px>=21&&px<=54);
+ const clampOK=px=>(px>=15&&px<=19)||(px>=21&&px<=54); // coach --text-lg 15-17 after headers −2 (owner 2026-08-23)
  for(const t of tabs){
    S.coachTab=t;S.route={name:'dashboard',arg:null};
    try{render()}catch(e){bad.push('RENDER_'+t);continue}
@@ -2304,11 +2304,11 @@ cob=$($B js "
  const nx=cw.querySelector('.cw-next');
  if(nx&&!nx.disabled&&getComputedStyle(nx).backgroundColor!=='rgb(62, 86, 110)')bad.push('NEXT_NOT_SLATE');
  if(getComputedStyle(cw.querySelector('.cw-seg i')).backgroundColor!=='rgb(62, 86, 110)')bad.push('SEG_NOT_SLATE');
- if(!/Instrument Serif/.test(getComputedStyle(cw.querySelector('.cw-h1')).fontFamily))bad.push('H1_NOT_SERIF');
+ if(!/Roboto Condensed/.test(getComputedStyle(cw.querySelector('.cw-h1')).fontFamily))bad.push('H1_NOT_DISPLAY');
  const h=cw.querySelector('.cw-help'); if(!h||!/^mailto:/.test(h.getAttribute('href')||''))bad.push('NO_QUESTIONS');
  S.onboard.sports=[];S.route={name:'home',arg:null};S.portal='family';render();document.body.classList.remove('reg-coach');
  return bad.length?bad.join(','):'OK'})()" 2>/dev/null)
-[ "${cob//\"/}" = "OK" ] && pass "coach onboarding wizard: slate accent (no Airbnb blue), serif (Instrument) question, Questions pill" \
+[ "${cob//\"/}" = "OK" ] && pass "coach onboarding wizard: slate accent (no Airbnb blue), display (Roboto Condensed) question, Questions pill" \
   || fail "onboarding palette regressed: $cob"
 
 # ── The coach profile renders its blocks, and invents nothing ─────────────

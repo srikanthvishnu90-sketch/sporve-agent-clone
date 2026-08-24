@@ -102,9 +102,11 @@ VARIABLE_RANGE = {"Syne": "600 800", "Plus Jakarta Sans": "400 700",
                   # Regular/Italic faces, so it needs no variable range here.
                   "JetBrains Mono": "400 700",
                   # Roboto Condensed: landing hero headline (800) + search button
-                  # (800); Google's latin subset ships one variable woff2 covering
-                  # the range, so one file (RobotoCondensed-Variable.woff2) suffices.
-                  "Roboto Condensed": "700 800"}
+                  # (800) + product-page headers (500, owner 2026-08-23 five-format
+                  # system). Google's latin variable woff2 spans the full axis, so
+                  # widening the declared range to 500 draws a true medium weight
+                  # from the same file (RobotoCondensed-Variable.woff2).
+                  "Roboto Condensed": "500 800"}
 font_files = sorted(glob.glob(os.path.join(ROOT, "assets", "fonts", "*.woff2")))
 faces, fam_seen = [], set()
 for fp in font_files:
