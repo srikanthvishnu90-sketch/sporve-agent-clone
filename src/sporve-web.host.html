@@ -627,11 +627,12 @@ img{max-width:100%;display:block}
    spend the page's orange budget. */
 .navcta{
   display:inline-flex;align-items:center;height:40px;padding:0 18px;
-  border-radius:var(--r-pill);background:#556B84;color:#FFFFFF;
+  /* Exact reference slate --slate:#7692AE (owner 2026-08-24, "use the exact color"). */
+  border-radius:var(--r-pill);background:#7692AE;color:#FFFFFF;
   font-family:var(--nav-face);font-weight:600;font-size:var(--t-body);white-space:nowrap;
-  transition:background .15s;
+  transition:filter .15s;
 }
-.navcta:hover{background:#46586E}
+.navcta:hover{filter:brightness(1.1)}
 /* Account control (T1): the desktop hamburger+avatar PILL is retired. On
    desktop a bare avatar glyph keeps the account menu reachable (sign-in is
    action-triggered per the product's auth model); at <=900 it becomes the
@@ -764,7 +765,7 @@ img{max-width:100%;display:block}
      geometric mean splitting the difference between two photos that no longer
      exist. Capped at 92vh so the panel bottom — and the content that straddles
      it — stays on screen at 1440x900. */
-  aspect-ratio:1376/768;
+  min-height:100vh;   /* fill the whole first screen (owner 2026-08-24: match sporve.vercel.app) */
   /* 62vh, not 92. At 92 the panel was 781px on a 900px laptop and the search bar
      landed at ~640 with nothing beneath it — the whole first screen was
      photograph, so a visitor had no evidence there was a marketplace under it.
@@ -772,7 +773,6 @@ img{max-width:100%;display:block}
      just below the search bar, cut by the viewport: the slice IS the scroll cue.
      The image crops rather than squashes, because aspect-ratio still governs the
      box and max-height only trims it. */
-  max-height:90vh;
   border-radius:0;
   display:grid;place-items:center;
   /* Cap the single implicit column at the panel width (minmax(0,1fr)) instead of
@@ -784,7 +784,10 @@ img{max-width:100%;display:block}
   /* near-black with a slate tint under ~4% lightness variance — material,
      not a void, and no visible banding. Stays as the base layer so a panel
      with no photographs still puts white type on something dark. */
-  background:radial-gradient(120% 88% at 50% 0%,#141922 0%,#0E1116 58%,var(--ink) 100%);
+  /* Explicit opaque dark colour UNDER the gradient/photo so the contrast audit
+     reads hero text (the sports marquee) against dark, not the white body above. */
+  background-color:#0A0C0F;
+  background-image:radial-gradient(120% 88% at 50% 0%,#141922 0%,#0E1116 58%,var(--ink) 100%);
 }
 /* ── hero media: ONE photograph, no slideshow ──────────────────────────
    The slideshow is deleted (owner, 2026-08-13: "delete the 2 images ... as well
@@ -798,27 +801,25 @@ img{max-width:100%;display:block}
    1376x768, inlined as a data URI like everything else so the page survives the
    CSP that blocks external requests. */
 .hero-media{position:absolute;inset:0;overflow:hidden}
-/* Hero sport cycler — the word rolls sport→sport (owner 2026-08-24). Text is
-   WHITE (the dark-ground invariant needs high-contrast type; sport hues are dark
-   accents and fail as text on near-black), and the sport's identity colour is
-   carried as the UNDERLINE — colour law: sport colours are accent-only, never
-   body text. Words scroll vertically in normal flow inside a clipped window, so
-   they never overlap (the absolute stack tripped the overlap audit). --text-xl
-   is an on-scale token. Reduced-motion shows one static word. */
-.hero-sports{font-family:var(--display);font-weight:800;font-size:var(--text-xl);
-  letter-spacing:-.01em;color:#F5F7F9;margin:20px 0 0;display:flex;gap:.4em;
-  align-items:baseline;justify-content:center;line-height:1.25}
-.hs-rot{position:relative;display:inline-block;min-width:6.8em;height:1.25em;overflow:hidden;
-  vertical-align:bottom;text-align:left}
-.hs-col{position:absolute;left:0;top:0;display:flex;flex-direction:column;animation:hsRoll 11s infinite}
-.hs-col b{height:1.25em;line-height:1.25em;color:#F5F7F9;font-weight:inherit;white-space:nowrap;
-  border-bottom:3px solid;box-sizing:border-box}
-@keyframes hsRoll{
-  0%,14%{transform:translateY(0)}     20%,34%{transform:translateY(-1.25em)}
-  40%,54%{transform:translateY(-2.5em)} 60%,74%{transform:translateY(-3.75em)}
-  80%,94%{transform:translateY(-5em)}  100%{transform:translateY(-6.25em)}}
-@media(prefers-reduced-motion:reduce){.hs-col{animation:none}
-  .hs-col b:not(:first-child){display:none}}
+/* Hero sports marquee — copied from sporve.vercel.app. A scrolling row of
+   glowing colour-coded sport names, edge-masked into the dark, paused on hover;
+   the track is doubled and translates -50% for a seamless loop. Sport names are
+   the ONE place a sport colour is type — the reference hues clear 4.5:1 on the
+   dark hero, and the marquee sits over var(--ink) so the audit reads it there. */
+.hero-mq{overflow:hidden;margin:22px auto 0;max-width:560px;
+  border-top:1px solid rgba(255,255,255,.14);border-bottom:1px solid rgba(255,255,255,.14);
+  -webkit-mask-image:linear-gradient(90deg,transparent 0,#000 5%,#000 80%,transparent 100%);
+  mask-image:linear-gradient(90deg,transparent 0,#000 5%,#000 80%,transparent 100%)}
+.hero-mq-track{display:flex;width:max-content;animation:heroMq 42s linear infinite}
+@keyframes heroMq{to{transform:translateX(-50%)}}
+.hero-mq:hover .hero-mq-track{animation-play-state:paused}
+.hero-mq span{font-family:var(--display);font-weight:700;font-size:var(--text-xs);letter-spacing:.28em;
+  padding:12px 26px;white-space:nowrap;text-transform:uppercase;text-shadow:0 0 11px currentColor;
+  display:inline-flex;align-items:center}
+.hero-mq span i{display:inline-block;width:3px;height:3px;border-radius:50%;
+  background:rgba(252,249,248,.30);margin-left:26px;flex:none;text-shadow:none}
+@media(max-width:768px){.hero-mq{max-width:100%}}
+@media(prefers-reduced-motion:reduce){.hero-mq-track{animation:none}}
 .hero-still{
   position:absolute;inset:0;background-position:center;background-size:cover;
   background-repeat:no-repeat;
@@ -8315,12 +8316,18 @@ function heroMediaHTML(){
    nothing reflows or overflows. Falls back to one static word under
    prefers-reduced-motion (WCAG 2.3.3). */
 function heroSportCycleHTML(){
-  const sports=['Basketball','Soccer','Baseball','Tennis','Swimming'];
-  const items=[...sports, sports[0]];   // repeat the first for a seamless loop back to 0
-  return `<p class="hero-sports" aria-label="Every sport on Sporv">
-    <span class="hs-lead">Every</span>
-    <span class="hs-rot"><span class="hs-col">${items.map(s=>
-      `<b style="border-color:${sportColor(s)}">${esc(s)}</b>`).join("")}</span></span></p>`;
+  /* Colored sports marquee, copied from sporve.vercel.app (~/Downloads/sporve-
+     landing): a scrolling row of glowing sport names, each in its identity hue,
+     doubled for a seamless translateX(-50%) loop, edge-masked, pauses on hover.
+     Uses the REFERENCE's brighter sport hues (they clear the 4.5:1 gate on the
+     dark hero, unlike this repo's darker card accents). The four orange/amber
+     sports (basketball #DA5A05, football, softball, climbing) are omitted — this
+     repo's no-orange law forbids them on the landing; flagged for the owner. */
+  const S=[['Soccer','#2EA136'],['Baseball','#2384FB'],['Swimming','#009AA0'],
+           ['Tennis','#878500'],['Volleyball','#D54F8A'],['Golf','#00A15E'],
+           ['Hockey','#0092CA'],['Track','#9A68E0'],['Lacrosse','#009F77'],['MMA','#7172FA']];
+  const lane=S.map(([n,c])=>`<span style="color:${c}">${esc(n.toUpperCase())}<i aria-hidden="true"></i></span>`).join("");
+  return `<div class="hero-mq marquee-lane" aria-label="Sports on Sporv"><div class="hero-mq-track">${lane}${lane}</div></div>`;
 }
 
 function heroHTML(){

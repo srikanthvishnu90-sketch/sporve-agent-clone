@@ -181,7 +181,12 @@ done
 # "Verification pending" #B87800 on its warm tint, 3.30:1 — the warn palette
 # is established across the app; re-inking it is its own change, not a ride-
 # along). Anything above 2 is a regression.
-FAMILY_CONTRAST_BASELINE=2
+# 4, not 2: the nav "Join waitlist" pill uses the EXACT reference slate
+# --slate #7692AE with white text (owner 2026-08-24, "use the exact color").
+# White-on-#7692AE is 3.23:1 — it clears WCAG 3:1 for UI components but not the
+# 4.5:1 text bar, and the pill renders on all 4 family routes (1 each = 4).
+# Owner-accepted brand exception; revert to 2 if the CTA colour ever changes.
+FAMILY_CONTRAST_BASELINE=4
 # Fail closed. If the audit file is missing or the harness returns nothing,
 # `${n:-0}` would coerce empty to zero and every assertion below would report
 # PASS without measuring a pixel — a check that goes green when it cannot run
