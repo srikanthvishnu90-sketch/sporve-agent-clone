@@ -21,7 +21,7 @@
 <meta name="twitter:description" content="Find coaches, trainers, camps and teams across 20+ sports in Chicagoland.">
 <meta name="twitter:image" content="https://the-sporve-web.vercel.app/og.png">
 <link rel="icon" href="data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%2032%2032'%3E%3Crect%20width='32'%20height='32'%20rx='7'%20fill='%2309090B'/%3E%3Ccircle%20cx='16'%20cy='16'%20r='6'%20fill='white'/%3E%3C/svg%3E">
-<meta name="sporve-build" content="3cfb95b64bfe5561">
+<meta name="sporve-build" content="2084df80ac0b8097">
 </head>
 <body>
 <noscript><h1>Sporv — Every sport. One app.</h1><p>Sporv connects families and athletes with coaches, trainers, camps, and teams across more than 20 sports. Please enable JavaScript to use the app.</p></noscript>
@@ -2271,6 +2271,28 @@ img{max-width:100%;display:block}
   pointer-events:none}
 .aipill > *{pointer-events:auto}
 @media(max-width:767px){.aipill{bottom:16px;width:calc(100vw - 24px)}}
+/* RIGHT-COLUMN DOCK (owner 2026-08-23 prototype): on desktop the coach AI panel is
+   a flush full-height right column, not a bottom pill. Colours/design unchanged —
+   same #0A0C0F ground, same text and controls; only the shape and position change.
+   The .aidock-col class is only added by render() at >=1280, so mobile is untouched.
+   --aidock-top drops it below the fixed coach chrome; --aidock-w reflows #app left. */
+.aipill.aidock-col{
+  left:auto;right:0;bottom:0;top:var(--aidock-top,0px);transform:none;
+  width:var(--aidock-w,400px);height:auto;align-items:stretch;z-index:70}
+.aipill.aidock-col:has(.aidock-panel.talking){top:var(--aidock-top,0px);bottom:0;transform:none}
+/* The column panel is ALWAYS a filled surface (a flex column): thread/empty region
+   grows, composer pins to the bottom. No rounding, no glow, a single border-left. */
+.aipill.aidock-col .aidock-panel,
+.aipill.aidock-col .aidock-panel.talking{
+  width:100%;height:100%;max-height:none;border-radius:0;border:0;
+  border-left:1px solid #333A45;box-shadow:none;animation:none;overflow:hidden;
+  background:#0A0C0F;display:flex;flex-direction:column}
+.aipill.aidock-col .aidock-scroll{flex:1 1 auto;min-height:0}
+.aipill.aidock-col .aidock-empty{margin:auto 0}
+.aipill.aidock-col .aidock-chips{max-width:100%;overflow-x:auto;flex:0 0 auto}
+.aipill.aidock-col .aidock-compose{flex:0 0 auto}
+/* The floating FAB is redundant while the panel is a permanent column. */
+html.coldock .aidock-fab{display:none}
 /* Owner 2026-08-18: an ACTIVE chatbox (a live conversation panel) sits dead
    centre of the viewport, not pinned to the bottom. Scoped with :has() to the
    talking state only, so the resting strip keeps its bottom placement and the
@@ -9377,8 +9399,14 @@ function aiDockHTML(){
      ending it, and the same buttons bring it back. */
   const convo=S.chat.length||S.chatThinking;
   const showThread=convo&&!S.aiThreadHidden;
-  return `${open?`<div class="aipill"><section class="aidock-panel${showThread?" talking":""}" role="dialog" aria-label="Sporv AI helper">
-      ${showThread?`
+  /* Column dock (desktop coach default): the permanent right column ALWAYS shows
+     its surface — the thread if a conversation exists, the empty prompt otherwise
+     — with the composer pinned to the bottom. The bottom-pill form (<1280 / mobile)
+     keeps its bar-at-rest. colMode mirrors the --aidock-w width gate in render(). */
+  const colMode=open&&!S.aiCollapsed&&!S.aiMax&&(typeof window!=="undefined"&&window.innerWidth>=1280);
+  const surface=showThread||colMode;
+  return `${open?`<div class="aipill${colMode?" aidock-col":""}"><section class="aidock-panel${surface?" talking":""}" role="dialog" aria-label="Sporv AI helper">
+      ${surface?`
       <div class="aidock-scroll" id="aidockScroll">
         ${thread}
         ${S.chatThinking?`<div class="bub them" style="align-self:flex-start;display:flex;gap:5px;align-items:center">
@@ -12895,8 +12923,24 @@ function render(){
     /* v3 DOCKED reflow: only when the docked (not fullscreen) panel is open on a
        wide viewport does the page shift left; the @media guard makes <1280 a
        no-op even if the property is set, but keep it 0 there for clarity. */
-    const docked=S.portal==="coach"&&S.aiOpen!==false&&S.aiMax&&!S.aiFull&&window.innerWidth>=1280;
-    document.documentElement.style.setProperty("--aidock-w",docked?"412px":"0px");
+    /* Right-column dock (owner 2026-08-23 prototype): the DEFAULT open panel now
+       docks as a full-height right column on desktop, not only the maximized
+       state. Either state reserves the gutter so the page reflows beside it. */
+    const colDock=S.portal==="coach"&&S.aiOpen!==false&&!S.aiCollapsed&&!S.aiMax&&!S.aiFull&&window.innerWidth>=1280;
+    const maxDock=S.portal==="coach"&&S.aiOpen!==false&&S.aiMax&&!S.aiFull&&window.innerWidth>=1280;
+    document.documentElement.style.setProperty("--aidock-w",colDock?"400px":(maxDock?"412px":"0px"));
+    /* The column starts BELOW the fixed coach chrome so it never covers the nav.
+       Measured (heights, scroll-independent) rather than hardcoded. */
+    if(colDock){
+      const tb=document.querySelector(".topbar");
+      const sub=document.querySelector("#app .cw-topbar, #app .dashtop, #app .coachtop, #app .cbar");
+      const top=(tb?Math.round(tb.getBoundingClientRect().height):0)+(sub?Math.round(sub.getBoundingClientRect().height):0);
+      document.documentElement.style.setProperty("--aidock-top",top+"px");
+    } else {
+      document.documentElement.style.setProperty("--aidock-top","0px");
+    }
+    /* One authoritative flag so CSS can hide the redundant FAB in column mode. */
+    document.documentElement.classList.toggle("coldock",colDock);
   })();
 
   const sc=document.getElementById("msgscroll"); if(sc) sc.scrollTop=sc.scrollHeight;
