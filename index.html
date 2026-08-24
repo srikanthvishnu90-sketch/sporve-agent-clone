@@ -21,7 +21,7 @@
 <meta name="twitter:description" content="Find coaches, trainers, camps and teams across 20+ sports in Chicagoland.">
 <meta name="twitter:image" content="https://the-sporve-web.vercel.app/og.png">
 <link rel="icon" href="data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%2032%2032'%3E%3Crect%20width='32'%20height='32'%20rx='7'%20fill='%2309090B'/%3E%3Ccircle%20cx='16'%20cy='16'%20r='6'%20fill='white'/%3E%3C/svg%3E">
-<meta name="sporve-build" content="85be9f69653e67e9">
+<meta name="sporve-build" content="01215c4c693d4370">
 </head>
 <body>
 <noscript><h1>Sporv — Every sport. One app.</h1><p>Sporv connects families and athletes with coaches, trainers, camps, and teams across more than 20 sports. Please enable JavaScript to use the app.</p></noscript>
@@ -1836,6 +1836,11 @@ img{max-width:100%;display:block}
 .pay-warn{color:var(--muted);font-size:var(--text-sm);max-width:62ch}
 .paypanel .btn{align-self:flex-start}
 .pay-fine{color:var(--muted);font-size:var(--text-xs);max-width:62ch}
+/* B6 payouts polish: value lede + the active-state payout schedule readout. */
+.pay-lede{font-size:var(--text-sm);color:var(--ink);margin:0;line-height:1.5;max-width:62ch}
+.pay-sched{display:flex;gap:28px;margin:4px 0}
+.pay-sched-k{display:block;font-size:var(--text-xs);color:var(--muted);text-transform:uppercase;letter-spacing:.06em;margin-bottom:2px}
+.pay-sched b{font-size:var(--text-base);font-weight:600}
 
 /* ── Search bar (spec 2026-08-12) ─────────────────────────────────────── */
 .sbwrap{position:relative;display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin:0 0 6px}
@@ -9926,20 +9931,34 @@ function payoutsPanelHTML(){
   const live=!!(pv&&pv.stripe_charges_enabled);
   const started=!!(pv&&pv.stripe_account_id);
   const busy=!!S.connectBusy;
+  /* Three HONEST states from the two booleans the row carries (stripe_account_id,
+     stripe_charges_enabled). Stripe's own "in review" vs "restricted (needs
+     action)" split needs account.requirements, which stripe-connect-onboarding
+     does not yet return — so we say "finishing setup" rather than invent which,
+     and the resume button sends the coach to Stripe's hosted page where the
+     REAL required actions live. Surfacing those actions in-UI is the B6
+     follow-up (return account.requirements from the edge fn). */
+  const pill=live?["Active","gold"]:started?["Finishing","warn"]:["Not connected","warn"];
   const body=live
-    ? `<p class="pay-ok">${ICON.shield} Payouts are active. Families can book and pay you.</p>`
-    : `<p class="pay-warn">${started
-        ? "Stripe still needs a few details before it will release payments. Until then a family cannot check out with you."
-        : "You cannot take bookings until Stripe has your bank details. Sporv never sees them."}</p>
+    ? `<p class="pay-ok">${ICON.shield} Payouts are active — families can book and pay you.</p>
+       <div class="pay-sched">
+         <div><span class="pay-sched-k">Schedule</span><b>Daily, automatic</b></div>
+         <div><span class="pay-sched-k">Your cut</span><b>100% of the listed price</b></div>
+       </div>
+       <p class="pay-fine">Instant payouts (same-day, for a small Stripe fee) can be turned on later.</p>`
+    : `<p class="pay-lede">Automatic payouts after every session. Sporv takes ${FEE_PCT}% of your bookings —
+         you keep every dollar families pay.</p>
+       <p class="pay-warn">${started
+         ? "Stripe is finishing your setup. Until it's done a family can't check out with you — pick up where you left off."
+         : "You can take bookings once Stripe has your bank details. Sporv never sees them."}</p>
        <button class="btn" data-connectpayouts="1"${busy?" disabled":""}>
-         ${busy?"Opening Stripe…":(started?"Finish payout setup":"Connect payouts")}</button>`;
+         ${busy?"Opening Stripe…":(started?"Finish payout setup":"Turn on payouts")}</button>`;
   return `<section class="panel paypanel">
     <div class="pay-head"><b>Payouts</b>
-      <span class="pill ${live?"gold":"warn"}">${live?"Active":started?"Incomplete":"Not connected"}</span></div>
+      <span class="pill ${pill[1]}">${pill[0]}</span></div>
     ${body}
     ${S.connectError?`<div class="err" role="alert" style="margin-top:10px">${esc(S.connectError)}</div>`:""}
-    <p class="pay-fine">Sporv takes ${FEE_PCT}% of your bookings — you keep the full amount. It reaches your account
-      through Stripe, which holds your bank details — not us.</p>
+    <p class="pay-fine">Money reaches your account through Stripe, which holds your bank details — not Sporv.</p>
   </section>`;
 }
 
