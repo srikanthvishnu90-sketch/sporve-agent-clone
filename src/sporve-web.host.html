@@ -3528,10 +3528,13 @@ h2.ctr{margin-bottom:10px}
 .cmrow:focus-visible{outline:none;background:var(--raise);box-shadow:0 0 0 2px var(--slate-ring)}
 /* Same bold treatment on the Coaches menu and the NEW card, so the two menus
    and the feature tile read as one component. */
-.cmrow b{font-size:var(--t-h3);letter-spacing:-.018em;font-weight:700;color:var(--ink)}
+/* Coach mega-menu titles match the product-menu rows: body size, weight 500,
+   NOT bold (owner 2026-08-23 "same font size as the product page and remove the
+   bold texting"). Product rows are .pmrow2 = var(--t-body)/500. */
+.cmrow b{font-size:var(--t-body);letter-spacing:-.004em;font-weight:500;color:var(--ink)}
 .pmfeat b{font-weight:700;color:var(--ink)}
 .cmrow span{font-size:var(--t-small);color:var(--muted);line-height:1.5}
-.cmtalk h3{margin-top:2px}
+.cmtalk h3{margin-top:2px;font-size:var(--t-body);font-weight:500}
 .cmtalk p{font-size:var(--t-small);color:var(--muted);line-height:1.55;margin-top:8px;max-width:34ch}
 @media(max-width:1180px){
   .pmgrid4{grid-template-columns:1fr 1fr;gap:18px 0}
@@ -3555,7 +3558,7 @@ h2.ctr{margin-bottom:10px}
 #app .productmenu .cmrow b,#app .productmenu .pmfeat b{color:#FFFFFF}
 #app .productmenu .cmrow span,#app .productmenu .pmfeat span:last-child,
 #app .productmenu .cmtalk p{color:#AEB8C4}
-#app .productmenu .cmtalk h3{color:#FFFFFF}
+#app .productmenu .cmtalk h3{color:#FFFFFF;font-weight:500}
 #app .productmenu .cmrow:hover,#app .productmenu .cmrow:focus-visible{background:rgba(255,255,255,.06)}
 /* Promo/feature card: a raised near-black panel, not the light --raise. */
 #app .productmenu .pmfeat{background:#12151B}
