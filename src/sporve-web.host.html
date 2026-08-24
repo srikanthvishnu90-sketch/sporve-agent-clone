@@ -2609,6 +2609,24 @@ html.coldock .aidock-fab{display:none}
 .aidock-pick img{width:38px;height:38px;border-radius:8px;object-fit:cover;flex:none}
 .aidock-pick b{display:block;font-size:var(--text-sm)}
 .aidock-pick em{display:block;font-style:normal;color:var(--muted);font-size:var(--text-xs)}
+/* Coach AI empty state (owner 2026-08-24, pasted rail HTML) — left-aligned in
+   the docked/column view, centred inside the maximized panel. Suggestion pills
+   and the "Explore what's possible" chips both send through data-ask. Dark
+   neutrals only (no brand colour), scoped to the coach dock. */
+.aidock-empty-coach{margin:auto 0;text-align:left;padding:8px 4px;max-width:100%}
+.aidock-empty-coach h3{font-size:var(--text-lg);line-height:1.15;margin:0 0 10px;max-width:20ch}
+.aidock-empty-coach .aidock-sub{font-size:var(--text-xs);line-height:1.5;margin:0 0 18px}
+.aidock-sugg{display:flex;flex-direction:column;gap:8px;margin-bottom:22px}
+.aidock-suggbtn{text-align:left;padding:12px 14px;border:1px solid #2F373F;background:#1A2025;
+  border-radius:12px;font-size:var(--text-sm);color:#F5F7F9;line-height:1.4;transition:.14s}
+.aidock-suggbtn:hover{border-color:#4A5462}
+.aidock-explore{display:flex;flex-direction:column;gap:8px}
+.aidock-explore-l{font-size:var(--text-sm);font-weight:600;margin:0 0 10px;color:#F5F7F9}
+.aidock-explorebtn{text-align:left;padding:11px 14px;border:1px solid #2F373F;border-radius:999px;
+  font-size:var(--text-xs);color:#9AA6B2;transition:.14s}
+.aidock-explorebtn:hover{color:#F5F7F9;border-color:#4A5462}
+.aidock-panel.aimax .aidock-empty-coach{text-align:center}
+.aidock-panel.aimax .aidock-sugg,.aidock-panel.aimax .aidock-explore{align-items:center}
 @media(max-width:560px){
   .aidock{right:14px;bottom:14px}
   .aidock-panel{max-height:min(70vh,calc(100vh - 116px))}
@@ -9215,6 +9233,37 @@ function histDropHTML(up){
   </div>`;
 }
 
+/* Coach AI rail empty state — ONE source for the docked/column view and the
+   maximized view (owner 2026-08-24, to the pasted rail HTML). The docked view
+   had been showing the FAMILY prompt ("What are you training for?" + searcher
+   suggestions) on the coach dock — wrong audience; this is the coach version.
+   Greeting is personalised from the signed-in coach; every suggestion sends
+   through data-ask -> askCoach (wired at $("[data-ask]")), so the at-rest
+   prompt is a real conversation starter, not decoration. "Plan camp pricing"
+   is a conversational starter (the model answers it), NOT a write proposal, so
+   it does not fall under the removed "control that lies" pricing chips. */
+function coachEmptyHTML(){
+  const first=(typeof S!=="undefined"&&S.user&&String(S.user.firstName||"").trim().split(" ")[0])||"";
+  const hi=first?`Hi ${esc(first)}, ask anything about your business`
+               :"Ask anything about your business";
+  const sugg=["What needs my attention today?",
+              "Who's booked this week?",
+              "Draft a reminder for this week's group session"];
+  const explore=[["Recap a session for parents","Recap a recent session for a parent"],
+                 ["Plan camp pricing","Help me plan pricing for a camp"]];
+  return `<div class="aidock-empty aidock-empty-coach">
+    <h3>${hi}</h3>
+    <p class="aidock-sub">You're chatting with Sporv's AI assistant, not a person, and it can be wrong. You approve anything before it's sent.</p>
+    <div class="aidock-sugg">
+      ${sugg.map(q=>`<button type="button" class="aidock-suggbtn" data-ask="${esc(q)}">${esc(q)}</button>`).join("")}
+    </div>
+    <div class="aidock-explore">
+      <div class="aidock-explore-l">Explore what's possible</div>
+      ${explore.map(([label,q])=>`<button type="button" class="aidock-explorebtn" data-ask="${esc(q)}">${esc(label)}</button>`).join("")}
+    </div>
+  </div>`;
+}
+
 function aiDockHTML(){
   /* COACH SIDE ONLY (owner, 2026-08-12). Families get Support, not an AI
      assistant — a parent choosing a coach for their child is not a person who
@@ -9250,17 +9299,7 @@ function aiDockHTML(){
                    <em>${money(p.price)} ${esc(modelLabel(p.model))} · ages ${p.minAge}–${p.maxAge}</em>
                  </span></button>`:"";}).join("")}
            </div>`).join("")
-    : `<div class="aidock-empty">
-         <span class="mark" style="margin:0 auto 11px">S</span>
-         <h3>What are you training for?</h3>
-         <p style="color:var(--muted);font-size:var(--text-sm);margin-top:6px">
-           I only suggest real Sporv listings that have cleared a background check.</p>
-         <div style="display:flex;flex-direction:column;gap:7px;margin-top:15px">
-           ${["Beginner swimming near Chicago under $60",
-              "Advanced basketball for a 14-year-old",
-              "Something for a shy 8-year-old"]
-             .map(q=>`<button class="btn ghost sm" data-ask="${esc(q)}">${esc(q)}</button>`).join("")}
-         </div></div>`;
+    : coachEmptyHTML();
   /* B2 — collapsed to a slim strip rather than closed. Coach pages are dense
      tables; the bar must never sit over a row or an action. Collapsed keeps
      the assistant one key away without occluding anything. State persists. */
@@ -9314,13 +9353,7 @@ function aiDockHTML(){
       </div>
       <div class="aidock-scroll aimax-scroll" id="aidockScroll">
         <div class="aimax-col">
-          ${S.chat.length?thread
-            :`<div class="aidock-empty"><span class="mark" style="margin:0 auto 11px">S</span>
-               <h3>What can I take off your plate?</h3>
-               <p style="color:#9AA6B2;font-size:var(--text-sm);margin-top:6px">
-                 You're chatting with Sporv's AI assistant — not a person, and it can
-                 be wrong. Ask about your schedule or roster, or tell me what to draft;
-                 you approve anything before it's sent.</p></div>`}
+          ${S.chat.length?thread:coachEmptyHTML()}
           ${S.chatThinking?`<div class="bub them" style="align-self:flex-start;display:flex;gap:5px;align-items:center">
             <i class="dotdot"></i><i class="dotdot" style="animation-delay:.16s"></i><i class="dotdot" style="animation-delay:.32s"></i></div>`:""}
         </div>
