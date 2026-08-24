@@ -1705,12 +1705,12 @@ done
 
 # Type scale. 21/22px are the documented unboxed-glyph exceptions.
 off=$($B js "
-(()=>{const ok=[10.5,12,13,14.5,15.5,21,22];const bad=new Set();
+(()=>{const ok=[10,10.5,12,12.5,13,13.5,14.5,15.5,21,22];const bad=new Set();
 document.querySelectorAll('body *').forEach(el=>{if(!el.offsetParent)return;
  if(![...el.childNodes].some(n=>n.nodeType===3&&n.textContent.trim()))return;
  const s=parseFloat(getComputedStyle(el).fontSize);
  if(ok.includes(s))return;
- if(s>=14&&s<=20)return;    // headers −2 (owner 2026-08-23): compact --text-lg now 14-15, coach --text-lg 15-17
+ if(s>=10&&s<=20)return;    // body + headers −2 again (owner 2026-08-23): base 12.5, md 13.5, sm 10, compact h2/h3 16/12-13, nav 10.5
  if(s>=21&&s<=27)return;    // --text-xl clamp
  if(s>=24&&s<=32)return;    // --text-2xl clamp
  if(s>=32&&s<=61)return;    // --text-hero clamp 56 + landing hero --text-hero-lp ceiling 61 (Roboto Condensed, owner 2026-08-23)
@@ -2006,8 +2006,8 @@ ai=$($B js "
 reg=$($B js "
 (()=>{const tabs=['dashboard','roster','inbox','finances','schedule','listings','media','operations','profile'];
  S.portal='coach';S.auth={status:'coach'};const bad=[];
- const okS=new Set(['10.5px','12px','13px','14.5px','15.5px','21px','22px']);
- const clampOK=px=>(px>=15&&px<=19)||(px>=21&&px<=54); // coach --text-lg 15-17 after headers −2 (owner 2026-08-23)
+ const okS=new Set(['10px','10.5px','12px','12.5px','13px','13.5px','14.5px','15.5px','21px','22px']);
+ const clampOK=px=>(px>=13&&px<=54); // body+headers −2/−4 (owner 2026-08-23): coach body 12.5, headers 13-52
  for(const t of tabs){
    S.coachTab=t;S.route={name:'dashboard',arg:null};
    try{render()}catch(e){bad.push('RENDER_'+t);continue}

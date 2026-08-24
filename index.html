@@ -21,7 +21,7 @@
 <meta name="twitter:description" content="Find coaches, trainers, camps and teams across 20+ sports in Chicagoland.">
 <meta name="twitter:image" content="https://the-sporve-web.vercel.app/og.png">
 <link rel="icon" href="data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%2032%2032'%3E%3Crect%20width='32'%20height='32'%20rx='7'%20fill='%2309090B'/%3E%3Ccircle%20cx='16'%20cy='16'%20r='6'%20fill='white'/%3E%3C/svg%3E">
-<meta name="sporve-build" content="12ea146e80120b0c">
+<meta name="sporve-build" content="b5069d66b9930431">
 </head>
 <body>
 <noscript><h1>Sporv — Every sport. One app.</h1><p>Sporv connects families and athletes with coaches, trainers, camps, and teams across more than 20 sports. Please enable JavaScript to use the app.</p></noscript>
@@ -130,15 +130,15 @@
   /* ── TYPE SCALE: eight steps, no ninth. Carried verbatim from the marketing
      landing (sporve-landing/tokens.css) so the two web surfaces share one
      scale. Every text element on this page maps to one of these. */
-  --text-xs:10.5px;                    /* eyebrows, stat labels, nav, chips   */
-  --text-sm:12px;                      /* meta lines, captions, buttons       */
-  --text-base:14.5px;                  /* body paragraphs                     */
-  --text-md:15.5px;                    /* lead paragraph only (hero support)  */
-  --text-lg:clamp(15px,1.3vw,17px);    /* card titles, coach name  (−2, owner #3) */
+  --text-xs:10.5px;                    /* eyebrows, stat labels, chips (micro — kept ≥10) */
+  --text-sm:10px;                      /* meta lines, captions, buttons  (−2, owner 08-23) */
+  --text-base:12.5px;                  /* body paragraphs                (−2, owner 08-23) */
+  --text-md:13.5px;                    /* lead paragraph only            (−2, owner 08-23) */
+  --text-lg:clamp(13px,1.3vw,15px);    /* card titles, coach name        (−2 more, owner 08-23) */
   --text-xl:clamp(21px,1.9vw,27px);    /* stat numerals — NOT a header, unchanged */
-  --text-2xl:clamp(22px,2.2vw,30px);   /* section headers (h2)     (−2, owner #3) */
-  --text-hero:clamp(30px,3.6vw,52px);  /* h1 only                  (−2, owner #3) */
-  --text-hero-lp:clamp(33px,4.5vw,59px);/* landing hero headline (Roboto Condensed) — owner #3 headers −2 */
+  --text-2xl:clamp(20px,2.2vw,28px);   /* section headers (h2)           (−2 more, owner 08-23) */
+  --text-hero:clamp(28px,3.6vw,50px);  /* h1 only                        (−2 more, owner 08-23) */
+  --text-hero-lp:clamp(31px,4.5vw,57px);/* landing hero headline          (−2 more, owner 08-23) */
   /* The ONE class of exception: a `font-size` that sizes a GLYPH rather than
      text -- an avatar initial, an emoji, a chevron, a sport badge's icon.
      Those are icon dimensions expressed in font-size units, and a fluid clamp
@@ -338,10 +338,10 @@ h4{font-size:var(--text-base)}
    untouched :root sizes (their .greet/.cw-h1/tab h1 render exactly as before). */
 #app:not(.coachdark){
   /* Headers −2px (owner 2026-08-23 #3), on top of the compact sweep. */
-  --text-hero:clamp(34px,3.6vw,54px);  /* h1 hero */
-  --text-h1:clamp(22px,2.4vw,26px);    /* in-app page titles */
-  --text-2xl:clamp(18px,1.7vw,20px);   /* h2 section headers */
-  --text-lg:clamp(14px,1.1vw,15px);    /* h3 card/module titles */
+  --text-hero:clamp(32px,3.6vw,52px);  /* h1 hero               (−2 more, owner 08-23) */
+  --text-h1:clamp(20px,2.4vw,24px);    /* in-app page titles    (−2 more, owner 08-23) */
+  --text-2xl:clamp(16px,1.7vw,18px);   /* h2 section headers    (−2 more, owner 08-23) */
+  --text-lg:clamp(12px,1.1vw,13px);    /* h3 card/module titles (−2 more, owner 08-23) */
 }
 /* Every header is Instrument Serif 400 — hierarchy is size+colour, the serif is
    NEVER bolded. Owner 2026-08-22: coach headers are now serif too ("all large
@@ -434,12 +434,13 @@ img{max-width:100%;display:block}
    so the whole "v" shows and the retired final E is fully clipped, no sliver.
    crop = 0.8788 x 4.125 x height = 3.625 x H, holding that cut at every size.
    Asset 330x80, downscaled at both sizes, stays crisp. */
-.navlogo-crop{width:80px;height:22px;overflow:hidden;display:block;flex:0 0 auto}
-.navlogo{height:22px;width:auto;max-width:none;display:block;opacity:.95}
+/* Logo bigger (owner 2026-08-23): 22→30px tall, crop width holds 3.625×H = 109. */
+.navlogo-crop{width:109px;height:30px;overflow:hidden;display:block;flex:0 0 auto}
+.navlogo{height:30px;width:auto;max-width:none;display:block;opacity:.95}
 .navlogo:hover{opacity:1}
 @media(max-width:900px){
-  .navlogo-crop{width:80px;height:22px}
-  .navlogo{height:22px}
+  .navlogo-crop{width:102px;height:28px}
+  .navlogo{height:28px}
 }
 .searchpill{
   flex:1;max-width:520px;display:flex;align-items:center;gap:0;
@@ -520,9 +521,9 @@ img{max-width:100%;display:block}
    affordance. padding 7px 12px + radius 8px per the prototype .nl. */
 .tnav-row .tnav{
   display:inline-flex;align-items:center;gap:7px;padding:7px 12px;
-  border-radius:8px;font-family:var(--sans);font-size:var(--text-base);font-weight:500;
+  border-radius:8px;font-family:var(--sans);font-size:var(--text-xs);font-weight:500;
   letter-spacing:.01em;color:#FFFFFF;background:none;transition:background .15s;
-}
+}   /* centre tabs (Product/Coaches/Trust/Pricing) −4 (owner 2026-08-23): 14.5→10.5 */
 /* Hover/menu-open = a faint white wash (rgba white .08), text stays white — the
    prototype affordance. Replaces the old slate-text hover. Active .on keeps its
    italic accent. */
@@ -703,15 +704,15 @@ img{max-width:100%;display:block}
    topbar is always #09090B (no scroll flip to a light ground), so white text
    never lands on white. Scoped to .navcenter/.topnav so the product-page
    .tnav-row is untouched. Active .on keeps its slate-tint chip (:not(.on)). */
-.navcenter .tnav{font-size:var(--text-base)}
+.navcenter .tnav{font-size:var(--text-xs)}   /* nav −4 (owner 2026-08-23): 14.5→10.5 */
 .navcenter .tnav:not(.on){color:#FFFFFF}
 /* Right-cluster nav links (Become a coach / Log in) match the nav tabs exactly:
    --sans (Inter), 14.5px (--text-base), medium weight, pure white (owner 2026-08-23,
    nudged down from 16px — "top bar too large, meet in the middle"). The
    base .navlink hover (#8FA3BC slate) already applies. Coach-portal .navlink rows
    are a different container and keep the base --nav-face. */
-.topnav .navlink{font-family:var(--sans);font-size:var(--text-base);font-weight:500;
-  padding:7px 12px;border-radius:8px;height:auto;transition:background .15s,color .15s}
+.topnav .navlink{font-family:var(--sans);font-size:var(--text-xs);font-weight:500;
+  padding:7px 12px;border-radius:8px;height:auto;transition:background .15s,color .15s}   /* nav −4 (owner 2026-08-23): 14.5→10.5 */
 /* Right-cluster links share the prototype .nl pill wash on hover (white text held). */
 .topnav .navlink:hover{background:rgba(255,255,255,.08);color:#FFFFFF}
 /* At <=900 the centred menu collapses; the account control becomes the sheet
@@ -3606,6 +3607,20 @@ h2.ctr{margin-bottom:10px}
 .au-head h2{font-size:var(--t-h3)}
 .au-head p{color:var(--muted);margin-top:7px;font-size:var(--t-small)}
 .au-form .field{margin-bottom:12px}
+/* Show/hide password (owner 2026-08-23). The eye button sits inside .pw-wrap; the
+   input reserves right padding so text never runs under it. eye-on shows by
+   default, eye-off (slashed) shows when .on = password is revealed. */
+.pw-wrap{position:relative;display:block}
+.pw-wrap input{width:100%;padding-right:44px}
+.pw-eye{position:absolute;right:6px;top:50%;transform:translateY(-50%);width:32px;height:32px;
+  display:grid;place-items:center;border:0;background:none;cursor:pointer;color:var(--faint);border-radius:8px}
+.pw-eye:hover{color:var(--ink);background:var(--raise)}
+.pw-eye svg{width:19px;height:19px;pointer-events:none}
+.pw-eye .eye-off{display:none}
+.pw-eye.on .eye-on{display:none}
+.pw-eye.on .eye-off{display:block}
+.modal:has(.au-head) .pw-eye{color:#8A93A0}
+.modal:has(.au-head) .pw-eye:hover{color:#E9EEF4;background:#1C222B}
 .au-or{display:flex;align-items:center;gap:12px;margin:18px 0}
 .au-or span{flex:1;height:1px;background:var(--rule)}
 .au-or em{color:var(--faint);font-size:var(--t-small);font-style:normal}
@@ -10569,6 +10584,14 @@ function modalHTML(){
   const wrap=(title,body,wide)=>`<div class="scrim" data-scrim="1"><div class="modal ${wide?"wide":""}" role="dialog" aria-modal="true" aria-label="${esc(title)}">
     <div class="modal-head"><b>${esc(title)}</b><button class="x" data-close="1" aria-label="Close">${ICON.x}</button></div>
     <div class="modal-body">${body}</div></div></div>`;
+  /* Show/hide password toggle (owner 2026-08-23: "see the view password screen").
+     pwField() wraps any password <input> with an eye button; one delegated
+     handler (window.__pwToggleBound) flips type=password<->text. The input keeps
+     all its own attributes (name, autocomplete, required) — only the type flips. */
+  const PWEYE='<button type="button" class="pw-eye" aria-label="Show password">'+
+    '<svg class="eye-on" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7-10-7-10-7z"/><circle cx="12" cy="12" r="3"/></svg>'+
+    '<svg class="eye-off" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3l18 18M10.6 10.6a3 3 0 004.24 4.24M9.9 5.2A9.4 9.4 0 0112 5c6.4 0 10 7 10 7a17.3 17.3 0 01-3.3 4.1M6.1 6.2A17.3 17.3 0 002 12s3.6 7 10 7a9.5 9.5 0 003.6-.7"/></svg></button>';
+  const pwField=(labelHTML,inputHTML)=>'<div class="field"><label>'+labelHTML+'</label><div class="pw-wrap">'+inputHTML+PWEYE+'</div></div>';
 
   /* PART 7 — single-field entry. Role is inferred from where you came from,
      never asked: the segmented control that used to sit here was the third
@@ -10642,7 +10665,7 @@ function modalHTML(){
       </div>
       <div class="field"><label>Email address</label><input name="email" type="email" value="${esc((S.authIdentifier||"").includes("@")?S.authIdentifier:"")}" placeholder="alex@example.com" required></div>
       <div class="field"><label>Phone number</label><input name="phone" placeholder="+1 (555) 000-0000"></div>
-      <div class="field"><label>Password</label><input name="password" type="password" placeholder="Min. 8 characters" required></div>
+      ${pwField("Password",'<input name="password" type="password" autocomplete="new-password" placeholder="Min. 8 characters" required>')}
       <label style="display:flex;gap:11px;align-items:flex-start;cursor:pointer;margin:6px 0 4px">
         <input type="checkbox" name="privacy" required style="width:17px;height:17px;margin-top:2px;flex:0 0 auto;accent-color:var(--slate-ink)">
         <span style="font-size:var(--text-sm);color:var(--muted)">I have read Sporv's <button type="button" class="lnk" data-foot="info:privacy" style="font-size:inherit;font-weight:700">Privacy Policy</button> and <button type="button" class="lnk" data-foot="info:terms" style="font-size:inherit;font-weight:700">Terms of Service</button>.</span></label>
@@ -10653,7 +10676,7 @@ function modalHTML(){
   if(m.type==="login") return wrap("Log in",`
     <form id="loginForm">
       <div class="field"><label>Email address</label><input name="email" type="email" value="${esc(S.authIdentifier||"")}" autocomplete="username" required></div>
-      <div class="field"><label>Password</label><input name="password" type="password" autocomplete="current-password" placeholder="Min. 8 characters" required></div>
+      ${pwField("Password",'<input name="password" type="password" autocomplete="current-password" placeholder="Min. 8 characters" required>')}
       <div id="loginErr" class="err hide" style="margin:8px 0"></div>
       <button class="btn wide" type="submit">Log in</button>
       <button class="btn ghost wide" type="button" data-onboard="1" style="margin-top:9px">Create an account</button>
@@ -11028,7 +11051,7 @@ function modalHTML(){
         <p style="color:var(--muted);margin-bottom:18px">
           We sent a reset code to <b style="color:var(--ink)">${esc(S.forgotEmail||"your email")}</b>.</p>
         <div class="field"><label>Reset code</label><input name="token" placeholder="Enter code from email" required></div>
-        <div class="field"><label>New password</label><input name="password" type="password" placeholder="Min. 8 characters" required></div>
+        ${pwField("New password",'<input name="password" type="password" autocomplete="new-password" placeholder="Min. 8 characters" required>')}
         <div id="forgotErr" class="err hide" style="margin:8px 0"></div>
         <button class="btn wide" type="submit">Set new password</button>`
       :`<p style="color:var(--muted);margin-bottom:18px">
@@ -11067,7 +11090,7 @@ function modalHTML(){
         </div>
         <div class="field"><label>Email address</label><input name="email" type="email" value="${esc((S.authIdentifier||"").includes("@")?S.authIdentifier:"")}" placeholder="alex@example.com" required></div>
         <div class="field"><label>Phone number</label><input name="phone" placeholder="+1 (555) 000-0000"></div>
-        <div class="field"><label>Password</label><input name="password" type="password" placeholder="Min. 8 characters" required></div>
+        ${pwField("Password",'<input name="password" type="password" autocomplete="current-password" placeholder="Min. 8 characters" required>')}
         <label style="display:flex;gap:11px;align-items:flex-start;cursor:pointer;margin:6px 0 4px">
           <input type="checkbox" name="privacy" required style="width:17px;height:17px;margin-top:2px;flex:0 0 auto;accent-color:var(--slate-ink)">
           <span style="font-size:var(--text-sm);color:var(--muted)">I have read Sporv's <button type="button" class="lnk" data-foot="info:privacy" style="font-size:inherit;font-weight:700">Privacy Policy</button> and <button type="button" class="lnk" data-foot="info:terms" style="font-size:inherit;font-weight:700">Terms of Service</button>.</span></label>
@@ -12898,6 +12921,22 @@ function syncNavHero(){
    delegated listeners survive every re-render: they keep aria-expanded honest,
    enforce one-open-panel-at-a-time on focus, and close on Escape by blurring
    the focused control (which drops the :focus-within that holds the panel). */
+/* Show/hide password toggle — one delegated, once-bound listener survives every
+   render() (the eye button is rebuilt with the modal, but this handler is not).
+   Flips the sibling input between password and text; nothing is ever submitted
+   differently, only its visibility. */
+if(!window.__pwToggleBound){
+  window.__pwToggleBound=true;
+  document.addEventListener("click",function(e){
+    var btn=e.target.closest&&e.target.closest(".pw-eye"); if(!btn) return;
+    e.preventDefault();
+    var inp=btn.parentElement&&btn.parentElement.querySelector("input"); if(!inp) return;
+    var reveal=inp.type==="password";
+    inp.type=reveal?"text":"password";
+    btn.classList.toggle("on",reveal);
+    btn.setAttribute("aria-label",reveal?"Hide password":"Show password");
+  });
+}
 if(!window.__navA11yBound){
   window.__navA11yBound=true;
   const setExp=(w,v)=>{const t=w&&w.querySelector(":scope>.tnav[aria-haspopup]");
