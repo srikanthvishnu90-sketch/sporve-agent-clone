@@ -2638,6 +2638,17 @@ html.coldock .aidock-fab{display:none}
 .aidock-pick img{width:38px;height:38px;border-radius:8px;object-fit:cover;flex:none}
 .aidock-pick b{display:block;font-size:var(--text-sm)}
 .aidock-pick em{display:block;font-style:normal;color:var(--muted);font-size:var(--text-xs)}
+/* Gym finder shortlist card (Feature 1) — dark chatbox, contrast-safe colours. */
+.faccard{border:1px solid #2A313A;border-radius:12px;overflow:hidden;margin-top:6px;background:#131519}
+.facrow{display:flex;align-items:center;gap:10px;padding:10px 12px;border-bottom:1px solid #1F2630}
+.facrow:last-of-type{border-bottom:0}
+.facmain{min-width:0;flex:1 1 auto}
+.facmain b{display:block;font-size:var(--text-sm);color:#F5F7F9;font-weight:600}
+.facmain em{display:block;font-style:normal;font-size:var(--text-xs);color:#9AA6B2;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.facrate{flex:none;font-size:var(--text-xs);color:#B9C7DB;font-weight:600}
+.facrate.facnew{color:#9AA6B2;font-weight:500}
+.facfine{font-size:var(--text-xs);color:#9AA6B2;padding:8px 12px 10px;margin:0;line-height:1.4}
 /* Coach AI empty state (owner 2026-08-24, pasted rail HTML) — left-aligned in
    the docked/column view, centred inside the maximized panel. Suggestion pills
    and the "Explore what's possible" chips both send through data-ask. Dark
@@ -9248,6 +9259,22 @@ function aiChipsHTML(){
    Every other proposal gets the draft, a copy button where a draft exists,
    and a deep link to the tab that owns the work — a button that cannot do the
    thing does not get to look like one that can. */
+/* Gym finder shortlist card (Feature 1). Renders the find_facilities read result
+   — real facilities from Google Places + any rate/contact the Sporv community has
+   on file. Renting is arranged with the facility directly (no booking rail yet). */
+function facilitiesCardHTML(list){
+  if(!Array.isArray(list)||!list.length) return "";
+  return `<div class="faccard">${list.slice(0,6).map(f=>`
+    <div class="facrow">
+      <span class="facmain"><b>${esc(f.name||"Facility")}</b>${
+        f.address?`<em>${esc(f.address)}</em>`:""}</span>
+      ${f.known_hourly_rate?`<span class="facrate num">$${esc(String(f.known_hourly_rate))}/hr</span>`
+        :`<span class="facrate facnew">New</span>`}
+    </div>`).join("")}
+    <p class="facfine">Rates and contacts show when the Sporv coach community has them on file. Renting is arranged with the facility directly.</p>
+  </div>`;
+}
+
 function propCardHTML(p,i){
   const meta=PROP_META[p.tool]||{label:p.tool.replace(/_/g," "),tab:"dashboard"};
   const isMsgFamily=["draft_message","draft_bulk_message","draft_recap","camp_broadcast","draft_waitlist_offer"].includes(p.tool);
@@ -9361,6 +9388,7 @@ function aiDockHTML(){
              <div class="bub them md${m.err?" bub-err":""}">${mdCoach(m.text)}</div>
              ${m.err&&m.retry?`<button class="btn ghost sm" data-airetry="${i}" style="align-self:flex-start">Try again</button>`:""}
              ${m.proposal?propCardHTML(m.proposal,i):""}
+             ${m.facilities?facilitiesCardHTML(m.facilities):""}
              ${(m.picks||[]).map(id=>{
                const p=PROGRAMS.find(x=>x.id===id);
                return p?`<button class="aidock-pick" data-open="${esc(p.id)}">
@@ -14997,8 +15025,12 @@ function askCoach(q){
       const tools=calls.filter(c=>c&&c.kind==="read").map(c=>String(c.tool||""));
       const write=calls.find(c=>c&&c.kind==="write");
       const proposal=write?{tool:String(write.tool||""),args:(write.args&&typeof write.args==="object")?write.args:{},state:"open"}:null;
+      /* Gym finder (Feature 1): the find_facilities READ returns a real shortlist;
+         render it as a card, not just the model's prose. */
+      const facRead=calls.find(c=>c&&c.kind==="read"&&c.tool==="find_facilities");
+      const facilities=(facRead&&facRead.result&&Array.isArray(facRead.result.facilities))?facRead.result.facilities:null;
       S.chatThinking=false;
-      S.chat=[...S.chat,{role:"coach",text:reply,tools,proposal}];
+      S.chat=[...S.chat,{role:"coach",text:reply,tools,proposal,facilities}];
       /* Reply landed while the dock was closed → badge the FAB so the coach
          sees there's something waiting; cleared when they reopen. */
       if(S.aiOpen===false) S.aiUnread=(S.aiUnread||0)+1;
