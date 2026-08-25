@@ -21,7 +21,7 @@
 <meta name="twitter:description" content="Find coaches, trainers, camps and teams across 20+ sports in Chicagoland.">
 <meta name="twitter:image" content="https://the-sporve-web.vercel.app/og.png">
 <link rel="icon" href="data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%2032%2032'%3E%3Crect%20width='32'%20height='32'%20rx='7'%20fill='%2309090B'/%3E%3Ccircle%20cx='16'%20cy='16'%20r='6'%20fill='white'/%3E%3C/svg%3E">
-<meta name="sporve-build" content="bf88180b1f97c077">
+<meta name="sporve-build" content="6235030cb5b1a09b">
 </head>
 <body>
 <noscript><h1>Sporv — Every sport. One app.</h1><p>Sporv connects families and athletes with coaches, trainers, camps, and teams across more than 20 sports. Please enable JavaScript to use the app.</p></noscript>
@@ -6362,13 +6362,18 @@ const stripEmoji=s=>s.replace(/[\u{1F000}-\u{1FAFF}\u{2600}-\u{27BF}\u{2B00}-\u{
 const mdInline=s=>s
   .replace(/\*\*([^*]+)\*\*/g,"<strong>$1</strong>")
   .replace(/`([^`]+)`/g,"<code>$1</code>")
+  /* [label](url) markdown links FIRST — before the * / _ rules (so a URL's
+     underscores aren't italicised) and before the bare-URL autolink (so the URL
+     inside the parens isn't linked twice). owner 2026-08-25 "unclickable text". */
+  .replace(/\[([^\]]+)\]\((https?:\/\/[^\s)]+)\)/g,
+    '<a href="$2" target="_blank" rel="noopener noreferrer">$1</a>')
   .replace(/(^|[\s(])\*([^*\n]+)\*/g,"$1<em>$2</em>")
   .replace(/(^|[\s(])_([^_\n]+)_/g,"$1<em>$2</em>")
-  /* Autolink bare URLs so a link the assistant returns is CLICKABLE, not dead
-     text (owner 2026-08-25 "unclickable text"). Input is already esc()'d, so the
-     URL is inert text; trailing sentence punctuation is kept outside the anchor. */
-  .replace(/(https?:\/\/[^\s<]+?)([.,;:!?)]*)(?=\s|$)/g,
-    '<a href="$1" target="_blank" rel="noopener noreferrer">$1</a>$2');
+  /* Autolink BARE URLs (input already esc()'d, so inert text). The (^|\s) boundary
+     stops it re-matching a URL already inside an href="…" from the rule above;
+     trailing sentence punctuation is kept outside the anchor. */
+  .replace(/(^|\s)(https?:\/\/[^\s<"]+?)([.,;:!?)]*)(?=\s|$)/g,
+    '$1<a href="$2" target="_blank" rel="noopener noreferrer">$2</a>$3');
 function mdCoach(raw){
   const lines=stripEmoji(esc(String(raw))).split("\n");
   let out="",inList=false;
@@ -14590,7 +14595,13 @@ document.querySelectorAll('.sig-ai-coach').forEach(sigAiCoachWire);
   if(chf) chf.onsubmit=e=>{
     e.preventDefault();
     const i=document.getElementById("chatInput");
-    const v=i.value; i.value="";
+    const v=i.value;
+    if(!v.trim()) return;
+    /* Don't clear-then-drop: askCoach bails while a reply is in flight, so if we
+       blanked the field first the message vanished silently (owner 2026-08-25
+       "poor response timing"). Keep the text and say why. */
+    if(S.chatThinking){ toast("Still answering — send once the reply lands."); return; }
+    i.value="";
     askCoach(v);
   };
 
@@ -14602,7 +14613,12 @@ document.querySelectorAll('.sig-ai-coach').forEach(sigAiCoachWire);
     adf.onsubmit=e=>{
       e.preventDefault();
       const i=document.getElementById("aiDockInput");
-      const v=i.value; i.value=""; S.aiDraft="";
+      const v=i.value;
+      if(!v.trim()) return;
+      /* Same guard as the family form: keep the typed text while a reply is in
+         flight instead of clearing it into a no-op askCoach (owner 2026-08-25). */
+      if(S.chatThinking){ toast("Still answering — send once the reply lands."); return; }
+      i.value=""; S.aiDraft="";
       askCoach(v);
     };
     if(S.aiOpen&&document.activeElement===document.body){
