@@ -21,7 +21,7 @@
 <meta name="twitter:description" content="Find coaches, trainers, camps and teams across 20+ sports in Chicagoland.">
 <meta name="twitter:image" content="https://the-sporve-web.vercel.app/og.png">
 <link rel="icon" href="data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%2032%2032'%3E%3Crect%20width='32'%20height='32'%20rx='7'%20fill='%2309090B'/%3E%3Ccircle%20cx='16'%20cy='16'%20r='6'%20fill='white'/%3E%3C/svg%3E">
-<meta name="sporve-build" content="781ea329be9d8c95">
+<meta name="sporve-build" content="abb8b1db4d31b38a">
 </head>
 <body>
 <noscript><h1>Sporv — Every sport. One app.</h1><p>Sporv connects families and athletes with coaches, trainers, camps, and teams across more than 20 sports. Please enable JavaScript to use the app.</p></noscript>
@@ -6255,7 +6255,10 @@ const S={
   chat:[],
   chatThinking:false,
   aiOpen:true,                     // coach AI dock: open on arrival, X collapses to the S
-  aiMax:true,                      // v3 DOCKED is the default open state: the right-edge phone panel
+  aiMax:false,                     // DEFAULT = the side-by-side COLUMN dock (colMode needs !aiMax). Owner
+                                   // 2026-08-25: the chatbox is a permanent right column beside the
+                                   // dashboard (Claude-style), never a floating panel that leaves a black
+                                   // void. Maximize (data-aimaximize) still opens the big Amboras view.
   aiFull:false,                    // v3 FULLSCREEN (inset:24px); toggles off DOCKED — ephemeral
   aiHistOpen:false,                // history dropdown (either view; ephemeral)
   aiThreadHidden:false,            // state 2 with the thread tucked away — back to "just the bar"
@@ -9620,7 +9623,7 @@ function aiDockHTML(){
       ${/* AI-disclosure (Claude Usage Policy) shown once a conversation exists
            — the at-rest bar stays "just the bar" (owner), but the moment it is
            a live chat session the user is told it's AI. */""}
-      ${convo?`<p class="aidock-aihint">Sporv AI can make mistakes. You approve any message or change first.</p>`:""}
+      ${(convo||colMode)?`<p class="aidock-aihint">Sporv AI can make mistakes. You approve any message or change first.</p>`:""}
     </section></div>`:""}${fabHTML(open)}`;
 }
 
@@ -14106,7 +14109,7 @@ document.querySelectorAll('.sig-ai-coach').forEach(sigAiCoachWire);
     const i=document.getElementById("aiDockInput");
     if(i){ i.value=b.dataset.aichip; i.focus(); }
   });
-  $("[data-aitoggle]").forEach(b=>b.onclick=()=>{S.aiOpen=!S.aiOpen; if(S.aiOpen){S.aiUnread=0;S.aiMax=true;} render();});
+  $("[data-aitoggle]").forEach(b=>b.onclick=()=>{S.aiOpen=!S.aiOpen; if(S.aiOpen){S.aiUnread=0;S.aiMax=false;} render();});
   /* Amboras state machine. Maximize is only offered from a live conversation;
      minimize returns to the pill; close resets max so the NEXT open starts at
      the bar — "minimizing would be the initial thing" (owner). */

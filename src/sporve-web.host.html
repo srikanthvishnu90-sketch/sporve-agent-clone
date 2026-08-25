@@ -6211,7 +6211,10 @@ const S={
   chat:[],
   chatThinking:false,
   aiOpen:true,                     // coach AI dock: open on arrival, X collapses to the S
-  aiMax:true,                      // v3 DOCKED is the default open state: the right-edge phone panel
+  aiMax:false,                     // DEFAULT = the side-by-side COLUMN dock (colMode needs !aiMax). Owner
+                                   // 2026-08-25: the chatbox is a permanent right column beside the
+                                   // dashboard (Claude-style), never a floating panel that leaves a black
+                                   // void. Maximize (data-aimaximize) still opens the big Amboras view.
   aiFull:false,                    // v3 FULLSCREEN (inset:24px); toggles off DOCKED — ephemeral
   aiHistOpen:false,                // history dropdown (either view; ephemeral)
   aiThreadHidden:false,            // state 2 with the thread tucked away — back to "just the bar"
@@ -9576,7 +9579,7 @@ function aiDockHTML(){
       ${/* AI-disclosure (Claude Usage Policy) shown once a conversation exists
            — the at-rest bar stays "just the bar" (owner), but the moment it is
            a live chat session the user is told it's AI. */""}
-      ${convo?`<p class="aidock-aihint">Sporv AI can make mistakes. You approve any message or change first.</p>`:""}
+      ${(convo||colMode)?`<p class="aidock-aihint">Sporv AI can make mistakes. You approve any message or change first.</p>`:""}
     </section></div>`:""}${fabHTML(open)}`;
 }
 
@@ -14062,7 +14065,7 @@ document.querySelectorAll('.sig-ai-coach').forEach(sigAiCoachWire);
     const i=document.getElementById("aiDockInput");
     if(i){ i.value=b.dataset.aichip; i.focus(); }
   });
-  $("[data-aitoggle]").forEach(b=>b.onclick=()=>{S.aiOpen=!S.aiOpen; if(S.aiOpen){S.aiUnread=0;S.aiMax=true;} render();});
+  $("[data-aitoggle]").forEach(b=>b.onclick=()=>{S.aiOpen=!S.aiOpen; if(S.aiOpen){S.aiUnread=0;S.aiMax=false;} render();});
   /* Amboras state machine. Maximize is only offered from a live conversation;
      minimize returns to the pill; close resets max so the NEXT open starts at
      the bar — "minimizing would be the initial thing" (owner). */
