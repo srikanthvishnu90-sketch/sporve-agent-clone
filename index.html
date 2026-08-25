@@ -21,7 +21,7 @@
 <meta name="twitter:description" content="Find coaches, trainers, camps and teams across 20+ sports in Chicagoland.">
 <meta name="twitter:image" content="https://the-sporve-web.vercel.app/og.png">
 <link rel="icon" href="data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%2032%2032'%3E%3Crect%20width='32'%20height='32'%20rx='7'%20fill='%2309090B'/%3E%3Ccircle%20cx='16'%20cy='16'%20r='6'%20fill='white'/%3E%3C/svg%3E">
-<meta name="sporve-build" content="feff7ca3c2e7c883">
+<meta name="sporve-build" content="70334f604ef494db">
 </head>
 <body>
 <noscript><h1>Sporv — Every sport. One app.</h1><p>Sporv connects families and athletes with coaches, trainers, camps, and teams across more than 20 sports. Please enable JavaScript to use the app.</p></noscript>
@@ -15226,18 +15226,74 @@ function runCommand(text){
    The picks are still resolved LOCALLY from the model's reply, so the assistant
    can never surface a listing that does not exist — the model suggests, the
    catalogue decides. */
-/* Parse "mark <name> present/absent/late/excused" into a local mark_attendance
-   proposal — the demo attendance path (see the shim in askCoach). Returns null
-   when the message isn't an attendance command. */
-function attendanceShim(text){
+/* DEMO NOTETAKER (owner 2026-08-25): the coach dashboard is a guest/seeded demo,
+   so the AI chatbox never reaches the server (askCoach gates the coach turn on a
+   real sign-in). These commands are therefore turned into PROPOSALS client-side —
+   note, parent recap, and attendance — the SAME approve-card + rails as a server
+   proposal, writing to the demo notes/messages/roster the dashboard shows. In
+   production the real coach-command AI drafts these; this is the browser demo. */
+function afterAbout(text){
+  const m=String(text||"").toLowerCase().match(/\b(?:about|on|worked on|working on|regarding|re)\b\s+(.+)$/);
+  return m?m[1].replace(/[.?!]+$/,"").replace(/\bfor (his|her|their) (parent|mom|dad|family).*/,"").trim():"";
+}
+function recapDraft(a,text){
+  const first=a.name.split(" ")[0], detail=afterAbout(text);
+  const mid=detail?("we focused on "+detail+", and "+first+" made real progress")
+                  :(first+" worked hard on the fundamentals today and stayed locked in the whole session");
+  return "Hi! Quick update from today's session — "+mid+". You can see it starting to click, and "
+    +"the effort was there start to finish. Nothing to worry about on our end — just keep cheering "
+    +first+" on between sessions. Happy to chat more at pickup. Thanks!";
+}
+function noteDraft(a,text){
+  const detail=afterAbout(text);
+  return detail?("Worked on "+detail+"; making progress. Reinforce next session.")
+               :"Solid session — good effort and focus. Keep building on the fundamentals next time.";
+}
+function coachDemoProposal(text){
+  const M=window.MOD_NOTES; if(!M||!M.findInText) return null;
   const t=String(text||"").toLowerCase();
-  const m=t.match(/\b(?:mark|set)\s+(.+?)\s+(present|here|absent|out|late|excused)\b/);
-  if(!m) return null;
-  const status=({here:"present",out:"absent"})[m[2]]||m[2];
-  const name=m[1].replace(/\b(as|to|for)\b.*$/,"").trim().split(/\s+/).slice(0,2).join(" ");
-  if(!name) return null;
-  return { reply:"Here's the attendance mark — review and confirm.",
-    proposal:{tool:"mark_attendance",args:{athlete:name,status:status},state:"open"} };
+  const a=M.findInText(text);
+  /* ATTENDANCE — "mark <name> present/absent/late/excused". */
+  const am=t.match(/\b(?:mark|set)\s+(.+?)\s+(present|here|absent|out|late|excused)\b/);
+  if(am){
+    const status=({here:"present",out:"absent"})[am[2]]||am[2];
+    const name=a?a.name:am[1].replace(/\b(as|to|for)\b.*$/,"").trim().split(/\s+/).slice(0,2).join(" ");
+    if(!name) return null;
+    return {reply:"Here's the attendance mark — review and confirm.",
+      proposal:{tool:"mark_attendance",args:{athlete:name,status:status},state:"open"}};
+  }
+  /* RECAP TO PARENT — "recap <name>…" or send/update/message <name>'s parent. */
+  const wantsRecap=/\brecap\b/.test(t)||(/\b(send|update|message|tell|email)\b/.test(t)&&/\b(parent|mom|dad|mum|family|guardian)\b/.test(t));
+  if(wantsRecap&&a){
+    return {reply:"Here's a parent-friendly recap — edit anything, then Approve & send.",
+      proposal:{tool:"draft_recap",args:{athlete:a.name,body:recapDraft(a,text)},state:"open"}};
+  }
+  /* PRIVATE SESSION NOTE — "make a note…", "note that…", "log…". */
+  const wantsNote=/\b(make a note|note that|log (a )?note|session note|add a note|jot|take a note|record that)\b/.test(t)&&!/\b(tell|message|remind|text)\b/.test(t);
+  if(wantsNote&&a){
+    return {reply:"Here's a session note draft — review and save.",
+      proposal:{tool:"create_note",args:{athlete:a.name,body:noteDraft(a,text)},state:"open"}};
+  }
+  return null;
+}
+/* Demo send: an approved recap goes to the athlete's parent as a real message in
+   the demo inbox (S.conversations/S.messages) — so "approve → sent" lands in the
+   Messages tab, linked to the software. Production sends via sendParentMessage. */
+function sendRecapToParentDemo(athleteName, body){
+  const M=window.MOD_NOTES;
+  const hit=M&&M.resolveAthlete?M.resolveAthlete(athleteName):{};
+  if(hit.ambiguous) throw new Error("More than one athlete matches — name one exactly.");
+  if(!hit.athlete) throw new Error("No athlete named \u201c"+String(athleteName||"").trim()+"\u201d on your roster.");
+  const text=String(body||"").trim();
+  if(!text) throw new Error("The recap is empty.");
+  const a=hit.athlete, parent=a.parent||(a.name.split(" ")[0]+"'s parent");
+  const nowISO=new Date().toISOString();
+  let conv=S.conversations.find(c=>c.with===parent);
+  if(!conv){ conv={id:"conv_"+Date.now(),with:parent,programId:a.programId,last:"",at:nowISO};
+    S.conversations=[conv,...S.conversations]; S.messages[conv.id]=[]; }
+  (S.messages[conv.id]=S.messages[conv.id]||[]).push({id:"m_"+Date.now(),me:true,text:text,at:nowISO});
+  conv.last=text.slice(0,60); conv.at=nowISO; S.activeConv=conv.id;
+  return {parent:parent, athlete:a.name};
 }
 
 function askCoach(q){
@@ -15264,7 +15320,7 @@ function askCoach(q){
      demo roster. Fires signed-in OR offline; everything else falls through to
      the normal server/fallback path below. Remove once app PR #44 deploys the tool. */
   if(S.portal==="coach"){
-    const att=attendanceShim(text);
+    const att=coachDemoProposal(text);
     if(att){
       S.chatThinking=false;
       S.chat=[...S.chat,{role:"coach",text:att.reply,proposal:att.proposal}];
@@ -15438,6 +15494,17 @@ const PROP_DISPATCH={
     },
     done:res=>"Marked "+((res&&res.athlete)||"the athlete")+" "+((res&&res.status)||"present")+" for today. It's on your roster.",
     fail:why=>"That didn't save — "+why+" No attendance was changed.",
+  },
+  draft_recap:{
+    /* Parent recap → sent. Demo: resolves the athlete's parent and delivers the
+       (edited) recap into the demo inbox. Gated on a real roster match + a
+       non-empty draft, so an unresolved name shows the deep-link, not Approve. */
+    canSend:p=>{const M=window.MOD_NOTES;
+      return !!(M&&M.resolveAthlete&&M.resolveAthlete(noteAthlete(p)).athlete&&propDraft(p).trim());},
+    verb:"Approve & send", busy:"Sending…",
+    run:(p,text)=>Promise.resolve(sendRecapToParentDemo(noteAthlete(p), text)),
+    done:res=>"Sent to "+((res&&res.parent)||"the parent")+". It's in your Messages.",
+    fail:why=>"That didn't send — "+why+" Nothing was delivered.",
   },
   draft_message:{
     canSend:p=>!!(p.args&&p.args.booking_id), verb:"Approve & send", busy:"Sending…",
@@ -26925,6 +26992,17 @@ function markAttendanceFromAI(spec){
   return { athlete: a.name, status: status, day: day };
 }
 
+/* Scan a free-text command for a roster athlete the coach named ("recap Nia's
+   session…", "note for Julian…"). Matches on first OR full name; returns the
+   athlete row or null. Powers the coach chatbox demo shims. */
+function findInText(text){
+  const t = String(text || "").toLowerCase();
+  return roster().find(a => {
+    const parts = a.name.toLowerCase().split(/\s+/);
+    return t.includes(a.name.toLowerCase()) || (parts[0] && new RegExp("\\b"+parts[0]+"\\b").test(t));
+  }) || null;
+}
+
 window.MOD_NOTES = {
   css: CSS,
   tabs: { notes: "Session notes" },
@@ -26938,6 +27016,8 @@ window.MOD_NOTES = {
   createFromAI: createFromAI,
   attendance: attendance,
   markAttendanceFromAI: markAttendanceFromAI,
+  findInText: findInText,
+  roster: roster,
 };
 
 })();

@@ -1169,6 +1169,17 @@ function markAttendanceFromAI(spec){
   return { athlete: a.name, status: status, day: day };
 }
 
+/* Scan a free-text command for a roster athlete the coach named ("recap Nia's
+   session…", "note for Julian…"). Matches on first OR full name; returns the
+   athlete row or null. Powers the coach chatbox demo shims. */
+function findInText(text){
+  const t = String(text || "").toLowerCase();
+  return roster().find(a => {
+    const parts = a.name.toLowerCase().split(/\s+/);
+    return t.includes(a.name.toLowerCase()) || (parts[0] && new RegExp("\\b"+parts[0]+"\\b").test(t));
+  }) || null;
+}
+
 window.MOD_NOTES = {
   css: CSS,
   tabs: { notes: "Session notes" },
@@ -1182,6 +1193,8 @@ window.MOD_NOTES = {
   createFromAI: createFromAI,
   attendance: attendance,
   markAttendanceFromAI: markAttendanceFromAI,
+  findInText: findInText,
+  roster: roster,
 };
 
 })();
