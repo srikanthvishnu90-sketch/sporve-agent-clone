@@ -1437,11 +1437,12 @@ brand=$($B js "
  const cropRatio=cropBox&&logoBox&&logoBox.width ? cropBox.width/logoBox.width : 0;
  const cropOverflow=crop ? getComputedStyle(crop).overflow : '';
  S.route={name:'explore',arg:null};render();
- const foot=document.querySelector('.close-zone .wordmark')?.textContent.trim().toUpperCase();
+ const footLogo=document.querySelector('.close-zone .foot-brand img.navlogo');
  if(!logo||logo.alt!=='Sporv'||cropOverflow!=='hidden'||cropRatio<.84||cropRatio>.90){
    bad.push('HEADER_LOGO:'+(logo?.alt||'missing')+':'+cropRatio.toFixed(2));
  }
- if(foot!=='SPORV')bad.push('FOOTER_LOGO:'+foot);
+ /* Footer brand is now the nav logo image, not the "SPORV" wordmark (owner 2026-08-24). */
+ if(!footLogo||footLogo.alt!=='Sporv')bad.push('FOOTER_LOGO:'+(footLogo?footLogo.alt:'missing'));
  if(old.test(document.title)||old.test(document.querySelector('meta[name=description]')?.content||''))bad.push('HEAD');
  return bad.length?bad.join(','):'OK'})()" 2>/dev/null)
 [ "${brand//\"/}" = "OK" ] && pass "Sporv rebrand: header, footer, metadata, routes, and accessible labels clean" \
@@ -1828,7 +1829,8 @@ onepic=$($B js "
  if(!st) return 'NO_HERO_STILL';
  if(getComputedStyle(st).animationName!=='none') return 'ANIMATED_'+getComputedStyle(st).animationName;
  let raster=0;
- document.querySelectorAll('img').forEach(i=>{ if(!/^data:image\/svg/.test(i.src)) raster++ });
+ /* The brand logo (nav + footer, class navlogo) is chrome, not a photograph — exclude it. */
+ document.querySelectorAll('img').forEach(i=>{ if(!/^data:image\/svg/.test(i.src) && !i.classList.contains('navlogo')) raster++ });
  document.querySelectorAll('*').forEach(e=>{
    if(/url\(\"?data:image\/(webp|jpeg|jpg|png)/.test(getComputedStyle(e).backgroundImage)) raster++ });
  if(raster>2) return 'RASTER_PHOTOS_'+raster;   // the still counts once as bg, once via ::after stacking
