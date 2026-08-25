@@ -21,7 +21,7 @@
 <meta name="twitter:description" content="Find coaches, trainers, camps and teams across 20+ sports in Chicagoland.">
 <meta name="twitter:image" content="https://the-sporve-web.vercel.app/og.png">
 <link rel="icon" href="data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%2032%2032'%3E%3Crect%20width='32'%20height='32'%20rx='7'%20fill='%2309090B'/%3E%3Ccircle%20cx='16'%20cy='16'%20r='6'%20fill='white'/%3E%3C/svg%3E">
-<meta name="sporve-build" content="69d51d85a3254bf2">
+<meta name="sporve-build" content="feff7ca3c2e7c883">
 </head>
 <body>
 <noscript><h1>Sporv — Every sport. One app.</h1><p>Sporv connects families and athletes with coaches, trainers, camps, and teams across more than 20 sports. Please enable JavaScript to use the app.</p></noscript>
@@ -9465,6 +9465,9 @@ function propCardHTML(p,i){
     <p class="propcard-title">${esc(meta.label)}</p>
     ${draft?`<textarea class="propcard-draft" id="propEdit${i}" rows="4" aria-label="Edit the draft"${busy?" disabled":""}>${esc(draft)}</textarea>`:""}
     ${(p.tool==="create_note"||p.tool==="create_document")?noteAthleteLine(p):""}
+    ${p.tool==="mark_attendance"?(()=>{const M=window.MOD_NOTES;const hit=M&&M.resolveAthlete?M.resolveAthlete(noteAthlete(p)):{};
+      const nm=hit.athlete?hit.athlete.name:noteAthlete(p);const st=String((p.args&&p.args.status)||"present").toLowerCase();
+      return `<p class="propcard-sub">Mark <b>${esc(nm)}</b> ${esc(st)} for today.</p>`;})():""}
     ${!draft&&p.args&&Object.keys(p.args).length?`<p class="propcard-sub">${
       /* Truncate BEFORE escaping — slicing an escaped string can cut an
          entity like &amp; in half and leak raw markup. */
@@ -15223,6 +15226,20 @@ function runCommand(text){
    The picks are still resolved LOCALLY from the model's reply, so the assistant
    can never surface a listing that does not exist — the model suggests, the
    catalogue decides. */
+/* Parse "mark <name> present/absent/late/excused" into a local mark_attendance
+   proposal — the demo attendance path (see the shim in askCoach). Returns null
+   when the message isn't an attendance command. */
+function attendanceShim(text){
+  const t=String(text||"").toLowerCase();
+  const m=t.match(/\b(?:mark|set)\s+(.+?)\s+(present|here|absent|out|late|excused)\b/);
+  if(!m) return null;
+  const status=({here:"present",out:"absent"})[m[2]]||m[2];
+  const name=m[1].replace(/\b(as|to|for)\b.*$/,"").trim().split(/\s+/).slice(0,2).join(" ");
+  if(!name) return null;
+  return { reply:"Here's the attendance mark — review and confirm.",
+    proposal:{tool:"mark_attendance",args:{athlete:name,status:status},state:"open"} };
+}
+
 function askCoach(q){
   if(!q||!q.trim()) return;
   /* One turn at a time. Without this, two quick sends launched two overlapping
@@ -15240,6 +15257,21 @@ function askCoach(q){
   S.aiThreadHidden=false;
   const epoch=chatEpoch;
   S.chatThinking=true; render();
+
+  /* DEMO SHIM (owner 2026-08-25): mark_attendance is not yet in the deployed
+     coach-command, so a coach's attendance command becomes a proposal CLIENT-
+     SIDE — the SAME approve-card + rail as a server proposal, writing to the
+     demo roster. Fires signed-in OR offline; everything else falls through to
+     the normal server/fallback path below. Remove once app PR #44 deploys the tool. */
+  if(S.portal==="coach"){
+    const att=attendanceShim(text);
+    if(att){
+      S.chatThinking=false;
+      S.chat=[...S.chat,{role:"coach",text:att.reply,proposal:att.proposal}];
+      if(S.aiOpen===false) S.aiUnread=(S.aiUnread||0)+1;
+      render(); return;
+    }
+  }
 
   const fallback=(note)=>{
     const a=answerFor(text);
@@ -15335,6 +15367,7 @@ function askCoach(q){
 const PROP_META={
   create_note:         {label:"Create a session note",      tab:"notes"},
   create_document:     {label:"Create a document",          tab:"notes"},
+  mark_attendance:     {label:"Mark attendance",            tab:"roster"},
   schedule_change:     {label:"Change your schedule",       tab:"schedule"},
   /* RED — MONEY NEVER MOVES THROUGH THE CHAT. A payout intent has NO
      PROP_DISPATCH rail on purpose, so its card can only ever deep-link to the
@@ -15389,6 +15422,22 @@ const PROP_DISPATCH={
     },
     done:res=>"Note created for "+((res&&res.athlete)||"the athlete")+". It's in your Session notes.",
     fail:why=>"That didn't save — "+why+" No note was created.",
+  },
+  mark_attendance:{
+    /* Demo rail: resolves the athlete against the seeded roster and writes to
+       S.attendance via MOD_NOTES. Gated on a real roster match + a valid status,
+       so an unresolved name shows the deep-link, not an Approve over nobody. */
+    canSend:p=>{const M=window.MOD_NOTES;
+      return !!(M&&M.markAttendanceFromAI&&M.resolveAthlete&&M.resolveAthlete(noteAthlete(p)).athlete
+                &&/^(present|absent|late|excused)$/.test(String((p.args&&p.args.status)||"").toLowerCase()));},
+    verb:"Approve & mark", busy:"Marking…",
+    run:(p)=>{
+      const M=window.MOD_NOTES;
+      if(!M||!M.markAttendanceFromAI) throw new Error("The attendance module didn't load.");
+      return Promise.resolve(M.markAttendanceFromAI({athleteName:noteAthlete(p),status:String((p.args&&p.args.status)||"").toLowerCase()}));
+    },
+    done:res=>"Marked "+((res&&res.athlete)||"the athlete")+" "+((res&&res.status)||"present")+" for today. It's on your roster.",
+    fail:why=>"That didn't save — "+why+" No attendance was changed.",
   },
   draft_message:{
     canSend:p=>!!(p.args&&p.args.booking_id), verb:"Approve & send", busy:"Sending…",
@@ -26841,6 +26890,41 @@ function wire(){
 }
 
 /* ═══════════════════ EXPORT ═══════════════════ */
+/* ── Demo ATTENDANCE store (owner 2026-08-25) ─────────────────────────────────
+   The coach dashboard is a seeded demo, so an AI-marked attendance lands in a
+   local S.attendance array — exactly the pattern createFromAI uses for notes.
+   The PRODUCTION attendance path is the Flutter client + the session_attendance
+   table (app PR #44); this is the browser-testable demo mirror. */
+function attendance(){
+  if (!S.attendance || !Array.isArray(S.attendance)) S.attendance = [];
+  return S.attendance;
+}
+const ATT_STATUS = { present:1, absent:1, late:1, excused:1 };
+
+/* The write rail behind an approved mark_attendance proposal. Resolves the
+   athlete against the real demo roster (never invents one), validates the
+   status, and upserts one row per (athlete, day) into S.attendance. Throws
+   loudly on an unresolved/ambiguous name or a bad status — the host's
+   approveProposal turns a throw into an honest failure bubble. */
+function markAttendanceFromAI(spec){
+  spec = spec || {};
+  const hit = resolveAthlete(spec.athleteName);
+  if (hit.ambiguous)
+    throw new Error("More than one athlete matches “" + String(spec.athleteName || "").trim() + "” — name one exactly.");
+  if (!hit.athlete)
+    throw new Error("No athlete named “" + String(spec.athleteName || "").trim() + "” on your roster.");
+  const status = String(spec.status || "").trim().toLowerCase();
+  if (!ATT_STATUS[status]) throw new Error("Attendance must be present, absent, late, or excused.");
+  const a = hit.athlete;
+  const day = (String(spec.day || "").match(/^\d{4}-\d{2}-\d{2}$/) ? spec.day : isoNow().slice(0, 10));
+  const rows = attendance();
+  const existing = rows.find(r => r.athleteId === a.id && r.day === day);
+  if (existing) { existing.status = status; existing.updatedAt = isoNow(); }
+  else rows.push({ id: "att_" + a.id + "_" + Date.now(), athleteId: a.id, athlete: a.name,
+                   programId: a.programId, day: day, status: status, source: "ai", createdAt: isoNow() });
+  return { athlete: a.name, status: status, day: day };
+}
+
 window.MOD_NOTES = {
   css: CSS,
   tabs: { notes: "Session notes" },
@@ -26852,6 +26936,8 @@ window.MOD_NOTES = {
   /* Agentic AI-command rails (used by the coach chatbox create_note proposal). */
   resolveAthlete: resolveAthlete,
   createFromAI: createFromAI,
+  attendance: attendance,
+  markAttendanceFromAI: markAttendanceFromAI,
 };
 
 })();

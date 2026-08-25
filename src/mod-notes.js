@@ -1134,6 +1134,41 @@ function wire(){
 }
 
 /* ═══════════════════ EXPORT ═══════════════════ */
+/* ── Demo ATTENDANCE store (owner 2026-08-25) ─────────────────────────────────
+   The coach dashboard is a seeded demo, so an AI-marked attendance lands in a
+   local S.attendance array — exactly the pattern createFromAI uses for notes.
+   The PRODUCTION attendance path is the Flutter client + the session_attendance
+   table (app PR #44); this is the browser-testable demo mirror. */
+function attendance(){
+  if (!S.attendance || !Array.isArray(S.attendance)) S.attendance = [];
+  return S.attendance;
+}
+const ATT_STATUS = { present:1, absent:1, late:1, excused:1 };
+
+/* The write rail behind an approved mark_attendance proposal. Resolves the
+   athlete against the real demo roster (never invents one), validates the
+   status, and upserts one row per (athlete, day) into S.attendance. Throws
+   loudly on an unresolved/ambiguous name or a bad status — the host's
+   approveProposal turns a throw into an honest failure bubble. */
+function markAttendanceFromAI(spec){
+  spec = spec || {};
+  const hit = resolveAthlete(spec.athleteName);
+  if (hit.ambiguous)
+    throw new Error("More than one athlete matches “" + String(spec.athleteName || "").trim() + "” — name one exactly.");
+  if (!hit.athlete)
+    throw new Error("No athlete named “" + String(spec.athleteName || "").trim() + "” on your roster.");
+  const status = String(spec.status || "").trim().toLowerCase();
+  if (!ATT_STATUS[status]) throw new Error("Attendance must be present, absent, late, or excused.");
+  const a = hit.athlete;
+  const day = (String(spec.day || "").match(/^\d{4}-\d{2}-\d{2}$/) ? spec.day : isoNow().slice(0, 10));
+  const rows = attendance();
+  const existing = rows.find(r => r.athleteId === a.id && r.day === day);
+  if (existing) { existing.status = status; existing.updatedAt = isoNow(); }
+  else rows.push({ id: "att_" + a.id + "_" + Date.now(), athleteId: a.id, athlete: a.name,
+                   programId: a.programId, day: day, status: status, source: "ai", createdAt: isoNow() });
+  return { athlete: a.name, status: status, day: day };
+}
+
 window.MOD_NOTES = {
   css: CSS,
   tabs: { notes: "Session notes" },
@@ -1145,6 +1180,8 @@ window.MOD_NOTES = {
   /* Agentic AI-command rails (used by the coach chatbox create_note proposal). */
   resolveAthlete: resolveAthlete,
   createFromAI: createFromAI,
+  attendance: attendance,
+  markAttendanceFromAI: markAttendanceFromAI,
 };
 
 })();
