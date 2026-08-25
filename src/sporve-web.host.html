@@ -626,7 +626,7 @@ img{max-width:100%;display:block}
 /* §4 CTA — the white pill on the black bar. White, not accent, so it does not
    spend the page's orange budget. */
 .navcta{
-  display:inline-flex;align-items:center;height:40px;padding:0 18px;
+  display:inline-flex;align-items:center;height:34px;padding:0 14px;   /* slightly smaller (owner 2026-08-24) */
   /* Exact reference slate --slate:#7692AE (owner 2026-08-24, "use the exact color"). */
   border-radius:var(--r-pill);background:#7692AE;color:#FFFFFF;
   font-family:var(--nav-face);font-weight:600;font-size:var(--t-body);white-space:nowrap;
@@ -7509,7 +7509,7 @@ function topbarHTML(){
             + avatar, opening the same account menu. Hidden <=900 (the sheet
             hamburger owns auth there). */""}
       ${guestFam?`<button class="navlink navlogin" data-signin="1">Log in</button>
-        <button class="navcta getstarted" data-signin="1">Join waitlist</button>`:""}
+        <button class="navcta getstarted" data-signin="1">Get started</button>`:""}
       <button class="acct" data-acct="1" aria-label="Account menu">
         <span class="burger" aria-hidden="true"><span></span><span></span><span></span></span>
         ${u&&S.portal==="family"&&firstName?`<span class="acct-name">${esc(firstName)}</span>`:""}
