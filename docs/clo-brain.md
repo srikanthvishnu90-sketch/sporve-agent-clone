@@ -381,3 +381,9 @@ when two conflict; strike the loser, don't delete the history.
   <1280), and `aiFull` renders a persistent 260px history rail (`histRailHTML()`)
   beside the conversation, with `histDropHTML()` kept as the narrow-width dropdown.
   Do not restore the round-FAB closed state.
+
+**`#layer` is a SIBLING of `#app`, so every `var(--text-*)` inside the AI dock resolves to the `:root` FAMILY compact scale, never `#app.coachdark`.** `.aidock-input` = `var(--text-md)` → 13.5px, `.aidock-suggbtn`/`.aidock-aihint` = `var(--text-sm)` → 10px (host.html:2617, 2698, 2534), while `.aidock-panel .bub` is a 16px literal (host.html:2409) — the composer is 2.5px smaller than the message it writes. Sizes in the aidock must be px literals.
+
+**The signed-in coach role is `"provider"`, not `"coach"`, and it already comes from the database.** `sporve-web.host.html:6642-6649` reads `profiles.role` and flips `S.portal="coach"` when `p.role==="provider"`; `S.auth.status` only ever holds `guest`/`verified`.
+
+**The family topbar was deliberately shrunk 16px → 13px twice in two days (owner 2026-08-23 "top bar too large, meet in the middle", then 08-24).** `sporve-web.host.html:703` and `:701` carry both notes — any brief asking for a 16px nav is reversing a live owner decision, not filling a gap.

@@ -509,9 +509,9 @@ img{max-width:100%;display:block}
    affordance. padding 7px 12px + radius 8px per the prototype .nl. */
 .tnav-row .tnav{
   display:inline-flex;align-items:center;gap:7px;padding:7px 12px;
-  border-radius:8px;font-family:var(--sans);font-size:13px;font-weight:500;
+  border-radius:8px;font-family:var(--sans);font-size:16px;font-weight:500;
   letter-spacing:.01em;color:#FFFFFF;background:none;transition:background .15s;
-}   /* centre tabs (Product/Coaches/Trust/Pricing) (owner 2026-08-24): 13px */
+}   /* centre tabs 16px (owner spec 2026-08-25 §1: one nav size on every bar — SUPERSEDES the 08-24 13px cut) */
 /* Hover/menu-open = a faint white wash (rgba white .08), text stays white — the
    prototype affordance. Replaces the old slate-text hover. Active .on keeps its
    italic accent. */
@@ -693,15 +693,15 @@ img{max-width:100%;display:block}
    topbar is always #09090B (no scroll flip to a light ground), so white text
    never lands on white. Scoped to .navcenter/.topnav so the product-page
    .tnav-row is untouched. Active .on keeps its slate-tint chip (:not(.on)). */
-.navcenter .tnav{font-size:13px}   /* nav (owner 2026-08-24): 13px */
+.navcenter .tnav{font-size:16px}   /* nav 16px (owner spec 2026-08-25 §1 — SUPERSEDES the 08-24 13px cut) */
 .navcenter .tnav:not(.on){color:#FFFFFF}
 /* Right-cluster nav links (Become a coach / Log in) match the nav tabs exactly:
    --sans (Inter), 14.5px (--text-base), medium weight, pure white (owner 2026-08-23,
    nudged down from 16px — "top bar too large, meet in the middle"). The
    base .navlink hover (#8FA3BC slate) already applies. Coach-portal .navlink rows
    are a different container and keep the base --nav-face. */
-.topnav .navlink{font-family:var(--sans);font-size:13px;font-weight:500;
-  padding:7px 12px;border-radius:8px;height:auto;transition:background .15s,color .15s}   /* nav (owner 2026-08-24): Become a coach / Log in → 13px */
+.topnav .navlink{font-family:var(--sans);font-size:16px;font-weight:500;
+  padding:7px 12px;border-radius:8px;height:auto;transition:background .15s,color .15s}   /* nav 16px (owner spec 2026-08-25 §1: one size across every bar) */
 /* Right-cluster links share the prototype .nl pill wash on hover (white text held). */
 .topnav .navlink:hover{background:rgba(255,255,255,.08);color:#FFFFFF}
 /* At <=900 the centred menu collapses; the account control becomes the sheet
@@ -2403,12 +2403,14 @@ html.coldock .aidock-fab{display:none}
    defect the panel ground itself was fixed for. */
 .aidock-panel .bub.them{background:#1B2129;color:#F5F7F9;border:1px solid #2A313B}
 .aidock-panel .bub.me{background:#3E4C5A;color:#FFFFFF}
-/* Chat message text matches Claude/GPT reading comfort (owner 2026-08-23: "the
-   same exact text used in claude and gpt") — 15px Inter, 1.6 line-height, not the
-   compact 12.5px app body. Scoped to the AI dock messages only. */
+/* Chat message text matches Claude/GPT reading comfort (owner 2026-08-23 +
+   2026-08-25 unification spec) — 16px Inter, 1.75 line-height, identical for
+   user and assistant; the speaker changes bubble colour only, never size. */
 .aidock-panel .bub{max-width:100%;white-space:pre-wrap;word-break:break-word;
-  font-family:var(--sans);font-size:16px;line-height:1.6}
-.aidock-panel .bub.md,.aidock-panel .bub.md p,.aidock-panel .bub.md li{font-size:16px;line-height:1.6}
+  font-family:var(--sans);font-size:16px;line-height:1.75}
+.aidock-panel .bub.md,.aidock-panel .bub.md p,.aidock-panel .bub.md li{font-size:16px;line-height:1.75}
+/* Emphasis in replies is weight 600, never a size change (owner spec §2). */
+.aidock-panel .bub b,.aidock-panel .bub strong{font-weight:600}
 .aidock-panel .aidock-scroll,.aidock-panel .aidock-empty h3,.aidock-panel b{color:#F5F7F9}
 .aidock-panel .aidock-sub,.aidock-panel .aidock-empty p{color:#9AA6B2}
 .aidock-panel .aidock-pick{background:#131519;border-color:#333A45;color:#F5F7F9}
@@ -2531,7 +2533,7 @@ html.coldock .aidock-fab{display:none}
 .aimax-hist.up{top:auto;bottom:calc(100% + 8px);left:12px}
 /* AI-disclosure captions — slate on the dark panel (§3 literal). #9AA6B2 on
    the pill/max ground measures >7:1. */
-.aidock-aihint{color:#9AA6B2;font-size:var(--text-sm);text-align:center;
+.aidock-aihint{color:#9AA6B2;font-size:12px;text-align:center;
   margin:2px 12px 10px;line-height:1.4}
 /* ── Reference chat shell (owner 2026-08-25): docked-column header, vertical
    reopen tab, and the fullscreen history rail. Dark literals follow the
@@ -2564,7 +2566,7 @@ html.coldock .aidock-fab{display:none}
 .aimax-rail .aimax-railnew:hover{background:#1B1F26}
 .aimax-railg{font-family:var(--display);text-transform:uppercase;font-size:10px;
   letter-spacing:.14em;color:#9AA6B2;padding:8px 10px 4px;flex:none}
-.aimax-aihint{color:#9AA6B2;font-size:var(--text-sm);text-align:center;
+.aimax-aihint{color:#9AA6B2;font-size:12px;text-align:center;
   margin:0 auto 14px;max-width:720px;padding:0 22px}
 @media(max-width:767px){.aimax-wrap{padding:10px}
   .aidock-panel.aimax{height:calc(100vh - 20px)}}
@@ -2610,12 +2612,13 @@ html.coldock .aidock-fab{display:none}
 .aidock-row{display:flex;align-items:center;gap:8px;width:100%}
 .aidock-row .aidock-input{flex:1 1 auto;min-width:0}
 
-/* --text-md (15.5px), not the reference's ~17px. Every rendered size on this
-   site must land on the 8-step scale and smoke.sh fails the build otherwise;
-   15.5 is the nearest step up from the previous 14.5 and reads at the same
-   weight on screen. Matching the reference exactly would have cost the scale. */
-.aidock-input{width:100%;background:none;border:0;outline:none;color:#FFFFFF;
-  font-family:var(--sans);font-size:var(--text-md);line-height:1.4;padding:4px 0 2px}
+/* 16px LITERAL, not var(--text-md): this block styles #layer, outside #app,
+   where the coachdark 16px token never reaches (the var resolved 13.5px —
+   the composer sat visibly smaller than the 16px bubbles above it). 16px
+   also keeps iOS from zooming the field on focus (owner spec 2026-08-25,
+   ChatGPT parity: message text and composer identical at 16/1.75). */
+.aidock-compose .aidock-input{width:100%;background:none;border:0;outline:none;color:#FFFFFF;
+  font-family:var(--sans);font-size:16px;line-height:1.75;padding:4px 0 2px}
 /* #8A93A0 on #0F1113 is 5.6:1 — placeholder text still has to be readable. */
 /* #8A93A0 was 2.6:1 on the new slate. #C3CBD4 is 5.37:1. */
 .aidock-input::placeholder{color:#C3CBD4}
@@ -2692,17 +2695,18 @@ html.coldock .aidock-fab{display:none}
    and the "Explore what's possible" chips both send through data-ask. Dark
    neutrals only (no brand colour), scoped to the coach dock. */
 .aidock-empty-coach{margin:auto 0;text-align:left;padding:8px 4px;max-width:100%}
-.aidock-empty-coach h3{font-size:var(--text-lg);line-height:1.15;margin:0 0 10px;max-width:20ch}
-.aidock-empty-coach .aidock-sub{font-size:var(--text-xs);line-height:1.5;margin:0 0 18px}
+.aidock-empty.aidock-empty-coach h3{font-family:var(--display);text-transform:uppercase;font-weight:500;
+  font-size:22px;line-height:1.15;margin:0 0 10px;max-width:16ch}
+.aidock-empty-coach .aidock-sub{font-size:12.5px;line-height:1.5;margin:0 0 18px}
 .aidock-sugg{display:flex;flex-direction:column;gap:8px;margin-bottom:22px}
-.aidock-suggbtn{text-align:left;padding:12px 14px;border:1px solid #2F373F;background:#1A2025;
-  border-radius:12px;font-size:var(--text-sm);color:#F5F7F9;line-height:1.4;transition:.14s}
-.aidock-suggbtn:hover{border-color:#4A5462}
+.aidock-sugg .aidock-suggbtn{text-align:left;padding:12px 14px;border:1px solid #2F373F;background:#1A2025;
+  border-radius:12px;font-size:14px;font-weight:500;color:#F5F7F9;line-height:1.45;transition:.14s}
+.aidock-sugg .aidock-suggbtn:hover{border-color:#4A5462}
 .aidock-explore{display:flex;flex-direction:column;gap:8px}
-.aidock-explore-l{font-size:var(--text-sm);font-weight:600;margin:0 0 10px;color:#F5F7F9}
-.aidock-explorebtn{text-align:left;padding:11px 14px;border:1px solid #2F373F;border-radius:999px;
-  font-size:var(--text-xs);color:#9AA6B2;transition:.14s}
-.aidock-explorebtn:hover{color:#F5F7F9;border-color:#4A5462}
+.aidock-explore-l{font-size:14px;font-weight:600;margin:0 0 10px;color:#F5F7F9}
+.aidock-explore .aidock-explorebtn{text-align:left;padding:11px 14px;border:1px solid #2F373F;border-radius:999px;
+  font-size:12.5px;color:#9AA6B2;transition:.14s}
+.aidock-explore .aidock-explorebtn:hover{color:#F5F7F9;border-color:#4A5462}
 .aidock-panel.aimax .aidock-empty-coach{text-align:center}
 .aidock-panel.aimax .aidock-sugg,.aidock-panel.aimax .aidock-explore{align-items:center}
 @media(max-width:560px){
@@ -2839,7 +2843,7 @@ html.coldock .aidock-fab{display:none}
    already brighter, so the hierarchy now comes from the active fill and the
    accent bar rather than from dimming every resting item. */
 .rail button{
-  display:flex;align-items:center;gap:10px;padding:6px 11px;min-height:32px;
+  display:flex;align-items:center;gap:10px;padding:6px 11px;min-height:36px;
   border-radius:var(--r-m);position:relative;
   font-family:var(--sans);font-size:var(--t-small);line-height:1.15;font-weight:500;
   /* The owner asked for white and I set color:#FFFFFF unconditionally. The rail
@@ -3271,9 +3275,9 @@ h2.ctr{margin-bottom:10px}
 .gsbar{display:block;width:100%;height:5px;border-radius:999px;background:var(--raise2);overflow:hidden}
 .gsbar i{display:block;height:100%;background:var(--slate);border-radius:999px}
 .gsbar.big{height:8px}
-.dash{width:100%;max-width:none;grid-template-columns:236px minmax(0,1fr);gap:0;padding:0;align-items:start}
+.dash{width:100%;max-width:none;grid-template-columns:232px minmax(0,1fr);gap:0;padding:0;align-items:start}
 .dash>.rail{
-  position:fixed;left:0;top:126px;bottom:0;width:236px;z-index:40;overflow-y:auto;
+  position:fixed;left:0;top:126px;bottom:0;width:232px;z-index:40;overflow-y:auto;
   padding:18px 12px 30px;border-right:1px solid var(--rule);background:var(--paper);
 }
 /* The rail is a fixed, viewport-height sidebar that already scrolls
@@ -3301,7 +3305,14 @@ html.coldock .dash>div{width:100%;margin:0}
    payout, sessions, week's earnings — get Stripe-balance prominence. Were
    rendering at --text-lg (~15-17px, too timid); now 32px desktop / 26px mobile.
    Coach-scoped so the marketing/family surfaces keep their scale. */
-#app.coachdark .metric .v{font-size:clamp(26px,3vw,32px);line-height:1.04}
+#app.coachdark .metric .v{font-size:26px;line-height:1.04;font-family:var(--mono)}
+/* Stat labels to the reference eyebrow: 12px display 600 .06em (owner spec
+   2026-08-25 §3 — "kill the current wide tracking"). */
+body.reg-coach .metric .k{font-size:12px;letter-spacing:.06em;font-weight:600}
+/* Section titles (TODAY / NEEDS A DECISION…): reference .sec — 14px 600 .04em. */
+body.reg-coach .sec-head h2{font-size:14px;letter-spacing:.04em;font-weight:600}
+/* Kicker + sub at the reference 14px body. */
+body.reg-coach .dashcontext{font-size:14px}
 .spark{width:100%;height:22px;display:block}
 /* --faint, not --rule-strong. This is the "no data yet" em-dash a sparkline
    falls back to, and --rule-strong is a BORDER colour: on the coach portal's
@@ -4087,11 +4098,14 @@ body.reg-coach .cal-dow span{font-weight:500}
 body.reg-coach .in-sub b{font-weight:600}
 /* The one off-scale text size in shared chrome, snapped under this register
    only — the family topbar keeps its own value. */
-body.reg-coach .navlink{font-size:var(--t-small)}
-/* Coach sidebar toggles smaller/more professional (owner 2026-08-20). Higher
-   specificity than body.reg-coach button{font:inherit}, which was forcing the
-   rail tabs to inherit the 14.5px body size. */
-body.reg-coach .rail button{font-size:var(--t-small)}
+body.reg-coach .navlink{font-size:16px}  /* owner spec 2026-08-25 §1: coach bar matches marketing bar */
+/* Coach sidebar toggles (owner 2026-08-25 §3: 14px/500). var(--text-sm), NOT
+   var(--t-small): --t-small is declared at :root as var(--text-sm) and a var()
+   inside a custom property resolves ON THE DECLARING ELEMENT, so it froze at
+   the :root 10px and the coachdark 14px retune never reached the rail — the
+   toggles measured 10px while the rule read as 14. Verified by computed style. */
+body.reg-coach .rail button{font-size:var(--text-sm);font-weight:500}
+body.reg-coach .rail button.on{font-weight:600}
 
 /* ═══════════════ INVARIANT: dark ground, light type ═══════════════
    A black or near-black background carries WHITE or SLATE text. Never a
