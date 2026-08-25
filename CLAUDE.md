@@ -216,7 +216,19 @@ codebase. He is the only person accountable for it. Assume he knows the
 product cold and the implementation not at all — explain at that level,
 neither talking down nor assuming.
 
-**Founder Learning Protocol (owner, 2026-08-13). SUPERSEDES the five-sentence
+**RECAP = 3 SENTENCES (owner decision 2026-08-25). SUPERSEDES the five-part
+`WHAT I DID — PLAIN ENGLISH` section below — that was "way too long."** Every
+turn ends with exactly THREE plain-language sentences, no headers, no
+file-by-file, no concept-of-the-day, no separate risk line:
+1. **What was done.**
+2. **What needs to be done next.**
+3. **Where we stand** on the current thread of work (right now: going feature
+   by feature through the audit — name the feature and its state).
+Keep risk-handling inline and only when a risk is genuinely open (option #1:
+state it with the check that closed it, in the same breath — no standalone risk
+paragraph). Everything below is retired but kept for lineage.
+
+**[RETIRED 2026-08-25] Founder Learning Protocol (owner, 2026-08-13). SUPERSEDES the five-sentence
 reading and the end-of-turn recap.** Any turn that creates or modifies code
 ends with a section titled **`WHAT I DID — PLAIN ENGLISH`**, with these five
 parts in this order:
