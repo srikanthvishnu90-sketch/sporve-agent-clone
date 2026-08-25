@@ -352,3 +352,32 @@ when two conflict; strike the loser, don't delete the history.
 - **Composer is intentionally slate rounded-26 with a slate glow** (`.aidock-compose`
   ~L2560); owner named the glow as "the one deliberate difference from the reference"
   (~L2558). Don't restyle it toward the reference's flat #232A31 rounded-16.
+
+## Reference-HTML premises that are already shipped (thesis 2026-08-25)
+- **Roboto Condensed IS an embedded face and IS the global display voice.**
+  `assets/fonts/RobotoCondensed-Variable.woff2` exists; host ~L186 sets
+  `--display`/`--serif` to it, and host L4482-4489 forces
+  `h1..h4/.greet/.cw-h1/.eyebrow` to Roboto Condensed **uppercase weight 500
+  !important app-wide, coach portal included**. Any brief proposing a Google
+  Fonts load of Roboto Condensed is asking for what is already inlined.
+- **Archivo is gone.** It is absent from `assets/fonts/` (only Inter, JetBrains
+  Mono, RobotoCondensed remain), so CLAUDE.md's D7 "coach = Archivo headers" and
+  the "COMPACT-SERIF / Instrument Serif" blocks are STALE lineage, not current law.
+- **The coach H1 smoke gate is `H1_NOT_DISPLAY` and asserts Roboto Condensed**
+  (`src/smoke.sh:2314`), not Archivo. A reference-matching header cannot trip it.
+- **The coach rail groups already equal the reference's nav** (host L9845-9850:
+  ungrouped Home/Search, Clients{Clients,Messages,Schedule}, Catalog{Listings,
+  Media}, Business{Earnings,Approvals,Operations}); Billing + Session notes arrive
+  as `modCoachTabs()` extras from the modules (host L11466). Tab count is not a delta.
+- **CORRECTION to "metrics strip is 5 borderless cells — don't downgrade":** the
+  owner overrode it 2026-08-25; `.metrics` is now 3 boxed stat cards (host
+  L10059-10065, commit d50165a). The 5-cell line above is superseded.
+- **The AI dock already has 4 states** — docked column, `aiCollapsed`, `aiMax`,
+  `aiFull` fullscreen (host L9449, L13096, L14105, L15397). The reference's
+  `.collapsed`/`.full` mechanics are implemented. UPDATED (PR #265, 2026-08-25):
+  the two formerly-missing affordances are now shipped — the closed state renders
+  the vertical "Sporv AI" reopen tab (`.aidock-reopen`, replacing the round
+  `.aidock-fab` when closed; the FAB survives only as the open-state toggle at
+  <1280), and `aiFull` renders a persistent 260px history rail (`histRailHTML()`)
+  beside the conversation, with `histDropHTML()` kept as the narrow-width dropdown.
+  Do not restore the round-FAB closed state.

@@ -21,7 +21,7 @@
 <meta name="twitter:description" content="Find coaches, trainers, camps and teams across 20+ sports in Chicagoland.">
 <meta name="twitter:image" content="https://the-sporve-web.vercel.app/og.png">
 <link rel="icon" href="data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%2032%2032'%3E%3Crect%20width='32'%20height='32'%20rx='7'%20fill='%2309090B'/%3E%3Ccircle%20cx='16'%20cy='16'%20r='6'%20fill='white'/%3E%3C/svg%3E">
-<meta name="sporve-build" content="5754d3a9af26a173">
+<meta name="sporve-build" content="cff2ce7f3ed53477">
 </head>
 <body>
 <noscript><h1>Sporv — Every sport. One app.</h1><p>Sporv connects families and athletes with coaches, trainers, camps, and teams across more than 20 sports. Please enable JavaScript to use the app.</p></noscript>
@@ -2561,6 +2561,37 @@ html.coldock .aidock-fab{display:none}
    the pill/max ground measures >7:1. */
 .aidock-aihint{color:#9AA6B2;font-size:var(--text-sm);text-align:center;
   margin:2px 12px 10px;line-height:1.4}
+/* ── Reference chat shell (owner 2026-08-25): docked-column header, vertical
+   reopen tab, and the fullscreen history rail. Dark literals follow the
+   existing aidock pattern — this surface only ever renders on the coach
+   ground, and white/slate literals are the colour law there. Font sizes stay
+   px LITERALS on purpose: this block styles #layer, which sits OUTSIDE #app,
+   so the #app.coachdark token retune never reaches it and var(--text-sm)
+   would resolve to the 10px family value (CodeRabbit, PR #265). */
+.aidock-head{display:flex;align-items:center;gap:6px;height:48px;flex:none;
+  padding:0 10px 0 16px;border-bottom:1px solid #2A313B}
+.aidock-head-t{font-family:var(--display);text-transform:uppercase;font-weight:500;
+  font-size:13px;letter-spacing:.08em;color:#F5F7F9}
+.aidock .aidock-reopen{position:fixed;right:0;top:50%;transform:translateY(-50%);z-index:85;
+  writing-mode:vertical-rl;padding:14px 7px;border:1px solid #2A313B;border-right:0;
+  border-radius:10px 0 0 10px;background:#131519;color:#C3CBD4;
+  font-family:var(--display);text-transform:uppercase;font-weight:500;
+  font-size:12px;letter-spacing:.14em;box-shadow:0 6px 22px rgba(0,0,0,.45)}
+.aidock .aidock-reopen:hover{color:#F5F7F9;background:#1B2129}
+.aidock-reopen .aidock-fab-badge{top:-6px;right:auto;left:-6px}
+.aimax-body{display:flex;flex:1 1 auto;min-height:0}
+.aimax-conv{display:flex;flex-direction:column;flex:1;min-width:0}
+.aimax-rail{display:none}
+@media(min-width:1024px){
+  .aidock-panel.aimax.aifull .aimax-rail{display:flex;flex-direction:column;gap:1px;
+    width:260px;flex:none;overflow-y:auto;padding:12px;border-right:1px solid #2A313B}
+}
+.aimax-rail .aimax-railnew{display:flex;align-items:center;gap:8px;width:100%;text-align:left;
+  padding:9px 10px;border-radius:8px;border:1px solid #2A313B;font-size:13px;
+  color:#F5F7F9;margin-bottom:14px;flex:none}
+.aimax-rail .aimax-railnew:hover{background:#1B1F26}
+.aimax-railg{font-family:var(--display);text-transform:uppercase;font-size:10px;
+  letter-spacing:.14em;color:#9AA6B2;padding:8px 10px 4px;flex:none}
 .aimax-aihint{color:#9AA6B2;font-size:var(--text-sm);text-align:center;
   margin:0 auto 14px;max-width:720px;padding:0 22px}
 @media(max-width:767px){.aimax-wrap{padding:10px}
@@ -3432,6 +3463,45 @@ html.coldock .dash>div{width:100%;margin:0}
 .gsitem .gs-time{margin-left:auto;flex:none;color:var(--muted);font-size:var(--text-xs)}
 .gsitem.done .gs-main b{color:var(--muted);text-decoration:line-through}
 .gsitem.gs-current .gscheck{border-color:var(--slate);box-shadow:0 0 0 3px rgba(71,85,105,.20)}
+/* ── Reference gs2 grid + Today row list (owner 2026-08-25, pasted HTML) ──
+   Layout and sizes are the reference's; every colour resolves through the
+   existing coachdark tokens — zero reference hexes adopted. */
+.gs2{display:grid;grid-template-columns:1.2fr 1fr;gap:14px}
+.gscard{border:1px solid var(--rule);border-radius:12px;padding:20px;background:var(--paper)}
+.gshd{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:12px}
+.gshd .gs-sec{font-size:var(--text-sm);letter-spacing:.04em;margin:0}
+.gshd .gscount{font-size:12px;color:var(--muted)}  /* reference fine size — no 12px token on the coach scale */
+.gsteps{display:flex;flex-direction:column}
+.gsteps .gstep{display:flex;align-items:center;gap:12px;width:100%;text-align:left;
+  /* .gsteps .gstep, not bare .gstep: body.reg-coach button{font:inherit} is
+     (0,1,1) and silently resets a single-class button's font-size. */
+  padding:10px 2px;font-size:var(--text-xs);color:var(--muted);border-bottom:1px solid var(--rule)}
+.gstep:last-child{border-bottom:0}
+.gsdot{width:16px;height:16px;border-radius:50%;border:1.5px solid var(--faint);flex:none}
+.gstep.done .gsdot{background:var(--faint);border-color:var(--faint)}
+.gstep.done .gst{text-decoration:line-through;color:var(--faint)}
+.gstep.next{color:var(--ink)}
+.gstep.next .gsdot{border-color:var(--ink)}
+.gsgo{margin-left:auto;flex:none;font-family:var(--display);text-transform:uppercase;
+  font-weight:500;font-size:12px;letter-spacing:.06em;border:1px solid var(--rule);
+  border-radius:6px;padding:5px 9px}
+.gsguide{display:flex;flex-direction:column;justify-content:center}
+.gsguide-k{letter-spacing:.12em;font-size:12px;color:var(--faint)}  /* reference eyebrow — no 12px token on the coach scale */
+.gsguide h3{font-size:22px;margin:10px 0 8px;line-height:1.15}  /* reference 22px fixed — --text-2xl clamps to 30 here */
+.gsguide p{color:var(--muted);font-size:var(--text-xs);line-height:1.55;margin:0}
+.today-list{border:1px solid var(--rule);border-radius:12px;background:var(--paper);overflow:hidden}
+.today-list .today-row{position:relative;display:flex;justify-content:space-between;align-items:center;gap:16px;
+  width:100%;text-align:left;padding:14px 18px;border-bottom:1px solid var(--rule);font-size:var(--text-xs)}
+.today-row:last-child{border-bottom:0}
+.today-row:hover{background:var(--raise2)}
+.today-row .tspine{position:absolute;left:0;top:0;bottom:0;width:3px}
+.today-row .tr-l{color:var(--ink);min-width:0}
+.today-row .tr-r{color:var(--muted);flex:none}
+/* Class-level (body.reg-coach), NOT #app.coachdark — an id-level selector here
+   would silently outrank every .greet class rule (CodeRabbit, PR #265). */
+body.reg-coach .greet{font-size:24px}
+@media(max-width:900px){.gs2{grid-template-columns:1fr}
+  .today-row{flex-direction:column;align-items:flex-start;gap:4px}}
 .gs-continue{align-self:stretch;width:100%;justify-content:center;margin:0 0 14px}
 .gs-next{font-size:var(--text-sm);color:var(--muted);margin:2px 0 10px}
 .gs-next b{color:var(--ink);font-weight:600}
@@ -9404,6 +9474,28 @@ function histDropHTML(up){
   </div>`;
 }
 
+/* Fullscreen chat history rail (owner 2026-08-25, reference): the SAME
+   sessions histDropHTML lists, as a persistent left column grouped the way
+   the reference groups them — Today / This week / Earlier. Same handlers
+   (data-ainew, data-aihistpick); this is a second view, not a second store. */
+function histRailHTML(){
+  const sess=[...S.chatSessions].sort((a,b)=>(b.ts||0)-(a.ts||0));
+  const grp=ts=>{const m=(Date.now()-(ts||0))/60000;
+    return m<1440?"Today":m<10080?"This week":"Earlier";};
+  let last=null;
+  return `<nav class="aimax-rail" aria-label="Chat history">
+    <button type="button" class="aimax-railnew" data-ainew="1">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+           stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>
+      New chat</button>
+    ${sess.length?sess.map(s=>{const g=grp(s.ts);
+      const head=g!==last?`<div class="aimax-railg">${g}</div>`:"";last=g;
+      return head+`<button type="button" class="aimax-histrow${s.id===S.chatSessionId?" on":""}"
+        data-aihistpick="${esc(s.id)}"><b>${esc(s.title)}</b></button>`;}).join("")
+      :`<p class="aimax-histempty">No previous chats yet.</p>`}
+  </nav>`;
+}
+
 /* Coach AI rail empty state — ONE source for the docked/column view and the
    maximized view (owner 2026-08-24, to the pasted rail HTML). The docked view
    had been showing the FAMILY prompt ("What are you training for?" + searcher
@@ -9523,6 +9615,12 @@ function aiDockHTML(){
               <path d="M6 6l12 12M18 6L6 18"/></svg></button>
         </div>
       </div>
+      ${/* Reference fullscreen: a PERSISTENT 260px history rail on the left of
+           the conversation (the ChatGPT pattern), not a dropdown. The dropdown
+           stays for the non-full window and narrow screens. */""}
+      <div class="aimax-body">
+      ${S.aiFull?histRailHTML():""}
+      <div class="aimax-conv">
       <div class="aidock-scroll aimax-scroll" id="aidockScroll">
         <div class="aimax-col">
           ${S.chat.length?thread:coachEmptyHTML()}
@@ -9555,6 +9653,7 @@ function aiDockHTML(){
            the maximized session, so a mid-conversation reload still discloses
            it, not only the fresh-chat empty state. */""}
       <p class="aimax-aihint">Sporv AI can make mistakes. You approve any message or change before it happens.</p>
+      </div></div>
     </section></div>`;
   }
   /* THE WIDGET IS THE BAR. Owner, 2026-08-13: "all that should show on the
@@ -9584,6 +9683,25 @@ function aiDockHTML(){
   const colMode=open&&!S.aiCollapsed&&!S.aiMax&&(typeof window!=="undefined"&&window.innerWidth>=1280);
   const surface=showThread||colMode;
   return `${open?`<div class="aipill${colMode?" aidock-col":""}"><section class="aidock-panel${surface?" talking":""}" role="dialog" aria-label="Sporv AI helper">
+      ${/* Reference header on the docked column (owner 2026-08-25): the panel
+           name plus new-chat / expand / close, 48px, hairline below. Expand
+           goes STRAIGHT to the fullscreen surface (data-aigofull), the way the
+           reference's expand hides the sidebar and main. The composer-corner
+           controls are gated off in this mode — one set of window controls. */""}
+      ${colMode?`<div class="aidock-head">
+        <span class="aidock-head-t">Sporv AI</span>
+        <span style="flex:1"></span>
+        <button type="button" class="aimax-ic" data-ainew="1" aria-label="New chat" title="New chat">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+               stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg></button>
+        <button type="button" class="aimax-ic" data-aigofull="1" aria-label="Expand Sporv AI" title="Expand">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+               stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M4 9V4h5M20 15v5h-5M20 4l-6 6M4 20l6-6"/></svg></button>
+        <button type="button" class="aimax-ic" data-aiclose="1" aria-label="Close Sporv AI" title="Close">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+               stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
+      </div>`:""}
       ${surface?`
       <div class="aidock-scroll" id="aidockScroll">
         ${thread}
@@ -9621,28 +9739,28 @@ function aiDockHTML(){
              "minimizing would be the initial thing"). */""}
         ${/* Maximize is always offered in the compact bar (spec: maximize + X
              top-right), not only once a conversation exists. */""}
-        <button type="button" class="aidock-x aidock-maxbtn"
+        ${colMode?"":`<button type="button" class="aidock-x aidock-maxbtn"
           data-aimaximize="1" aria-label="Maximize Sporv AI" title="Maximize">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
                stroke-width="2" stroke-linecap="round" aria-hidden="true">
-            <path d="M14 4h6v6M20 4l-7 7M10 20H4v-6M4 20l7-7"/></svg></button>
-        ${convo?`<button type="button" class="aidock-x aidock-threadbtn"
+            <path d="M14 4h6v6M20 4l-7 7M10 20H4v-6M4 20l7-7"/></svg></button>`}
+        ${convo&&!colMode?`<button type="button" class="aidock-x aidock-threadbtn"
           data-aithread="1" aria-expanded="${showThread?"true":"false"}"
           aria-label="${showThread?"Hide the conversation":"Show the conversation"}"
           title="${showThread?"Back to just the bar":"Show the conversation"}">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
                stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
             <path d="${showThread?"M6 9l6 6 6-6":"M6 15l6-6 6 6"}"/></svg></button>`:""}
-        ${convo||S.chatSessions.length?`<button type="button" class="aidock-x aidock-histbtn"
+        ${(convo||S.chatSessions.length)&&!colMode?`<button type="button" class="aidock-x aidock-histbtn"
           data-aihist="1" aria-expanded="${S.aiHistOpen?"true":"false"}"
           aria-label="Chat history" title="Chat history">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
                stroke-width="1.8" stroke-linecap="round" aria-hidden="true">
             <circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg></button>`:""}
-        <button type="button" class="aidock-x" data-aiclose="1" aria-label="Close Sporv AI">
+        ${colMode?"":`<button type="button" class="aidock-x" data-aiclose="1" aria-label="Close Sporv AI">
           <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor"
                stroke-width="2" stroke-linecap="round" aria-hidden="true">
-            <path d="M6 6l12 12M18 6L6 18"/></svg></button>
+            <path d="M6 6l12 12M18 6L6 18"/></svg></button>`}
       </form>
       ${/* AI-disclosure (Claude Usage Policy) shown once a conversation exists
            — the at-rest bar stays "just the bar" (owner), but the moment it is
@@ -9664,6 +9782,15 @@ function fabHTML(open){
      the count clears the moment it is opened. */
   const n=S.aiUnread||0;
   const badge=(!open&&n>0)?`<span class="aidock-fab-badge" aria-hidden="true">${n>9?"9+":n}</span>`:"";
+  /* CLOSED (owner 2026-08-25, reference): not the round S — a vertical
+     "Sporv AI" tab pinned to the right edge at mid-height, the reference's
+     reopen affordance. Same data-aitoggle handler, same unread badge. */
+  if(!open) return `<div class="aidock">
+    <button class="aidock-reopen" data-aitoggle="1" aria-expanded="false"
+            aria-label="Open Sporv AI${n>0?` — ${n} new`:""}" title="Open Sporv AI">
+      Sporv AI${badge}
+    </button>
+  </div>`;
   return `<div class="aidock">
     <button class="aidock-fab" data-aitoggle="1" aria-expanded="${open}"
             aria-label="${open?"Collapse":"Open"} Sporv AI helper${(!open&&n>0)?` — ${n} new`:""}"
@@ -10114,12 +10241,29 @@ function dashboardHTML(){
   ];
   /* The multi-model picker was removed (fabricated capability — the models were
      wired to nothing). The bar is a single non-interactive "Sporv AI" chip. */
+  /* Reference sub-line: when 3 or fewer steps remain, NAME them, the way the
+     reference does ("add a listing, set availability, and confirm your payout
+     account") — the names come from the real checklist, not copy. */
+  const remain=gs.steps.filter(s=>!s[1]).map(s=>s[0].charAt(0).toLowerCase()+s[0].slice(1));
+  const remainList=remain.length===1?remain[0]
+    :remain.length===2?`${remain[0]} and ${remain[1]}`
+    :`${remain.slice(0,-1).join(", ")}, and ${remain[remain.length-1]}`;
   const statusLine=live
     ? `${todays.length} session${todays.length===1?"":"s"} tomorrow, ${q.filter(x=>x.decide).length} awaiting your decision.`
-    : `You're ${gs.total-gs.done} step${gs.total-gs.done===1?"":"s"} from going live.`;
+    : `You're ${remain.length} step${remain.length===1?"":"s"} from going live${
+        remain.length&&remain.length<=3?`: ${remainList}`:""}.`;
 
   return `
   <div class="dashwrap">
+    ${/* Reference order (owner 2026-08-25, pasted HTML): kicker → h1 → sub →
+         3 stat cards → Getting-started 2-card grid → Today list. The welcome
+         moves ABOVE the metrics and the h1 takes the reference's line. */""}
+    <section class="dashwelcome" aria-labelledby="dashWelcomeTitle">
+      <p class="dashhello">${partOfDay}, ${esc(first)}</p>
+      <h1 class="greet" id="dashWelcomeTitle">Let's build your business.</h1>
+      <p class="dashcontext">${esc(statusLine)}</p>
+    </section>
+
     <section class="metrics" aria-label="Last 30 days">
       ${M.map(([k,v,d])=>`<div class="metric">
         <div class="k">${esc(k)}</div>
@@ -10129,14 +10273,37 @@ function dashboardHTML(){
     </section>
     ${/* Honesty doctrine: these figures are seeded, not measured. They only
          ever appear alongside a label that says so — a coach must never be
-         shown a number Sporv did not actually count. */""}
-    <p class="lastdays num">All channels · Last 30 days${live
-      ? ` <span class="pill gold" style="margin-left:8px">Demo data</span>`:""}</p>
+         shown a number Sporv did not actually count. The card .d already says
+         "Last 30 days", so this line is now just the label. */""}
+    ${live?`<p class="lastdays num"><span class="pill gold">Demo data</span></p>`:""}
 
-    <section class="dashwelcome" aria-labelledby="dashWelcomeTitle">
-      <p class="dashhello">${partOfDay}, ${esc(first)}</p>
-      <h1 class="greet" id="dashWelcomeTitle">Let's build the <span>future of youth sports.</span></h1>
-      <p class="dashcontext">${esc(statusLine)}</p>
+    ${/* Getting-started 2-card grid, straight from the reference: the 6-step
+         checklist with its progress bar on the left, the editorial setup-guide
+         card on the right. Same gettingStarted() data the rail widget reads —
+         one source of truth, two views. */""}
+    <section class="gs2" aria-label="Getting started">
+      <div class="gscard">
+        <div class="gshd"><h2 class="gs-sec">Getting started</h2>
+          <span class="num gscount">${gs.done} of ${gs.total}</span></div>
+        <div class="gsbar" style="margin-bottom:14px"><i style="width:${gs.pct}%"></i></div>
+        ${gs.pct>=100
+          ? `<p class="gs-live">${ICON.check}<span>You're live — families can find and book you.</span>
+               <button class="gslink" data-ctab="profile">View your page</button></p>`
+          : `<div class="gsteps">
+              ${gs.steps.map(([t,done,tab])=>{const isNext=!done&&gs.next&&gs.next[0]===t;
+                return `<button class="gstep ${done?"done":""}${isNext?" next":""}" data-ctab="${esc(tab)}">
+                <span class="gsdot" aria-hidden="true"></span><span class="gst">${esc(t)}</span>
+                ${isNext?`<span class="gsgo">Start</span>`:""}
+              </button>`;}).join("")}
+            </div>`}
+      </div>
+      <div class="gscard gsguide">
+        <div class="eyebrow num gsguide-k">Setup guide</div>
+        <h3>How to get booked in your first week</h3>
+        <p>Coaches with photos, a listing, and open availability get their first
+           booking fastest. Finish the remaining steps — families can book you the
+           moment your background check clears.</p>
+      </div>
     </section>
 
     ${/* The fixed "Ask Sporv anything" command bar was removed at the owner's
@@ -10152,18 +10319,16 @@ function dashboardHTML(){
     <section>
       <div class="sec-head"><h2>Today</h2>
         <button class="tlink" data-ctab="schedule">Full schedule →</button></div>
-      ${todays.length?`<div class="todaystrip">
-        ${todays.map(({p,s})=>`<div class="todaycard">
-          <span class="tspine" style="background:${sportColor(p.sport)}"></span>
-          <div>
-            <div class="num tstime">${s.startTime}–${s.endTime}</div>
-            <b>${esc(p.title)}</b>
-            <div class="tsmeta num">${p.enrolled} athletes · ${esc(p.address)}</div>
-            <div class="tsbtns">
-              <button class="btn ghost sm" data-ctab="inbox">Message parents</button>
-              <button class="btn ghost sm" data-notetab="1">Session notes</button>
-            </div>
-          </div></div>`).join("")}
+      ${/* Reference Today: a quiet bordered row list — time · session on the
+           left, place and headcount on the right — instead of the card strip.
+           Each row still opens the schedule; the sport hue survives as the
+           3px identity bar the colour law allows. */""}
+      ${todays.length?`<div class="today-list">
+        ${todays.map(({p,s})=>`<button class="today-row" data-ctab="schedule">
+          <span class="tspine" style="background:${sportColor(p.sport)}" aria-hidden="true"></span>
+          <span class="tr-l"><span class="num">${s.startTime}</span> · ${esc(p.title)}</span>
+          <span class="tr-r num">${p.enrolled} athletes · ${esc(p.address)}</span>
+        </button>`).join("")}
       </div>`:`<div class="panel empty" style="padding:34px">
         <b>No sessions today</b>
         <p style="color:var(--muted);margin-top:6px">You have open slots this week — share your profile to fill them.</p>
@@ -10187,23 +10352,10 @@ function dashboardHTML(){
         Nothing waiting on you. The queue is empty.</div>`}
     </section>
 
-    <section class="cardrow">
-      <div class="panel">
-        <h3>Get set up</h3>
-        ${gs.pct>=100
-          ? `<p class="gs-live">${ICON.check}<span>You're live — families can find and book you.</span>
-               <button class="gslink" data-ctab="profile">View your page</button></p>`
-          : `<div class="gsline"><span class="gsbar big"><i style="width:${gs.pct}%"></i></span>
-               <span class="num">${gs.pct}%</span></div>
-             ${gs.next?`<p class="gs-next">Next: <b>${esc(gs.next[0])}</b> — ${esc(gs.next[3])}</p>
-               <button class="btn gs-continue" data-ctab="${esc(gs.next[2])}">Continue setup →</button>`:""}
-             <div class="gslist">
-               ${gs.steps.map(([t,done,tab,promise,mins])=>`<button class="gsitem ${done?"done":""}${(!done&&gs.next&&gs.next[0]===t)?" gs-current":""}" data-ctab="${tab}">
-                 <span class="gscheck">${done?ICON.check:""}</span>
-                 <span class="gs-main"><b>${esc(t)}</b><em>${esc(promise)}</em></span>
-                 <span class="gs-time num">${done?"":mins+" min"}</span></button>`).join("")}
-             </div>`}
-      </div>
+    ${/* "Get set up" panel removed — the Getting-started grid above (the
+         reference's gs2) is now the ONE checklist view on this page. Profile
+         strength and Demand keep their row, two-up. */""}
+    <section class="cardrow two">
       <div class="panel">
         <h3>Profile strength</h3>
         ${profileStrengthHTML()}
@@ -14138,6 +14290,10 @@ document.querySelectorAll('.sig-ai-coach').forEach(sigAiCoachWire);
   /* Amboras state machine. Maximize is only offered from a live conversation;
      minimize returns to the pill; close resets max so the NEXT open starts at
      the bar — "minimizing would be the initial thing" (owner). */
+  /* Docked-header Expand (reference): straight to the fullscreen surface with
+     the history rail — the reference's expand hides the sidebar and main. */
+  $("[data-aigofull]").forEach(b=>b.onclick=()=>{S.aiMax=true;S.aiFull=true;S.aiHistOpen=false;render();
+    const inp=document.getElementById("aiDockInput"); if(inp) inp.focus();});
   $("[data-aimaximize]").forEach(b=>b.onclick=()=>{S.aiMax=true;S.aiFull=false;S.aiHistOpen=false;render();
     /* Initial focus lands in the composer — the overlay owns the keyboard
        from the first keystroke, pairing with the Tab trap. */
@@ -15461,7 +15617,10 @@ document.addEventListener("click",e=>{
    responds to an outside click, restoring the widget (aiFull=false). */
 document.addEventListener("click",e=>{
   if(!(S.portal==="coach"&&S.aiMax&&S.aiFull)) return;
-  if(e.target.closest(".aidock-panel.aimax")||e.target.closest("[data-aifull]")) return;
+  /* data-aigofull is exempt too: the docked header's Expand OPENS fullscreen,
+     and its click bubbles here after render() detached the button — closest()
+     then misses the panel and this guard would instantly undo the expand. */
+  if(e.target.closest(".aidock-panel.aimax")||e.target.closest("[data-aifull]")||e.target.closest("[data-aigofull]")) return;
   S.aiFull=false;render();
 });
 /* Click anywhere outside the sport chooser closes it. Clicks INSIDE it are
