@@ -32,13 +32,13 @@ studied this session. But most *named* AI capabilities are not tools yet.
 
 | # | Feature | Score | Why not 10 (grounded) | Path to 10 |
 |---|---|---|---|---|
-| 1 | Gym finder | **8** ↑↑ | LIVE end-to-end: `facilities` migration applied ✓, `find_facilities` deployed (coach-command v11) ✓, `GOOGLE_PLACES_KEY` set ✓, Places API (New) enabled + **tested — returns real Chicago gyms** ✓, frontend shortlist card shipped ✓. Not yet a 10 for two honest reasons: (a) no live coach-session test yet (needs a signed-in coach — can't do from here), (b) the spec's "one-tap rental-inquiry EMAIL" is **Feature 3**, so Feature 1's final 10% is coupled to email | JOINT: coach signs in → "find a gym with 2 courts near Lincoln Park" → verify the card. Then Feature 3 (email) completes the inquiry step → 10 |
+| 1 | Gym finder | **9** ↑ | ROOT CAUSE FOUND + FIXED 08-25: `INTERNAL_CALL_SECRET` was unset, so ai-gateway was **discarding coach-command's system prompt** and running a generic one — the model said "I can't search for gym rentals" while the tool fired anyway, and never asked for a location. Secret set + both functions redeployed → the real prompt (location-ask, "never say unavailable", concise/proactive voice) is finally honored. All backend ✓ (migration, tool, key, Places API, card). Last 10%: one clean live coach-session test + the one-tap rental EMAIL (Feature 3) | Coach re-tests in the dock: no-location → asks where; with location → gyms; follow-ups answered. Then Feature 3 email → 10 |
 | 2 | Gym scheduling | **1** | Nothing built; depends on #1 + a resource model | B: facilities as calendar resources, conflict detection, rental-status lifecycle, stale-inquiry AI follow-up |
 | 3 | AI emailing | **1** | No email provider, no `send_email` tool | RED: Resend + verified domain → B: `send_email` proposal tool → F: approve card |
 | 4 | AI in-app message sending | **4** | `draft_message` proposal tool exists + a booking-message send rail; but bulk/broadcast dispatch is "queue until wired" and scheduled pre-approved auto-sends don't exist | B: wire all dispatch rails; add scheduled reminder engine with pre-approval |
 | 5 | AI notes | **4** | `create_note` proposal tool exists (→ MOD_NOTES writes a row); voice input and attendance-context generation don't | B/F: voice capture, attendance→note, organization/search |
 | 6 | AI drafting suite | **7** | Real tools: `draft_message/_bulk_message/_recap`, `camp_broadcast`, `draft_waitlist_offer`, grounded in roster/schedule, approval-gated. Gap: bulk/broadcast lack a live dispatch rail (paste-only today); no campaign scheduler | B: wire bulk/broadcast dispatch through the Approvals queue; add campaign scheduling |
-| 7 | AI operations Q&A | **6** | Reads work: `get_schedule/_bookings/_roster/_waitlist/whos_booked`. Gaps: `get_earnings` returns a note (not a real query), no org/compliance reads, single-coach only | B: real earnings read; org-scoped + compliance-state reads (ties to #64/#67) |
+| 7 | AI operations Q&A | **8** ↑ | 08-25: `get_earnings` is now a REAL query (paid-booking gross + payout-after-fee + this-month, through the session chain) ✓ and `get_reviews` added (published reviews + average rating) ✓ — deployed. Remaining gaps: `get_waitlist` still a client-repo stub, no org/compliance reads, single-coach only | B: real waitlist read; org-scoped + compliance-state reads (ties to #64/#67) |
 | 8 | AI voice calibration | **1** | Onboarding step B8 is spec only; no tone profile stored or injected into generations | F+B: tone-pair UI + drafting-profile persisted + injected into every `coach-command` generation |
 | 9 | AI onboarding concierge | **4** | Coach AI empty state + "Get set up" module + weighted next-step shipped this session; but no guided flow and no AI "what's left" tool reading `onboarding_state` | RED: apply `onboarding_state` → B: `whats_left` read-tool → F: guided flow |
 | 10 | AI reorder lists | **1** | No inventory model, no tool | B: org inventory table (#274–276) + `draft_reorder` read/draft tool |
@@ -51,6 +51,41 @@ are mostly unbuilt. Highest-leverage next: #6 dispatch rails and #7 real reads (
 lift the whole rail), then the gated tools (#1/#3) once secrets land.
 
 ---
+
+## Chatbox comprehensiveness — 20 gaps (owner 2026-08-25: "underline 10–20 large features the AI chatbox is still incomprehensive towards and fix them")
+
+Grounded in the real `coach-command` toolset. **FIXED THIS TURN** = shipped +
+deployed 08-25. The single biggest fix was structural: the chatbox was running a
+GENERIC prompt (secret unset), so it looked "incomprehensive" across the board —
+that is now corrected, which lifts several rows at once.
+
+| # | Gap (coach asks…) | Was | Now |
+|---|---|---|---|
+| 1 | "find/rent a gym" behaves right (asks location, doesn't refuse) | broken — generic prompt | **FIXED** — `INTERNAL_CALL_SECRET` set; real prompt honored |
+| 2 | "how much have I earned / my payout this month?" | stub note | **FIXED** — real `get_earnings` (gross + payout-after-fee + month) |
+| 3 | "what's my rating / what did parents say?" | no tool | **FIXED** — new `get_reviews` (reviews + average) |
+| 4 | rental / gym follow-up questions answered, not refused | refused | **FIXED** — prompt now scopes facility help in |
+| 5 | concise, proactive ChatGPT/Claude voice | verbose/off | **FIXED** — reply_text voice rule now applied |
+| 6 | "who's on my waitlist?" | stub note | OPEN — B: real per-session waitlist read (client repo today) |
+| 7 | "draft a reply to this review" | no tool | OPEN — B: `draft_review_reply` write proposal (reviews.response_body) |
+| 8 | "email this parent" from the org's own address | no tool | OPEN — Feature 3; GMAIL creds set, needs `send_email` proposal tool |
+| 9 | "text/SMS this parent" | partial | OPEN — Feature 4; needs SMS provider + dispatch rail |
+| 10 | "when's my next free slot?" (availability reasoning) | schedule only | OPEN — B: open-slot query + reasoning |
+| 11 | "mark John present/absent today" (attendance) | no tool | OPEN — B: attendance model + `mark_attendance` |
+| 12 | "reply to this parent in Spanish" (translation) | none | OPEN — Feature 12; translate step in draft pipeline |
+| 13 | "book / hold that gym for Tuesday" (rental booking) | none | OPEN — Feature 2; facility-as-resource + lifecycle |
+| 14 | "is my background check current?" | blocked by rule | OPEN — deliberately walled (safety); decide if a self-status read is allowed |
+| 15 | "what do I still need to set up?" (onboarding) | none | OPEN — needs `onboarding_state` migration (RED, drafted) + `whats_left` read |
+| 16 | "send this reminder every Monday" (scheduling) | none | OPEN — B: campaign scheduler + pre-approval |
+| 17 | "reorder cones/jerseys" (inventory) | none | OPEN — Feature 10; inventory model |
+| 18 | "how's this month vs last?" (trend analytics) | none | OPEN — B: period-over-period earnings/bookings |
+| 19 | bulk/broadcast messages actually SEND (not paste-only) | queue-until-wired | OPEN — B: wire dispatch through Approvals queue |
+| 20 | multi-coach / staff-scoped reads (org view) | single-coach | OPEN — B: org-scoped reads (enterprise domain) |
+
+**Fixed 08-25: 1–5 (5 of 20).** The rest are the Domain-1/2 build backlog —
+mostly new tools + a couple RED migrations, sequenced below. Highest next: #7
+draft_review_reply (cheap, pairs with the new get_reviews) and #8 email
+(the owner has asked for it twice; creds are already set).
 
 ## Domains 2–14 — PENDING
 2. Messaging & Communication (13–23) · 3. Booking & Marketplace (24–34) ·
