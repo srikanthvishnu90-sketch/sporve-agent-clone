@@ -9527,6 +9527,7 @@ function aiDockHTML(){
                return shown.length?`<div class="aidock-toolsline">Checked ${shown.map(x=>LB[x]).join(", ")}</div>`:"";})()}
              <div class="bub them md${m.err?" bub-err":""}">${mdCoach(m.text)}</div>
              ${m.err&&m.retry?`<button class="btn ghost sm" data-airetry="${i}" style="align-self:flex-start">Try again</button>`:""}
+             ${m.nav?`<button class="btn ghost sm" data-coachtab="${esc(m.nav.tab)}" style="align-self:flex-start">${esc(m.nav.label)}</button>`:""}
              ${m.proposal?propCardHTML(m.proposal,i):""}
              ${m.facilities?facilitiesCardHTML(m.facilities):""}
              ${(m.picks||[]).map(id=>{
@@ -15460,6 +15461,7 @@ const PROP_DISPATCH={
     verb:"Approve & send", busy:"Sending…",
     run:(p,text)=>Promise.resolve(sendRecapToParentDemo(noteAthlete(p), text)),
     done:res=>"Sent to "+((res&&res.parent)||"the parent")+". It's in your Messages.",
+    nav:()=>({tab:"inbox",label:"View in Messages"}),
     fail:why=>"That didn't send — "+why+" Nothing was delivered.",
   },
   draft_message:{
@@ -15585,7 +15587,7 @@ function approveProposal(i){
        still looking at. */
     p.state="done";
     if(epoch===chatEpoch){
-      S.chat=[...S.chat,{role:"coach",text:disp.done(res)}];
+      S.chat=[...S.chat,{role:"coach",text:disp.done(res),nav:disp.nav?disp.nav(res):null}];
     }
     render();
   }).catch(e=>{

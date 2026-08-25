@@ -21,7 +21,7 @@
 <meta name="twitter:description" content="Find coaches, trainers, camps and teams across 20+ sports in Chicagoland.">
 <meta name="twitter:image" content="https://the-sporve-web.vercel.app/og.png">
 <link rel="icon" href="data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%2032%2032'%3E%3Crect%20width='32'%20height='32'%20rx='7'%20fill='%2309090B'/%3E%3Ccircle%20cx='16'%20cy='16'%20r='6'%20fill='white'/%3E%3C/svg%3E">
-<meta name="sporve-build" content="70334f604ef494db">
+<meta name="sporve-build" content="7f2872591d5464e0">
 </head>
 <body>
 <noscript><h1>Sporv — Every sport. One app.</h1><p>Sporv connects families and athletes with coaches, trainers, camps, and teams across more than 20 sports. Please enable JavaScript to use the app.</p></noscript>
@@ -9571,6 +9571,7 @@ function aiDockHTML(){
                return shown.length?`<div class="aidock-toolsline">Checked ${shown.map(x=>LB[x]).join(", ")}</div>`:"";})()}
              <div class="bub them md${m.err?" bub-err":""}">${mdCoach(m.text)}</div>
              ${m.err&&m.retry?`<button class="btn ghost sm" data-airetry="${i}" style="align-self:flex-start">Try again</button>`:""}
+             ${m.nav?`<button class="btn ghost sm" data-coachtab="${esc(m.nav.tab)}" style="align-self:flex-start">${esc(m.nav.label)}</button>`:""}
              ${m.proposal?propCardHTML(m.proposal,i):""}
              ${m.facilities?facilitiesCardHTML(m.facilities):""}
              ${(m.picks||[]).map(id=>{
@@ -15504,6 +15505,7 @@ const PROP_DISPATCH={
     verb:"Approve & send", busy:"Sending…",
     run:(p,text)=>Promise.resolve(sendRecapToParentDemo(noteAthlete(p), text)),
     done:res=>"Sent to "+((res&&res.parent)||"the parent")+". It's in your Messages.",
+    nav:()=>({tab:"inbox",label:"View in Messages"}),
     fail:why=>"That didn't send — "+why+" Nothing was delivered.",
   },
   draft_message:{
@@ -15629,7 +15631,7 @@ function approveProposal(i){
        still looking at. */
     p.state="done";
     if(epoch===chatEpoch){
-      S.chat=[...S.chat,{role:"coach",text:disp.done(res)}];
+      S.chat=[...S.chat,{role:"coach",text:disp.done(res),nav:disp.nav?disp.nav(res):null}];
     }
     render();
   }).catch(e=>{
