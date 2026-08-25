@@ -45,7 +45,11 @@ window.OVERLAP_AUDIT = function (root) {
 
   scope.querySelectorAll("*").forEach((parent) => {
     const abs = [...parent.children].filter(
-      (c) => visible(c) && getComputedStyle(c).position === "absolute" && !coversParent(c, parent));
+      (c) => visible(c) && getComputedStyle(c).position === "absolute" && !coversParent(c, parent)
+        // The pinned scrollytelling stage stacks its screens/narratives on one
+        // anchor ON PURPOSE and crossfades them by opacity — a designed layer
+        // stack, not a chip collision. Exempt the whole [data-scrolly] subtree.
+        && !c.closest("[data-scrolly]"));
     for (let i = 0; i < abs.length; i++) {
       for (let j = i + 1; j < abs.length; j++) {
         const a = abs[i].getBoundingClientRect(), b = abs[j].getBoundingClientRect();

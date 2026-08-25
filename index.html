@@ -21,7 +21,7 @@
 <meta name="twitter:description" content="Find coaches, trainers, camps and teams across 20+ sports in Chicagoland.">
 <meta name="twitter:image" content="https://the-sporve-web.vercel.app/og.png">
 <link rel="icon" href="data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%2032%2032'%3E%3Crect%20width='32'%20height='32'%20rx='7'%20fill='%2309090B'/%3E%3Ccircle%20cx='16'%20cy='16'%20r='6'%20fill='white'/%3E%3C/svg%3E">
-<meta name="sporve-build" content="7f2872591d5464e0">
+<meta name="sporve-build" content="e9e2f07dd8cb2724">
 </head>
 <body>
 <noscript><h1>Sporv — Every sport. One app.</h1><p>Sporv connects families and athletes with coaches, trainers, camps, and teams across more than 20 sports. Please enable JavaScript to use the app.</p></noscript>
@@ -4295,6 +4295,74 @@ body.reg-coach .rail button.on{font-weight:600}
 .js-rev [data-rev][data-rev-d="1"]{transition-delay:.08s}
 .js-rev [data-rev][data-rev-d="2"]{transition-delay:.16s}
 
+/* ═══ Scroll-linked pinned showcase (landing only, marketing surface) ═══════
+   DEFAULT (no .js-rev — reduced-motion / no-JS): three readable stacked blocks,
+   every screen + narrative visible and static. This is the end state; JS only
+   ADDS the pin + crossfade. Colours are slate/ink tokens only (colour law). */
+.scrolly{position:relative}
+.scrolly-in{display:grid;grid-template-columns:1fr;gap:26px;padding:44px 0}
+.scrolly-device{display:flex;flex-direction:column;align-items:center;gap:14px}
+.dframe{width:min(420px,92%);border:1px solid var(--rule);border-radius:16px;
+  background:var(--paper);box-shadow:0 10px 34px rgba(10,12,15,.10);overflow:hidden}
+.dscreen{padding:18px 18px 20px;border-bottom:1px solid var(--rule)}
+.dscreen:last-child{border-bottom:0}
+.dsc-top{font-family:var(--display);text-transform:uppercase;font-weight:500;
+  font-size:12px;letter-spacing:.06em;color:var(--faint);margin-bottom:12px}
+.dsc-bubble{background:var(--raise);border:1px solid var(--rule);border-radius:12px 12px 12px 4px;
+  padding:10px 12px;font-size:13px;color:var(--ink);margin-bottom:12px;max-width:88%}
+.dsc-card{border:1px solid var(--rule);border-radius:12px;padding:12px}
+.dsc-draft{font-size:13px;line-height:1.5;color:var(--ink);margin:0 0 12px}
+.dsc-acts{display:flex;gap:8px}
+.dsc-btn{font-family:var(--display);text-transform:uppercase;font-weight:500;font-size:12px;
+  letter-spacing:.04em;padding:7px 12px;border-radius:8px;background:var(--slate);color:var(--slate-on)}
+.dsc-btn.ghost{background:none;border:1px solid var(--rule);color:var(--ink)}
+.dsc-line{display:flex;justify-content:space-between;align-items:center;gap:12px;
+  padding:11px 0;border-top:1px solid var(--rule);font-size:13px}
+.dsc-line:first-of-type{border-top:0}
+.dsc-line b{font-weight:600}
+.dsc-pill{font-size:11px;padding:3px 9px;border-radius:999px;background:var(--raise2);color:var(--muted)}
+.dsc-pill.on{background:rgba(71,85,105,.14);color:var(--slate-ink)}
+.dsc-pill.off{background:var(--warn-tint);color:var(--warn)}
+.dsc-big{font-family:var(--mono);font-size:34px;letter-spacing:-.02em;margin:2px 0}
+.dsc-subt{color:var(--muted);font-size:12.5px;margin-bottom:10px}
+.dsc-line em{font-family:var(--mono);font-style:normal}
+.srail{display:flex;gap:8px}
+.srail i{width:7px;height:7px;border-radius:999px;background:var(--rule)}
+.snarr{max-width:34ch;margin:0 auto}
+.snarr h2{margin:0 0 8px}
+.snarr p{color:var(--muted);font-size:var(--text-base);line-height:1.55;margin:0}
+@media(min-width:900px){
+  .scrolly-in{grid-template-columns:1.05fr .95fr;gap:48px;align-items:center}
+  .scrolly-device{position:relative}
+}
+
+/* ── ANIMATED: only when JS is live AND motion is allowed (.js-rev added by
+   wireLanding gated on reduced-motion). 300vh track + sticky stage; screens and
+   narratives crossfade via --s1/2/3 the rAF handler writes. Transforms/opacity
+   only; every animated node will-change:transform. ── */
+#app.js-rev .scrolly{height:300vh}
+#app.js-rev .scrolly-pin{position:sticky;top:0;height:100vh;display:flex;align-items:center;overflow:hidden}
+#app.js-rev .scrolly-in{padding:0}
+#app.js-rev .scrolly-device{position:relative;min-height:300px}
+#app.js-rev .dframe{position:relative}
+#app.js-rev .dscreen{position:absolute;inset:0;opacity:0;border-bottom:0;
+  will-change:transform,opacity;transform:translateY(10px) scale(.985);
+  transition:none;padding:20px 18px}
+#app.js-rev .ds1{opacity:var(--s1);transform:translateY(calc((1 - var(--s1)) * 10px)) scale(calc(.985 + var(--s1) * .015))}
+#app.js-rev .ds2{opacity:var(--s2);transform:translateY(calc((1 - var(--s2)) * 10px)) scale(calc(.985 + var(--s2) * .015))}
+#app.js-rev .ds3{opacity:var(--s3);transform:translateY(calc((1 - var(--s3)) * 10px)) scale(calc(.985 + var(--s3) * .015))}
+#app.js-rev .dframe{min-height:260px}
+#app.js-rev .snarr{position:absolute;inset:0;opacity:0;will-change:transform,opacity;
+  display:flex;flex-direction:column;justify-content:center}
+#app.js-rev .scrolly-copy{position:relative;min-height:170px}
+#app.js-rev .sn1{opacity:var(--s1);transform:translateY(calc((1 - var(--s1)) * 22px))}
+#app.js-rev .sn2{opacity:var(--s2);transform:translateY(calc((1 - var(--s2)) * 22px))}
+#app.js-rev .sn3{opacity:var(--s3);transform:translateY(calc((1 - var(--s3)) * 22px))}
+#app.js-rev .srail{position:absolute;left:50%;bottom:-30px;transform:translateX(-50%)}
+#app.js-rev .srail i:nth-child(1){background:var(--slate);opacity:calc(.35 + .65 * var(--s1))}
+#app.js-rev .srail i:nth-child(2){background:var(--slate);opacity:calc(.35 + .65 * var(--s2))}
+#app.js-rev .srail i:nth-child(3){background:var(--slate);opacity:calc(.35 + .65 * var(--s3))}
+
 /* ── Infinite horizontal carousel. Track holds the card set twice; the
    animation travels exactly -50%, so the second copy lands where the first
    began and the seam is invisible. Hover pauses. */
@@ -8130,6 +8198,52 @@ function landingHTML(){
   </section>
 
   ${peekRowHTML()}
+
+  ${/* THE ONE pinned scrollytelling showcase (anti-slop: exactly one on the site).
+       300vh track + a sticky 100vh stage; a single rAF handler in wireLanding()
+       writes --p (0->1) and three eased state opacities (--s1/2/3) that CSS reads.
+       Scroll-LINKED, never scroll-jacked: nothing moves the scroll. Degrades to
+       three stacked static blocks with no js-rev (reduced-motion / no-JS) — the
+       CSS default IS the readable end state. CSS-composed product mocks, no
+       screenshots (none exist; the CSP would force base64 into a 2.2MB file). */""}
+  <section class="scrolly" data-scrolly aria-label="How Sporv works for coaches">
+    <div class="scrolly-pin"><div class="shell scrolly-in">
+      <div class="scrolly-device" aria-hidden="true">
+        <div class="dframe">
+          <div class="dscreen ds1">
+            <div class="dsc-top">Sporv AI</div>
+            <div class="dsc-bubble">Here's a parent-friendly recap for Nia — edit or send.</div>
+            <div class="dsc-card">
+              <p class="dsc-draft">"Hi — quick update from today. Nia's weak-foot passing is really coming along, and the effort was there start to finish."</p>
+              <div class="dsc-acts"><span class="dsc-btn">Approve &amp; send</span><span class="dsc-btn ghost">Edit</span></div>
+            </div>
+          </div>
+          <div class="dscreen ds2">
+            <div class="dsc-top">Today</div>
+            <div class="dsc-line"><b>4:30 · Shooting · Ava R.</b><span class="dsc-pill on">Present</span></div>
+            <div class="dsc-line"><b>6:00 · U12 group</b><span class="dsc-pill">3 of 4</span></div>
+            <div class="dsc-line"><b>7:15 · Maya K.</b><span class="dsc-pill off">Absent</span></div>
+          </div>
+          <div class="dscreen ds3">
+            <div class="dsc-top">Earnings</div>
+            <div class="dsc-big num">$1,260</div>
+            <div class="dsc-subt">Month to date · next payout Friday</div>
+            <div class="dsc-line"><span>Paid out</span><em class="num">$980</em></div>
+            <div class="dsc-line"><span>In transit</span><em class="num">$280</em></div>
+          </div>
+        </div>
+        <div class="srail" aria-hidden="true"><i></i><i></i><i></i></div>
+      </div>
+      <div class="scrolly-copy">
+        <div class="snarr sn1"><h2>Draft a parent update in a sentence.</h2>
+          <p>The assistant writes a warm, clear recap any parent understands. You approve — it sends.</p></div>
+        <div class="snarr sn2"><h2>Take attendance as you coach.</h2>
+          <p>Mark who showed in a tap. It flows into your notes and the family's view — no clipboard.</p></div>
+        <div class="snarr sn3"><h2>Watch the money land.</h2>
+          <p>Every booking pays out on its own. See what's cleared, what's in transit, and your next payout.</p></div>
+      </div>
+    </div></div>
+  </section>
 
   <section class="band alt">
     <div class="shell" data-rev>
@@ -14849,6 +14963,7 @@ document.querySelectorAll('.sig-ai-coach').forEach(sigAiCoachWire);
    3. The accordion toggles a class directly and does NOT call render(). Going
       through state would rebuild #app and throw away the CSS transition, which
       is exactly the layout jolt the pattern exists to avoid. */
+var SCROLLY_RAF=null;
 function wireLanding(){
   const app=document.getElementById("app");
   const reveals=document.querySelectorAll("[data-rev]");
@@ -14859,6 +14974,9 @@ function wireLanding(){
      retaining up to 14 detached subtrees -- the whole FAQ and the stats card
      among them. Twenty to forty renders is a normal few minutes on this page. */
   if(REVEAL_IO){REVEAL_IO.disconnect();REVEAL_IO=null;}
+  /* Tear down the previous pass's scroll-linked handler too — render() rebuilds
+     #app wholesale, so a stale listener would point at a detached section. */
+  if(SCROLLY_RAF){window.removeEventListener("scroll",SCROLLY_RAF);window.removeEventListener("resize",SCROLLY_RAF);SCROLLY_RAF=null;}
 
   if(reveals.length&&"IntersectionObserver" in window&&!reduce){
     app.classList.add("js-rev");
@@ -14873,6 +14991,31 @@ function wireLanding(){
        crosses into view. A larger threshold reads as a blank hole on a phone,
        where one section can be most of the viewport. */
     },{rootMargin:"0px 0px -6% 0px",threshold:0});
+
+    /* SCROLL-LINKED pinned showcase. Native scroll only — this reads scroll
+       position and writes CSS custom properties; it NEVER moves the scroll,
+       intercepts wheel, or snaps (scroll-linked, not scroll-jacked). One rAF
+       per frame, transforms/opacity via vars (no re-renders, no layout writes
+       in the listener beyond one getBoundingClientRect read). Gated inside this
+       block, so reduced-motion (where .js-rev is never added) skips it entirely
+       and the CSS default stacked layout stands. */
+    const scrolly=app.querySelector("[data-scrolly]");
+    if(scrolly){
+      var ticking=false;
+      const plateau=(p,lo,hi)=>{const e=0.08;
+        return Math.min(1,Math.max(0,Math.min((p-(lo-e))/e,((hi+e)-p)/e,1)));};
+      const paint=()=>{ticking=false;
+        const vh=window.innerHeight, total=scrolly.offsetHeight-vh;
+        const p=total>0?Math.min(1,Math.max(0,(-scrolly.getBoundingClientRect().top)/total)):0;
+        scrolly.style.setProperty("--p",p.toFixed(4));
+        scrolly.style.setProperty("--s1",plateau(p,0.00,0.28).toFixed(3));
+        scrolly.style.setProperty("--s2",plateau(p,0.38,0.60).toFixed(3));
+        scrolly.style.setProperty("--s3",plateau(p,0.72,1.00).toFixed(3));};
+      SCROLLY_RAF=()=>{if(!ticking){ticking=true;requestAnimationFrame(paint);}};
+      window.addEventListener("scroll",SCROLLY_RAF,{passive:true});
+      window.addEventListener("resize",SCROLLY_RAF,{passive:true});
+      paint();
+    }
 
     /* Anything ALREADY on screen at bind time is shown immediately, without an
        entrance. This is what makes a mid-scroll re-render survivable: render()
