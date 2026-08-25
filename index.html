@@ -21,7 +21,7 @@
 <meta name="twitter:description" content="Find coaches, trainers, camps and teams across 20+ sports in Chicagoland.">
 <meta name="twitter:image" content="https://the-sporve-web.vercel.app/og.png">
 <link rel="icon" href="data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%2032%2032'%3E%3Crect%20width='32'%20height='32'%20rx='7'%20fill='%2309090B'/%3E%3Ccircle%20cx='16'%20cy='16'%20r='6'%20fill='white'/%3E%3C/svg%3E">
-<meta name="sporve-build" content="520a574b2b904944">
+<meta name="sporve-build" content="7e15668b84c41b41">
 </head>
 <body>
 <noscript><h1>Sporv — Every sport. One app.</h1><p>Sporv connects families and athletes with coaches, trainers, camps, and teams across more than 20 sports. Please enable JavaScript to use the app.</p></noscript>
@@ -537,9 +537,9 @@ img{max-width:100%;display:block}
    affordance. padding 7px 12px + radius 8px per the prototype .nl. */
 .tnav-row .tnav{
   display:inline-flex;align-items:center;gap:7px;padding:7px 12px;
-  border-radius:8px;font-family:var(--sans);font-size:16px;font-weight:500;
+  border-radius:8px;font-family:var(--sans);font-size:13px;font-weight:500;
   letter-spacing:.01em;color:#FFFFFF;background:none;transition:background .15s;
-}   /* centre tabs 16px (owner spec 2026-08-25 §1: one nav size on every bar — SUPERSEDES the 08-24 13px cut) */
+}   /* centre tabs 13px (owner 2026-08-25 SECOND ruling: "back to the previous size" — the pasted spec's 16px lasted one deploy; 13px is the canon for EVERY bar) */
 /* Hover/menu-open = a faint white wash (rgba white .08), text stays white — the
    prototype affordance. Replaces the old slate-text hover. Active .on keeps its
    italic accent. */
@@ -721,15 +721,15 @@ img{max-width:100%;display:block}
    topbar is always #09090B (no scroll flip to a light ground), so white text
    never lands on white. Scoped to .navcenter/.topnav so the product-page
    .tnav-row is untouched. Active .on keeps its slate-tint chip (:not(.on)). */
-.navcenter .tnav{font-size:16px}   /* nav 16px (owner spec 2026-08-25 §1 — SUPERSEDES the 08-24 13px cut) */
+.navcenter .tnav{font-size:13px}   /* 13px — owner 2026-08-25 second ruling (dead selector, kept in sync) */
 .navcenter .tnav:not(.on){color:#FFFFFF}
 /* Right-cluster nav links (Become a coach / Log in) match the nav tabs exactly:
    --sans (Inter), 14.5px (--text-base), medium weight, pure white (owner 2026-08-23,
    nudged down from 16px — "top bar too large, meet in the middle"). The
    base .navlink hover (#8FA3BC slate) already applies. Coach-portal .navlink rows
    are a different container and keep the base --nav-face. */
-.topnav .navlink{font-family:var(--sans);font-size:16px;font-weight:500;
-  padding:7px 12px;border-radius:8px;height:auto;transition:background .15s,color .15s}   /* nav 16px (owner spec 2026-08-25 §1: one size across every bar) */
+.topnav .navlink{font-family:var(--sans);font-size:13px;font-weight:500;
+  padding:7px 12px;border-radius:8px;height:auto;transition:background .15s,color .15s}   /* 13px on every bar (owner 2026-08-25 second ruling) */
 /* Right-cluster links share the prototype .nl pill wash on hover (white text held). */
 .topnav .navlink:hover{background:rgba(255,255,255,.08);color:#FFFFFF}
 /* At <=900 the centred menu collapses; the account control becomes the sheet
@@ -2723,8 +2723,9 @@ html.coldock .aidock-fab{display:none}
    and the "Explore what's possible" chips both send through data-ask. Dark
    neutrals only (no brand colour), scoped to the coach dock. */
 .aidock-empty-coach{margin:auto 0;text-align:left;padding:8px 4px;max-width:100%}
+.aidock-empty.aidock-empty-coach{text-align:center}
 .aidock-empty.aidock-empty-coach h3{font-family:var(--display);text-transform:uppercase;font-weight:500;
-  font-size:22px;line-height:1.15;margin:0 0 10px;max-width:16ch}
+  font-size:22px;line-height:1.15;margin:0;max-width:none}
 .aidock-empty-coach .aidock-sub{font-size:12.5px;line-height:1.5;margin:0 0 18px}
 .aidock-sugg{display:flex;flex-direction:column;gap:8px;margin-bottom:22px}
 .aidock-sugg .aidock-suggbtn{text-align:left;padding:12px 14px;border:1px solid #2F373F;background:#1A2025;
@@ -4126,7 +4127,7 @@ body.reg-coach .cal-dow span{font-weight:500}
 body.reg-coach .in-sub b{font-weight:600}
 /* The one off-scale text size in shared chrome, snapped under this register
    only — the family topbar keeps its own value. */
-body.reg-coach .navlink{font-size:16px}  /* owner spec 2026-08-25 §1: coach bar matches marketing bar */
+body.reg-coach .navlink{font-size:13px}  /* coach bar matches the landing bar: 13px (owner 2026-08-25 second ruling) */
 /* Coach sidebar toggles (owner 2026-08-25 §3: 14px/500). var(--text-sm), NOT
    var(--t-small): --t-small is declared at :root as var(--text-sm) and a var()
    inside a custom property resolves ON THE DECLARING ELEMENT, so it froze at
@@ -9520,25 +9521,12 @@ function histRailHTML(){
    is a conversational starter (the model answers it), NOT a write proposal, so
    it does not fall under the removed "control that lies" pricing chips. */
 function coachEmptyHTML(){
-  const first=(typeof S!=="undefined"&&S.user&&String(S.user.firstName||"").trim().split(" ")[0])||"";
-  const hi=first?`Hi ${esc(first)}, ask anything about your business`
-               :"Ask anything about your business";
-  const sugg=["What needs my attention today?",
-              "Who's booked this week?",
-              "Draft a reminder for this week's group session"];
-  const explore=[["Recap a session for parents","Recap a recent session for a parent"],
-                 ["Plan camp pricing","Help me plan pricing for a camp"]];
-  return `<div class="aidock-empty aidock-empty-coach">
-    <h3>${hi}</h3>
-    <p class="aidock-sub">You're chatting with Sporv's AI assistant, not a person, and it can be wrong. You approve anything before it's sent.</p>
-    <div class="aidock-sugg">
-      ${sugg.map(q=>`<button type="button" class="aidock-suggbtn" data-ask="${esc(q)}">${esc(q)}</button>`).join("")}
-    </div>
-    <div class="aidock-explore">
-      <div class="aidock-explore-l">Explore what's possible</div>
-      ${explore.map(([label,q])=>`<button type="button" class="aidock-explorebtn" data-ask="${esc(q)}">${esc(label)}</button>`).join("")}
-    </div>
-  </div>`;
+  /* GPT-minimal (owner 2026-08-25: "just the chatbox and a piece of text …
+     similar to gpt"). The greeting/suggestions/explore stack is retired; the
+     at-rest surface is one centred line over the composer. The AI disclosure
+     survives in the composer fine print (.aidock-aihint), which renders at
+     rest in the docked column and always in the maximized view. */
+  return `<div class="aidock-empty aidock-empty-coach"><h3>How can we help you?</h3></div>`;
 }
 
 function aiDockHTML(){
@@ -9642,7 +9630,7 @@ function aiDockHTML(){
             <i class="dotdot"></i><i class="dotdot" style="animation-delay:.16s"></i><i class="dotdot" style="animation-delay:.32s"></i></div>`:""}
         </div>
       </div>
-      ${aiChipsHTML()}
+      ${S.chat.length?aiChipsHTML():""}
       <form class="aidock-compose aimax-compose" id="aiDockForm">
         <input id="aiDockInput" class="aidock-input" placeholder="${S.chat.length?"Continue chat":"Ask Sporv"}"
                value="${esc(S.aiDraft||"")}" aria-label="Message Sporv AI" autocomplete="off">
@@ -9722,7 +9710,7 @@ function aiDockHTML(){
         ${S.chatThinking?`<div class="bub them" style="align-self:flex-start;display:flex;gap:5px;align-items:center">
           <i class="dotdot"></i><i class="dotdot" style="animation-delay:.16s"></i><i class="dotdot" style="animation-delay:.32s"></i></div>`:""}
       </div>`:""}
-      ${aiChipsHTML()}
+      ${(colMode&&!convo)?"":aiChipsHTML()}
       <form class="aidock-compose" id="aiDockForm">
         ${S.aiHistOpen&&!S.aiMax?histDropHTML(true):""}
         ${/* Two rows, matching the reference exactly: the message field owns the
