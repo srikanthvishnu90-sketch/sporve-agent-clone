@@ -333,3 +333,22 @@ when two conflict; strike the loser, don't delete the history.
 - **Nav logo crop math: crop-width = 3.625 × logo-height** (host ~394 comment).
   24px→87, 22px→80. The `<img>` carries `width="99" height="24"` attributes but CSS
   `.navlogo{height;width:auto}` governs; attributes are inert intrinsic hints.
+
+## Coach dashboard shell architecture (thesis 2026-08-25)
+- **The coach view is NOT a single 3-col CSS grid.** It is a hybrid: `.dash` is a
+  2-track grid `236px minmax(0,1fr)` (host ~L3243) but the rail is
+  `position:fixed;left:0;top:126px;bottom:0` (~L3244) — a fixed sidebar, not a real
+  track. Main is `.dash>div{grid-column:2;width:min(1240px,100%);margin:0 auto;
+  padding:0 34px}` (~L3255), i.e. a CENTERED max-1240 column, not a flush `1fr`.
+- **The AI dock lives in the `#layer` sibling of `#app`, not inside the coach grid.**
+  It is `.aipill.aidock-col` (fixed, right:0, `width:var(--aidock-w)`, host ~L2284);
+  the page reflows by `@media(min-width:1280px){#app{margin-right:var(--aidock-w)}}`
+  (~L2325). `--aidock-w` = `clamp(420, innerWidth*0.40, 760)` recomputed each render
+  (~L13101, owner 60-40 split 2026-08-25). So converting to a literal
+  `grid 232px 1fr 400px` would mean pulling a GLOBAL overlay out of `#layer` into the
+  coach subtree — do not; the margin-right reflow is deliberate and safer.
+- **Metrics strip is 5 borderless cells** (`.metrics` repeat(5), ~L3257, Stripe-scale,
+  commit #248) — NOT the reference's 3 stat cards. Decided; don't downgrade.
+- **Composer is intentionally slate rounded-26 with a slate glow** (`.aidock-compose`
+  ~L2560); owner named the glow as "the one deliberate difference from the reference"
+  (~L2558). Don't restyle it toward the reference's flat #232A31 rounded-16.
