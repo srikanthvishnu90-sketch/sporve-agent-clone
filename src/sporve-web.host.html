@@ -315,19 +315,21 @@ h4{font-size:var(--text-base)}
   --text-2xl:clamp(16px,1.7vw,18px);   /* h2 section headers    (−2 more, owner 08-23) */
   --text-lg:clamp(12px,1.1vw,13px);    /* h3 card/module titles (−2 more, owner 08-23) */
 }
-/* Coach DASHBOARD only (owner 2026-08-23: "make the dashboard text ~2 sizes
-   larger"). The global −2 left the coach portal too small; this bumps the coach
-   tokens +2 — reverting the −2 for #app.coachdark alone, so the family/product
-   side stays at the smaller sizes. Scoped by selector; family never matches. */
+/* Coach DASHBOARD only. Owner 2026-08-25: "the text should be larger similar to
+   stripe … this includes the dashboard to the left in the coaching bar." The
+   08-23 +2 was still too small — the left rail rendered at 12px, half a size
+   under Stripe's ~14px nav. This lifts the coach scale a further notch: rail/
+   small → 14, body → 15.5, medium (chatbox input) → 16, card titles → 17–19.
+   Scoped by selector; the compact family/product side never matches. */
 #app.coachdark{
-  --text-xs:12.5px;                    /* +2 */
-  --text-sm:12px;                      /* +2 */
-  --text-base:14.5px;                  /* +2 — coach body back to comfortable */
-  --text-md:15.5px;                    /* +2 */
-  --text-lg:clamp(16px,1.35vw,18px);   /* Job A (owner 2026-08-24): card/module titles to Stripe scale (18) */
-  --text-xl:clamp(23px,1.9vw,29px);    /* +2 — stat numerals */
-  --text-2xl:clamp(22px,2.2vw,30px);   /* +2 */
-  --text-hero:clamp(30px,3.6vw,52px);  /* +2 */
+  --text-xs:13.5px;                    /* micro labels (railgroup, badges) */
+  --text-sm:14px;                      /* LEFT RAIL nav → Stripe scale */
+  --text-base:15.5px;                  /* coach body */
+  --text-md:16px;                      /* medium text + chatbox input → Claude scale */
+  --text-lg:clamp(17px,1.4vw,19px);    /* card/module titles */
+  --text-xl:clamp(23px,1.9vw,29px);    /* stat numerals (unchanged — already large) */
+  --text-2xl:clamp(22px,2.2vw,30px);   /* section headers (unchanged) */
+  --text-hero:clamp(30px,3.6vw,52px);  /* hero (unchanged) */
 }
 /* Every header is Instrument Serif 400 — hierarchy is size+colour, the serif is
    NEVER bolded. Owner 2026-08-22: coach headers are now serif too ("all large
@@ -2405,8 +2407,8 @@ html.coldock .aidock-fab{display:none}
    same exact text used in claude and gpt") — 15px Inter, 1.6 line-height, not the
    compact 12.5px app body. Scoped to the AI dock messages only. */
 .aidock-panel .bub{max-width:100%;white-space:pre-wrap;word-break:break-word;
-  font-family:var(--sans);font-size:15px;line-height:1.6}
-.aidock-panel .bub.md,.aidock-panel .bub.md p,.aidock-panel .bub.md li{font-size:15px;line-height:1.6}
+  font-family:var(--sans);font-size:16px;line-height:1.6}
+.aidock-panel .bub.md,.aidock-panel .bub.md p,.aidock-panel .bub.md li{font-size:16px;line-height:1.6}
 .aidock-panel .aidock-scroll,.aidock-panel .aidock-empty h3,.aidock-panel b{color:#F5F7F9}
 .aidock-panel .aidock-sub,.aidock-panel .aidock-empty p{color:#9AA6B2}
 .aidock-panel .aidock-pick{background:#131519;border-color:#333A45;color:#F5F7F9}
