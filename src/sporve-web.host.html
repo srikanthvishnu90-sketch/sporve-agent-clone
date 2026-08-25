@@ -2546,13 +2546,27 @@ html.coldock .aidock-fab{display:none}
   padding:0 10px 0 16px;border-bottom:1px solid #2A313B}
 .aidock-head-t{font-family:var(--display);text-transform:uppercase;font-weight:500;
   font-size:13px;letter-spacing:.08em;color:#F5F7F9}
-.aidock .aidock-reopen{position:fixed;right:0;top:50%;transform:translateY(-50%);z-index:85;
-  writing-mode:vertical-rl;padding:14px 7px;border:1px solid #2A313B;border-right:0;
-  border-radius:10px 0 0 10px;background:#131519;color:#C3CBD4;
+/* Grey glowing RECTANGULAR launcher (owner 2026-08-25). Bottom-right, above
+   the reflow gutter. Grey only (colour law); the glow is an animated grey halo,
+   not an accent. Fixed so it rides every scroll position of the dashboard. */
+.aidock .aidock-launch{position:fixed;right:22px;bottom:22px;z-index:85;
+  display:inline-flex;align-items:center;gap:9px;padding:12px 18px;
+  border:1px solid #3A434E;border-radius:12px;background:#20262E;color:#E7ECF2;
   font-family:var(--display);text-transform:uppercase;font-weight:500;
-  font-size:12px;letter-spacing:.14em;box-shadow:0 6px 22px rgba(0,0,0,.45)}
-.aidock .aidock-reopen:hover{color:#F5F7F9;background:#1B2129}
-.aidock-reopen .aidock-fab-badge{top:-6px;right:auto;left:-6px}
+  font-size:13px;letter-spacing:.06em;line-height:1;
+  box-shadow:0 4px 14px rgba(0,0,0,.42),0 0 0 0 rgba(148,163,184,.55);
+  animation:aidock-glow 2.4s ease-in-out infinite;transition:transform .16s,background .16s,border-color .16s}
+.aidock .aidock-launch:hover{transform:translateY(-2px);background:#28303A;border-color:#55606D}
+.aidock .aidock-launch-ic{opacity:.85;flex:none}
+.aidock-launch .aidock-fab-badge{top:-6px;right:-6px}
+@keyframes aidock-glow{
+  0%,100%{box-shadow:0 4px 14px rgba(0,0,0,.42),0 0 0 0 rgba(148,163,184,.0),0 0 10px 1px rgba(148,163,184,.18)}
+  50%    {box-shadow:0 4px 14px rgba(0,0,0,.42),0 0 22px 4px rgba(148,163,184,.42),0 0 10px 1px rgba(148,163,184,.30)}
+}
+@media(prefers-reduced-motion:reduce){
+  .aidock .aidock-launch{animation:none;box-shadow:0 4px 14px rgba(0,0,0,.42),0 0 18px 3px rgba(148,163,184,.34)}
+}
+@media(max-width:560px){.aidock .aidock-launch{right:14px;bottom:14px;padding:11px 15px}}
 .aimax-body{display:flex;flex:1 1 auto;min-height:0}
 .aimax-conv{display:flex;flex-direction:column;flex:1;min-width:0}
 .aimax-rail{display:none}
@@ -9740,13 +9754,16 @@ function fabHTML(open){
      the count clears the moment it is opened. */
   const n=S.aiUnread||0;
   const badge=(!open&&n>0)?`<span class="aidock-fab-badge" aria-hidden="true">${n>9?"9+":n}</span>`:"";
-  /* CLOSED (owner 2026-08-25, reference): not the round S — a vertical
-     "Sporv AI" tab pinned to the right edge at mid-height, the reference's
-     reopen affordance. Same data-aitoggle handler, same unread badge. */
+  /* CLOSED (owner 2026-08-25): a grey GLOWING RECTANGULAR launcher, bottom-right.
+     Replaces the vertical edge tab. Same data-aitoggle handler, same unread
+     badge. The spark glyph + "Sporv AI" label read as an assistant launcher;
+     the animated glow draws the eye without an accent colour (colour law: grey
+     only). */
   if(!open) return `<div class="aidock">
-    <button class="aidock-reopen" data-aitoggle="1" aria-expanded="false"
+    <button class="aidock-launch" data-aitoggle="1" aria-expanded="false"
             aria-label="Open Sporv AI${n>0?` — ${n} new`:""}" title="Open Sporv AI">
-      Sporv AI${badge}
+      <svg class="aidock-launch-ic" width="17" height="17" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 2l1.6 5.4L19 9l-5.4 1.6L12 16l-1.6-5.4L5 9l5.4-1.6z"/></svg>
+      <span>Sporv AI</span>${badge}
     </button>
   </div>`;
   return `<div class="aidock">
