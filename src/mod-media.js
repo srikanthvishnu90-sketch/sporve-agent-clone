@@ -228,6 +228,20 @@ Object.freeze(state.mediaConsent);
 const consentRequests = {};
 /* Session-media grouping. View preference, not data. */
 let grouping = "session";
+/* Org-bio drafter state — module-local demo persistence (survives re-renders
+   this session). A real coach's approve also writes the providers bio via
+   SporveCoach.save; durable persistence for all is the RED media/bio path. */
+let bioText = null;
+let bioLive = false;
+function bioDraft(){
+  const pp = SEED.providerProfile || {};
+  const biz = pp.businessName || "This program";
+  const sp = (pp.sports && pp.sports.length ? pp.sports : ["soccer","basketball","tennis"]);
+  const sports = sp.length > 1 ? sp.slice(0,-1).join(", ") + " and " + sp.slice(-1) : sp[0];
+  return biz + " trains " + ROSTER.length + "+ athletes across " + sports + " on Chicago's North Side. "
+    + "Every coach clears a background check before they can be booked, and every family controls exactly "
+    + "where their athlete's photos go. Small groups, honest progress after each session, and a schedule that holds.";
+}
 
 /* ═══════════════════ DERIVED LOGIC ═══════════════════ */
 const athleteById = id => ROSTER.find(a => a.id === id) || null;
@@ -409,6 +423,12 @@ const CSS = `
 /* Slate inset inside the white band: the meter is a read-out on the section,
    not another card floating beside it. */
 .md-meter{border:0;border-radius:var(--r-m);padding:16px 18px;margin:0 0 22px;background:var(--raise)}
+.md-biobox{margin-top:12px;background:var(--raise);border:1px solid var(--rule);border-radius:var(--r-m);
+  padding:14px 16px;font-size:var(--text-base);line-height:1.6;color:var(--ink);min-height:78px;outline:none}
+.md-biobox:focus{border-color:var(--slate-border)}
+.md-bioacts{display:flex;gap:10px;margin-top:14px}
+.md-biolive{margin-top:10px;color:var(--slate-ink);font-size:var(--text-sm);display:none}
+.md-biolive.on{display:block}
 .md-meterhead{display:flex;justify-content:space-between;align-items:baseline;gap:12px}
 .md-pct{font-size:var(--text-xl);font-weight:700;letter-spacing:-.03em}
 .md-bar{height:8px;border-radius:999px;background:var(--raise2);overflow:hidden;margin:12px 0 10px}
@@ -799,6 +819,23 @@ function mediaView(){
         ? `<p class="md-hint" style="margin-top:14px">Media with two athletes appears under each of them.</p>`
         : ""}
     </div>
+  </section>
+
+  <section class="md-band paper">
+    <div data-rev>
+      <div class="md-secline"><div>
+        <div class="eyebrow">Organization bio</div>
+        <h2>Your story, drafted from your facts.</h2>
+        <p>The assistant drafts from your real profile — sports, roster size, verification. It only claims what your profile proves.</p>
+      </div></div>
+      <div class="md-biobox" id="mdBio" contenteditable="true" spellcheck="false" role="textbox" aria-label="Organization bio">${
+        esc(bioText || "Tap Write it for me and the assistant drafts your bio from your real profile. You approve before anything goes live.")}</div>
+      <div class="md-biolive${bioLive ? " on" : ""}">${esc("Approved — live on your marketplace listing, public page, and booking confirmations.")}</div>
+      <div class="md-bioacts">
+        <button class="btn ghost" data-md-biodraft="1">Write it for me</button>
+        <button class="btn" data-md-bioapprove="1">Approve</button>
+      </div>
+    </div>
   </section>`;
 }
 
@@ -1068,6 +1105,32 @@ function wire(){
   q("[data-md-group]").forEach(b => b.onclick = () => {
     grouping = b.dataset.mdGroup === "athlete" ? "athlete" : "session";
     render();
+  });
+
+  /* Org-bio drafter. "Write it for me" types the fact-drafted bio into the box
+     (no render mid-animation, so keystrokes aren't lost); Approve reads the box
+     (the coach's edits win), SAVES it, and shows the live line. Demo save is the
+     module var; a real coach also PATCHes providers.bio via SporveCoach.save. */
+  q("[data-md-biodraft]").forEach(b => b.onclick = () => {
+    const box = document.getElementById("mdBio");
+    if (!box) return;
+    const full = bioDraft();
+    bioLive = false;
+    const live = document.querySelector(".md-biolive"); if (live) live.classList.remove("on");
+    box.textContent = ""; let i = 0;
+    const t = setInterval(() => {
+      box.textContent = full.slice(0, i += 6);
+      if (i >= full.length) { clearInterval(t); box.textContent = full; bioText = full; }
+    }, 16);
+  });
+  q("[data-md-bioapprove]").forEach(b => b.onclick = () => {
+    const box = document.getElementById("mdBio");
+    const text = box ? box.textContent.trim() : "";
+    if (!text) { toast("Write or draft a bio first."); return; }
+    bioText = text; bioLive = true;
+    if (window.SporveCoach && window.SporveCoach.save) { try { window.SporveCoach.save({ bio: text }); } catch (e) {} }
+    render();
+    toast("Bio approved and saved to your public surfaces.");
   });
 
   /* Every outbound path re-checks the gate. The disabled attribute is
