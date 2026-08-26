@@ -21,7 +21,7 @@
 <meta name="twitter:description" content="Find coaches, trainers, camps and teams across 20+ sports in Chicagoland.">
 <meta name="twitter:image" content="https://the-sporve-web.vercel.app/og.png">
 <link rel="icon" href="data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%2032%2032'%3E%3Crect%20width='32'%20height='32'%20rx='7'%20fill='%2309090B'/%3E%3Ccircle%20cx='16'%20cy='16'%20r='6'%20fill='white'/%3E%3C/svg%3E">
-<meta name="sporve-build" content="41e885aab74b4d11">
+<meta name="sporve-build" content="4cdce81b7de7ad58">
 </head>
 <body>
 <noscript><h1>Sporv — Every sport. One app.</h1><p>Sporv connects families and athletes with coaches, trainers, camps, and teams across more than 20 sports. Please enable JavaScript to use the app.</p></noscript>
@@ -10642,6 +10642,13 @@ function actionQueue(){
     actions:[["Connect payouts","finances","dark"]]});
   return out;
 }
+/* Mutable demo team roster — added athletes persist this session (S store),
+   like S.trainers. The seed is cloned on first touch so a demo coach can add,
+   send a payment link, and mark paid without a backend. */
+function teamRoster(){
+  if(!S.teamRoster) S.teamRoster=JSON.parse(JSON.stringify(SEED.teams[0].roster));
+  return S.teamRoster;
+}
 function coachBody(t){
   const mine=coachListings();
   const pp=SEED.providerProfile;
@@ -10812,16 +10819,22 @@ function coachBody(t){
       <button class="btn" data-addtrainer="1">+ Invite trainer</button></div>
     <div class="panel"><h3>Trainers</h3>
       <div style="display:flex;flex-direction:column;gap:13px;margin-top:15px">${S.trainers.length?S.trainers.map(trainerRow).join(""):'<p style="color:var(--muted);font-size:var(--text-sm)">No trainers on your account yet — anyone you add clears their own background check before they can be booked.</p>'}</div></div>
-    <div class="panel" style="margin-top:16px"><h3>${esc(SEED.teams[0].name)}</h3>
-      <p style="color:var(--muted);font-size:var(--text-base)">${esc(SEED.teams[0].sport)} · ${SEED.teams[0].roster.length} athlete</p>
+    <div class="panel" style="margin-top:16px">
+      <div class="sec-head" style="margin:0"><h3>${esc(SEED.teams[0].name)}</h3>
+        <button class="btn ghost sm" data-addathlete="1">+ Add athlete</button></div>
+      <p style="color:var(--muted);font-size:var(--text-base)">${esc(SEED.teams[0].sport)} · ${teamRoster().length} athlete${teamRoster().length===1?"":"s"}</p>
       <div class="tblwrap" style="margin-top:14px"><table class="tbl">
-        <thead><tr><th>Athlete</th><th>Jersey</th><th>Available</th><th>Paid</th></tr></thead>
-        <tbody>${SEED.teams[0].roster.map(r=>`<tr>
+        <thead><tr><th>Athlete</th><th>Jersey</th><th>Available</th><th>Paid</th><th></th></tr></thead>
+        <tbody>${teamRoster().map((r,i)=>`<tr>
           <td style="display:flex;gap:10px;align-items:center">
-            <img src="${r.avatar}" alt="" style="width:32px;height:32px;border-radius:999px;object-fit:cover"><b>${esc(r.name)}</b></td>
+            ${r.avatar?`<img src="${r.avatar}" alt="" style="width:32px;height:32px;border-radius:999px;object-fit:cover">`
+              :`<span class="avatar" style="width:32px;height:32px">${esc(r.name.split(" ").map(w=>w[0]).slice(0,2).join(""))}</span>`}<b>${esc(r.name)}</b></td>
           <td class="num">#${esc(r.jersey)}</td>
           <td>${r.available?'<span class="pill good">Yes</span>':'<span class="pill warn">No</span>'}</td>
-          <td>${r.paid?'<span class="pill good">Paid</span>':'<span class="pill warn">Due</span>'}</td></tr>`).join("")}
+          <td>${r.paid?'<span class="pill good">Paid</span>':r.payState==="sent"?'<span class="pill">Link sent</span>':'<span class="pill warn">Unpaid</span>'}</td>
+          <td>${r.paid?"":r.payState==="sent"
+            ?`<button class="btn ghost sm" data-simpaid="${i}">Mark paid</button>`
+            :`<button class="btn ghost sm" data-paylink="${i}">Send payment link</button>`}</td></tr>`).join("")}
         </tbody></table></div></div>`;
   /* PART 8.6 — a coach could not reply to a family. Ever. This rendered only
      conversations[0] with no compose box, while the rail advertised unread
@@ -11570,6 +11583,22 @@ function modalHTML(){
           The invited trainer starts with <b>no background check</b>. They become bookable only after
           Sporv clears their own check — your business can't verify them.</p></div>
       <button class="btn wide" type="submit" style="margin-top:16px">Send invite</button>
+    </form>`);
+
+  if(m.type==="addathlete") return wrap("Add athlete",`
+    <form id="athleteForm">
+      <div style="display:grid;grid-template-columns:2fr 1fr;gap:14px">
+        <div class="field"><label>Athlete name</label><input name="name" placeholder="Nia Okafor" required></div>
+        <div class="field"><label>Jersey #</label><input name="jersey" placeholder="7"></div>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px">
+        <div class="field"><label>Guardian</label><input name="guardian" placeholder="Amara Okafor"></div>
+        <div class="field"><label>Guardian contact</label><input name="contact" placeholder="email or phone"></div>
+      </div>
+      <div class="panel" style="background:var(--warn-tint);border:0">
+        <p style="font-size:var(--text-base);color:var(--ink-2)">The roster works before the family signs up — the
+          guardian gets an account only when they pay a link or confirm a session.</p></div>
+      <button class="btn wide" type="submit" style="margin-top:16px">Add to roster</button>
     </form>`);
 
   if(m.type==="waitlist"){
@@ -14815,6 +14844,20 @@ document.querySelectorAll('.sig-ai-coach').forEach(sigAiCoachWire);
       commissionType:d.ctype,commissionValue:+d.cvalue,affiliation:"pending",bg:"none",active:true}];
     S.modal=null;render();toast("Invite sent — background check pending");
   };
+
+  $("[data-addathlete]").forEach(b=>b.onclick=()=>requireAuth(()=>{S.modal={type:"addathlete"};render();}));
+  const af=document.getElementById("athleteForm");
+  if(af) af.onsubmit=e=>{
+    e.preventDefault();
+    const d=Object.fromEntries(new FormData(af));
+    teamRoster().push({name:d.name,jersey:(d.jersey||"—"),available:true,paid:false,
+      guardian:d.guardian||"",contact:d.contact||"",payState:null});
+    S.modal=null;render();toast(d.name+" added as a shadow record — manageable before the family creates an account.");
+  };
+  $("[data-paylink]").forEach(b=>b.onclick=()=>{const r=teamRoster()[+b.dataset.paylink];
+    if(r){r.payState="sent";render();toast("Payment link sent. When the guardian pays, that payment is their account — no signup wall.");}});
+  $("[data-simpaid]").forEach(b=>b.onclick=()=>{const r=teamRoster()[+b.dataset.simpaid];
+    if(r){r.paid=true;r.payState="paid";render();toast("Family paid — claimed account created and receipt sent. Imported relationship: 0% platform fee.");}});
 
   $("[data-psport]").forEach(b=>b.onclick=()=>{
     const s=b.dataset.psport, u=S.auth.user;
