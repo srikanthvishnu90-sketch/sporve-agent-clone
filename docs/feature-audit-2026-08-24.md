@@ -21,7 +21,7 @@ low on purpose. That is the honest starting picture, and it is the point of the
 exercise. "Path to 10" names the concrete work + who it's gated on (F=frontend
 here, B=backend `~/SportsMan-main`, RED=owner-applied migration/secret/deploy).
 
-Progress: **Domain 1 done (12/87). Domains 2–14 pending.**
+Progress: **Domains 1–2 done (23/87). Domains 3–14 pending.**
 
 ---
 
@@ -87,8 +87,33 @@ mostly new tools + a couple RED migrations, sequenced below. Highest next: #7
 draft_review_reply (cheap, pairs with the new get_reviews) and #8 email
 (the owner has asked for it twice; creds are already set).
 
-## Domains 2–14 — PENDING
-2. Messaging & Communication (13–23) · 3. Booking & Marketplace (24–34) ·
+## Domain 2 — Messaging & Communication (13–23)   ·   avg ≈ 4.1/10
+
+The backend draft→approve→send pipeline and the RLS-scoped conversations model are
+genuinely real; the **web coach inbox is a seed mock** (compose writes only to local
+`S.messages`, never the DB), the org routing layer is authored-not-applied, and the
+**M1 child-binding hole** is live (RED — `docs/security/RED-2026-08-25-parent-update-binding.md`).
+
+| # | Feature | Score | Why not 10 (grounded) | Path to 10 |
+|---|---|---|---|---|
+| 13 | Coach↔parent direct messaging | **7** | Backend real (conversations/messages tables, participants-only RLS, realtime publication, `ensure_provider_conversation` RPC); web `sendParentMessage` writes real rows (mod-coachaccount.js:428). BUT the web coach INBOX is a SEED MOCK — `S.conversations` from SEED (host:6372), compose pushes to a local array (host:14162), no API read. Real product is the Flutter realtime subscriber. | F(web): hydrate S.conversations/S.messages from the DB + route coachCompose through sendParentMessage. B: typing/presence. |
+| 14 | Group / broadcast messaging | **3** | Web group threads (host:10814) are fully local mock — no group table, no send. Backend `camp-broadcast` is real (bulk DRAFT, never auto-sends) but rides shared_inbox migration marked "AUTHORED, NOT APPLIED". `draft_bulk_message`/`camp_broadcast` NOT in web PROP_DISPATCH → paste-only. | RED: apply ai_drafts + shared_inbox. B: wire bulk dispatch via Approvals. F: real group model + camp_broadcast rail. |
+| 15 | AI-drafted messages | **6** | Real + guardrailed: `message-draft` (reply options, guardrail strips forbidden claims) + `draft-reply` (auto grounded coach-only draft). Web `draft_message` rail sends real (host:15667). Gaps: draft-reply trigger prod-applied state UNCONFIRMED; bulk paste-only; no scheduling. | RED/verify: confirm ai_drafts + draft-reply trigger live. B: bulk dispatch + scheduling. Ties Domain-1 #6. |
+| 16 | Parent session updates / recaps | **6** | Real backend: session_notes→parent_updates→approve→`parent-update-send` (deterministic, idempotent, FCM push). **M1 LIVE**: `parent_updates_insert_coach` (20260629) checks only provider ownership, not that child_id was coached → IDOR / cross-child spam. Web `draft_recap` is DEMO-only (sendRecapToParentDemo, host:15662), not wired to the real send. | RED (M1): WITH CHECK binding child_id to a booking on this provider (drafted). F: point web recap at the real send. |
+| 17 | Two-deep / COPPA-safe structure | **5** | Youth isolation real (guardian-only reads, invisible-to-parent drafts, org_inbox first-name-only). But "two-deep" is marketing, NOT enforced — a 1:1 thread has no second-adult witness / archival gate. | B: decide + enforce the two-deep policy (auto-CC guardian or immutable audit copy) in the messages write path + RLS. |
+| 18 | Message notifications (push/email) | **5** | Push real (`_shared/push.ts` FCM v1, token pruning) fanned by parent-update-send; in-app notifications rows too. Gated on `FCM_SERVICE_ACCOUNT` secret (UNCONFIRMED in prod). Email channel does NOT exist (Domain-1 #3). | RED: confirm FCM secret set. RED/decision: pick email provider → B: email in the send step. |
+| 19 | Automated / scheduled messages | **5** | Event-driven drafts real + approval-gated (web Approvals tab renders outbound_messages: booking_confirmed/reminder_24h/post_session/no_show/rebook; only `drafted` sendable, 409-safe). No recurring/time-scheduled campaign engine. | B: a campaign scheduler (pg_cron) drafting into the Approvals queue with pre-approval. |
+| 20 | Shared team inbox (org routing) | **2** | `20260729_000620_shared_inbox.sql` fully designed (service_id/assigned_member routing, enforce_conversation_routing anti-forge, org_inbox()) but "AUTHORED, NOT APPLIED". Nothing live. Sub-trainer send-as-self is a documented follow-on. | RED: apply shared_inbox (routing only, no money). F: org-inbox surface. B: sub-trainer send identity. |
+| 21 | Message templates | **1** | No template store/picker/interpolation anywhere. The AI drafting suite is the intended replacement by design. | Decision: confirm AI-draft supersedes templates; if saved snippets wanted, B: message_templates table + F: compose picker. |
+| 22 | Read receipts / unread | **3** | Web unread badge (S.unread, host:10845) is LOCAL/cosmetic — no server read-state; messages has no surfaced read_at, conversations tracks only last_message. No delivered/seen. | B: read_at / message_reads + RLS-safe write, realtime it. F: derive badge from it. |
+| 23 | In-thread booking / consent actions | **2** | Threads text-only; draft-reply grounds on slots/policies but emits prose, never a structured book/consent action card. | B: typed in-thread action messages (booking_offer/consent_request kind) → F: actionable card deep-linking the real flow. |
+
+**Domain-2 read:** the backend draft→approve→send discipline (parent_updates + parent-update-send + guardrailed AI drafts + FCM push + RLS conversations) is genuinely built and safe, which is why messaging *looks* further along than it is. Highest-leverage next: **(1) close the live M1 child-binding hole (#16, RED — drafted)**, **(2) wire the web coach inbox to the real conversations table (#13, F — it's a seed mock today)**, **(3) apply shared_inbox routing (#20, RED)** — these convert "looks built" into "is built". Two verification caveats (confirm against live prod): ai_drafts + draft-reply trigger applied (gates #15); FCM_SERVICE_ACCOUNT set (gates #18).
+
+---
+
+## Domains 3–14 — PENDING
+2. ✅ Messaging & Communication (13–23) — scored above · 3. Booking & Marketplace (24–34) · 3. Booking & Marketplace (24–34) ·
 4. Payments & Money (35–47) · 5. Scheduling & Calendar (48–55) ·
 6. Client & Roster (56–63) · 7. Coach/Staff Ops (64–71) ·
 8. Video & Development (72–77) · 9. Commerce & Gear (78–80) ·

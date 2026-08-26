@@ -3,7 +3,6 @@ node_modules/
 *.log
 .clo-sync/
 .gstack/
-.vscode/
 .vercel
 .env*
 backup/
@@ -27,3 +26,7 @@ docs/coach-portal-spec.md
 
 # Strix pentest run artifacts (PoC detail stays local)
 strix_runs/
+branch_structure.json
+temp_auto_push.bat
+temp_interactive_push.bat
+.gitignore
