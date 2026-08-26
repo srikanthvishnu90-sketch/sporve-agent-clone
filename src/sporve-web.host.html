@@ -4267,6 +4267,12 @@ body.reg-coach .rail button.on{font-weight:600}
 .js-rev [data-rev][data-rev-d="1"]{transition-delay:.08s}
 .js-rev [data-rev][data-rev-d="2"]{transition-delay:.16s}
 
+/* Headline unmask — the spec's ONE masked-text signature, landing H1 only, once.
+   Resting = visible; JS adds .hero-unmask-play a single time to play the reveal. */
+.heroL .display{clip-path:inset(0 0 0 0)}
+.heroL .display.hero-unmask-play{animation:heroUnmask .9s cubic-bezier(.22,1,.36,1) both}
+@keyframes heroUnmask{from{clip-path:inset(0 0 100% 0);opacity:0}to{clip-path:inset(0 0 0 0);opacity:1}}
+
 /* ═══ Scroll-linked pinned showcase (landing only, marketing surface) ═══════
    DEFAULT (no .js-rev — reduced-motion / no-JS): three readable stacked blocks,
    every screen + narrative visible and static. This is the end state; JS only
@@ -14963,6 +14969,7 @@ document.querySelectorAll('.sig-ai-coach').forEach(sigAiCoachWire);
       through state would rebuild #app and throw away the CSS transition, which
       is exactly the layout jolt the pattern exists to avoid. */
 var SCROLLY_RAF=null;
+var HERO_UNMASKED=false;
 function wireLanding(){
   const app=document.getElementById("app");
   const reveals=document.querySelectorAll("[data-rev]");
@@ -14998,6 +15005,13 @@ function wireLanding(){
        in the listener beyond one getBoundingClientRect read). Gated inside this
        block, so reduced-motion (where .js-rev is never added) skips it entirely
        and the CSS default stacked layout stands. */
+    /* Headline unmask — once per session, gated on motion allowed (this whole
+       block only runs when !reduce). Replays are avoided by the module flag,
+       so a family/coach toggle re-render never re-fires it. */
+    if(!HERO_UNMASKED){
+      const h=app.querySelector(".heroL .display");
+      if(h){ h.classList.add("hero-unmask-play"); HERO_UNMASKED=true; }
+    }
     const scrolly=app.querySelector("[data-scrolly]");
     if(scrolly){
       var ticking=false;
