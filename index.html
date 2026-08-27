@@ -21,7 +21,7 @@
 <meta name="twitter:description" content="Find coaches, trainers, camps and teams across 20+ sports in Chicagoland.">
 <meta name="twitter:image" content="https://the-sporve-web.vercel.app/og.png">
 <link rel="icon" href="data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%2032%2032'%3E%3Crect%20width='32'%20height='32'%20rx='7'%20fill='%2309090B'/%3E%3Ccircle%20cx='16'%20cy='16'%20r='6'%20fill='white'/%3E%3C/svg%3E">
-<meta name="sporve-build" content="6c665da9d3ca5306">
+<meta name="sporve-build" content="c1e05229ee570f40">
 </head>
 <body>
 <noscript><h1>Sporv — Every sport. One app.</h1><p>Sporv connects families and athletes with coaches, trainers, camps, and teams across more than 20 sports. Please enable JavaScript to use the app.</p></noscript>
@@ -357,7 +357,7 @@ h4{font-size:var(--text-base)}
   --text-lg:clamp(17px,1.4vw,19px);    /* card/module titles */
   --text-xl:clamp(23px,1.9vw,29px);    /* stat numerals (unchanged — already large) */
   --text-2xl:clamp(22px,2.2vw,30px);   /* section headers (unchanged) */
-  --text-hero:clamp(27px,3.4vw,49px);  /* coach tab page headers −3px (owner 2026-08-25: media/listings/all coach tab large headers reduced by 3 points) */
+  --text-hero:clamp(24px,3.1vw,44px);  /* coach tab page headers — nudged smaller again (owner 2026-08-27: "decrease the large headers a little"); was 27/3.4/49 */
 }
 /* Every header is Instrument Serif 400 — hierarchy is size+colour, the serif is
    NEVER bolded. Owner 2026-08-22: coach headers are now serif too ("all large
@@ -7750,7 +7750,7 @@ function topbarHTML(){
     <nav class="topnav" aria-label="Main">
       ${S.portal==="family"
         ? `<button class="navlink becomecoach" data-becomecoach="1">Become a coach</button>`
-        : `<button class="navlink becomecoach" data-portal="family">Back to families</button>`}
+        : `<button class="navlink becomecoach" data-portal="family">Back to browsing</button>`}
       ${/* Coach PREVIEW (guest in the coach portal): a plain Sign-in link and a
             slate Get Pro button, so a prospective coach can sign in or start an
             upgrade from anywhere in the preview. Get Pro needs an account, so
