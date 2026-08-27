@@ -19,6 +19,35 @@ prompts, secrets, tool responses, private reasoning, or chain of thought. The
 ledger is runtime state and is intentionally ignored by Git. Source files remain
 the authority; `.clo-sync/activity.md` is coordination evidence only.
 
+## Codex owns prompt intake
+
+Codex is the primary agent for new owner prompts in this repository. For every
+substantive request, create or continue the gitignored folder described in
+`prompts/README.md`: keep the request verbatim in `PROMPT.md`, enumerate every
+ask in `BREAKDOWN.md`, and close every ask with evidence in `STATUS.md`. Add
+mid-turn requests to the same open folder instead of relying on chat memory.
+
+## Shared product contract
+
+- Change only what the owner asked for. Verify load-bearing claims against the
+  repository before editing and surface contradictions instead of guessing.
+- Before UI, layout, typography, colour, or motion work, read
+  `src/design-rules.md`. `CLAUDE.md` remains design-decision history; consult the
+  relevant current section when needed, but do not revive text marked retired
+  or superseded.
+- Edit source files, never generated `index.html`. `python3 src/build.py`
+  produces the build, and `bash src/smoke.sh` is the required local gate when
+  command execution is available.
+- Treat RLS, Stripe writes, auth, database migrations, booking capacity,
+  consent/COPPA, and secrets as `[CRITICAL-PATH]`. Default to analysis or a
+  reviewable draft; do not apply or merge those changes without explicit owner
+  authorization.
+- Explain completed edits in plain founder-level language: what changed, why it
+  changed, and what it means for the product. When the owner must act, give the
+  exact URL, button labels, and copy-paste-ready values.
+- End change turns with exactly three concise sentences: what was done, what is
+  next, and where the current feature or thread stands.
+
 ## Release every completed change
 
 Work with Clo as the release gate. A repository change is not complete from a

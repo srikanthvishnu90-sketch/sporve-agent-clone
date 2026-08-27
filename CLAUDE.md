@@ -1,5 +1,11 @@
 # the-sporve-web — standing rules
 
+> **Codex handoff (2026-08-27).** `AGENTS.md` now owns shared prompt intake,
+> coordination, critical-path, and release rules. Claude must read and follow it
+> before working; this file remains the detailed product/design history. When
+> current instructions conflict, `AGENTS.md` wins, and text marked retired or
+> superseded is historical only.
+
 ## 0. Coordinate with Codex before editing
 
 Codex may edit this repository concurrently. Read `.clo-sync/activity.md` when

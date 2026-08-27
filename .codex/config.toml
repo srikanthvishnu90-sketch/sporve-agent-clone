@@ -1,0 +1,33 @@
+allow_login_shell = false
+
+[features]
+shell_tool = false
+
+[mcp_servers.stripe]
+url = "https://mcp.stripe.com"
+enabled = true
+enabled_tools = [
+  "stripe_api_search",
+  "stripe_api_details",
+  "search_stripe_documentation",
+  "stripe_implementation_planner",
+]
+default_tools_approval_mode = "prompt"
+startup_timeout_sec = 20
+tool_timeout_sec = 60
+
+[mcp_servers.supabase]
+url = "https://mcp.supabase.com/mcp?project_ref=tseszaprvtvqrkfpditu&read_only=true"
+enabled = true
+enabled_tools = [
+  "list_tables",
+  "list_extensions",
+  "list_migrations",
+  "get_advisors",
+  "get_project_url",
+  "generate_typescript_types",
+  "search_docs",
+]
+default_tools_approval_mode = "prompt"
+startup_timeout_sec = 20
+tool_timeout_sec = 60

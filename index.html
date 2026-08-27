@@ -21,7 +21,7 @@
 <meta name="twitter:description" content="Find coaches, trainers, camps and teams across 20+ sports in Chicagoland.">
 <meta name="twitter:image" content="https://the-sporve-web.vercel.app/og.png">
 <link rel="icon" href="data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%2032%2032'%3E%3Crect%20width='32'%20height='32'%20rx='7'%20fill='%2309090B'/%3E%3Ccircle%20cx='16'%20cy='16'%20r='6'%20fill='white'/%3E%3C/svg%3E">
-<meta name="sporve-build" content="c1e05229ee570f40">
+<meta name="sporve-build" content="c897ad14af25a0e9">
 </head>
 <body>
 <noscript><h1>Sporv — Every sport. One app.</h1><p>Sporv connects families and athletes with coaches, trainers, camps, and teams across more than 20 sports. Please enable JavaScript to use the app.</p></noscript>
@@ -24827,10 +24827,8 @@ window.MOD_COACHONBOARD = {
    MOD_MEDIA — the coach's media library, and the consent that governs it.
 
    Mounts one tab inside the existing coach dash (left rail + body):
-   "Media". Two halves:
-     · Profile media  — headshot, intro video, facility, action shots.
-     · Session media  — clips and photos attached to a real session,
-                        grouped by session or by athlete.
+   "Media". Four local panes keep presentation, files, consent, and
+   performance distinct while sharing one consent-enforced library.
 
    These are photographs of children. Consent is therefore not a label
    on the item, it is a gate in front of every outbound action. Each
@@ -25052,12 +25050,17 @@ Object.freeze(state.mediaConsent);
 const consentRequests = {};
 /* Session-media grouping. View preference, not data. */
 let grouping = "session";
+/* The supplied Media format is one surface with four local tabs. These are
+   view preferences only, so they stay out of the exported/persisted state. */
+let mediaPane = "profile";
+let mediaFilter = "all";
 let analyzedVid = null;  // id of the video whose AI analysis is shown
 /* Org-bio drafter state — module-local demo persistence (survives re-renders
    this session). A real coach's approve also writes the providers bio via
    SporveCoach.save; durable persistence for all is the RED media/bio path. */
 let bioText = null;
 let bioLive = false;
+let headlineText = null;
 function bioDraft(){
   const pp = SEED.providerProfile || {};
   const biz = pp.businessName || "This program";
@@ -25358,6 +25361,212 @@ const CSS = `
   .md-checks{grid-template-columns:1fr}
   .md-tiles{grid-template-columns:repeat(auto-fill,minmax(140px,1fr))}
 }
+
+/* ── 2026-08-27 MEDIA FORMAT ─────────────────────────────────────
+   The reference is a dark operations surface with a compact header, sticky
+   local tabs, quiet cards, and mono read-outs. It mounts inside the existing
+   Sporv coach chrome, so this wrapper owns the exact inner-page ground and
+   recaptures the host gutter without duplicating the global header or rail. */
+.mfmt{
+  --mfmt-bg:#0E0E0F;--mfmt-panel:#121315;--mfmt-panel-2:#17191C;
+  --mfmt-line:#1F2226;--mfmt-line-2:#2A3138;--mfmt-ink:#F5F5F2;
+  /* The reference's #6E7680 tertiary text misses AA on #0E0E0F. Use the
+     coach register's established quiet slate while preserving its hierarchy. */
+  --mfmt-ink-2:#A3A3AB;--mfmt-ink-3:#8B98A6;--mfmt-steel:#6B7F9E;
+  --mfmt-warn:#C9A227;--mfmt-good:#8FD19E;--mfmt-shell-pad:32px;
+  min-height:calc(100vh - 60px);margin:0 calc(var(--mfmt-shell-pad) * -1);
+  padding-bottom:60px;background:var(--mfmt-bg);color:var(--mfmt-ink);
+  color-scheme:dark;font-family:var(--sans)
+}
+/* The reference has one 60px global bar. Media does not need the coach-wide
+   import/support utility strip, so remove that second header on this route. */
+#app:has(.mfmt) .coachtop{display:none}
+.mfmt button,.mfmt input,.mfmt textarea{font:inherit;color:inherit}
+.mfmt button:focus-visible,.mfmt input:focus-visible,.mfmt textarea:focus-visible{
+  outline:2px solid var(--mfmt-steel);outline-offset:2px
+}
+.mfmt-num{font-family:var(--mono);font-variant-numeric:tabular-nums}
+.mfmt-display{font-family:var(--display);text-transform:uppercase}
+.mfmt-head{padding:22px 28px 0}
+.mfmt-headrow{display:flex;align-items:flex-start;gap:24px}
+.mfmt-headcopy{min-width:0}
+.mfmt-eyebrow{margin:0 0 8px;font-family:var(--display);font-size:12px;font-weight:600;
+  letter-spacing:.06em;text-transform:uppercase;color:var(--mfmt-ink-3)}
+.mfmt .mfmt-title{margin:0 0 6px;font-family:var(--display);font-size:24px;font-weight:500;
+  letter-spacing:.01em;line-height:1.15;text-transform:uppercase;color:var(--mfmt-ink)}
+.mfmt-lede{max-width:64ch;margin:0;color:var(--mfmt-ink-2);font-size:14px;line-height:1.55}
+.mfmt-actions{display:flex;flex:none;gap:8px;margin-left:auto}
+.mfmt-btn{min-height:36px;padding:0 14px;border:1px solid var(--mfmt-line-2);border-radius:8px;
+  display:inline-flex;align-items:center;justify-content:center;gap:7px;background:transparent;
+  color:var(--mfmt-ink);font-family:var(--display);font-size:13px;font-weight:700;
+  letter-spacing:.04em;line-height:1;text-transform:uppercase;transition:background .14s,border-color .14s,color .14s}
+.mfmt-btn:hover{background:var(--mfmt-panel-2);border-color:#3B424B}
+.mfmt-btn.primary{background:#FFFFFF;border-color:#FFFFFF;color:#0E0E0F}
+.mfmt-btn.primary:hover{background:#E9E9E6;border-color:#E9E9E6}
+.mfmt-btn.small{min-height:30px;padding:0 10px;font-size:12px}
+.mfmt-btn:disabled{opacity:.42;cursor:not-allowed}
+.mfmt-tabs{position:sticky;top:60px;z-index:42;display:flex;gap:0;margin-top:18px;
+  padding:0 28px;border-bottom:1px solid var(--mfmt-line);background:rgba(14,14,15,.97);
+  backdrop-filter:blur(10px)}
+.mfmt-tab{min-height:43px;margin-bottom:-1px;padding:0 16px;border-bottom:2px solid transparent;
+  display:flex;align-items:center;gap:8px;color:var(--mfmt-ink-3);font-family:var(--display);
+  font-size:13px;font-weight:600;letter-spacing:.05em;text-transform:uppercase}
+.mfmt-tab:hover{color:var(--mfmt-ink-2)}
+.mfmt-tab.on{border-color:var(--mfmt-ink);color:var(--mfmt-ink)}
+.mfmt-count{padding:2px 7px;border-radius:999px;background:var(--mfmt-panel-2);
+  color:var(--mfmt-ink-3);font-family:var(--mono);font-size:11px;letter-spacing:0}
+.mfmt-pane{padding:24px 28px 0;animation:mfmt-in .16s ease-out}
+@keyframes mfmt-in{from{opacity:.72;transform:translateY(2px)}to{opacity:1;transform:none}}
+.mfmt-block{margin-bottom:28px}
+.mfmt-block:last-child{margin-bottom:0}
+.mfmt-section-title{margin:0 0 4px;color:var(--mfmt-ink);font-family:var(--display);
+  font-size:14px;font-weight:600;letter-spacing:.04em;line-height:1.25;text-transform:uppercase}
+.mfmt-section-sub{margin:0 0 14px;color:var(--mfmt-ink-3);font-size:12px;line-height:1.5}
+.mfmt-card{padding:18px;border:1px solid var(--mfmt-line);border-radius:12px;
+  background:var(--mfmt-panel)}
+
+/* Profile */
+.mfmt-profile-card{display:grid;grid-template-columns:220px minmax(0,1fr);gap:20px}
+.mfmt-cover{position:relative;aspect-ratio:3/4;border-radius:12px;overflow:hidden;
+  display:grid;place-items:center;background:#1A1D21;color:var(--mfmt-ink-3);
+  font-family:var(--mono);font-size:11px}
+.mfmt-covermark{font-family:var(--display);font-size:28px;font-weight:700;letter-spacing:.02em;color:var(--mfmt-ink-2)}
+.mfmt-cover-tag{position:absolute;bottom:10px;left:10px;padding:4px 8px;border-radius:6px;
+  background:rgba(0,0,0,.66);color:var(--mfmt-ink);font-family:var(--mono);font-size:11px}
+.mfmt-full{width:100%;margin-top:10px}
+.mfmt-field{margin-bottom:16px}
+.mfmt-field:last-child{margin-bottom:0}
+.mfmt-field label{display:block;margin-bottom:6px;color:var(--mfmt-ink-3);font-size:12px}
+.mfmt-field input,.mfmt-field textarea{width:100%;padding:10px 12px;border:1px solid var(--mfmt-line-2);
+  border-radius:8px;background:var(--mfmt-bg);color:var(--mfmt-ink);font-size:15px}
+.mfmt-field input{min-height:42px}
+.mfmt-field textarea{min-height:96px;resize:vertical;line-height:1.55}
+.mfmt-field input:hover,.mfmt-field textarea:hover{border-color:#3B424B}
+.mfmt-fieldmeta{display:flex;justify-content:space-between;gap:16px;margin-top:6px;
+  color:var(--mfmt-ink-3);font-size:12px;line-height:1.45}
+.mfmt-bio-actions{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-top:10px}
+.mfmt-live{display:none;color:var(--mfmt-good);font-size:12px}
+.mfmt-live.on{display:inline}
+.mfmt-two{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:14px}
+.mfmt-video-card{padding:14px}
+.mfmt-video{position:relative;aspect-ratio:16/9;border-radius:12px;overflow:hidden;
+  display:grid;place-items:center;background:#1A1D21;color:var(--mfmt-ink-3);
+  font-family:var(--mono);font-size:12px}
+.mfmt-video-play{width:44px;height:44px;border:1px solid var(--mfmt-line-2);border-radius:999px;
+  display:grid;place-items:center;background:rgba(14,14,15,.84);color:var(--mfmt-ink)}
+.mfmt-video-play:hover{background:var(--mfmt-panel-2)}
+.mfmt-video-length{position:absolute;right:10px;bottom:9px;padding:3px 7px;border-radius:5px;
+  background:rgba(0,0,0,.66);color:var(--mfmt-ink);font-size:11px}
+.mfmt-stat-label{color:var(--mfmt-ink-3);font-family:var(--display);font-size:12px;font-weight:600;
+  letter-spacing:.06em;text-transform:uppercase}
+.mfmt-stat-value{margin:8px 0 2px;color:var(--mfmt-ink);font-family:var(--mono);font-size:26px}
+.mfmt-stat-detail{color:var(--mfmt-ink-3);font-size:12px;line-height:1.45}
+.mfmt-inline-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:16px}
+.mfmt-analysis{margin-top:14px}
+.mfmt-analysis .md-vidanalysis{padding:14px 16px;border:1px solid var(--mfmt-line);
+  border-radius:10px;background:var(--mfmt-panel)}
+
+/* Asset grid */
+.mfmt-filters{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px}
+.mfmt-chip{min-height:30px;padding:0 12px;border:1px solid var(--mfmt-line-2);border-radius:999px;
+  display:inline-flex;align-items:center;gap:7px;color:var(--mfmt-ink-2);font-size:13px}
+.mfmt-chip:hover{border-color:#3B424B;color:var(--mfmt-ink)}
+.mfmt-chip.on{background:#FFFFFF;border-color:#FFFFFF;color:#0E0E0F;font-weight:500}
+.mfmt-chip .mfmt-num{font-size:11px}
+.mfmt-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(168px,1fr));gap:12px}
+.mfmt-asset{min-width:0;overflow:hidden;border:1px solid var(--mfmt-line);border-radius:10px;
+  background:var(--mfmt-panel)}
+.mfmt-thumb{position:relative;aspect-ratio:4/3;display:grid;place-items:center;background:#1A1D21;
+  color:var(--mfmt-ink-3);font-family:var(--mono);font-size:11px}
+.mfmt-thumbmark{display:flex;align-items:center;gap:6px}
+.mfmt-thumbplay{width:34px;height:34px;border:1px solid var(--mfmt-line-2);border-radius:999px;
+  display:grid;place-items:center;background:rgba(14,14,15,.84);color:var(--mfmt-ink)}
+.mfmt-thumbplay:hover{background:var(--mfmt-panel-2)}
+.mfmt-order{position:absolute;right:8px;top:8px;color:var(--mfmt-ink-2);font-size:10px}
+.mfmt-status{position:absolute;top:8px;left:8px;padding:3px 7px;border-radius:5px;
+  background:rgba(0,0,0,.68);font-family:var(--display);font-size:10px;font-weight:600;
+  letter-spacing:.08em;text-transform:uppercase}
+.mfmt-status.live{color:var(--mfmt-good)}
+.mfmt-status.held{color:var(--mfmt-warn)}
+.mfmt-status.private,.mfmt-status.shared{color:#AABAD0}
+.mfmt-status.unused{color:var(--mfmt-ink-2)}
+.mfmt-assetmeta{padding:9px 10px;color:var(--mfmt-ink);font-size:13px;line-height:1.35}
+.mfmt-assetmeta b{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:500}
+.mfmt-assetmeta small{display:block;margin-top:2px;color:var(--mfmt-ink-3);font-size:12px;line-height:1.4}
+.mfmt-assetacts{display:flex;align-items:center;gap:5px;flex-wrap:wrap;padding:0 10px 10px}
+.mfmt-iconbtn{width:30px;min-width:30px;height:30px;margin-left:auto;border:1px solid transparent;
+  border-radius:7px;display:grid;place-items:center;color:var(--mfmt-ink-3)}
+.mfmt-iconbtn:hover{border-color:var(--mfmt-line-2);background:var(--mfmt-panel-2);color:#F08A8A}
+.mfmt-empty{padding:28px;border:1px dashed var(--mfmt-line-2);border-radius:10px;
+  grid-column:1/-1;text-align:center;color:var(--mfmt-ink-3);font-size:13px}
+
+/* Consent */
+.mfmt-note{display:flex;align-items:flex-start;gap:11px;margin-bottom:18px;padding:14px 16px;
+  border:1px solid var(--mfmt-line);border-radius:10px;background:var(--mfmt-panel);
+  color:var(--mfmt-ink-2);font-size:13px;line-height:1.55}
+.mfmt-note svg{width:18px;height:18px;flex:0 0 auto;margin-top:1px;color:var(--mfmt-steel)}
+.mfmt-note b{color:var(--mfmt-ink);font-weight:600}
+.mfmt-consent{overflow:hidden;border:1px solid var(--mfmt-line);border-radius:12px}
+.mfmt-consent-head,.mfmt-consent-row{display:grid;grid-template-columns:2fr 1fr 1fr 110px;
+  gap:16px;align-items:center;padding:10px 16px}
+.mfmt-consent-head{background:var(--mfmt-panel-2);color:var(--mfmt-ink-3);
+  font-family:var(--display);font-size:12px;font-weight:600;letter-spacing:.06em;text-transform:uppercase}
+.mfmt-consent-row{min-height:58px;border-top:1px solid var(--mfmt-line)}
+.mfmt-consent-name{min-width:0;color:var(--mfmt-ink);font-size:13px}
+.mfmt-consent-name small{display:block;margin-top:2px;color:var(--mfmt-ink-3);font-size:12px}
+.mfmt-pill{width:max-content;max-width:100%;padding:3px 9px;border:1px solid var(--mfmt-line-2);
+  border-radius:999px;color:var(--mfmt-ink-3);font-size:12px;white-space:nowrap}
+.mfmt-pill.allowed{border-color:#2C4433;color:var(--mfmt-good)}
+.mfmt-pill.held{border-color:#4A3F16;color:var(--mfmt-warn)}
+.mfmt-pill.private{border-color:#344154;color:#AABAD0}
+.mfmt-date{color:var(--mfmt-ink-3);font-family:var(--mono);font-size:12px}
+.mfmt-list{padding:6px 18px}
+.mfmt-list-row{display:flex;justify-content:space-between;gap:20px;padding:12px 0;
+  border-bottom:1px solid var(--mfmt-line);color:var(--mfmt-ink-2);font-size:13px;line-height:1.45}
+.mfmt-list-row:last-child{border-bottom:0}
+.mfmt-list-row .mfmt-num{flex:none;color:var(--mfmt-ink-3);font-size:12px}
+
+/* Performance */
+.mfmt-stats{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px}
+.mfmt-progress-head{display:flex;justify-content:space-between;gap:16px;color:var(--mfmt-ink-2);font-size:13px}
+.mfmt-progress{height:6px;margin-top:10px;overflow:hidden;border-radius:3px;background:var(--mfmt-panel-2)}
+.mfmt-progress i{display:block;height:100%;background:var(--mfmt-ink)}
+
+@media(max-width:1000px){
+  .mfmt-profile-card{grid-template-columns:1fr}
+  .mfmt-profile-cover{width:min(220px,100%)}
+  .mfmt-stats{grid-template-columns:1fr 1fr}
+  .mfmt-consent-head,.mfmt-consent-row{grid-template-columns:1.6fr 1fr 100px}
+  .mfmt-consent-head span:nth-child(3),.mfmt-consent-row > :nth-child(3){display:none}
+}
+@media(max-width:760px){
+  .mfmt{--mfmt-shell-pad:16px}
+  .mfmt-head{padding:20px 18px 0}
+  .mfmt-headrow{flex-direction:column;gap:16px}
+  .mfmt-actions{width:100%;margin-left:0}
+  .mfmt-actions .mfmt-btn{flex:1}
+  .mfmt-tabs{top:65px;padding:0 8px;overflow-x:auto;scrollbar-width:none}
+  .mfmt-tabs::-webkit-scrollbar{display:none}
+  .mfmt-tab{min-height:46px;padding:0 12px;white-space:nowrap}
+  .mfmt-pane{padding:20px 18px 0}
+  .mfmt-two,.mfmt-stats{grid-template-columns:1fr}
+  .mfmt-fieldmeta{flex-direction:column;gap:4px}
+  .mfmt-consent-head{display:none}
+  .mfmt-consent-row{grid-template-columns:1fr auto;padding:14px}
+  .mfmt-consent-row > :nth-child(2){justify-self:end}
+  .mfmt-consent-row > :nth-child(4){grid-column:1/-1}
+  .mfmt-consent-row .mfmt-btn{width:100%}
+}
+@media(max-width:480px){
+  .mfmt-grid{grid-template-columns:1fr 1fr;gap:9px}
+  .mfmt-assetacts{align-items:stretch}
+  .mfmt-assetacts .mfmt-btn{flex:1;padding-inline:7px}
+  .mfmt-list-row{flex-direction:column;gap:5px}
+}
+@media(prefers-reduced-motion:reduce){
+  .mfmt-pane{animation:none}
+  .mfmt-btn,.mfmt-chip{transition:none}
+}
 `;
 
 /* ═══════════════════ TILE RENDERING ═══════════════════ */
@@ -25526,7 +25735,7 @@ function athleteGroups(){
    The black block is second, not last, because it is the page's thesis: the
    library refuses on the family's behalf, and the refusals are listed by name
    rather than counted and hidden. Everything below it is inventory. */
-function mediaView(){
+function legacyMediaView(){
   const st = strength();
   const photos = profilePhotos().length;
   const shortPhotos = Math.max(0, RULE.featurePhotos - photos);
@@ -25684,6 +25893,345 @@ function mediaView(){
         <button class="btn" data-md-bioapprove="1">Approve</button>
       </div>
     </div>
+  </section>`;
+}
+
+/* ═══════════════════ 2026-08-27 MEDIA FORMAT ═══════════════════ */
+function profileBioValue(){
+  return bioText == null
+    ? String((SEED.providerProfile && SEED.providerProfile.bio) || bioDraft())
+    : String(bioText);
+}
+
+function profileHeadlineValue(){
+  if (headlineText != null) return headlineText;
+  const sports = (SEED.providerProfile && SEED.providerProfile.sports) || [];
+  return (sports.length ? sports.join(" · ") : "Youth sports") + " training · Ages 8–17";
+}
+
+function itemStatus(it){
+  const v = evaluate(it);
+  if (it.published) return { key: "live", label: "On profile" };
+  if (!v.canShare) return { key: "held", label: "Held" };
+  if (!v.canPublish) return { key: "private", label: "Private only" };
+  if (it.sharedWith.length) return { key: "shared", label: "Shared" };
+  return { key: "unused", label: "Unused" };
+}
+
+function assetMeta(it){
+  const people = it.athleteIds.length
+    ? countOf(it.athleteIds.length, "athlete")
+    : "no athletes";
+  return (it.mediaType === "video" ? "Video" : "Photo") + " · " +
+    fmtDate(it.createdAt.slice(0, 10)) + " · " + people;
+}
+
+function assetThumb(it, status, order){
+  return `<div class="mfmt-thumb" role="img" aria-label="${esc(tileAlt(it))}">
+    <span class="mfmt-status ${esc(status.key)}">${esc(status.label)}</span>
+    ${order ? `<span class="mfmt-order mfmt-num">${esc(String(order))}</span>` : ""}
+    ${it.mediaType === "video"
+      ? `<button class="mfmt-thumbplay" data-md-play="${esc(it.id)}"
+           aria-label="Play ${esc(it.caption)}">${PLAY}</button>
+         <span class="mfmt-video-length mfmt-num">${esc(String(it.durationSec == null ? "--" : it.durationSec))}s</span>`
+      : `<span class="mfmt-thumbmark">4:3</span>`}
+  </div>`;
+}
+
+function assetCard(it, opts){
+  const options = opts || {};
+  const v = evaluate(it);
+  const status = itemStatus(it);
+  const actions = options.actions !== false;
+  return `<article class="mfmt-asset">
+    ${assetThumb(it, status, options.order || 0)}
+    <div class="mfmt-assetmeta">
+      <b title="${esc(it.caption)}">${esc(it.caption)}</b>
+      <small>${esc(assetMeta(it))}</small>
+    </div>
+    ${actions ? `<div class="mfmt-assetacts">
+      ${it.athleteIds.length ? `<button class="mfmt-btn small" data-md-share="${esc(it.id)}"
+        ${v.canShare ? "" : `disabled aria-disabled="true"`}
+        title="${esc(v.canShare ? "Send to the tagged family thread" : v.shareReason)}">Send</button>` : ""}
+      ${it.published
+        ? `<button class="mfmt-btn small" data-md-unpublish="${esc(it.id)}">Remove</button>`
+        : `<button class="mfmt-btn small" data-md-publish="${esc(it.id)}"
+             ${v.canPublish ? "" : `disabled aria-disabled="true"`}
+             title="${esc(v.canPublish ? "Publish to your profile" : v.publishReason)}">Publish</button>`}
+      <button class="mfmt-iconbtn" data-md-del="${esc(it.id)}"
+        aria-label="Delete ${esc(it.caption)}">${ICON.x}</button>
+    </div>` : ""}
+  </article>`;
+}
+
+function profilePaneHTML(){
+  const pp = SEED.providerProfile || {};
+  const cover = slotItems("headshot")[0] || null;
+  const intro = introItem();
+  const gallery = state.mediaItems.filter(i => i.published).slice(0, 4);
+  const bio = profileBioValue();
+  const initials = initialsOf(pp.businessName || "Your profile");
+  return `<div class="mfmt-block">
+    <h2 class="mfmt-section-title">What parents see</h2>
+    <p class="mfmt-section-sub">This is the only tab that changes your public profile. Everything approved here is live now.</p>
+    <div class="mfmt-card mfmt-profile-card">
+      <div class="mfmt-profile-cover">
+        <div class="mfmt-cover" role="img" aria-label="${esc(cover ? tileAlt(cover) : "Profile cover photo placeholder")}">
+          <span class="mfmt-covermark">${esc(initials)}</span>
+          <span class="mfmt-cover-tag">Cover photo</span>
+        </div>
+        <button class="mfmt-btn small mfmt-full" data-md-upload="headshot">Replace</button>
+      </div>
+      <div>
+        <div class="mfmt-field">
+          <label for="mdDisplayName">Display name</label>
+          <input id="mdDisplayName" data-md-display-name value="${esc(pp.businessName || "")}" autocomplete="organization">
+        </div>
+        <div class="mfmt-field">
+          <label for="mdBio">Bio</label>
+          <textarea id="mdBio" maxlength="400">${esc(bio)}</textarea>
+          <div class="mfmt-fieldmeta"><span>Shown on your profile and every listing card.</span>
+            <span id="mdBioCount" class="mfmt-num">${esc(String(bio.length))} / 400</span></div>
+          <div class="mfmt-bio-actions">
+            <button class="mfmt-btn small" data-md-biodraft="1">Write it for me</button>
+            <button class="mfmt-btn small primary" data-md-bioapprove="1">Approve</button>
+            <span class="mfmt-live${bioLive ? " on" : ""}">Approved and live</span>
+          </div>
+        </div>
+        <div class="mfmt-field">
+          <label for="mdHeadline">Headline</label>
+          <input id="mdHeadline" data-md-headline value="${esc(profileHeadlineValue())}">
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="mfmt-block">
+    <h2 class="mfmt-section-title">Intro video</h2>
+    <p class="mfmt-section-sub">Optional. Coaches with an intro video get more profile views; 30–60 seconds works best.</p>
+    <div class="mfmt-two">
+      <div class="mfmt-card mfmt-video-card">
+        <div class="mfmt-video" role="img" aria-label="${esc(intro ? tileAlt(intro) : "Intro video placeholder")}">
+          ${intro ? `<button class="mfmt-video-play" data-md-play="${esc(intro.id)}"
+              aria-label="Play ${esc(intro.caption)}">${PLAY}</button>
+            <span class="mfmt-video-length mfmt-num">${esc(String(intro.durationSec == null ? "--" : intro.durationSec))}s · 16:9</span>`
+            : `<span>No intro video</span>`}
+        </div>
+      </div>
+      <div class="mfmt-card">
+        <div class="mfmt-stat-label">Length</div>
+        <div class="mfmt-stat-value">${intro && intro.durationSec != null ? esc(String(intro.durationSec)) + "s" : "—"}</div>
+        <div class="mfmt-stat-detail">Guideline is ${RULE.introMin}–${RULE.introMax} seconds</div>
+        <div class="mfmt-inline-actions">
+          <button class="mfmt-btn small" data-md-upload="intro_video">Replace</button>
+          ${intro ? `<button class="mfmt-btn small" data-md-trim="${esc(intro.id)}">Trim</button>
+            ${intro.published
+              ? `<button class="mfmt-btn small" data-md-unpublish="${esc(intro.id)}">Remove</button>`
+              : `<button class="mfmt-btn small" data-md-publish="${esc(intro.id)}">Publish</button>`}
+            <button class="mfmt-btn small" data-md-analyze="${esc(intro.id)}">Analyze with AI</button>` : ""}
+        </div>
+      </div>
+    </div>
+    ${analyzedVid ? `<div class="mfmt-analysis" id="mdVidAnalysis">${vidAnalysisHTML(analyzedVid)}</div>` : ""}
+  </div>
+
+  <div class="mfmt-block">
+    <h2 class="mfmt-section-title">Gallery order</h2>
+    <p class="mfmt-section-sub">${esc(countOf(gallery.length, "item"))} are on your profile. Published media appears here in order; consent is checked again before anything can be added.</p>
+    <div class="mfmt-grid">
+      ${gallery.length ? gallery.map((it, i) => assetCard(it, { actions: false, order: i + 1 })).join("")
+        : `<div class="mfmt-empty">No media is published to your profile yet.</div>`}
+    </div>
+  </div>`;
+}
+
+function libraryFilterOptions(){
+  const filters = [
+    ["all", "All", state.mediaItems.length],
+    ["photos", "Photos", state.mediaItems.filter(i => i.mediaType === "photo").length],
+    ["video", "Video", state.mediaItems.filter(i => i.mediaType === "video").length],
+    ["profile", "On profile", state.mediaItems.filter(i => i.published).length],
+    ["held", "Held by consent", state.mediaItems.filter(i => evaluate(i).blockKind === "consent").length],
+    ["unused", "Unused", state.mediaItems.filter(i => itemStatus(i).key === "unused").length],
+  ];
+  return filters;
+}
+
+function filteredLibraryItems(){
+  if (mediaFilter === "photos") return state.mediaItems.filter(i => i.mediaType === "photo");
+  if (mediaFilter === "video") return state.mediaItems.filter(i => i.mediaType === "video");
+  if (mediaFilter === "profile") return state.mediaItems.filter(i => i.published);
+  if (mediaFilter === "held") return state.mediaItems.filter(i => evaluate(i).blockKind === "consent");
+  if (mediaFilter === "unused") return state.mediaItems.filter(i => itemStatus(i).key === "unused");
+  return state.mediaItems;
+}
+
+function libraryPaneHTML(){
+  const items = filteredLibraryItems();
+  return `<div class="mfmt-block">
+    <h2 class="mfmt-section-title">All uploads</h2>
+    <p class="mfmt-section-sub">Every file you've added, whether or not it can be published. A consent change never deletes the original.</p>
+    <div class="mfmt-filters" role="group" aria-label="Filter media library">
+      ${libraryFilterOptions().map(([key, label, n]) => `<button class="mfmt-chip${mediaFilter === key ? " on" : ""}"
+        data-md-filter="${esc(key)}" aria-pressed="${mediaFilter === key}">${esc(label)}
+        <span class="mfmt-num">${esc(String(n))}</span></button>`).join("")}
+    </div>
+    <div class="mfmt-grid">
+      ${items.length ? items.map(it => assetCard(it)).join("")
+        : `<div class="mfmt-empty">No media matches this filter.</div>`}
+    </div>
+  </div>`;
+}
+
+function consentStatusFor(a){
+  const kind = consentOf(a.id);
+  const limited = state.mediaItems.filter(i => i.athleteIds.indexOf(a.id) >= 0 &&
+    evaluate(i).blockKind === "consent").length;
+  if (kind === "public_profile") return { key: "allowed", label: "Allowed" };
+  if (kind === "private_share") return { key: "private", label: "Private only" + (limited ? " · " + limited : "") };
+  if (!a.consentAt) return { key: "none", label: "Not asked" };
+  return { key: "held", label: "Held" + (limited ? " · " + limited : "") };
+}
+
+function recentConsentChanges(){
+  const changes = [];
+  ROSTER.forEach(a => {
+    if (!a.consentAt) return;
+    const kind = consentOf(a.id);
+    const action = kind === "public_profile"
+      ? "allowed profile and private media for"
+      : kind === "private_share"
+        ? "limited media to private family sharing for"
+        : "withheld media consent for";
+    changes.push({ at: a.consentAt, text: a.parent + " " + action + " " + a.name + "." });
+  });
+  Object.keys(consentRequests).forEach(id => {
+    const a = athleteById(id);
+    if (a) changes.push({ at: consentRequests[id], text: "Consent request sent to " + a.parent + " for " + a.name + "." });
+  });
+  return changes.sort((a, b) => b.at.localeCompare(a.at)).slice(0, 3);
+}
+
+function consentPaneHTML(){
+  const shield = (typeof PICON === "object" && PICON.shield) || "";
+  const changes = recentConsentChanges();
+  const limited = heldItems().length;
+  return `<div class="mfmt-note">${shield}<span><b>Consent is per athlete, and revocable.</b>
+    A parent sets it in their own app. Nothing in this tab can write to it — you can request consent, never grant it.
+    Fully held items stay visible only to you; private-only items can still go to that athlete's family.</span></div>
+  <div class="mfmt-block">
+    <h2 class="mfmt-section-title">By athlete</h2>
+    <p class="mfmt-section-sub">${esc(countOf(limited, "item"))} currently have a consent limit. A request notifies the parent once in this demo.</p>
+    <div class="mfmt-consent" role="table" aria-label="Media consent by athlete">
+      <div class="mfmt-consent-head" role="row"><span role="columnheader">Athlete</span><span role="columnheader">Items</span>
+        <span role="columnheader">Last updated</span><span role="columnheader"></span></div>
+      ${ROSTER.map(a => { const cs = consentStatusFor(a); const asked = !!consentRequests[a.id];
+        return `<div class="mfmt-consent-row" role="row">
+          <span class="mfmt-consent-name" role="cell">${esc(a.name)}<small>Guardian: ${esc(a.parent)}</small></span>
+          <span class="mfmt-pill ${esc(cs.key)}" role="cell">${esc(cs.label)}</span>
+          <span class="mfmt-date" role="cell">${a.consentAt ? esc(fmtDate(a.consentAt.slice(0, 10))) : "—"}</span>
+          <span role="cell">${consentOf(a.id) === "public_profile" ? "" : `<button class="mfmt-btn small"
+            data-md-request="${esc(a.id)}" ${asked ? `disabled aria-disabled="true"` : ""}>${asked ? "Sent" : "Request"}</button>`}</span>
+        </div>`; }).join("")}
+    </div>
+  </div>
+  <div class="mfmt-block">
+    <h2 class="mfmt-section-title">Recent changes</h2>
+    <p class="mfmt-section-sub">Read-only history. Sporv records who changed consent and when.</p>
+    <div class="mfmt-card mfmt-list">
+      ${changes.length ? changes.map(c => `<div class="mfmt-list-row"><span>${esc(c.text)}</span>
+        <span class="mfmt-num">${esc(fmtDate(c.at.slice(0, 10)))}</span></div>`).join("")
+        : `<div class="mfmt-list-row"><span>No consent changes recorded yet.</span><span class="mfmt-num">—</span></div>`}
+    </div>
+  </div>`;
+}
+
+function profileChecklist(){
+  const published = publishedCount();
+  const intro = introItem();
+  return [
+    ["Cover photo", slotItems("headshot").length > 0, "Done"],
+    ["Bio", profileBioValue().trim().length > 0, "Done"],
+    ["Intro video", !!intro, intro && intro.durationSec > RULE.introMax ? "Done · trim to 60s" : "Done"],
+    ["Published media, 4 items", published >= 4, published >= 4 ? "Done" : published + " of 4"],
+    ["Fifth published item", published >= 5, published >= 5 ? "Done" : "Missing"],
+  ];
+}
+
+function performancePaneHTML(){
+  /* The seeded Apex workspace is the product demo, even after the demo login
+     marks it verified. Real provider rows never receive invented analytics. */
+  const demo = typeof coachState === "function" ? !coachState().isReal : true;
+  const stats = demo
+    ? [["Profile views", "248", "+18% vs prior 30 days"], ["Video plays", "96", "39% of viewers"],
+       ["Avg. watch", "41s", "of 72s"], ["Gallery opens", "73", "29% of viewers"]]
+    : [["Profile views", "—", "Analytics is not connected yet"], ["Video plays", "—", "Analytics is not connected yet"],
+       ["Avg. watch", "—", "Analytics is not connected yet"], ["Gallery opens", "—", "Analytics is not connected yet"]];
+  const checks = profileChecklist();
+  const done = checks.filter(c => c[1]).length;
+  const pct = Math.round(done / checks.length * 100);
+  const most = state.mediaItems.filter(i => i.published).slice(0, 4);
+  const views = [1102, 847, 612, 288];
+  return `<div class="mfmt-block">
+    <h2 class="mfmt-section-title">How your media is doing</h2>
+    <p class="mfmt-section-sub">Last 30 days. ${demo ? "Sample workspace metrics;" : "Once analytics is connected,"} parent-facing views only; your own visits are excluded.</p>
+    <div class="mfmt-stats">
+      ${stats.map(([label, value, detail]) => `<div class="mfmt-card">
+        <div class="mfmt-stat-label">${esc(label)}</div><div class="mfmt-stat-value">${esc(value)}</div>
+        <div class="mfmt-stat-detail">${esc(detail)}</div></div>`).join("")}
+    </div>
+  </div>
+  <div class="mfmt-block">
+    <h2 class="mfmt-section-title">Profile completeness</h2>
+    <p class="mfmt-section-sub">What is still missing from the presentation parents see.</p>
+    <div class="mfmt-card">
+      <div class="mfmt-progress-head"><span>${done} of ${checks.length} recommended items</span><span class="mfmt-num">${pct}%</span></div>
+      <div class="mfmt-progress" role="img" aria-label="Profile is ${pct} percent complete"><i style="width:${pct}%"></i></div>
+      <div class="mfmt-list" style="margin-top:14px;padding:0">
+        ${checks.map(([label, met, detail]) => `<div class="mfmt-list-row"><span>${esc(label)}</span>
+          <span class="mfmt-num">${esc(detail)}</span></div>`).join("")}
+      </div>
+    </div>
+  </div>
+  <div class="mfmt-block">
+    <h2 class="mfmt-section-title">Most viewed</h2>
+    <div class="mfmt-card mfmt-list">
+      ${most.length ? most.map((it, i) => `<div class="mfmt-list-row"><span>${esc(it.caption)}</span>
+        <span class="mfmt-num">${demo ? esc(views[i].toLocaleString()) : "—"}</span></div>`).join("")
+        : `<div class="mfmt-list-row"><span>Publish media to start collecting views.</span><span class="mfmt-num">—</span></div>`}
+    </div>
+  </div>`;
+}
+
+function mediaView(){
+  const panes = [
+    ["profile", "Profile", "", profilePaneHTML],
+    ["library", "Library", String(state.mediaItems.length), libraryPaneHTML],
+    ["consent", "Consent", String(heldItems().length), consentPaneHTML],
+    ["performance", "Performance", "", performancePaneHTML],
+  ];
+  return `<section class="mfmt" aria-labelledby="mfmtTitle">
+    <header class="mfmt-head">
+      <div class="mfmt-headrow">
+        <div class="mfmt-headcopy">
+          <p class="mfmt-eyebrow">Catalog</p>
+          <h1 class="mfmt-title" id="mfmtTitle">Media</h1>
+          <p class="mfmt-lede">Your profile presentation, every file you've uploaded, and the consent state that decides where each one can appear.</p>
+        </div>
+        <div class="mfmt-actions">
+          <button class="mfmt-btn" data-md-pane="consent">Consent roster</button>
+          <button class="mfmt-btn primary" data-md-upload="new">Add media</button>
+        </div>
+      </div>
+    </header>
+    <nav class="mfmt-tabs" role="tablist" aria-label="Media sections">
+      ${panes.map(([key, label, count]) => `<button class="mfmt-tab${mediaPane === key ? " on" : ""}"
+        id="mfmt-tab-${esc(key)}" role="tab" aria-selected="${mediaPane === key}"
+        aria-controls="mfmt-panel-${esc(key)}" tabindex="${mediaPane === key ? "0" : "-1"}"
+        data-md-pane="${esc(key)}">${esc(label)}${count ? `<span class="mfmt-count">${esc(count)}</span>` : ""}</button>`).join("")}
+    </nav>
+    ${panes.map(([key, label, count, pane]) => `<div class="mfmt-pane" id="mfmt-panel-${esc(key)}"
+      role="tabpanel" aria-labelledby="mfmt-tab-${esc(key)}" ${mediaPane === key ? "" : "hidden"}>${pane()}</div>`).join("")}
   </section>`;
 }
 
@@ -25945,6 +26493,34 @@ function wire(){
   ensureCSS();
   const q = s => document.querySelectorAll(s);
 
+  /* ── local Media tabs + library filters ─────────────────────── */
+  const paneKeys = ["profile", "library", "consent", "performance"];
+  q("[data-md-pane]").forEach(b => b.onclick = () => {
+    mediaPane = paneKeys.indexOf(b.dataset.mdPane) >= 0 ? b.dataset.mdPane : "profile";
+    render();
+    window.scrollTo({ top: 0, behavior: "auto" });
+    requestAnimationFrame(() => {
+      const active = document.querySelector('.mfmt-tab[data-md-pane="' + mediaPane + '"]');
+      if (active) active.focus({ preventScroll: true });
+    });
+  });
+  const paneTabs = Array.from(q(".mfmt-tab[data-md-pane]"));
+  paneTabs.forEach((b, index) => b.onkeydown = e => {
+    if (e.key !== "ArrowLeft" && e.key !== "ArrowRight" && e.key !== "Home" && e.key !== "End") return;
+    e.preventDefault();
+    let next = index;
+    if (e.key === "ArrowLeft") next = (index - 1 + paneTabs.length) % paneTabs.length;
+    if (e.key === "ArrowRight") next = (index + 1) % paneTabs.length;
+    if (e.key === "Home") next = 0;
+    if (e.key === "End") next = paneTabs.length - 1;
+    paneTabs[next].click();
+  });
+  q("[data-md-filter]").forEach(b => b.onclick = () => {
+    mediaFilter = ["all", "photos", "video", "profile", "held", "unused"].indexOf(b.dataset.mdFilter) >= 0
+      ? b.dataset.mdFilter : "all";
+    render();
+  });
+
   /* ── library actions ──────────────────────────────────────────── */
   q("[data-md-upload]").forEach(b => b.onclick = () => {
     S.modal = { type: "upload", mdSlot: b.dataset.mdUpload };
@@ -25966,6 +26542,34 @@ function wire(){
     analyzedVid = b.dataset.mdAnalyze; render();
     toast("Analyzed (demo) — the real per-frame breakdown runs on Gemini once connected.");
   });
+  q("[data-md-trim]").forEach(b => b.onclick = () => {
+    if (!itemById(b.dataset.mdTrim)) return;
+    toast("Trim controls open once the durable video store is connected.");
+  });
+
+  q("[data-md-display-name]").forEach(input => input.onchange = () => {
+    const value = input.value.trim();
+    if (!value){ input.value = SEED.providerProfile.businessName || ""; return; }
+    SEED.providerProfile.businessName = value;
+    if (window.SporveCoach && window.SporveCoach.save){
+      try { window.SporveCoach.save({ business_name: value }); } catch (e) {}
+    }
+    toast("Display name updated");
+  });
+  q("[data-md-headline]").forEach(input => input.onchange = () => {
+    headlineText = input.value.trim() || profileHeadlineValue();
+    input.value = headlineText;
+    toast("Headline updated");
+  });
+  const bioBox = document.getElementById("mdBio");
+  if (bioBox) bioBox.oninput = () => {
+    bioText = bioBox.value;
+    bioLive = false;
+    const count = document.getElementById("mdBioCount");
+    if (count) count.textContent = bioBox.value.length + " / 400";
+    const live = document.querySelector(".mfmt-live");
+    if (live) live.classList.remove("on");
+  };
 
   /* Org-bio drafter. "Write it for me" types the fact-drafted bio into the box
      (no render mid-animation, so keystrokes aren't lost); Approve reads the box
@@ -25976,16 +26580,21 @@ function wire(){
     if (!box) return;
     const full = bioDraft();
     bioLive = false;
-    const live = document.querySelector(".md-biolive"); if (live) live.classList.remove("on");
-    box.textContent = ""; let i = 0;
+    const live = document.querySelector(".md-biolive,.mfmt-live"); if (live) live.classList.remove("on");
+    const write = value => {
+      if ("value" in box) box.value = value; else box.textContent = value;
+      const count = document.getElementById("mdBioCount");
+      if (count) count.textContent = value.length + " / 400";
+    };
+    write(""); let i = 0;
     const t = setInterval(() => {
-      box.textContent = full.slice(0, i += 6);
-      if (i >= full.length) { clearInterval(t); box.textContent = full; bioText = full; }
+      write(full.slice(0, i += 6));
+      if (i >= full.length) { clearInterval(t); write(full); bioText = full; }
     }, 16);
   });
   q("[data-md-bioapprove]").forEach(b => b.onclick = () => {
     const box = document.getElementById("mdBio");
-    const text = box ? box.textContent.trim() : "";
+    const text = box ? String("value" in box ? box.value : box.textContent).trim() : "";
     if (!text) { toast("Write or draft a bio first."); return; }
     bioText = text; bioLive = true;
     if (window.SporveCoach && window.SporveCoach.save) { try { window.SporveCoach.save({ bio: text }); } catch (e) {} }
