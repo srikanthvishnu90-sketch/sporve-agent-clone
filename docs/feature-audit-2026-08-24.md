@@ -21,7 +21,7 @@ low on purpose. That is the honest starting picture, and it is the point of the
 exercise. "Path to 10" names the concrete work + who it's gated on (F=frontend
 here, B=backend `~/SportsMan-main`, RED=owner-applied migration/secret/deploy).
 
-Progress: **Domains 1–2 done (23/87). Domains 3–14 pending.**
+Progress: **Domains 1–3 done (34/87). Domains 4–14 pending.**
 
 ---
 
@@ -112,8 +112,34 @@ genuinely real; the **web coach inbox is a seed mock** (compose writes only to l
 
 ---
 
-## Domains 3–14 — PENDING
-2. ✅ Messaging & Communication (13–23) — scored above · 3. Booking & Marketplace (24–34) · 3. Booking & Marketplace (24–34) ·
+## Domain 3 — Booking & Marketplace (24–34)   ·   avg ≈ 6.2/10
+
+The money/safety spine (server-derived price, unbypassable bg-check booking gate,
+signature-verified idempotent webhook, refund quote) is genuinely built and verified
+live — the hard part. The **demand side is over seed data**: web browse/filter/AI-search
+never touch the live `programs`/`search_listings` backend, and the capacity/waitlist/
+availability layer is authored-not-applied.
+
+| # | Feature | Score | Why not 10 (grounded) | Path to 10 |
+|---|---|---|---|---|
+| 24 | Browse / listing grid | **7** | Backend browse RLS real+safe (`providers_select_public`/`programs_select_public` gate on status AND `provider_safety_cleared()`, bgcheck_gate:96). But WEB grid renders from **seed PROGRAMS** (host K array :6053, DEMO_CATALOGUE), never a live fetch — and prod has 0 bg-verified providers → 0 bookable listings. | F: hydrate web grid from live `programs` select (respecting the RLS gate) + honest-empty. RED/data: real verified supply. |
+| 25 | Filtered search (sport/age/price/location) | **7** | Rich client-side UI (mod-search.js: sport/age/price/haversine-distance filter :51, sort, saved searches, compare; dual-handle price histogram). Correct — but pure client-side over seed; never calls `search_listings`. verifiedOnly deliberately un-surfaced (smoke BGFILTER). | F: route filters through backend `search_listings` when a live catalogue is wired (rides on 24). |
+| 26 | AI natural-language search / match | **4** | Backend sophisticated + real (`search-execute`: market-gate→embed→search_listings→relax→grounded "why matched" with claim-scrub; search-parse, ai-match, program_embeddings). BUT **not wired to web** — hero search is `applyHeroSearch()`, a local parse (host:14533); zero search-execute calls in src. `isMarketReady()` gates it off in a sparse market. | B: confirm market-ready thresholds; F: wire query UI to search-execute instead of the local parser. |
+| 27 | Listing detail + booking flow | **7** | Real e2e for a verified coach's LIVE listing: `detailHTML(id)` .bk-* layout, `data-book`→`SporveBooking.create()` (real bookings insert, mod-booking.js:150)→checkout→deployed stripe-create-checkout. Sim-button trap closed (non-live only). Gap: seed listings still render local sim; it's inventory, not a code defect. | F: live-listing detail hydration (rides on 24). |
+| 28 | Real-time availability / open slots | **3** | Presentational only. Web slot picker (host:1711, .sib-slot) renders fixed demo times; no live availability query. Backend `services_availability` NOT applied (services absent from prod). | RED: apply the services/availability model. B: open-slot query. F: render real slots. |
+| 29 | Booking write + hold-while-paying | **6** | Write path real + money-safe: `trg_set_booking_price` recomputes final_price server-side (client price discarded — $1-for-$1500 closed). But the **hold isn't enforced in prod**: the seat-reserving capacity trigger (000103) is authored-not-applied (needs services); pending bookings have no TTL → a hold holds nothing and never releases. | RED: apply the capacity trigger (or session-level equivalent). B: pending-booking expiry job. |
+| 30 | Stripe checkout / payment | **8** | Built + safe: amount from booking.final_price (never client), omits application_fee at fee=0 (v30 fix), webhook verifies raw-body signature before parse → `apply_stripe_booking_event` (service_role-only) idempotent via payment_event_ledger. Verified live (Connect enabled, cs_test_ sessions). **Not 10: ZERO charges have ever cleared** (4 checkouts, 0 paid). | RED/owner: land ONE cleared test-mode charge — the freeze-lift atom, lifts 30/33/34. |
+| 31 | Booking capacity + waitlist | **2** | Domain's weakest. Family "Join the waitlist" writes only local S.waitlist (host:14914). `program_waitlist` table+RLS+FIFO guard fully designed but **AUTHORED-NOT-APPLIED**. Coach waitlist UI is seed mock. enrolled_count/max_capacity frozen server-owned but **no live trigger increments them** → no oversell guard in prod. | RED: apply `program_waitlist` + a live per-program session-capacity trigger. B: real joinWaitlist/offer rail. F: point web waitlist + coach board at the DB. |
+| 32 | Background-check safety gate on booking | **9** | The wedge invariant, and it HOLDS. `provider_safety_cleared()` gates browse + search_candidates + the booking INSERT trigger, fail-closed, applied live, monitored green (33–34 checks PASS/0 FAIL). Not 10 only because 0 verified supply exercises it + org path leans on org_members correctness. | B/data: seed a verified provider to prove the gate e2e; keep the invariant board green. |
+| 33 | Refunds / cancellation policy | **8** | Real + safe: stripe-refund takes booking id only, amount from `booking_refund_quote()` off the policy snapshotted AT BOOKING TIME, JWT-authz to the booking's searcher, DB write only via the idempotent charge.refunded webhook (one money-writer). cancel/refund copy honest. Not 10: never exercised (0 charges); `000104` applied-state unconfirmed. | RED/owner: exercise one real refund post-charge; confirm 000104 applied. |
+| 34 | Coach payout (Connect) + review-gating | **7** | Supply money rail real: stripe-connect-onboarding + provider-payouts deployed, 409 until stripe_charges_enabled (verified: a coach Connect-enabled). Review-gating backend-real (reviews require booking_id). Not 10: 1 coach onboarded, payouts never run, "instant payout" unproven, web reviews seed-only. | RED/owner: run one real payout post-charge. B: payout status surface; wire web reviews to live table. |
+
+**Domain-3 read:** the strength is the money/safety spine — server-derived price, the unbypassable bg-check booking gate, and a signature-verified idempotent webhook are genuinely built and verified live (the hard part), which is why booking *looks* done. Highest-leverage next is NOT more marketplace surface but **landing one cleared test-mode charge (#30 → lifts 30/33/34, clears the style freeze)**, then **applying `program_waitlist` + a live session-capacity trigger (#31, the one real 2/10 hole)**. **Money/safety invariants RE-VERIFIED (all HOLD):** payment RPC lockdown, booking safety gate, $0-pay closure, geo privacy, cancelled-checkout-claims-no-payment. Open verification (classifier-blocked live query): whether prod quietly applied program_waitlist / a session-capacity trigger (migration precondition guards suggest NOT).
+
+---
+
+## Domains 4–14 — PENDING
+3. ✅ Booking & Marketplace (24–34) — scored above ·
 4. Payments & Money (35–47) · 5. Scheduling & Calendar (48–55) ·
 6. Client & Roster (56–63) · 7. Coach/Staff Ops (64–71) ·
 8. Video & Development (72–77) · 9. Commerce & Gear (78–80) ·
