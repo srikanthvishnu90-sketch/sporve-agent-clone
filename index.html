@@ -21,7 +21,7 @@
 <meta name="twitter:description" content="Find coaches, trainers, camps and teams across 20+ sports in Chicagoland.">
 <meta name="twitter:image" content="https://the-sporve-web.vercel.app/og.png">
 <link rel="icon" href="data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%2032%2032'%3E%3Crect%20width='32'%20height='32'%20rx='7'%20fill='%2309090B'/%3E%3Ccircle%20cx='16'%20cy='16'%20r='6'%20fill='white'/%3E%3C/svg%3E">
-<meta name="sporve-build" content="af9f59959a907168">
+<meta name="sporve-build" content="30307b4476209dfa">
 </head>
 <body>
 <noscript><h1>Sporv — Every sport. One app.</h1><p>Sporv connects families and athletes with coaches, trainers, camps, and teams across more than 20 sports. Please enable JavaScript to use the app.</p></noscript>
@@ -3284,7 +3284,7 @@ h2.ctr{margin-bottom:10px}
 /* Orange earns one job on this ground: the live send affordance. */
 #app.coachdark .cmdinput.has-value .cmdgo{background:#8FA3BC}
 #app.coachdark .cmdinput.has-value .cmdgo:hover{background:#F5A183}
-.coachtop{position:sticky;top:77px;z-index:45;border-bottom:1px solid var(--rule);background:rgba(255,255,255,.96)}
+.coachtop{position:static;z-index:45;border-bottom:1px solid var(--rule);background:rgba(255,255,255,.96)}  /* owner 2026-08-27: no scroll-follow */
 #app.coachdark .coachtop{background:rgba(10,12,15,.96)}
 /* Preview banner — shown only to a guest inside the coach portal so the seed
    sample data never reads as their own account. On the near-black coach ground
@@ -3320,7 +3320,10 @@ h2.ctr{margin-bottom:10px}
 .gsbar.big{height:8px}
 .dash{width:100%;max-width:none;grid-template-columns:232px minmax(0,1fr);gap:0;padding:0;align-items:start}
 .dash>.rail{
-  position:fixed;left:0;top:126px;bottom:0;width:232px;z-index:40;overflow-y:auto;
+  /* Owner 2026-08-27: the coach dashboard must NOT follow the scroll. The rail
+     was position:fixed (pinned, tracking every scroll); now it sits in the grid
+     column and scrolls away with the content like everything else. */
+  position:static;width:232px;
   padding:18px 12px 30px;border-right:1px solid var(--rule);background:var(--paper);
 }
 /* The rail is a fixed, viewport-height sidebar that already scrolls
