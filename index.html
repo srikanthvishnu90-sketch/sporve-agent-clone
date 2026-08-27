@@ -21,7 +21,7 @@
 <meta name="twitter:description" content="Find coaches, trainers, camps and teams across 20+ sports in Chicagoland.">
 <meta name="twitter:image" content="https://the-sporve-web.vercel.app/og.png">
 <link rel="icon" href="data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%2032%2032'%3E%3Crect%20width='32'%20height='32'%20rx='7'%20fill='%2309090B'/%3E%3Ccircle%20cx='16'%20cy='16'%20r='6'%20fill='white'/%3E%3C/svg%3E">
-<meta name="sporve-build" content="92a0dd2c0483c63a">
+<meta name="sporve-build" content="af9f59959a907168">
 </head>
 <body>
 <noscript><h1>Sporv — Every sport. One app.</h1><p>Sporv connects families and athletes with coaches, trainers, camps, and teams across more than 20 sports. Please enable JavaScript to use the app.</p></noscript>
@@ -10655,6 +10655,24 @@ function teamRoster(){
   if(!S.teamRoster) S.teamRoster=JSON.parse(JSON.stringify(SEED.teams[0].roster));
   return S.teamRoster;
 }
+/* Demo Approvals drafts — the coach portal is sample data, so the AI-drafted
+   queue is seeded (the prototype's 3: recap, reminder, rebooking nudge). Each
+   carries a recipient + provenance and an editable body; approve moves it to
+   S.approvalSent. Production renders real outbound_messages via S.coachQueue. */
+function approvalDrafts(){
+  if(!S.approvalDrafts) S.approvalDrafts=[
+    {kind:"Session recap → families",to:"To 12 families · Elite Soccer U12",
+     src:"Tuesday attendance (10 of 12) + your session notes (pressing shape, weak-side runs)",
+     body:"Great session tonight, U12 families. We worked on our pressing shape and timing our weak-side runs — a clear improvement from last week, especially in the final scrimmage. Two athletes were out tonight; we'll catch them up Thursday. Same time, same field."},
+    {kind:"Practice reminder → Thursday group",to:"To 12 families · sends Wed 6:00 PM",
+     src:"your recurring schedule + quiet-hours settings",
+     body:"Reminder: U12 training Thursday 5:00–6:30 PM at Lincoln Park Turf, Field 2. Bring shin guards and water — the forecast says 88°F, so we'll build in extra water breaks. Reply here if your athlete can't make it."},
+    {kind:"Rebooking nudge → one family",to:"To Nia Okafor's family only",
+     src:"Nia's 10-pack — 1 session remaining",
+     body:"Hi Amara — Nia has one session left on her 10-pack, and she's been putting real work into her first touch. If you'd like to keep the Tuesday spot, here's the link to renew before it opens to the waitlist."},
+  ];
+  return S.approvalDrafts;
+}
 function coachBody(t){
   const mine=coachListings();
   const pp=SEED.providerProfile;
@@ -10928,6 +10946,37 @@ function coachBody(t){
     const LABEL={booking_confirmed:"Booking confirmed",reminder_24h:"24-hour reminder",
       post_session:"Post-session recap",no_show_followup:"No-show follow-up",
       rebook_nudge:"Rebooking nudge"};
+    const drafts=approvalDrafts();
+    const sent=S.approvalSent||[];
+    const eb="font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--faint)";
+    const demoRows=drafts.length?`
+      <div class="sec-head" style="margin:0"><h3>Waiting for you</h3>
+        <span class="pill warn">${drafts.length} draft${drafts.length===1?"":"s"}</span></div>
+      <div style="display:flex;flex-direction:column;gap:10px;margin-top:12px">
+        ${drafts.map((d,i)=>`<div class="panel" style="display:flex;flex-direction:column;gap:7px">
+          <div class="k" style="${eb}">${esc(d.kind)}</div>
+          <div style="color:var(--muted);font-size:var(--text-sm)">${esc(d.to)}</div>
+          <div style="color:var(--faint);font-size:var(--text-xs)">✦ Drafted from: ${esc(d.src)}</div>
+          <div class="apv-body" contenteditable="true" spellcheck="false" id="apvBody${i}" role="textbox"
+            aria-label="Draft message — editable">${esc(d.body)}</div>
+          <div style="display:flex;gap:8px;align-items:center">
+            <button class="btn sm" data-qapprove="${i}">Approve &amp; send</button>
+            <button class="btn ghost sm" data-qdismiss="${i}">Dismiss</button>
+            <span style="margin-left:auto;color:var(--faint);font-size:var(--text-xs)">Editable — your edits are what sends.</span>
+          </div>
+        </div>`).join("")}
+      </div>`:"";
+    const sentSection=sent.length?`
+      <div class="sec-head" style="margin:26px 0 0"><h3 style="color:var(--muted)">Sent — with your approval</h3></div>
+      <div style="display:flex;flex-direction:column">
+        ${sent.map(x=>`<div style="display:flex;justify-content:space-between;gap:14px;border-top:1px solid var(--rule);padding:12px 2px;font-size:var(--text-sm);color:var(--muted)">
+          <span><b style="color:var(--ink)">${esc(x.kind)}</b> — &ldquo;${esc(x.preview)}&hellip;&rdquo; <span style="color:var(--faint)">· ${esc(x.to)}</span></span>
+          <span style="color:var(--slate-ink);flex:none">✓ Sent · approved by you</span></div>`).join("")}
+      </div>`:"";
+    const emptyState=(!q.length&&!drafts.length)?`<div class="empty"><h3>Nothing waiting</h3>
+      <p style="margin-top:6px">${sent.length
+        ? "All caught up. New drafts appear here after your next session — and nothing is ever sent without you."
+        : "Sporv drafts reminders, recaps and rebooking nudges after sessions. They will appear here for your approval before anything is sent."}</p></div>`:"";
     return `<div class="sec-head" style="margin-top:18px"><h1>Approvals</h1></div>
       <p style="color:var(--muted);margin-bottom:16px;max-width:64ch">
         Messages Sporv drafted for you. Nothing is sent until you approve it.</p>
@@ -10963,9 +11012,8 @@ function coachBody(t){
                 <button class="btn ghost sm" data-qdecide="reject:${esc(m.id)}">Skip</button>
                </div>`}
         </div>`).join("")}
-      </div>`:`<div class="empty"><h3>Nothing waiting</h3>
-        <p style="margin-top:6px">Sporv drafts reminders, recaps and rebooking nudges after
-          sessions. They will appear here for your approval before anything is sent.</p></div>`}`;
+      </div>`:""}
+      ${demoRows}${sentSection}${emptyState}`;
   }
 
   if(t==="operations"){
@@ -14418,6 +14466,18 @@ document.querySelectorAll('.sig-ai-coach').forEach(sigAiCoachWire);
      coach can edit before committing. */
   /* Decide, then re-read from the server rather than patching S locally — the
      trigger may have refused, and the row is the only thing that knows. */
+  $("[data-qapprove]").forEach(b=>b.onclick=()=>{
+    const i=+b.dataset.qapprove; const drafts=approvalDrafts(); const d=drafts[i]; if(!d) return;
+    const box=document.getElementById("apvBody"+i);
+    const text=(box?box.textContent:d.body).trim();
+    S.approvalSent=[{kind:d.kind,to:d.to,preview:text.slice(0,68)},...(S.approvalSent||[])];
+    drafts.splice(i,1); render();
+    toast(/Wed 6:00 PM/.test(d.to)?"Approved — queued for Wed 6:00 PM per quiet hours; push with email fallback.":"Approved & sent — delivery receipts will show who has seen it.");
+  });
+  $("[data-qdismiss]").forEach(b=>b.onclick=()=>{
+    const i=+b.dataset.qdismiss; approvalDrafts().splice(i,1); render();
+    toast("Dismissed — nothing was sent, and the assistant learns from what you skip.");
+  });
   $("[data-qdecide]").forEach(b=>b.onclick=()=>{
     const i=b.dataset.qdecide.indexOf(":");
     const decision=b.dataset.qdecide.slice(0,i), id=b.dataset.qdecide.slice(i+1);
