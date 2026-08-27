@@ -228,6 +228,7 @@ Object.freeze(state.mediaConsent);
 const consentRequests = {};
 /* Session-media grouping. View preference, not data. */
 let grouping = "session";
+let analyzedVid = null;  // id of the video whose AI analysis is shown
 /* Org-bio drafter state — module-local demo persistence (survives re-renders
    this session). A real coach's approve also writes the providers bio via
    SporveCoach.save; durable persistence for all is the RED media/bio path. */
@@ -824,6 +825,29 @@ function mediaView(){
   <section class="md-band paper">
     <div data-rev>
       <div class="md-secline"><div>
+        <h2>Videos</h2>
+        <p>Every clip and your intro video in one place — play them, or have the assistant analyze the technique.</p>
+      </div></div>
+      ${(()=>{const vids=state.mediaItems.filter(i=>i.mediaType==="video");
+        return vids.length?`<div class="md-vids">${vids.map(v=>`<div class="md-vid">
+          <button class="md-vidposter" data-md-play="${esc(v.id)}" aria-label="Play ${esc(v.caption)}">
+            <span class="md-vidplay" aria-hidden="true"><svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg></span>
+            <span class="md-viddur num">${esc(String(v.durationSec==null?"--":v.durationSec))}s</span>
+          </button>
+          <div class="md-vidmeta">
+            <b>${esc(v.caption)}</b>
+            <p>${v.kind==="profile"?"Intro video":"Session clip"}${v.durationSec!=null?` · ${v.durationSec}s`:""}</p>
+            <button class="btn ghost sm" data-md-analyze="${esc(v.id)}">Analyze with AI</button>
+          </div>
+        </div>`).join("")}</div>
+        <div id="mdVidAnalysis">${analyzedVid?vidAnalysisHTML(analyzedVid):""}</div>`
+        :`<p style="color:var(--muted);font-size:var(--text-base);margin-top:12px">No videos yet — add a clip or your intro video above.</p>`;})()}
+    </div>
+  </section>
+
+  <section class="md-band paper">
+    <div data-rev>
+      <div class="md-secline"><div>
         <div class="eyebrow">Organization bio</div>
         <h2>Your story, drafted from your facts.</h2>
         <p>The assistant drafts from your real profile — sports, roster size, verification. It only claims what your profile proves.</p>
@@ -1107,6 +1131,18 @@ function wire(){
     render();
   });
 
+  /* Video viewing + AI analysis. Playback and REAL analysis need durable video
+     files (the RED media/coach-media store) and the Gemini video path (RED
+     provider). Until those land: Play explains the store is being wired; Analyze
+     shows a clearly-labelled demo breakdown so the flow is testable. */
+  q("[data-md-play]").forEach(b => b.onclick = () =>
+    toast("Playback opens once your videos are stored — that store is being wired (Gemini video analysis rides on it)."));
+  q("[data-md-analyze]").forEach(b => b.onclick = () => {
+    if (!itemById(b.dataset.mdAnalyze)) return;
+    analyzedVid = b.dataset.mdAnalyze; render();
+    toast("Analyzed (demo) — the real per-frame breakdown runs on Gemini once connected.");
+  });
+
   /* Org-bio drafter. "Write it for me" types the fact-drafted bio into the box
      (no render mid-animation, so keystrokes aren't lost); Approve reads the box
      (the coach's edits win), SAVES it, and shows the live line. Demo save is the
@@ -1306,6 +1342,19 @@ function wire(){
 }
 
 /* ═══════════════════ EXPORT ═══════════════════ */
+/* AI video-analysis panel (rendered from state so a re-render keeps it). Demo
+   breakdown today; the real per-frame technique read runs on Gemini video once
+   the provider is connected (RED). */
+function vidAnalysisHTML(id){
+  const it=itemById(id); if(!it) return "";
+  const first=((it.athleteIds&&it.athleteIds[0]&&(ROSTER.find(a=>a.id===it.athleteIds[0])||{}).name)||"The athlete").split(" ")[0];
+  return `<div class="md-vidanalysis">
+    <div class="eyebrow">AI analysis · ${esc(it.caption)}</div>
+    <p style="font-size:var(--text-sm);line-height:1.6;color:var(--ink)">${esc(first)}'s technique reads well overall — balance and first touch look controlled. The plant foot lands slightly late on the weak-side pass, which shortens the follow-through. Suggested drill: 10 minutes of two-touch weak-foot passing against a wall, planting early and pointing the toe at the target.</p>
+    <p style="font-size:var(--text-xs);color:var(--faint);margin-top:8px">Demo analysis. The real per-frame technique breakdown runs on Gemini video once the provider is connected.</p>
+  </div>`;
+}
+
 window.MOD_MEDIA = {
   css: CSS,
   tabs: { media: "Media" },
