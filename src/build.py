@@ -20,6 +20,9 @@ def require_once(text, token, label):
         sys.exit("FATAL: expected exactly one %s; found %d" % (label, count))
 
 ORDER = [
+    # Shared Media-derived coach page shell and components. It has no API
+    # dependency, but every coach view may call window.COACH_UI at render time.
+    "mod-coachui.js",
     # mod-api.js first: it defines window.SporveAPI, which later modules use.
     "mod-api.js",
     # mod-auth.js second: it registers its refresh hook on window.SporveAPI.

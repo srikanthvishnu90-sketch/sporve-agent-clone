@@ -6018,7 +6018,7 @@ const PICON = {
 /* [id, business, verified, sport, title, desc, price, model, rating, reviews,
     lng, lat, featured, skill, ageGroup, minAge, maxAge, capacity, enrolled] */
 const RAW = [
-["prog_1","Apex Performance Club",1,"Soccer","Elite Soccer Academy - U12 Training","High-intensity technical training focusing on dribbling, passing, and match awareness.",45,"single_session",4.8,12,-87.6613,41.8389,1,"Intermediate","Youth (Under 12)",9,12,15,8],
+["prog_1","Northside Flight Basketball",0,"Basketball","Northside Flight 14U — AAU Season","A disclosed AAU team demo with three practices a week, regional tournament play, roster operations, and a non-charging tryout registration.",295,"monthly",0,0,-87.6845,41.9392,1,"Advanced","Teens (13-18)",13,14,12,8],
 ["prog_2","Apex Performance Club",1,"Tennis","Junior Tennis Clinic - All Levels","Learn basic and advanced tennis strokes, service, and court strategies from certified instructors.",120,"monthly",4.5,8,-87.675,41.8508,0,"All Levels","Juniors (Under 16)",10,16,8,5],
 ["prog_3","Apex Performance Club",1,"Basketball","Elite Basketball Skills, U14","Ball-handling, shooting mechanics, and court IQ for competitive guards and forwards.",55,"single_session",4.7,19,-87.6667,41.8292,1,"Advanced","Juniors (Under 16)",11,14,16,9],
 ["prog_4","Apex Performance Club",1,"Volleyball","Youth Volleyball Fundamentals","Serving, passing, and rotation basics in a high-energy team environment.",40,"single_session",4.6,14,-87.655,41.8479,0,"Beginner","Youth (Under 12)",8,12,14,7],
@@ -6056,12 +6056,21 @@ const PROGRAMS = RAW.map(r=>{
   o.verified=!!o.verified; o.featured=!!o.featured;
   o.img=phShot(o.sport);
   o.gallery=[o.img,phShot(o.sport),phShot(o.sport)];
-  o.whatsIncluded = o.id==="prog_1" ? ["Training Bibs","Water Bottles","Professional Coaching"]
+  o.whatsIncluded = o.id==="prog_1" ? ["Team practices","AAU game schedule","Professional coaching"]
     : o.id==="prog_2" ? ["Tennis Balls","Racquet rentals"]
     : ["Equipment provided","Professional coaching","Progress report"];
-  o.address = o.id==="prog_1" ? "Lincoln Park, Chicago, IL 60614"
+  o.address = o.id==="prog_1" ? "Northside Community Gym, Chicago, IL"
     : o.id==="prog_2" ? "Lakeview, Chicago, IL 60657" : "Chicago, IL 60601";
   o.cancellationPolicy = o.id==="prog_2" ? "strict" : "moderate";
+  if(o.id==="prog_1"){
+    o.img="assets/teams/northside-flight-14u-card.jpg";
+    o.cardAsset=o.img;
+    o.gallery=[o.img,o.img,o.img];
+    o.address="Northside Community Gym, Chicago, IL";
+    /* Disclosed demo inventory may be explored and registered locally, but it
+       is never treated as a live provider offer by the Stripe booking gate. */
+    o.sample=true;o.live=false;o.demoScheduled=true;
+  }
   return o;
 });
 
@@ -6251,9 +6260,10 @@ function dayAfter(n){
 }
 
 const SESSIONS=[
-  {id:"sess_1",programId:"prog_1",title:"Soccer Skill Session 1",date:dayAfter(4),startTime:"05:00 PM",endTime:"06:30 PM",tz:"CST",address:"Lincoln Park, Chicago, IL"},
-  {id:"sess_2",programId:"prog_1",title:"Soccer Skill Session 2",date:dayAfter(6),startTime:"05:00 PM",endTime:"06:30 PM",tz:"CST",address:"Lincoln Park, Chicago, IL"},
+  {id:"sess_1",programId:"prog_1",title:"Northside Flight 14U Practice",date:dayAfter(2),startTime:"06:00 PM",endTime:"07:30 PM",tz:"CST",address:"Northside Community Gym, Chicago, IL"},
+  {id:"sess_2",programId:"prog_1",title:"Northside Flight 14U Practice",date:dayAfter(4),startTime:"06:00 PM",endTime:"07:30 PM",tz:"CST",address:"Northside Community Gym, Chicago, IL"},
   {id:"sess_3",programId:"prog_2",title:"Weekly Tennis Practice",date:dayAfter(5),startTime:"04:00 PM",endTime:"05:30 PM",tz:"CST",address:"Lakeview, Chicago, IL"},
+  {id:"nf14_scrimmage_1",programId:"prog_1",title:"Northside Flight 14U Scrimmage",date:dayAfter(6),startTime:"10:00 AM",endTime:"12:00 PM",tz:"CST",address:"Northside Community Gym, Chicago, IL"},
 ];
 /* Real sessions, keyed by program id, filled by mod-catalog.js from the
    `sessions` table. Empty until then, so the seeded path below is unchanged for
@@ -6280,7 +6290,7 @@ function slotsFor(pid){
      plausible, bookable-looking dates for sessions that do not exist. For a
      sample that is worse than for a live one: it would let a family pick a time
      on a company that is not real. An empty rail is honest. */
-  if(rec&&(rec.live||rec.sample)) return [];
+  if(rec&&(rec.live||(rec.sample&&!rec.demoScheduled))) return [];
   const seeded=SESSIONS.filter(s=>s.programId===pid);
   if(seeded.length) return seeded;
   /* `|| 0` so an id that is not "prog_N" degrades to a valid date rather than
@@ -6298,33 +6308,41 @@ const SEED={
   user:{id:"user_123",firstName:"Alex",lastName:"Mercer",email:"alex.mercer@gmail.com",
     role:"searcher",phone:"+1 (555) 019-2834",preferredSports:["Soccer","Tennis"],
     img:phAvatar()},
-  providerProfile:{id:"provider_123",businessName:"Apex Performance Club",
-    bio:"Dedicated sports academy providing elite training clinics for junior athletes.",
-    sports:["Soccer","Tennis","Basketball"],location:"Chicago, IL",status:"approved",
-    onboardingCompleted:true,stripeAccountId:"acct_mockstripe123"},
+  providerProfile:{id:"provider_demo_aau",businessName:"Northside Flight Basketball",
+    bio:"A disclosed AAU team workspace for 14U basketball operations, tryouts, practices, and family communication.",
+    sports:["Basketball"],location:"Chicago, IL",status:"sample",
+    onboardingCompleted:true,backgroundCheckCompletedAt:null,stripeAccountId:null},
   athletes:[{id:"athlete_1",firstName:"Julian",lastName:"Mercer",dob:"2013-04-12",
-    gender:"male",preferredSports:["Soccer"],medical:"None",skillLevel:"developing",
+    gender:"male",preferredSports:["Basketball"],medical:"None",skillLevel:"developing",
     emergency:{name:"Alex Mercer",phone:"+1 (555) 019-2834",relation:"Father"},
     img:phAvatar(),
     parentConsent:true,consentAt:"2026-05-01T10:00:00.000Z",consentVersion:"v1"}],
-  bookings:[{id:"book_1",athlete:"Julian Mercer",programId:"prog_1",
-    program:"Elite Soccer Academy - U12 Training",sessionId:"sess_1",
-    session:"Soccer Skill Session 1",date:dayAfter(4),startTime:"05:00 PM",
-    tier:"Standard",price:45,status:"confirmed",paymentStatus:"paid",createdAt:TODAY,
+  bookings:[{id:"book_demo_nf14",athlete:"Julian Mercer",programId:"prog_1",
+    program:"Northside Flight 14U — AAU Season",sessionId:"nf14_tryout_demo",
+    session:"AAU tryout registration",date:dayAfter(1),startTime:"09:00 AM",
+    tier:"14U tryout",price:0,status:"applied",paymentStatus:"sample_no_charge",createdAt:TODAY,
     /* the policy in force when this was bought — without it the cancel sheet
        leads with its "not snapshotted" fallback, which is the exception path */
     cancellationPolicy:"moderate",policySnapshotAt:TODAY}],
-  conversations:[{id:"conv_1",with:"Apex Performance Club",programId:"prog_1",
-    last:"Hello, thank you for booking! See you on Monday.",at:"2026-05-01T10:05:00.000Z"}],
+  conversations:[{id:"conv_1",with:"Northside Flight Basketball",programId:"prog_1",
+    last:"Julian is registered for the sample 14U tryout.",at:"2026-08-03T10:05:00.000Z"}],
   messages:{conv_1:[
-    {id:"msg_1",me:true,text:"Hi, I just booked the soccer session for Julian. Does he need to bring his own ball?",at:"2026-05-01T10:02:00.000Z"},
-    {id:"msg_initial",me:false,text:"Hello, thank you for booking! See you on Monday. We will provide training bibs and soccer balls, but he is welcome to bring his own.",at:"2026-05-01T10:05:00.000Z"},
+    {id:"msg_1",me:true,text:"Hi, I registered Julian for the 14U tryout. What should he bring?",at:"2026-08-03T10:02:00.000Z"},
+    {id:"msg_initial",me:false,text:"He is on the sample tryout roster. Bring basketball shoes, water, and a reversible jersey; nothing was charged.",at:"2026-08-03T10:05:00.000Z"},
   ]},
   notifications:[{id:"notif_1",title:"Booking Confirmed",
-    message:"Your booking for Soccer Skill Session 1 has been confirmed.",read:false,at:"2026-05-01T10:00:00.000Z"}],
-  teams:[{id:"team_1",name:"Chicago Elite Soccer U12",sport:"Soccer",
-    roster:[{id:"athlete_1",name:"Julian Mercer",email:"alex.mercer@gmail.com",jersey:"10",
-      avatar:phAvatar(),available:true,paid:true}]}],
+    message:"Julian is registered for the disclosed Northside Flight 14U sample tryout; nothing was charged.",read:false,at:"2026-08-03T10:00:00.000Z"}],
+  teams:[{id:"team_nf14",name:"Northside Flight 14U",sport:"Basketball",
+    roster:[
+      {id:"athlete_1",name:"Julian Mercer",email:"alex.mercer@gmail.com",jersey:"3",avatar:phAvatar(),available:true,paid:true},
+      {id:"athlete_nf2",name:"Nia Okafor",jersey:"5",available:true,paid:true},
+      {id:"athlete_nf3",name:"Cole Whitfield",jersey:"8",available:true,paid:true},
+      {id:"athlete_nf4",name:"Sofia Ibarra",jersey:"11",available:true,paid:true},
+      {id:"athlete_nf5",name:"Aarav Raman",jersey:"14",available:false,paid:true},
+      {id:"athlete_nf6",name:"Ida Nilsen",jersey:"21",available:true,paid:false,guardian:"Tomas Nilsen"},
+      {id:"athlete_nf7",name:"Maya Brooks",jersey:"24",available:true,paid:true},
+      {id:"athlete_nf8",name:"Eli Carter",jersey:"30",available:true,paid:false,guardian:"Jordan Carter"},
+    ]}],
   parentUpdates:[{id:"pu_seed_1",childId:"athlete_1",
     body:"Julian had a focused session working on first touch and passing under pressure. Great energy from start to finish.",
     skills:["First touch","Passing","Spatial awareness"],signal:"building consistency",
@@ -6332,8 +6350,8 @@ const SEED={
     encouragement:"Keep it up, Julian — your close control is really coming along.",
     status:"sent",at:"2026-05-04T18:00:00.000Z"}],
   trainers:[
-    {id:"om_1",name:"Marcus Vale",specialty:"Soccer technical coach",commissionType:"percent",commissionValue:15,affiliation:"active",bg:"verified",active:true},
-    {id:"om_2",name:"Dana Ruiz",specialty:"Tennis — junior development",commissionType:"percent",commissionValue:18,affiliation:"active",bg:"pending",active:true},
+    {id:"om_1",name:"Marcus Vale",specialty:"Basketball — guard development",commissionType:"percent",commissionValue:15,affiliation:"active",bg:"verified",active:true},
+    {id:"om_2",name:"Dana Ruiz",specialty:"Basketball — shooting and footwork",commissionType:"percent",commissionValue:18,affiliation:"active",bg:"pending",active:true},
     {id:"om_3",name:"Theo Lang",specialty:"Strength & conditioning",commissionType:"flat",commissionValue:25,affiliation:"pending",bg:"none",active:true},
   ],
 };
@@ -6376,11 +6394,17 @@ const S={
   messages:JSON.parse(JSON.stringify(SEED.messages)),
   notifications:JSON.parse(JSON.stringify(SEED.notifications)),
   trainers:JSON.parse(JSON.stringify(SEED.trainers)),
-  listings:PROGRAMS.filter(p=>p.biz==="Apex Performance Club").map(p=>p.id),
+  listings:PROGRAMS.filter(p=>p.biz==="Northside Flight Basketball").map(p=>p.id),
   activeConv:"conv_1",
   inboxTab:"direct",               // provider inbox: direct | group
   calMonth:TODAY.slice(0,7),       // provider schedule: month in view, "YYYY-MM"
   schedTab:"month",                // provider schedule sub-tab: month | slots
+  clientsPageTab:"roster",         // Media-derived coach page sub-tabs
+  schedulePageTab:"calendar",
+  listingsPageTab:"active",
+  earningsPageTab:"summary",
+  operationsPageTab:"insights",
+  billingTab:"plan",
   coachPromptShown:false,          // auth sheet already offered on the coach side
   /* The coach's own provider row, mirrored from the server for render. Derived,
      so it is EPHEMERAL and re-fetched at boot — a stale copy in sessionStorage
@@ -7156,6 +7180,10 @@ const SAMPLE_ORGS=[
   {id:"sample_team_3",biz:"Ironside Wrestling Academy",sport:"Wrestling",
    title:"Folkstyle Club — Full Season",desc:"Scholastic folkstyle club. Technique, live wrestling and conditioning, all season.",
    price:210,model:"monthly",cap:24,enrolled:17,minAge:9,maxAge:16,skill:"Intermediate",type:"org"},
+  {id:"sample_team_aau",biz:"Northside Flight Basketball",sport:"Basketball",
+   title:"Northside Flight 14U — AAU Season",desc:"A disclosed AAU team demo for tryouts, roster operations, practices and regional tournament planning.",
+   price:295,model:"monthly",cap:12,enrolled:8,minAge:13,maxAge:14,skill:"Advanced",type:"org",
+   cardAsset:"assets/teams/northside-flight-14u-card.jpg"},
 ];
 function sampleListings(){
   return SAMPLE_ORGS.map((o,i)=>({
@@ -7165,7 +7193,9 @@ function sampleListings(){
     lng:-87.72+((i%3)*0.07),lat:41.84+(Math.floor(i/3)*0.09),
     featured:false,skill:o.skill,ageGroup:"Youth",minAge:o.minAge,maxAge:o.maxAge,
     cap:o.cap,enrolled:o.enrolled,
-    img:phScene(o.sport,i),gallery:[phScene(o.sport,i),phScene(o.sport,i+1),phScene(o.sport,i+2)],
+    img:o.cardAsset||phScene(o.sport,i),gallery:o.cardAsset
+      ?[o.cardAsset,o.cardAsset,o.cardAsset]
+      :[phScene(o.sport,i),phScene(o.sport,i+1),phScene(o.sport,i+2)],
     whatsIncluded:["Professional coaching","Equipment provided"],
     address:"Chicago, IL",cancellationPolicy:"moderate",
     /* The two flags that keep this out of the money path. */
@@ -10109,6 +10139,7 @@ function coachHTML(){
     listings:'<rect x="3" y="3" width="7.5" height="7.5" rx="1.5"/><rect x="13.5" y="3" width="7.5" height="7.5" rx="1.5"/><rect x="3" y="13.5" width="7.5" height="7.5" rx="1.5"/><rect x="13.5" y="13.5" width="7.5" height="7.5" rx="1.5"/>',
     approvals:'<path d="M4 5.5h16v13H4z"/><path d="M8 11l3 3 5-5"/>',
     finances:'<rect x="2.5" y="6" width="19" height="13" rx="2.5"/><path d="M2.5 10.5h19"/><circle cx="17.5" cy="14.5" r="1.3"/>',
+    billing:'<rect x="2.5" y="5.5" width="19" height="13" rx="2.5"/><path d="M2.5 10h19"/>',
     operations:'<circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M4.9 4.9l2.1 2.1M17 17l2.1 2.1M19.1 4.9L17 7M7 17l-2.1 2.1"/>',
     media:'<rect x="3" y="4" width="18" height="16" rx="2"/><circle cx="8.5" cy="9.5" r="1.8"/><path d="M3 17l5-4.5 4 3.5 3-2.5 6 5"/>',
     profile:'<circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M4.9 4.9l2.1 2.1M17 17l2.1 2.1M19.1 4.9L17 7M7 17l-2.1 2.1"/>',
@@ -10119,11 +10150,11 @@ function coachHTML(){
     [null,      [["dashboard","Home"],["search","Search"]]],
     ["Clients", [["roster","Clients"],["inbox","Messages"],["schedule","Schedule"]]],
     ["Catalog", [["listings","Listings"],["media","Media"]]],
-    ["Business",[["finances","Earnings"],["approvals","Approvals"],["operations","Operations"]]],
+    ["Business",[["finances","Earnings"],["approvals","Approvals"],["operations","Operations"],["billing","Billing"]]],
   ];
   const core=[["dashboard","Home"],["search","Search"],["schedule","Schedule"],
               ["roster","Clients"],["inbox","Messages"],["listings","Listings"],
-              ["finances","Earnings"],["operations","Operations"]];
+              ["finances","Earnings"],["operations","Operations"],["billing","Billing"]];
   const extra=modCoachTabs().filter(([k])=>!core.some(c=>c[0]===k));
   const gs=gettingStarted();
   const unread=S.conversations.length;
@@ -10179,7 +10210,7 @@ function coachHTML(){
     </nav>
     <div>${isCoachGuest()?`<div class="previewbar" role="status">
       <span><b>Preview.</b> This is a sample coach workspace with example data — sign in to set up your own.</span>
-      <span class="previewbar-acts"><button class="navlink" data-signin="1">Sign in</button><button class="btn sm" data-getpro="1">Get Pro</button></span>
+      <span class="previewbar-acts"><button class="navlink" data-signin="1">Sign in</button><button class="btn ghost sm" data-getpro="1">Get Pro</button></span>
     </div>`:""}${coachBody(t)}</div>
   </main>`;
 }
@@ -10251,8 +10282,12 @@ function coachState(){
   return {
     isReal:false,
     businessName:SEED.providerProfile.businessName,
-    status:SEED.providerProfile.status, verified:true, approved:true,
-    payouts:!!SEED.providerProfile.stripeAccountId, connectStarted:true, listed:true,
+    status:SEED.providerProfile.status,
+    verified:!!SEED.providerProfile.backgroundCheckCompletedAt,
+    approved:SEED.providerProfile.status==="approved",
+    payouts:!!SEED.providerProfile.stripeAccountId,
+    connectStarted:!!SEED.providerProfile.stripeAccountId,
+    listed:SEED.providerProfile.status==="approved"&&!!SEED.providerProfile.backgroundCheckCompletedAt,
   };
 }
 
@@ -10620,24 +10655,454 @@ function teamRoster(){
    S.approvalSent. Production renders real outbound_messages via S.coachQueue. */
 function approvalDrafts(){
   if(!S.approvalDrafts) S.approvalDrafts=[
-    {kind:"Session recap → families",to:"To 12 families · Elite Soccer U12",
-     src:"Tuesday attendance (10 of 12) + your session notes (pressing shape, weak-side runs)",
-     body:"Great session tonight, U12 families. We worked on our pressing shape and timing our weak-side runs — a clear improvement from last week, especially in the final scrimmage. Two athletes were out tonight; we'll catch them up Thursday. Same time, same field."},
-    {kind:"Practice reminder → Thursday group",to:"To 12 families · sends Wed 6:00 PM",
+    {kind:"Practice recap → families",to:"To 8 families · Northside Flight 14U",
+     src:"Tuesday attendance (7 of 8) + your session notes (closeouts, weak-side rotation)",
+     body:"Strong practice tonight, Flight families. We worked on closeout angles and weak-side rotation, then carried both into the final scrimmage. One athlete was out; we'll catch them up Thursday. Same time, same gym."},
+    {kind:"Practice reminder → Thursday group",to:"To 8 families · sends Wed 6:00 PM",
      src:"your recurring schedule + quiet-hours settings",
-     body:"Reminder: U12 training Thursday 5:00–6:30 PM at Lincoln Park Turf, Field 2. Bring shin guards and water — the forecast says 88°F, so we'll build in extra water breaks. Reply here if your athlete can't make it."},
+     body:"Reminder: Northside Flight 14U practices Thursday 6:00–7:30 PM at Northside Community Gym. Bring basketball shoes, a reversible jersey, and water. Reply here if your athlete cannot make it."},
     {kind:"Rebooking nudge → one family",to:"To Nia Okafor's family only",
-     src:"Nia's 10-pack — 1 session remaining",
-     body:"Hi Amara — Nia has one session left on her 10-pack, and she's been putting real work into her first touch. If you'd like to keep the Tuesday spot, here's the link to renew before it opens to the waitlist."},
+     src:"Nia's sample roster relationship — renewal decision pending",
+     body:"Hi Renata — Nia's work on her off-hand finish has been showing up in scrimmages. The sample roster renewal window is open; review the season details before the spot returns to the waitlist."},
   ];
   return S.approvalDrafts;
 }
+
+/* ═══════════════ MEDIA-DERIVED COACH PAGES ═══════════════════════
+   These renderers use only the component vocabulary extracted into
+   MOD_COACHUI. Counts and metrics are derived from the state hydrated by the
+   API modules; the disclosed guest workspace reads the same state shape with
+   sample records. No renderer below owns a type size or font stack. */
+function coachHomePage(){
+  const ui=window.COACH_UI;
+  const mine=coachListings();
+  const roster=teamRoster();
+  const sessions=providerSessions().filter(s=>s.date>=TODAY);
+  const ownBookings=(S.bookings||[]).filter(b=>(S.listings||[]).includes(b.programId));
+  const received=ownBookings.filter(b=>/paid|confirmed/i.test(String(b.paymentStatus||b.status||"")))
+    .reduce((sum,b)=>sum+Number(b.price||0),0);
+  const gs=gettingStarted();
+  const steps=gs.steps.map(([label,done,tab])=>({
+    label:ui.html(`<b>${esc(label)}</b><small>${done?"Complete":"Required before your workspace is fully ready"}</small>`),
+    value:ui.html(done
+      ? `<span class="cui-badge cui-badge--good">Done</span>`
+      : ui.Button({label:"Open",size:"sm",variant:"secondary",attrs:`data-ctab="${esc(tab)}"`})),
+    mono:false,
+  }));
+  const todayRows=sessions.slice(0,6).map(s=>({
+    label:ui.html(`<b>${esc(s.p.title)}</b><small>${esc(fmtDate(s.date))} · ${esc(s.p.address||s.address||"Location pending")}</small>`),
+    value:s.startTime,
+  }));
+  const body=[
+    ui.Block({
+      title:"Stats",
+      subtitle:"Loaded listings, clients, sessions, and paid booking records in this workspace.",
+      body:ui.StatGrid([
+        {label:"Active listings",value:String(mine.length),context:"Published records loaded"},
+        {label:"Clients",value:String(roster.length),context:"Athletes on the current roster"},
+        {label:"Upcoming sessions",value:String(sessions.length),context:"From the loaded schedule"},
+        {label:"Received",value:money(received),context:"Paid booking records only"},
+      ]),
+    }),
+    ui.Block({
+      title:"Getting started",
+      subtitle:"Each step is derived from your profile, catalogue, availability, verification, and payout state.",
+      body:ui.ListCard(steps),
+    }),
+    ui.Block({
+      title:"Today",
+      subtitle:"The next sessions across your published listings, ordered by date and start time.",
+      action:ui.Button({label:"Full schedule",size:"sm",variant:"secondary",attrs:'data-ctab="schedule"'}),
+      body:ui.ListCard(todayRows,{emptyTitle:"No upcoming sessions",emptyBody:"Add availability before families can choose a time."}),
+    }),
+  ].join("");
+  return ui.Page({
+    page:"home",eyebrow:"Coach dashboard",h1:"Home",
+    lede:isCoachGuest()
+      ? "A disclosed sample workspace showing how a team runs clients, sessions, and bookings in one place."
+      : "The operational state of your coaching business, from setup through today's schedule.",
+    body:body,
+  });
+}
+
+function coachClientsPage(){
+  const ui=window.COACH_UI;
+  const roster=teamRoster();
+  const requests=(S.waitlistEntries||[]).slice();
+  const history=(S.bookings||[]).slice();
+  const tabs=[
+    {key:"roster",label:"Roster",count:roster.length},
+    {key:"requests",label:"Requests",count:requests.filter(r=>r.status==="waiting").length},
+    {key:"import",label:"Import"},
+    {key:"history",label:"History",count:history.length},
+  ];
+  const active=ui.activeTab(tabs,"roster","clientsPageTab");
+  let body="";
+  if(active==="roster"){
+    body+=ui.Block({
+      title:SEED.teams[0].name,
+      subtitle:"Clients currently attached to this team; payment status comes from each loaded relationship.",
+      body:ui.DataTable({
+        columns:[{key:"client",label:"Client"},{key:"jersey",label:"Jersey",mono:true},{key:"available",label:"Available"},{key:"payment",label:"Payment"},{key:"actions",label:"Actions"}],
+        rows:roster.map((row,index)=>({
+          client:ui.html(`<b>${esc(row.name)}</b>${row.guardian?`<small>${esc(row.guardian)}</small>`:""}`),
+          jersey:"#"+String(row.jersey||"—"),
+          available:ui.html(`<span class="cui-badge ${row.available?"cui-badge--good":"cui-badge--warn"}">${row.available?"Yes":"No"}</span>`),
+          payment:ui.html(`<span class="cui-badge ${row.paid?"cui-badge--good":"cui-badge--warn"}">${row.paid?"Paid":row.payState==="sent"?"Link sent":"Unpaid"}</span>`),
+          actions:row.paid?"—":ui.html(ui.Button({label:row.payState==="sent"?"Mark paid":"Send payment link",size:"sm",variant:"secondary",attrs:row.payState==="sent"?`data-simpaid="${index}"`:`data-paylink="${index}"`})),
+        })),
+        emptyTitle:"No clients yet",emptyBody:"Add a client to start the team roster.",
+      }),
+    });
+    body+=ui.Block({
+      title:"Coaching staff",
+      subtitle:"Every staff member keeps an individual affiliation and background-check state.",
+      action:ui.Button({label:"Invite trainer",size:"sm",variant:"secondary",attrs:'data-addtrainer="1"'}),
+      body:ui.DataTable({
+        columns:[{key:"name",label:"Trainer"},{key:"specialty",label:"Specialty"},{key:"affiliation",label:"Affiliation"},{key:"check",label:"Background check"}],
+        rows:(S.trainers||[]).map(member=>({
+          name:ui.html(`<b>${esc(member.name)}</b>`),specialty:member.specialty,
+          affiliation:member.affiliation,
+          check:ui.html(`<span class="cui-badge ${member.bg==="verified"?"cui-badge--good":"cui-badge--warn"}">${member.bg==="verified"?"Verified":member.bg==="pending"?"Pending":"Not started"}</span>`),
+        })),
+        emptyTitle:"No trainers yet",emptyBody:"Invite staff only when they have a role in this workspace.",
+      }),
+    });
+  } else if(active==="requests"){
+    body=ui.Block({
+      title:"Client requests",
+      subtitle:"Waitlist and roster requests loaded for your listings; an offer never charges a family.",
+      body:ui.DataTable({
+        columns:[{key:"athlete",label:"Athlete"},{key:"guardian",label:"Guardian"},{key:"listing",label:"Listing"},{key:"status",label:"Status"},{key:"actions",label:"Actions"}],
+        rows:requests.map(row=>{
+          const p=programById(row.programId);
+          return {
+            athlete:ui.html(`<b>${esc(row.athlete||"Athlete")}</b>${row.athleteAge?`<small>Age ${esc(row.athleteAge)}</small>`:""}`),
+            guardian:row.parent||"—",listing:p?p.title:"Listing unavailable",
+            status:ui.html(`<span class="cui-badge ${row.status==="accepted"?"cui-badge--good":"cui-badge--warn"}">${esc(row.status||"waiting")}</span>`),
+            actions:(row.status==="waiting"||row.status==="expired")
+              ? ui.html(ui.Button({label:"Offer spot",size:"sm",variant:"secondary",attrs:`data-co-offer="${esc(row.id)}"`})) : "—",
+          };
+        }),
+        emptyTitle:"No open requests",emptyBody:"New roster and waitlist requests will appear here.",
+      }),
+    });
+  } else if(active==="import"){
+    body=ui.Block({
+      title:"Import clients",
+      subtitle:"Bring existing relationships into this workspace without claiming payment or consent on a family's behalf.",
+      action:ui.Button({label:"Start import",size:"sm",variant:"secondary",attrs:'data-import="1"'}),
+      body:ui.ListCard([
+        {label:ui.html("<b>Accepted columns</b><small>Client name, guardian, contact, team, jersey, and balance.</small>"),value:"CSV",mono:true},
+        {label:ui.html("<b>Identity rule</b><small>An imported client remains a shadow record until the family claims it.</small>"),value:"Family-owned",mono:false},
+        {label:ui.html("<b>Consent rule</b><small>Media consent is never inferred from an import.</small>"),value:"Not imported",mono:false},
+      ]),
+    });
+  } else {
+    body=ui.Block({
+      title:"Client history",
+      subtitle:"Read-only booking history for relationships currently loaded into this workspace.",
+      body:ui.DataTable({
+        columns:[{key:"date",label:"Date",mono:true},{key:"client",label:"Client"},{key:"listing",label:"Listing"},{key:"status",label:"Status"},{key:"amount",label:"Amount",mono:true}],
+        rows:history.map(row=>({
+          date:fmtDate(String(row.createdAt||row.date||TODAY).slice(0,10)),client:row.athlete||"—",
+          listing:row.program||"—",status:row.status||"—",amount:money(Number(row.price||0)),
+        })),
+        emptyTitle:"No client history",emptyBody:"Completed and submitted booking records will appear here.",
+      }),
+    });
+  }
+  return ui.Page({
+    page:"clients",eyebrow:"Clients",h1:"Clients",
+    lede:"Roster relationships, inbound requests, imports, and their read-only history in one client system.",
+    actions:[ui.Button({label:"Add client",size:"lg",variant:"primary",attrs:'data-addathlete="1"'})],
+    tabs:tabs,active:active,stateKey:"clientsPageTab",tabLabel:"Client sections",body:body,
+  });
+}
+
+function coachSchedulePage(){
+  const ui=window.COACH_UI;
+  const sessions=providerSessions().filter(s=>s.date>=TODAY);
+  const rules=(S.recurringSlots||[]).slice();
+  const tabs=[
+    {key:"calendar",label:"Calendar",count:sessions.length},
+    {key:"availability",label:"Availability",count:rules.length},
+    {key:"time-off",label:"Time off"},
+  ];
+  const active=ui.activeTab(tabs,"calendar","schedulePageTab");
+  let body="";
+  if(active==="calendar"){
+    body=ui.Block({
+      title:"Upcoming sessions",
+      subtitle:"Bookable and booked sessions loaded across your active listings, ordered by date and time.",
+      body:ui.DataTable({
+        columns:[{key:"date",label:"Date",mono:true},{key:"time",label:"Time",mono:true},{key:"listing",label:"Listing"},{key:"location",label:"Location"},{key:"capacity",label:"Capacity",mono:true}],
+        rows:sessions.map(s=>({date:fmtDate(s.date),time:s.startTime,listing:ui.html(`<b>${esc(s.p.title)}</b><small>${esc(s.p.sport)}</small>`),location:s.address||s.p.address||"—",capacity:`${s.p.enrolled}/${s.p.cap}`})),
+        emptyTitle:"No sessions scheduled",emptyBody:"Add a session or publish recurring availability to open the calendar.",
+      }),
+    });
+  } else if(active==="availability"){
+    const days=["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"];
+    body=ui.Block({
+      title:"Recurring availability",
+      subtitle:"Weekly blocks that generate the times families may request from your active listings.",
+      action:ui.Button({label:"Add block",size:"sm",variant:"secondary",attrs:'data-modal="addslot"'}),
+      body:ui.DataTable({
+        columns:[{key:"name",label:"Block"},{key:"listing",label:"Listing"},{key:"day",label:"Day"},{key:"time",label:"Time",mono:true},{key:"capacity",label:"Capacity",mono:true},{key:"actions",label:"Actions"}],
+        rows:rules.map(rule=>{
+          const p=DEMO_CATALOGUE.find(x=>x.id===rule.programId)||PROGRAMS.find(x=>x.id===rule.programId);
+          return {name:ui.html(`<b>${esc(rule.name||"Recurring block")}</b>`),listing:p?p.title:"Listing unavailable",day:days[Number(rule.weekday)]||"—",time:`${rule.start}–${rule.end}`,capacity:String(rule.capacity||"—"),actions:ui.html(ui.Button({label:"Remove",size:"sm",variant:"secondary",attrs:`data-co-delslot="${esc(rule.id)}"`}))};
+        }),
+        emptyTitle:"No recurring availability",emptyBody:"Add a block to make bookable times repeat each week.",
+      }),
+    });
+  } else {
+    body=ui.Block({
+      title:"Time off",
+      subtitle:"One-off scheduling exceptions will appear here without changing your recurring weekly rules.",
+      body:ui.EmptyState("No time-off records loaded","Scheduling exceptions are not connected to this web demo yet; recurring availability remains unchanged."),
+    });
+  }
+  return ui.Page({
+    page:"schedule",eyebrow:"Clients",h1:"Schedule",
+    lede:"Sessions families can attend, the availability that creates them, and exceptions that keep the calendar honest.",
+    actions:[ui.Button({label:"Add session",size:"lg",variant:"primary",attrs:'data-addsession="1"'})],
+    tabs:tabs,active:active,stateKey:"schedulePageTab",tabLabel:"Schedule sections",body:body,
+  });
+}
+
+function coachListingsPage(){
+  const ui=window.COACH_UI;
+  const mine=coachListings();
+  const statusOf=p=>p.status==="draft"||p.published===false?"draft":p.status==="archived"?"archived":"active";
+  const groups={active:mine.filter(p=>statusOf(p)==="active"),drafts:mine.filter(p=>statusOf(p)==="draft"),archived:mine.filter(p=>statusOf(p)==="archived")};
+  const tabs=[
+    {key:"active",label:"Active",count:groups.active.length},
+    {key:"drafts",label:"Drafts",count:groups.drafts.length},
+    {key:"archived",label:"Archived",count:groups.archived.length},
+  ];
+  const active=ui.activeTab(tabs,"active","listingsPageTab");
+  const rows=groups[active];
+  const table=ui.DataTable({
+    columns:[{key:"listing",label:"Listing"},{key:"sport",label:"Sport"},{key:"price",label:"Price",mono:true},{key:"capacity",label:"Capacity",mono:true},{key:"next",label:"Next session",mono:true},{key:"actions",label:"Actions"}],
+    rows:rows.map(p=>{
+      const next=slotsFor(p.id).filter(s=>s.date>=TODAY).sort((a,b)=>a.date.localeCompare(b.date)||minsOf(a.startTime)-minsOf(b.startTime))[0];
+      return {
+        listing:ui.html(`<b>${esc(p.title)}</b><small>Ages ${esc(p.minAge)}–${esc(p.maxAge)}${p.sample?" · disclosed sample":""}</small>`),
+        sport:p.sport,price:`${money(p.price)} ${modelLabel(p.model)}`,capacity:`${p.enrolled}/${p.cap}`,
+        next:next?`${fmtDate(next.date)} · ${next.startTime}`:"—",
+        actions:ui.html(`<span class="cui-inline">${active==="active"&&!isCoachGuest()?ui.Button({label:"Signups",size:"sm",variant:"secondary",attrs:`data-signups="${esc(p.id)}"`}):""}${ui.Button({label:"Edit",size:"sm",variant:"secondary",attrs:`data-editlisting="${esc(p.id)}"`})}</span>`),
+      };
+    }),
+    emptyTitle:`No ${active} listings`,emptyBody:active==="active"?"Create a listing when you are ready to publish an offer.":`Listings moved to ${active} will appear here.`,
+  });
+  const body=ui.Callout({body:"A listing takes bookings only after the background check clears."})+
+    ui.Block({
+      title:active==="active"?"Taking bookings":active==="drafts"?"Not published":"No longer public",
+      subtitle:active==="active"?"Published listings in the loaded catalogue, including their real capacity and next session.":active==="drafts"?"Listings saved without publication remain invisible to families.":"Archived listings preserve their record without accepting new bookings.",
+      body:table,
+    });
+  return ui.Page({
+    page:"listings",eyebrow:"Catalog",h1:"Listings",
+    lede:"The offers families can discover, what is still being prepared, and the records you have retired.",
+    actions:[ui.Button({label:"New listing",size:"lg",variant:"primary",attrs:'data-newlisting="1"'})],
+    tabs:tabs,active:active,stateKey:"listingsPageTab",tabLabel:"Listing sections",body:body,
+  });
+}
+
+function coachEarningsPage(){
+  const ui=window.COACH_UI;
+  const mineIds=S.listings||[];
+  const tx=(S.bookings||[]).filter(b=>mineIds.includes(b.programId));
+  const gross=tx.reduce((sum,b)=>sum+Number(b.price||0),0);
+  const fee=tx.reduce((sum,b)=>sum+Number(b.fee||Math.round(Number(b.price||0)*FEE_RATE)),0);
+  const net=gross-fee;
+  const tabs=[
+    {key:"summary",label:"Summary"},
+    {key:"payouts",label:"Payouts"},
+    {key:"transactions",label:"Transactions",count:tx.length},
+    {key:"tax-documents",label:"Tax documents"},
+  ];
+  const active=ui.activeTab(tabs,"summary","earningsPageTab");
+  let body="";
+  if(active==="summary"){
+    body=ui.Block({
+      title:"Booking totals",
+      subtitle:"Amounts are calculated from loaded booking records; Sporv does not invent missing payout data.",
+      body:ui.StatGrid([
+        {label:"Gross",value:money(gross),context:"All loaded booking payments"},
+        {label:"Platform fee",value:money(fee),context:"Recorded per booking"},
+        {label:"Net",value:money(net),context:"Gross less recorded fees"},
+      ]),
+    });
+  } else if(active==="payouts"){
+    const st=coachState();
+    body=ui.Block({
+      title:"Payout state",
+      subtitle:"Read-only account state loaded from the provider record; Stripe remains the source of settlement details.",
+      body:ui.ListCard([
+        {label:ui.html("<b>Connection</b><small>Whether the provider row reports payouts enabled.</small>"),value:st.payouts?"Enabled":"Not enabled",mono:false},
+        {label:ui.html("<b>Net recorded</b><small>Net across the booking rows currently loaded.</small>"),value:money(net)},
+        {label:ui.html("<b>Settlement detail</b><small>No payout ledger is exposed by this web client.</small>"),value:"Stripe-owned",mono:false},
+      ]),
+    });
+  } else if(active==="transactions"){
+    body=ui.Block({
+      title:"Transactions",
+      subtitle:"Read-only booking-level movements loaded for this provider, with the recorded fee itemized.",
+      body:ui.DataTable({
+        columns:[{key:"date",label:"Date",mono:true},{key:"listing",label:"Listing"},{key:"client",label:"Client"},{key:"gross",label:"Gross",mono:true},{key:"fee",label:"Fee",mono:true},{key:"net",label:"Net",mono:true},{key:"status",label:"Status"}],
+        rows:tx.map(row=>{
+          const rowFee=Number(row.fee||Math.round(Number(row.price||0)*FEE_RATE));
+          return {date:fmtDate(String(row.createdAt||row.date||TODAY).slice(0,10)),listing:row.program||"—",client:row.athlete||"—",gross:money(Number(row.price||0)),fee:money(rowFee),net:money(Number(row.price||0)-rowFee),status:row.paymentStatus||row.status||"—"};
+        }),
+        emptyTitle:"No transactions",emptyBody:"Paid and submitted booking records will appear here.",
+      }),
+    });
+  } else {
+    body=ui.Block({
+      title:"Tax documents",
+      subtitle:"Read-only documents will appear only when a tax record is returned for this provider.",
+      body:ui.EmptyState("No tax documents loaded","This client has not received a tax-document record from the API."),
+    });
+  }
+  return ui.Page({
+    page:"earnings",eyebrow:"Business",h1:"Earnings",
+    lede:"Read-only booking revenue, payout state, transactions, and tax records for this provider.",
+    tabs:tabs,active:active,stateKey:"earningsPageTab",tabLabel:"Earnings sections",body:body,
+  });
+}
+
+function coachApprovalsPage(){
+  const ui=window.COACH_UI;
+  const live=(S.coachQueue||[]).slice();
+  const drafts=coachState().isReal?[]:approvalDrafts();
+  const sent=S.approvalSent||[];
+  const label={booking_confirmed:"Booking confirmed",reminder_24h:"24-hour reminder",post_session:"Post-session recap",no_show_followup:"No-show follow-up",rebook_nudge:"Rebooking nudge"};
+  let queue;
+  if(live.length){
+    queue=ui.DataTable({
+      columns:[{key:"kind",label:"Draft"},{key:"message",label:"Message"},{key:"status",label:"Status"},{key:"actions",label:"Actions"}],
+      rows:live.map(row=>{
+        const text=(row.content&&(row.content.body||row.content.text||row.content.message))||"No draft body";
+        let actions="—";
+        if(S.qDeciding&&S.qDeciding[row.id]) actions="Working…";
+        else if(row.status==="drafted") actions=ui.html(`<span class="cui-inline">${ui.Button({label:"Approve & send",size:"sm",variant:"secondary",attrs:`data-qdecide="approve:${esc(row.id)}"`})}${ui.Button({label:"Skip",size:"sm",variant:"secondary",attrs:`data-qdecide="reject:${esc(row.id)}"`})}</span>`);
+        else if(row.status==="approved") actions=ui.html(ui.Button({label:"Return to draft",size:"sm",variant:"secondary",attrs:`data-qdecide="redraft:${esc(row.id)}"`}));
+        return {kind:ui.html(`<b>${esc(label[row.event_type]||row.event_type)}</b>`),message:text,status:row.status,actions:actions};
+      }),
+      emptyTitle:"Nothing waiting",emptyBody:"New drafts appear after eligible booking and session events.",
+    });
+  } else {
+    queue=ui.DataTable({
+      columns:[{key:"kind",label:"Draft"},{key:"message",label:"Message"},{key:"actions",label:"Actions"}],
+      rows:drafts.map((draft,index)=>({
+        kind:ui.html(`<b>${esc(draft.kind)}</b><small>${esc(draft.to)} · Drafted from ${esc(draft.src)}</small>`),
+        message:ui.html(`<div class="cui-draft" contenteditable="true" spellcheck="false" id="apvBody${index}" role="textbox" aria-label="Draft message — editable">${esc(draft.body)}</div>`),
+        actions:ui.html(`<span class="cui-inline">${ui.Button({label:"Approve & send",size:"sm",variant:"secondary",attrs:`data-qapprove="${index}"`})}${ui.Button({label:"Dismiss",size:"sm",variant:"secondary",attrs:`data-qdismiss="${index}"`})}</span>`),
+      })),
+      emptyTitle:"Nothing waiting",emptyBody:"Sporv drafts eligible reminders and recaps, but sends nothing without approval.",
+    });
+  }
+  const blocks=[ui.Block({
+    title:"Approval queue",
+    subtitle:"Every row requires an explicit decision; no draft is sent merely because it appears here.",
+    body:queue,
+  })];
+  if(sent.length) blocks.push(ui.Block({
+    title:"Approval history",
+    subtitle:"Read-only record of drafts this coach explicitly approved and sent.",
+    body:ui.ListCard(sent.map(row=>({label:ui.html(`<b>${esc(row.kind)}</b><small>${esc(row.to||"")}</small>`),value:"Sent",mono:false}))),
+  }));
+  return ui.Page({
+    page:"approvals",eyebrow:"Business",h1:"Approvals",
+    lede:"One queue for generated messages that remain under the coach's control from draft to delivery.",
+    body:blocks.join(""),
+  });
+}
+
+function coachOperationsPage(){
+  const ui=window.COACH_UI;
+  const reviews=(S.reviews||[]).filter(row=>(S.listings||[]).includes(row.programId));
+  const policies=S.policies||{};
+  const messages=S.autoMessages||[];
+  const tabs=[
+    {key:"insights",label:"Insights"},
+    {key:"reviews",label:"Reviews",count:reviews.length},
+    {key:"policies",label:"Policies"},
+    {key:"automated-messages",label:"Automated messages",count:messages.length},
+  ];
+  const active=ui.activeTab(tabs,"insights","operationsPageTab");
+  let body="";
+  if(active==="insights"){
+    const warnings=!isCoachGuest()&&window.MOD_INSIGHTS&&window.MOD_INSIGHTS.availabilityWarnings
+      ? window.MOD_INSIGHTS.availabilityWarnings() : [];
+    body=ui.Block({
+      title:"Operating signals",
+      subtitle:"Signals are derived from loaded listings, sessions, capacity, and booking cadence rather than asserted totals.",
+      body:isCoachGuest()?ui.EmptyState("Sign in to see insights","Operating signals can identify private clients and remain hidden in preview mode.")
+        :ui.ListCard(warnings.map(row=>({label:ui.html(`<b>${esc(row.text)}</b><small>${esc(row.action||"")}</small>`),value:row.level==="good"?"Clear":"Review",mono:false})),{emptyTitle:"No operating signals",emptyBody:"Nothing in the loaded state currently needs attention."}),
+    });
+  } else if(active==="reviews"){
+    body=ui.Block({
+      title:"Verified reviews",
+      subtitle:"Feedback appears only after its review record is loaded; an empty list does not invent social proof.",
+      body:ui.DataTable({
+        columns:[{key:"date",label:"Date",mono:true},{key:"author",label:"Family"},{key:"listing",label:"Listing"},{key:"rating",label:"Rating",mono:true},{key:"review",label:"Review"},{key:"actions",label:"Actions"}],
+        rows:reviews.map(row=>{
+          const p=DEMO_CATALOGUE.find(x=>x.id===row.programId)||PROGRAMS.find(x=>x.id===row.programId);
+          return {date:row.date?fmtDate(row.date):"—",author:row.author||"Family",listing:p?p.title:"Listing unavailable",rating:String(row.rating||"—"),review:row.body||"—",actions:p?ui.html(ui.Button({label:"Open listing",size:"sm",variant:"secondary",attrs:`data-open="${esc(p.id)}"`})) : "—"};
+        }),
+        emptyTitle:"No reviews yet",emptyBody:"A family can review only after a completed session.",
+      }),
+    });
+  } else if(active==="policies"){
+    body=ui.Block({
+      title:"Booking policies",
+      subtitle:"These loaded terms attach to published listings and are shown before a family pays.",
+      action:ui.Button({label:"Edit policies",size:"sm",variant:"secondary",attrs:'data-modal="editpolicy"'}),
+      body:ui.ListCard([
+        {label:ui.html("<b>Cancellation</b><small>The policy snapshotted onto a booking.</small>"),value:policies.cancellation||"Not loaded",mono:false},
+        {label:ui.html("<b>Late-arrival grace</b><small>Minutes before the session may proceed without the athlete.</small>"),value:policies.graceMinutes==null?"Not loaded":String(policies.graceMinutes)+" min"},
+        {label:ui.html("<b>No-show fee</b><small>Applied only under the loaded no-show policy.</small>"),value:policies.noShowFee==null?"Not loaded":money(policies.noShowFee)},
+        {label:ui.html("<b>Weather</b><small>The currently loaded make-up or refund rule.</small>"),value:policies.weather||"Not loaded",mono:false},
+      ]),
+    });
+  } else {
+    body=ui.Block({
+      title:"Automated messages",
+      subtitle:"Templates fill from the booking at send time and still pass through the configured approval rule.",
+      body:ui.DataTable({
+        columns:[{key:"trigger",label:"Trigger"},{key:"status",label:"Status"},{key:"preview",label:"Template"},{key:"actions",label:"Actions"}],
+        rows:messages.map(row=>({
+          trigger:ui.html(`<b>${esc(String(row.trigger||"").replace(/_/g," "))}</b>`),
+          status:ui.html(`<span class="cui-badge ${row.enabled?"cui-badge--good":""}">${row.enabled?"On":"Off"}</span>`),
+          preview:row.body||"—",
+          actions:ui.html(ui.Button({label:row.enabled?"Turn off":"Turn on",size:"sm",variant:"secondary",attrs:`data-automsg-toggle="${esc(row.trigger)}"`})),
+        })),
+        emptyTitle:"No message templates",emptyBody:"Templates will appear when the operations state is loaded.",
+      }),
+    });
+  }
+  return ui.Page({
+    page:"operations",eyebrow:"Business",h1:"Operations",
+    lede:"The signals, feedback, policies, and message rules used to run the practice after publication.",
+    tabs:tabs,active:active,stateKey:"operationsPageTab",tabLabel:"Operations sections",body:body,
+  });
+}
+
 function coachBody(t){
   const mine=coachListings();
   const pp=SEED.providerProfile;
+  if(t==="dashboard") return coachHomePage();
+  if(t==="roster") return coachClientsPage();
+  if(t==="schedule") return coachSchedulePage();
+  if(t==="listings") return coachListingsPage();
+  if(t==="finances") return coachEarningsPage();
+  if(t==="approvals") return coachApprovalsPage();
+  if(t==="operations") return coachOperationsPage();
   const mv=modView(t); if(mv) return mv();
   if(t==="search") return coachSearchHTML();
-  if(t==="dashboard") return dashboardHTML();
   if(t==="__legacy_dashboard"){
     const revenue=S.bookings.filter(b=>S.listings.includes(b.programId)).reduce((s,b)=>s+b.price,0);
     const enrolled=mine.reduce((s,p)=>s+p.enrolled,0);
@@ -11822,7 +12287,11 @@ function modules(){
    inbound link that still asks for it by name is redirected here, so a stale
    token lands on the real surface instead of a tab the rail no longer offers. */
 function setCoachTab(v){
-  if(v==="slots"){S.coachTab="schedule";S.schedTab="slots";return;}
+  /* Local page tabs live in ?tab=. A rail change starts a different page, so
+     carrying the old page's tab into the new one would select an unrelated
+     pane (or leave a stale URL that disagrees with the visible fallback). */
+  if(window.COACH_UI&&window.COACH_UI.clearTab) window.COACH_UI.clearTab();
+  if(v==="slots"){S.coachTab="schedule";S.schedTab="slots";S.schedulePageTab="availability";return;}
   /* Insights, Reviews, Policies and Automated messages merged into Operations;
      every old name still resolves, landing on its sub-tab rather than a rail
      entry that no longer exists. */
@@ -13760,6 +14229,11 @@ document.querySelectorAll('.sig-ai-coach').forEach(sigAiCoachWire);
   /* Operations sub-tabs. Owned by the host, not mod-coachops, because the tab
      now mixes host-rendered Reviews with views from two different modules. */
   $("[data-opstab]").forEach(b=>b.onclick=()=>{S.opsTab=b.dataset.opstab;window.scrollTo(0,0);render();});
+  $("[data-automsg-toggle]").forEach(b=>b.onclick=()=>requireAuth(()=>{
+    const row=(S.autoMessages||[]).find(x=>x.trigger===b.dataset.automsgToggle);
+    if(!row) return;
+    row.enabled=!row.enabled;render();toast(row.enabled?"Automated message turned on":"Automated message turned off");
+  }));
   /* Coach search. Typing re-renders so the result list stays in sync with the
      box; the caret is put back afterwards, otherwise focus would be lost on
      every keystroke because #app's innerHTML is replaced wholesale. */
@@ -13840,6 +14314,10 @@ document.querySelectorAll('.sig-ai-coach').forEach(sigAiCoachWire);
      which runs it when signed in and otherwise stores it as the pending intent
      and raises the sheet — so the action completes itself after sign-in. */
   $("[data-newlisting]").forEach(b=>b.onclick=()=>requireAuth(()=>{S.modal={type:"newlisting"};render();}));
+  /* The Media-derived Schedule header has one primary action. It opens the
+     existing full recurring-block form, which is the schedule write path this
+     client already validates, rather than inventing a second session writer. */
+  $("[data-addsession]").forEach(b=>b.onclick=()=>requireAuth(()=>{S.modal={type:"addslot"};render();}));
   $("[data-editlisting]").forEach(b=>b.onclick=()=>requireAuth(()=>{S.modal={type:"editlisting",id:b.dataset.editlisting};render();}));
   $("[data-signups]").forEach(b=>b.onclick=()=>{S.modal={type:"signups",id:b.dataset.signups};render();});
   $("[data-addtrainer]").forEach(b=>b.onclick=()=>requireAuth(()=>{S.modal={type:"addtrainer"};render();}));
@@ -16155,12 +16633,35 @@ function scheduleSave(){
   saveTimer = setTimeout(() => { saveTimer = null; saveState(); }, 250);
 }
 
+/* The disclosed coach workspace changed from the five-listing Apex sample to
+   the one-listing Northside Flight AAU sample. Session storage intentionally
+   survives reloads, so migrate that known demo shape instead of leaving an
+   old browser pointed at ids the current demo no longer owns. Real provider
+   rows remain server-owned and are not inferred here. */
+function migrateNorthsideDemo(){
+  const oldApex=["prog_1","prog_2","prog_3","prog_4","prog_5"];
+  const list=Array.isArray(S.listings)?S.listings:[];
+  const oldShape=list.length>1&&list.every(id=>oldApex.includes(id));
+  const orphaned=list.includes("prog_31")||!list.some(id=>DEMO_CATALOGUE.some(p=>p.id===id));
+  if(oldShape||orphaned) S.listings=["prog_1"];
+  (S.bookings||[]).forEach(row=>{
+    if(row.programId!=="prog_31"&&row.id!=="book_1") return;
+    row.programId="prog_1";row.program="Northside Flight 14U — AAU Season";
+    row.session="AAU tryout registration";row.price=0;row.status="applied";
+    row.paymentStatus="sample_no_charge";
+  });
+  (S.conversations||[]).forEach(row=>{
+    if(row.programId==="prog_31") row.programId="prog_1";
+  });
+}
+
 /* boot: merge module state, restore the session, then first paint.
    Order is load-critical — bootModules() seeds module keys with
    `if(!(k in S))`, so restoring before it would have those defaults
    overwrite the saved values. */
 bootModules();
 loadState();
+migrateNorthsideDemo();
 render();
 
 /* First paint is synchronous and the network is not, so the page shows one

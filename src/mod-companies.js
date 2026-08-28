@@ -1,5 +1,5 @@
 /* ═══════════════════════════════════════════════════════════════════
-   MOD_COMPANIES — the six sample businesses as first-class entities,
+   MOD_COMPANIES — the sample businesses as first-class entities,
    plus offering-type-aware booking.
 
    Thesis: a team, a camp and a private trainer are three different
@@ -65,6 +65,14 @@ function shift(iso, days){
    checks — they never render a trust badge, and their imagery is
    deliberately plainer so the photography agrees with the state. */
 const COMPANIES = [
+  {
+    id:"northside-flight", name:"Northside Flight Basketball", verified:false,
+    tagline:"A disclosed 14U AAU team operations demo",
+    bio:"A fictional Chicago AAU organization used to demonstrate tryout registration, roster operations, recurring practices, family messaging, billing boundaries, and media consent without taking a real payment.",
+    hood:"North Side, Chicago", founded:2024, coaches:3, seed:"northside-flight",
+    look:"Candid indoor basketball — charcoal and slate-blue practice kit, real gym texture, disciplined team energy.",
+    heroAsset:"assets/teams/northside-flight-14u-card.jpg",
+  },
   {
     id:"apex", name:"Apex Performance Club", verified:true,
     tagline:"Elite training clinics for junior athletes",
@@ -178,6 +186,12 @@ const ASSET = {
    only produced a guaranteed net::ERR_FILE_NOT_FOUND before falling back. When
    real assets land, restore the real-first src + data-cofb fallback. */
 function imgTag(real, fallback, alt){
+  /* Generated team assets are committed and known to exist. Other documented
+     asset paths are still prospective, so they keep the self-contained SVG
+     rather than generating a guaranteed failed request. */
+  if(real && String(real).indexOf("assets/teams/") === 0){
+    return `<img src="${esc(real)}" data-cofb="${esc(fallback)}" alt="${esc(alt || "")}" loading="lazy">`;
+  }
   return `<img src="${esc(fallback)}" alt="${esc(alt || "")}" loading="lazy">`;
 }
 function imagesFor(p){
@@ -191,7 +205,8 @@ function imagesFor(p){
     });
   }
   return {
-    hero:ASSET.listing(p.id, "hero"),
+    hero:(p.cardAsset || (p.img && String(p.img).indexOf("assets/teams/")===0))
+      ? (p.cardAsset || p.img) : ASSET.listing(p.id, "hero"),
     heroFallback:shot(p.id, 900, 700),
     ratio:spec.ratio, gRatio:spec.gRatio, gallery:g,
     /* what a photographer or generator needs to produce for this listing */
@@ -385,6 +400,7 @@ function quote(kind, p, m){
 function commit(kind, p, m){
   const h = H();
   const q = quote(kind, p, m);
+  const sample = !!p.sample;
   const a = pickAthlete(p, m);
   const n = ((h.bookings && h.bookings.length) || 0) + 1;
   const bookId = "book_co" + n, txId = "tx_co" + n;
@@ -396,8 +412,9 @@ function commit(kind, p, m){
     athleteId:a.sel ? a.sel.id : null,
     programId:p.id, program:p.title, offeringType:kind,
     createdAt:TODAY,
-    price:q.due,
-    totalCents:cents(q.total), dueCents:cents(q.due), balanceCents:cents(q.balance),
+    price:sample?0:q.due,
+    totalCents:cents(q.total), dueCents:sample?0:cents(q.due), balanceCents:sample?0:cents(q.balance),
+    sample:sample, quotedDueCents:cents(q.due),
     /* the policy in force at purchase, captured now — a later change by the
        operator must not move this booking's refund terms */
     cancellationPolicy:p.cancellationPolicy || "moderate",
@@ -413,7 +430,7 @@ function commit(kind, p, m){
     rec.date = rec.tryoutDate;
     rec.session = "Tryout — " + fmt(rec.tryoutDate);
     rec.status = "applied";
-    rec.paymentStatus = "tryout_fee_paid";
+    rec.paymentStatus = sample ? "sample_no_charge" : "tryout_fee_paid";
     rec.seasonCost = q.total;
   } else if(kind === "camp"){
     rec.date = q.session.start;
@@ -670,7 +687,7 @@ function companiesView(){
     const ps = progsOf(c), mix = mixOf(c), sports = sportsOf(c);
     const avg = ps.length ? (ps.reduce((a, p) => a + Number(p.rating || 0), 0) / ps.length).toFixed(1) : "—";
     return `<button class="co-card ${c.verified ? "" : "co-pending"}" data-company="${esc(c.id)}">
-      <div class="co-shot">${imgTag(ASSET.company(c.id, "hero"), shot(c.seed + "-hero", 900, 600), c.name)}</div>
+      <div class="co-shot">${imgTag(c.heroAsset||ASSET.company(c.id, "hero"), shot(c.seed + "-hero", 900, 600), c.name)}</div>
       <div class="co-body">
         <div class="co-nm">${esc(c.name)}</div>
         <div class="co-tag">${esc(c.tagline)}</div>
@@ -720,7 +737,7 @@ function companiesView(){
   <section class="band alt" style="padding:64px 0 56px">
     <div class="shell">
       <div class="eyebrow" data-rev>Examples</div>
-      <h1 style="margin-top:16px;max-width:18ch" data-rev>Six sample businesses in Chicago.</h1>
+      <h1 style="margin-top:16px;max-width:18ch" data-rev>${nBiz} sample businesses in Chicago.</h1>
       <p class="lede" style="margin:16px 0 0;max-width:56ch;text-align:left" data-rev>${nProg} programmes,
         ${/* COUNTED, not asserted — the same rule as every other figure on this
              page. "Verification is pending across the roster" was stated flatly
@@ -760,7 +777,7 @@ function companiesView(){
 
   <section class="band alt">
     <div class="shell">
-      <div class="eyebrow" data-rev>What the six prove</div>
+      <div class="eyebrow" data-rev>What the samples prove</div>
       <div class="co-trows" data-rev>
         ${rows.map(([ic, t, d]) => `<div class="co-trow">
           <span class="ic" aria-hidden="true">${ic}</span>
@@ -840,7 +857,7 @@ function companyView(){
           ${c.verified ? "" : `<div class="co-note"><b>Verification pending.</b>
             No coach here carries a trust badge until their own check clears.</div>`}
         </div>
-        <div class="co-heroshot">${imgTag(ASSET.company(c.id, "hero"), shot(c.seed + "-hero", 900, 700), c.name)}</div>
+        <div class="co-heroshot">${imgTag(c.heroAsset||ASSET.company(c.id, "hero"), shot(c.seed + "-hero", 900, 700), c.name)}</div>
       </div>
     </div>
   </section>
@@ -1005,13 +1022,14 @@ function campSheet(p, m){
 /* — TEAM: not a booking. A tryout registration. — */
 function teamSheet(p, m){
   const q = quote("team", p, m), meta = q.meta, total = q.total;
+  const sample = !!p.sample;
   const tryout = m.tryout || meta.tryouts[0].date;
   const a = pickAthlete(p, m);
 
   return `
-  <div class="co-note plain"><b>This is an application, not a purchase.</b>
+  <div class="co-note plain"><b>This is an application, not a season purchase.</b>
     You are registering for a tryout. ${esc(p.biz)} evaluates the athlete and announces
-    the roster on ${fmtY(meta.rosterAnnounced)}. Nothing beyond the tryout fee is charged unless a spot is offered.</div>
+    the roster on ${fmtY(meta.rosterAnnounced)}. ${sample?"This disclosed demo writes a local registration and charges nothing.":"Nothing beyond the tryout fee is charged unless a spot is offered."}</div>
 
   ${fg("The programme", "8 fields", `<table class="co-tbl"><tbody>
     <tr><td>Tier</td><td>${esc(meta.tier)}</td></tr>
@@ -1027,8 +1045,9 @@ function teamSheet(p, m){
   ${fg("Pick a tryout", meta.tryouts.length + " dates", `<div class="co-opts">
     ${meta.tryouts.map(t => `<button class="co-opt ${tryout === t.date ? "on" : ""}" data-cotry="${esc(t.date)}">${fmt(t.date)} · ${esc(t.time)}</button>`).join("")}
   </div>
-  <div class="co-note">Registration closes ${fmtY(meta.tryoutDeadline)}. Tryout fee ${usd(meta.tryoutFee)},
-    charged now and non-refundable — it covers the evaluation session itself.</div>`)}
+  <div class="co-note">Registration closes ${fmtY(meta.tryoutDeadline)}. ${sample
+    ? `The example tryout fee is ${usd(meta.tryoutFee)}, but this sample flow does not open checkout or take payment.`
+    : `Tryout fee ${usd(meta.tryoutFee)}, charged now and non-refundable — it covers the evaluation session itself.`}</div>`)}
 
   ${fg("What a season actually costs", meta.costs.length + " lines", `
     <table class="co-tbl">
@@ -1055,9 +1074,9 @@ function teamSheet(p, m){
 
   <div class="co-foot">
     <div class="co-tot">
-      <div class="k">Charged today</div>
-      <div class="v">${usd(meta.tryoutFee)}</div>
-      <div class="d">Tryout only · ${usd(total)} season cost applies if selected</div>
+      <div class="k">${sample?"Demo registration":"Charged today"}</div>
+      <div class="v">${sample?usd(0):usd(meta.tryoutFee)}</div>
+      <div class="d">${sample?`${usd(meta.tryoutFee)} example tryout fee · nothing charged`:`Tryout only · ${usd(total)} season cost applies if selected`}</div>
     </div>
     <button class="btn" data-coconfirm="team" ${a.fits ? "" : "disabled"}>${esc(TYPE.team.cta)}</button>
   </div>`;
@@ -1105,7 +1124,12 @@ function wire(){
   $$("[data-cobook]").forEach(b => b.onclick = () => {
     const id = b.dataset.cobook;
     const open = () => { h.modal = { type:"cobook", pid:id }; render(); };
-    (typeof requireAuth === "function") ? requireAuth(open) : open();
+    const p = CAT().filter(x => x.id === id)[0];
+    /* A disclosed, local-only demo with a $0 commit can be exercised without
+       manufacturing an account. Every non-sample offer keeps the normal
+       authentication gate. */
+    if(p && p.sample) open();
+    else (typeof requireAuth === "function") ? requireAuth(open) : open();
   });
 
   /* sheet controls — each repaints through the host's render() */

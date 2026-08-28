@@ -3,6 +3,13 @@ allow_login_shell = false
 [features]
 shell_tool = false
 
+[agents]
+enabled = true
+max_concurrent_threads_per_session = 3
+default_subagent_model = "gpt-5.6-terra"
+default_subagent_reasoning_effort = "medium"
+interrupt_message = true
+
 [mcp_servers.stripe]
 url = "https://mcp.stripe.com"
 enabled = true

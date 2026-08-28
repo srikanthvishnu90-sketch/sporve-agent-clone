@@ -165,7 +165,7 @@ function seedItems(){
     /* ── profile ──────────────────────────────────────────────── */
     mk({ id: "md_1", kind: "profile", slot: "headshot", mediaType: "photo", durationSec: null,
       sessionId: null, programId: null, athleteIds: [],
-      caption: "Head coach, Apex Performance Club", createdAt: "2026-06-02T14:00:00.000Z",
+      caption: "Head coach, Northside Flight Basketball", createdAt: "2026-06-02T14:00:00.000Z",
       published: true }),
     mk({ id: "md_2", kind: "profile", slot: "intro_video", mediaType: "video", durationSec: 72,
       sessionId: null, programId: null, athleteIds: [],
@@ -173,11 +173,11 @@ function seedItems(){
       published: true }),
     mk({ id: "md_3", kind: "profile", slot: "facility", mediaType: "photo", durationSec: null,
       sessionId: null, programId: (myListings()[0] || DEMO_CATALOGUE[0]).id, athleteIds: [],
-      caption: "Main pitch, Lincoln Park — shaded parent seating along the east side",
+      caption: "Northside Community Gym — court and parent seating",
       createdAt: "2026-06-09T16:10:00.000Z", published: true }),
     mk({ id: "md_4", kind: "profile", slot: "action", mediaType: "photo", durationSec: null,
       sessionId: s0.id, programId: s0.programId, athleteIds: ["athlete_1"],
-      caption: "First touch under pressure", createdAt: "2026-07-14T18:05:00.000Z",
+      caption: "Closeout footwork under pressure", createdAt: "2026-07-14T18:05:00.000Z",
       published: true, shareable: true }),
     /* mixed tagging: one athlete has profile consent, one does not */
     mk({ id: "md_5", kind: "profile", slot: "action", mediaType: "photo", durationSec: null,
@@ -187,26 +187,26 @@ function seedItems(){
     /* ── session ──────────────────────────────────────────────── */
     mk({ id: "md_6", kind: "session", slot: null, mediaType: "video", durationSec: 24,
       sessionId: s0.id, programId: s0.programId, athleteIds: ["athlete_1"],
-      caption: "Wall-pass drill — six clean reps in a row", createdAt: "2026-07-14T18:40:00.000Z",
+      caption: "Off-hand finishing — six clean reps in a row", createdAt: "2026-07-14T18:40:00.000Z",
       shareable: true, sharedWith: [{ athleteId: "athlete_1", at: "2026-07-14T19:02:00.000Z" }] }),
     mk({ id: "md_7", kind: "session", slot: null, mediaType: "photo", durationSec: null,
       sessionId: s0.id, programId: s0.programId, athleteIds: ["athlete_2"],
-      caption: "Receiving on the half-turn", createdAt: "2026-07-14T18:44:00.000Z",
+      caption: "Catch-and-shoot footwork", createdAt: "2026-07-14T18:44:00.000Z",
       shareable: true }),
     mk({ id: "md_8", kind: "session", slot: null, mediaType: "photo", durationSec: null,
       sessionId: s1.id, programId: s1.programId, athleteIds: ["athlete_3"],
       caption: "Shooting form from the elbow", createdAt: "2026-07-21T17:30:00.000Z" }),
     mk({ id: "md_9", kind: "session", slot: null, mediaType: "photo", durationSec: null,
       sessionId: s0.id, programId: s0.programId, athleteIds: ["athlete_1", "athlete_2"],
-      caption: "Partner rondo before the scrimmage", createdAt: "2026-07-14T18:51:00.000Z",
+      caption: "Shell drill before the scrimmage", createdAt: "2026-07-14T18:51:00.000Z",
       shareable: true }),
     mk({ id: "md_10", kind: "session", slot: null, mediaType: "video", durationSec: 31,
       sessionId: s2.id, programId: s2.programId, athleteIds: ["athlete_5"],
-      caption: "Serve toss, slow motion", createdAt: "2026-07-28T16:15:00.000Z",
+      caption: "Free-throw release, slow motion", createdAt: "2026-07-28T16:15:00.000Z",
       shareable: true }),
     mk({ id: "md_11", kind: "session", slot: null, mediaType: "photo", durationSec: null,
       sessionId: s3.id, programId: s3.programId, athleteIds: ["athlete_4"],
-      caption: "Overhand serve, first clean landing", createdAt: "2026-07-30T17:05:00.000Z",
+      caption: "Outlet pass, first clean read", createdAt: "2026-07-30T17:05:00.000Z",
       shareable: true, sharedWith: [{ athleteId: "athlete_4", at: "2026-07-30T18:00:00.000Z" }] }),
   ];
 }
@@ -1335,7 +1335,7 @@ function profileChecklist(){
 }
 
 function performancePaneHTML(){
-  /* The seeded Apex workspace is the product demo, even after the demo login
+  /* The seeded Northside Flight workspace is the product demo, even after the demo login
      marks it verified. Real provider rows never receive invented analytics. */
   const demo = typeof coachState === "function" ? !coachState().isReal : true;
   const stats = demo
@@ -1371,6 +1371,7 @@ function performancePaneHTML(){
   </div>
   <div class="mfmt-block">
     <h2 class="mfmt-section-title">Most viewed</h2>
+    <p class="mfmt-section-sub">Published items ordered by the parent-facing view records available to this workspace.</p>
     <div class="mfmt-card mfmt-list">
       ${most.length ? most.map((it, i) => `<div class="mfmt-list-row"><span>${esc(it.caption)}</span>
         <span class="mfmt-num">${demo ? esc(views[i].toLocaleString()) : "—"}</span></div>`).join("")
@@ -1380,6 +1381,14 @@ function performancePaneHTML(){
 }
 
 function mediaView(){
+  /* Shared coach pages keep their local pane in ?tab=. Media remains the
+     approved reference implementation, but follows the same deep-link rule. */
+  let hasUrlPane = false;
+  try {
+    const fromUrl = new URLSearchParams(window.location.search).get("tab");
+    if (["profile", "library", "consent", "performance"].indexOf(fromUrl) >= 0){ mediaPane = fromUrl; hasUrlPane = true; }
+  } catch (_e) {}
+  if (!hasUrlPane && window.COACH_UI && window.COACH_UI.writeTab) window.COACH_UI.writeTab(mediaPane);
   const panes = [
     ["profile", "Profile", "", profilePaneHTML],
     ["library", "Library", String(state.mediaItems.length), libraryPaneHTML],
@@ -1673,6 +1682,7 @@ function wire(){
   const paneKeys = ["profile", "library", "consent", "performance"];
   q("[data-md-pane]").forEach(b => b.onclick = () => {
     mediaPane = paneKeys.indexOf(b.dataset.mdPane) >= 0 ? b.dataset.mdPane : "profile";
+    if (window.COACH_UI && window.COACH_UI.writeTab) window.COACH_UI.writeTab(mediaPane);
     render();
     window.scrollTo({ top: 0, behavior: "auto" });
     requestAnimationFrame(() => {

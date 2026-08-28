@@ -711,18 +711,10 @@
      hand the coach to Stripe, Stripe tells the webhook, the webhook writes the
      row, and the next load() is when this page changes its mind. A plan
      inferred from a redirect is a plan the coach did not necessarily buy. */
-  var CSS = `
-.cb-head{display:flex;justify-content:space-between;align-items:flex-start;gap:16px;margin:18px 0 6px;flex-wrap:wrap}
-.cb-lede{color:var(--muted);font-size:var(--text-base);max-width:64ch;margin-top:5px}
-.cb-two{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,360px);gap:20px;align-items:start;margin-top:16px}
-.cb-plan{display:block;font-size:var(--text-lg);font-weight:600;letter-spacing:-.02em;margin-top:10px}
-.cb-note{color:var(--ink-2);font-size:var(--text-base);margin-top:6px;max-width:52ch}
-.cb-fine{color:var(--muted);font-size:var(--text-sm);line-height:1.55;margin-top:8px;max-width:52ch}
-.cb-fine a{color:var(--slate-ink)}
-.cb-acts{display:flex;gap:10px;flex-wrap:wrap;margin-top:16px}
-.cb-row{margin-top:14px}
-@media(max-width:900px){.cb-two{grid-template-columns:1fr}}
-`;
+  /* Billing now uses MOD_COACHUI for all page-level presentation. Keeping an
+     empty module stylesheet prevents this page from minting a parallel type
+     scale or button system. */
+  var CSS = "";
 
   function billingView() {
     /* Same gate the host applies to every private coach tab. Billing states a
@@ -732,46 +724,56 @@
         typeof coachLockHTML === "function") {
       return coachLockHTML("Billing", "your plan, its renewal date and the card Stripe holds");
     }
+    var ui = window.COACH_UI;
+    if (!ui) return "";
     var st = ACCOUNT.plan();
     var free = PLANS.free, pro = PLANS.pro, ent = PLANS.enterprise;
-    return `
-    <div class="cb-head"><div>
-      <h2>Billing</h2>
-      <p class="cb-lede">Your plan, what it includes, and the card Stripe holds. Sporv takes no
-        share of a booking.</p>
-    </div></div>
-
-    <div class="cb-two">
-      <div class="panel">
-        <p class="eyebrow">Current plan</p>
-        <b class="cb-plan">${esc(st.label)}</b>
-        <p class="cb-note">${esc(st.entitled ? st.plan.adds : free.adds)}</p>
-        ${provider ? "" : `<p class="cb-fine">Your coach profile has not loaded yet, so this reads
-          from nothing — reopen the tab in a moment.</p>`}
-        <div class="cb-acts">
-          ${st.entitled
-            ? `<button class="btn" data-cb-portal="1">Manage billing</button>`
-            : `<button class="btn" data-cb-buy="pro">Upgrade to ${esc(pro.name)}</button>`}
-        </div>
-        <p class="cb-fine">${st.entitled
-          ? "Card, invoices and cancellation open in Stripe's billing portal."
-          : esc(pro.price + pro.per + ". " + pro.adds)}</p>
-        <p class="err hide cb-row" data-cb-err role="alert"></p>
-      </div>
-
-      <div class="panel">
-        <p class="eyebrow">Plans</p>
-        <div class="linerow cb-row"><span>${esc(free.name)}</span>
-          <span class="num">${esc(free.price)}</span></div>
-        <p class="cb-fine">${esc(free.adds)}</p>
-        <div class="linerow cb-row"><span>${esc(pro.name)}</span>
-          <span class="num">${esc(pro.price + pro.per)}</span></div>
-        <p class="cb-fine">${esc(pro.adds)}</p>
-        <p class="cb-fine">${esc(ent.price + ent.per)} Enterprise (multi-player workspace) is in
-          development — <a href="mailto:support@sporve.com?subject=Enterprise%20early%20access">contact
-          Sporv for early access</a>.</p>
-      </div>
-    </div>`;
+    var tabs = [
+      { key:"plan", label:"Plan" },
+      { key:"payment-method", label:"Payment method" },
+      { key:"invoices", label:"Invoices" },
+    ];
+    var active = ui.activeTab(tabs, "plan", "billingTab");
+    var actions = active === "plan" && !st.entitled
+      ? [ui.Button({ label:"Go Pro", size:"lg", variant:"primary", attrs:'data-cb-buy="pro"' })]
+      : [];
+    var body = "";
+    if (active === "plan") {
+      body = ui.Block({
+        title:"Current plan",
+        subtitle:"Plan state comes from the loaded provider record; a checkout redirect never changes it by itself.",
+        body:ui.ListCard([
+          { label:ui.html("<b>" + esc(st.label) + "</b><small>" + esc(st.entitled ? st.plan.adds : free.adds) + "</small>"), value:st.entitled ? esc(st.plan.price + st.plan.per) : esc(free.price), mono:true },
+          { label:ui.html("<b>" + esc(free.name) + "</b><small>" + esc(free.adds) + "</small>"), value:esc(free.price), mono:true },
+          { label:ui.html("<b>" + esc(pro.name) + "</b><small>" + esc(pro.adds) + "</small>"), value:esc(pro.price + pro.per), mono:true },
+          { label:ui.html("<b>" + esc(ent.name) + "</b><small>Multi-player workspace is not self-serve.</small>"), value:esc(ent.price + ent.per), mono:true },
+        ]),
+      });
+    } else if (active === "payment-method") {
+      body = ui.Block({
+        title:"Payment method",
+        subtitle:"Stripe owns card details; this client displays no card number and opens Stripe for any change.",
+        action:st.entitled ? ui.Button({ label:"Manage in Stripe", size:"sm", variant:"secondary", attrs:'data-cb-portal="1"' }) : "",
+        body:st.entitled
+          ? ui.ListCard([{ label:ui.html("<b>Billing payment method</b><small>Card details stay in Stripe's hosted portal.</small>"), value:"Stripe-owned", mono:false }])
+          : ui.EmptyState("No subscription payment method","A payment method is collected only if you choose Pro from the Plan tab."),
+      });
+    } else {
+      body = ui.Block({
+        title:"Invoices",
+        subtitle:"Invoices remain read-only here and are available only through Stripe's hosted billing record.",
+        action:st.entitled ? ui.Button({ label:"Open Stripe", size:"sm", variant:"secondary", attrs:'data-cb-portal="1"' }) : "",
+        body:ui.EmptyState("No invoice records loaded",st.entitled
+          ? "Open Stripe to view the authoritative invoice history for this subscription."
+          : "The free plan has no subscription invoices."),
+      });
+    }
+    body += '<p class="cui-error hide" data-cb-err role="alert"></p>';
+    return ui.Page({
+      page:"billing", eyebrow:"Business", h1:"Billing",
+      lede:"Your plan, Stripe-owned payment method, and read-only invoice history; Sporv takes no share of a booking.",
+      actions:actions, tabs:tabs, active:active, stateKey:"billingTab", tabLabel:"Billing sections", body:body,
+    });
   }
 
   function cbErr(msg) {

@@ -21,7 +21,7 @@
 <meta name="twitter:description" content="Find coaches, trainers, camps and teams across 20+ sports in Chicagoland.">
 <meta name="twitter:image" content="https://the-sporve-web.vercel.app/og.png">
 <link rel="icon" href="data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%2032%2032'%3E%3Crect%20width='32'%20height='32'%20rx='7'%20fill='%2309090B'/%3E%3Ccircle%20cx='16'%20cy='16'%20r='6'%20fill='white'/%3E%3C/svg%3E">
-<meta name="sporve-build" content="c897ad14af25a0e9">
+<meta name="sporve-build" content="6b640a511b402e48">
 </head>
 <body>
 <noscript><h1>Sporv — Every sport. One app.</h1><p>Sporv connects families and athletes with coaches, trainers, camps, and teams across more than 20 sports. Please enable JavaScript to use the app.</p></noscript>
@@ -6062,7 +6062,7 @@ const PICON = {
 /* [id, business, verified, sport, title, desc, price, model, rating, reviews,
     lng, lat, featured, skill, ageGroup, minAge, maxAge, capacity, enrolled] */
 const RAW = [
-["prog_1","Apex Performance Club",1,"Soccer","Elite Soccer Academy - U12 Training","High-intensity technical training focusing on dribbling, passing, and match awareness.",45,"single_session",4.8,12,-87.6613,41.8389,1,"Intermediate","Youth (Under 12)",9,12,15,8],
+["prog_1","Northside Flight Basketball",0,"Basketball","Northside Flight 14U — AAU Season","A disclosed AAU team demo with three practices a week, regional tournament play, roster operations, and a non-charging tryout registration.",295,"monthly",0,0,-87.6845,41.9392,1,"Advanced","Teens (13-18)",13,14,12,8],
 ["prog_2","Apex Performance Club",1,"Tennis","Junior Tennis Clinic - All Levels","Learn basic and advanced tennis strokes, service, and court strategies from certified instructors.",120,"monthly",4.5,8,-87.675,41.8508,0,"All Levels","Juniors (Under 16)",10,16,8,5],
 ["prog_3","Apex Performance Club",1,"Basketball","Elite Basketball Skills, U14","Ball-handling, shooting mechanics, and court IQ for competitive guards and forwards.",55,"single_session",4.7,19,-87.6667,41.8292,1,"Advanced","Juniors (Under 16)",11,14,16,9],
 ["prog_4","Apex Performance Club",1,"Volleyball","Youth Volleyball Fundamentals","Serving, passing, and rotation basics in a high-energy team environment.",40,"single_session",4.6,14,-87.655,41.8479,0,"Beginner","Youth (Under 12)",8,12,14,7],
@@ -6100,12 +6100,21 @@ const PROGRAMS = RAW.map(r=>{
   o.verified=!!o.verified; o.featured=!!o.featured;
   o.img=phShot(o.sport);
   o.gallery=[o.img,phShot(o.sport),phShot(o.sport)];
-  o.whatsIncluded = o.id==="prog_1" ? ["Training Bibs","Water Bottles","Professional Coaching"]
+  o.whatsIncluded = o.id==="prog_1" ? ["Team practices","AAU game schedule","Professional coaching"]
     : o.id==="prog_2" ? ["Tennis Balls","Racquet rentals"]
     : ["Equipment provided","Professional coaching","Progress report"];
-  o.address = o.id==="prog_1" ? "Lincoln Park, Chicago, IL 60614"
+  o.address = o.id==="prog_1" ? "Northside Community Gym, Chicago, IL"
     : o.id==="prog_2" ? "Lakeview, Chicago, IL 60657" : "Chicago, IL 60601";
   o.cancellationPolicy = o.id==="prog_2" ? "strict" : "moderate";
+  if(o.id==="prog_1"){
+    o.img="assets/teams/northside-flight-14u-card.jpg";
+    o.cardAsset=o.img;
+    o.gallery=[o.img,o.img,o.img];
+    o.address="Northside Community Gym, Chicago, IL";
+    /* Disclosed demo inventory may be explored and registered locally, but it
+       is never treated as a live provider offer by the Stripe booking gate. */
+    o.sample=true;o.live=false;o.demoScheduled=true;
+  }
   return o;
 });
 
@@ -6295,9 +6304,10 @@ function dayAfter(n){
 }
 
 const SESSIONS=[
-  {id:"sess_1",programId:"prog_1",title:"Soccer Skill Session 1",date:dayAfter(4),startTime:"05:00 PM",endTime:"06:30 PM",tz:"CST",address:"Lincoln Park, Chicago, IL"},
-  {id:"sess_2",programId:"prog_1",title:"Soccer Skill Session 2",date:dayAfter(6),startTime:"05:00 PM",endTime:"06:30 PM",tz:"CST",address:"Lincoln Park, Chicago, IL"},
+  {id:"sess_1",programId:"prog_1",title:"Northside Flight 14U Practice",date:dayAfter(2),startTime:"06:00 PM",endTime:"07:30 PM",tz:"CST",address:"Northside Community Gym, Chicago, IL"},
+  {id:"sess_2",programId:"prog_1",title:"Northside Flight 14U Practice",date:dayAfter(4),startTime:"06:00 PM",endTime:"07:30 PM",tz:"CST",address:"Northside Community Gym, Chicago, IL"},
   {id:"sess_3",programId:"prog_2",title:"Weekly Tennis Practice",date:dayAfter(5),startTime:"04:00 PM",endTime:"05:30 PM",tz:"CST",address:"Lakeview, Chicago, IL"},
+  {id:"nf14_scrimmage_1",programId:"prog_1",title:"Northside Flight 14U Scrimmage",date:dayAfter(6),startTime:"10:00 AM",endTime:"12:00 PM",tz:"CST",address:"Northside Community Gym, Chicago, IL"},
 ];
 /* Real sessions, keyed by program id, filled by mod-catalog.js from the
    `sessions` table. Empty until then, so the seeded path below is unchanged for
@@ -6324,7 +6334,7 @@ function slotsFor(pid){
      plausible, bookable-looking dates for sessions that do not exist. For a
      sample that is worse than for a live one: it would let a family pick a time
      on a company that is not real. An empty rail is honest. */
-  if(rec&&(rec.live||rec.sample)) return [];
+  if(rec&&(rec.live||(rec.sample&&!rec.demoScheduled))) return [];
   const seeded=SESSIONS.filter(s=>s.programId===pid);
   if(seeded.length) return seeded;
   /* `|| 0` so an id that is not "prog_N" degrades to a valid date rather than
@@ -6342,33 +6352,41 @@ const SEED={
   user:{id:"user_123",firstName:"Alex",lastName:"Mercer",email:"alex.mercer@gmail.com",
     role:"searcher",phone:"+1 (555) 019-2834",preferredSports:["Soccer","Tennis"],
     img:phAvatar()},
-  providerProfile:{id:"provider_123",businessName:"Apex Performance Club",
-    bio:"Dedicated sports academy providing elite training clinics for junior athletes.",
-    sports:["Soccer","Tennis","Basketball"],location:"Chicago, IL",status:"approved",
-    onboardingCompleted:true,stripeAccountId:"acct_mockstripe123"},
+  providerProfile:{id:"provider_demo_aau",businessName:"Northside Flight Basketball",
+    bio:"A disclosed AAU team workspace for 14U basketball operations, tryouts, practices, and family communication.",
+    sports:["Basketball"],location:"Chicago, IL",status:"sample",
+    onboardingCompleted:true,backgroundCheckCompletedAt:null,stripeAccountId:null},
   athletes:[{id:"athlete_1",firstName:"Julian",lastName:"Mercer",dob:"2013-04-12",
-    gender:"male",preferredSports:["Soccer"],medical:"None",skillLevel:"developing",
+    gender:"male",preferredSports:["Basketball"],medical:"None",skillLevel:"developing",
     emergency:{name:"Alex Mercer",phone:"+1 (555) 019-2834",relation:"Father"},
     img:phAvatar(),
     parentConsent:true,consentAt:"2026-05-01T10:00:00.000Z",consentVersion:"v1"}],
-  bookings:[{id:"book_1",athlete:"Julian Mercer",programId:"prog_1",
-    program:"Elite Soccer Academy - U12 Training",sessionId:"sess_1",
-    session:"Soccer Skill Session 1",date:dayAfter(4),startTime:"05:00 PM",
-    tier:"Standard",price:45,status:"confirmed",paymentStatus:"paid",createdAt:TODAY,
+  bookings:[{id:"book_demo_nf14",athlete:"Julian Mercer",programId:"prog_1",
+    program:"Northside Flight 14U — AAU Season",sessionId:"nf14_tryout_demo",
+    session:"AAU tryout registration",date:dayAfter(1),startTime:"09:00 AM",
+    tier:"14U tryout",price:0,status:"applied",paymentStatus:"sample_no_charge",createdAt:TODAY,
     /* the policy in force when this was bought — without it the cancel sheet
        leads with its "not snapshotted" fallback, which is the exception path */
     cancellationPolicy:"moderate",policySnapshotAt:TODAY}],
-  conversations:[{id:"conv_1",with:"Apex Performance Club",programId:"prog_1",
-    last:"Hello, thank you for booking! See you on Monday.",at:"2026-05-01T10:05:00.000Z"}],
+  conversations:[{id:"conv_1",with:"Northside Flight Basketball",programId:"prog_1",
+    last:"Julian is registered for the sample 14U tryout.",at:"2026-08-03T10:05:00.000Z"}],
   messages:{conv_1:[
-    {id:"msg_1",me:true,text:"Hi, I just booked the soccer session for Julian. Does he need to bring his own ball?",at:"2026-05-01T10:02:00.000Z"},
-    {id:"msg_initial",me:false,text:"Hello, thank you for booking! See you on Monday. We will provide training bibs and soccer balls, but he is welcome to bring his own.",at:"2026-05-01T10:05:00.000Z"},
+    {id:"msg_1",me:true,text:"Hi, I registered Julian for the 14U tryout. What should he bring?",at:"2026-08-03T10:02:00.000Z"},
+    {id:"msg_initial",me:false,text:"He is on the sample tryout roster. Bring basketball shoes, water, and a reversible jersey; nothing was charged.",at:"2026-08-03T10:05:00.000Z"},
   ]},
   notifications:[{id:"notif_1",title:"Booking Confirmed",
-    message:"Your booking for Soccer Skill Session 1 has been confirmed.",read:false,at:"2026-05-01T10:00:00.000Z"}],
-  teams:[{id:"team_1",name:"Chicago Elite Soccer U12",sport:"Soccer",
-    roster:[{id:"athlete_1",name:"Julian Mercer",email:"alex.mercer@gmail.com",jersey:"10",
-      avatar:phAvatar(),available:true,paid:true}]}],
+    message:"Julian is registered for the disclosed Northside Flight 14U sample tryout; nothing was charged.",read:false,at:"2026-08-03T10:00:00.000Z"}],
+  teams:[{id:"team_nf14",name:"Northside Flight 14U",sport:"Basketball",
+    roster:[
+      {id:"athlete_1",name:"Julian Mercer",email:"alex.mercer@gmail.com",jersey:"3",avatar:phAvatar(),available:true,paid:true},
+      {id:"athlete_nf2",name:"Nia Okafor",jersey:"5",available:true,paid:true},
+      {id:"athlete_nf3",name:"Cole Whitfield",jersey:"8",available:true,paid:true},
+      {id:"athlete_nf4",name:"Sofia Ibarra",jersey:"11",available:true,paid:true},
+      {id:"athlete_nf5",name:"Aarav Raman",jersey:"14",available:false,paid:true},
+      {id:"athlete_nf6",name:"Ida Nilsen",jersey:"21",available:true,paid:false,guardian:"Tomas Nilsen"},
+      {id:"athlete_nf7",name:"Maya Brooks",jersey:"24",available:true,paid:true},
+      {id:"athlete_nf8",name:"Eli Carter",jersey:"30",available:true,paid:false,guardian:"Jordan Carter"},
+    ]}],
   parentUpdates:[{id:"pu_seed_1",childId:"athlete_1",
     body:"Julian had a focused session working on first touch and passing under pressure. Great energy from start to finish.",
     skills:["First touch","Passing","Spatial awareness"],signal:"building consistency",
@@ -6376,8 +6394,8 @@ const SEED={
     encouragement:"Keep it up, Julian — your close control is really coming along.",
     status:"sent",at:"2026-05-04T18:00:00.000Z"}],
   trainers:[
-    {id:"om_1",name:"Marcus Vale",specialty:"Soccer technical coach",commissionType:"percent",commissionValue:15,affiliation:"active",bg:"verified",active:true},
-    {id:"om_2",name:"Dana Ruiz",specialty:"Tennis — junior development",commissionType:"percent",commissionValue:18,affiliation:"active",bg:"pending",active:true},
+    {id:"om_1",name:"Marcus Vale",specialty:"Basketball — guard development",commissionType:"percent",commissionValue:15,affiliation:"active",bg:"verified",active:true},
+    {id:"om_2",name:"Dana Ruiz",specialty:"Basketball — shooting and footwork",commissionType:"percent",commissionValue:18,affiliation:"active",bg:"pending",active:true},
     {id:"om_3",name:"Theo Lang",specialty:"Strength & conditioning",commissionType:"flat",commissionValue:25,affiliation:"pending",bg:"none",active:true},
   ],
 };
@@ -6420,11 +6438,17 @@ const S={
   messages:JSON.parse(JSON.stringify(SEED.messages)),
   notifications:JSON.parse(JSON.stringify(SEED.notifications)),
   trainers:JSON.parse(JSON.stringify(SEED.trainers)),
-  listings:PROGRAMS.filter(p=>p.biz==="Apex Performance Club").map(p=>p.id),
+  listings:PROGRAMS.filter(p=>p.biz==="Northside Flight Basketball").map(p=>p.id),
   activeConv:"conv_1",
   inboxTab:"direct",               // provider inbox: direct | group
   calMonth:TODAY.slice(0,7),       // provider schedule: month in view, "YYYY-MM"
   schedTab:"month",                // provider schedule sub-tab: month | slots
+  clientsPageTab:"roster",         // Media-derived coach page sub-tabs
+  schedulePageTab:"calendar",
+  listingsPageTab:"active",
+  earningsPageTab:"summary",
+  operationsPageTab:"insights",
+  billingTab:"plan",
   coachPromptShown:false,          // auth sheet already offered on the coach side
   /* The coach's own provider row, mirrored from the server for render. Derived,
      so it is EPHEMERAL and re-fetched at boot — a stale copy in sessionStorage
@@ -7200,6 +7224,10 @@ const SAMPLE_ORGS=[
   {id:"sample_team_3",biz:"Ironside Wrestling Academy",sport:"Wrestling",
    title:"Folkstyle Club — Full Season",desc:"Scholastic folkstyle club. Technique, live wrestling and conditioning, all season.",
    price:210,model:"monthly",cap:24,enrolled:17,minAge:9,maxAge:16,skill:"Intermediate",type:"org"},
+  {id:"sample_team_aau",biz:"Northside Flight Basketball",sport:"Basketball",
+   title:"Northside Flight 14U — AAU Season",desc:"A disclosed AAU team demo for tryouts, roster operations, practices and regional tournament planning.",
+   price:295,model:"monthly",cap:12,enrolled:8,minAge:13,maxAge:14,skill:"Advanced",type:"org",
+   cardAsset:"assets/teams/northside-flight-14u-card.jpg"},
 ];
 function sampleListings(){
   return SAMPLE_ORGS.map((o,i)=>({
@@ -7209,7 +7237,9 @@ function sampleListings(){
     lng:-87.72+((i%3)*0.07),lat:41.84+(Math.floor(i/3)*0.09),
     featured:false,skill:o.skill,ageGroup:"Youth",minAge:o.minAge,maxAge:o.maxAge,
     cap:o.cap,enrolled:o.enrolled,
-    img:phScene(o.sport,i),gallery:[phScene(o.sport,i),phScene(o.sport,i+1),phScene(o.sport,i+2)],
+    img:o.cardAsset||phScene(o.sport,i),gallery:o.cardAsset
+      ?[o.cardAsset,o.cardAsset,o.cardAsset]
+      :[phScene(o.sport,i),phScene(o.sport,i+1),phScene(o.sport,i+2)],
     whatsIncluded:["Professional coaching","Equipment provided"],
     address:"Chicago, IL",cancellationPolicy:"moderate",
     /* The two flags that keep this out of the money path. */
@@ -10153,6 +10183,7 @@ function coachHTML(){
     listings:'<rect x="3" y="3" width="7.5" height="7.5" rx="1.5"/><rect x="13.5" y="3" width="7.5" height="7.5" rx="1.5"/><rect x="3" y="13.5" width="7.5" height="7.5" rx="1.5"/><rect x="13.5" y="13.5" width="7.5" height="7.5" rx="1.5"/>',
     approvals:'<path d="M4 5.5h16v13H4z"/><path d="M8 11l3 3 5-5"/>',
     finances:'<rect x="2.5" y="6" width="19" height="13" rx="2.5"/><path d="M2.5 10.5h19"/><circle cx="17.5" cy="14.5" r="1.3"/>',
+    billing:'<rect x="2.5" y="5.5" width="19" height="13" rx="2.5"/><path d="M2.5 10h19"/>',
     operations:'<circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M4.9 4.9l2.1 2.1M17 17l2.1 2.1M19.1 4.9L17 7M7 17l-2.1 2.1"/>',
     media:'<rect x="3" y="4" width="18" height="16" rx="2"/><circle cx="8.5" cy="9.5" r="1.8"/><path d="M3 17l5-4.5 4 3.5 3-2.5 6 5"/>',
     profile:'<circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M4.9 4.9l2.1 2.1M17 17l2.1 2.1M19.1 4.9L17 7M7 17l-2.1 2.1"/>',
@@ -10163,11 +10194,11 @@ function coachHTML(){
     [null,      [["dashboard","Home"],["search","Search"]]],
     ["Clients", [["roster","Clients"],["inbox","Messages"],["schedule","Schedule"]]],
     ["Catalog", [["listings","Listings"],["media","Media"]]],
-    ["Business",[["finances","Earnings"],["approvals","Approvals"],["operations","Operations"]]],
+    ["Business",[["finances","Earnings"],["approvals","Approvals"],["operations","Operations"],["billing","Billing"]]],
   ];
   const core=[["dashboard","Home"],["search","Search"],["schedule","Schedule"],
               ["roster","Clients"],["inbox","Messages"],["listings","Listings"],
-              ["finances","Earnings"],["operations","Operations"]];
+              ["finances","Earnings"],["operations","Operations"],["billing","Billing"]];
   const extra=modCoachTabs().filter(([k])=>!core.some(c=>c[0]===k));
   const gs=gettingStarted();
   const unread=S.conversations.length;
@@ -10223,7 +10254,7 @@ function coachHTML(){
     </nav>
     <div>${isCoachGuest()?`<div class="previewbar" role="status">
       <span><b>Preview.</b> This is a sample coach workspace with example data — sign in to set up your own.</span>
-      <span class="previewbar-acts"><button class="navlink" data-signin="1">Sign in</button><button class="btn sm" data-getpro="1">Get Pro</button></span>
+      <span class="previewbar-acts"><button class="navlink" data-signin="1">Sign in</button><button class="btn ghost sm" data-getpro="1">Get Pro</button></span>
     </div>`:""}${coachBody(t)}</div>
   </main>`;
 }
@@ -10295,8 +10326,12 @@ function coachState(){
   return {
     isReal:false,
     businessName:SEED.providerProfile.businessName,
-    status:SEED.providerProfile.status, verified:true, approved:true,
-    payouts:!!SEED.providerProfile.stripeAccountId, connectStarted:true, listed:true,
+    status:SEED.providerProfile.status,
+    verified:!!SEED.providerProfile.backgroundCheckCompletedAt,
+    approved:SEED.providerProfile.status==="approved",
+    payouts:!!SEED.providerProfile.stripeAccountId,
+    connectStarted:!!SEED.providerProfile.stripeAccountId,
+    listed:SEED.providerProfile.status==="approved"&&!!SEED.providerProfile.backgroundCheckCompletedAt,
   };
 }
 
@@ -10664,24 +10699,454 @@ function teamRoster(){
    S.approvalSent. Production renders real outbound_messages via S.coachQueue. */
 function approvalDrafts(){
   if(!S.approvalDrafts) S.approvalDrafts=[
-    {kind:"Session recap → families",to:"To 12 families · Elite Soccer U12",
-     src:"Tuesday attendance (10 of 12) + your session notes (pressing shape, weak-side runs)",
-     body:"Great session tonight, U12 families. We worked on our pressing shape and timing our weak-side runs — a clear improvement from last week, especially in the final scrimmage. Two athletes were out tonight; we'll catch them up Thursday. Same time, same field."},
-    {kind:"Practice reminder → Thursday group",to:"To 12 families · sends Wed 6:00 PM",
+    {kind:"Practice recap → families",to:"To 8 families · Northside Flight 14U",
+     src:"Tuesday attendance (7 of 8) + your session notes (closeouts, weak-side rotation)",
+     body:"Strong practice tonight, Flight families. We worked on closeout angles and weak-side rotation, then carried both into the final scrimmage. One athlete was out; we'll catch them up Thursday. Same time, same gym."},
+    {kind:"Practice reminder → Thursday group",to:"To 8 families · sends Wed 6:00 PM",
      src:"your recurring schedule + quiet-hours settings",
-     body:"Reminder: U12 training Thursday 5:00–6:30 PM at Lincoln Park Turf, Field 2. Bring shin guards and water — the forecast says 88°F, so we'll build in extra water breaks. Reply here if your athlete can't make it."},
+     body:"Reminder: Northside Flight 14U practices Thursday 6:00–7:30 PM at Northside Community Gym. Bring basketball shoes, a reversible jersey, and water. Reply here if your athlete cannot make it."},
     {kind:"Rebooking nudge → one family",to:"To Nia Okafor's family only",
-     src:"Nia's 10-pack — 1 session remaining",
-     body:"Hi Amara — Nia has one session left on her 10-pack, and she's been putting real work into her first touch. If you'd like to keep the Tuesday spot, here's the link to renew before it opens to the waitlist."},
+     src:"Nia's sample roster relationship — renewal decision pending",
+     body:"Hi Renata — Nia's work on her off-hand finish has been showing up in scrimmages. The sample roster renewal window is open; review the season details before the spot returns to the waitlist."},
   ];
   return S.approvalDrafts;
 }
+
+/* ═══════════════ MEDIA-DERIVED COACH PAGES ═══════════════════════
+   These renderers use only the component vocabulary extracted into
+   MOD_COACHUI. Counts and metrics are derived from the state hydrated by the
+   API modules; the disclosed guest workspace reads the same state shape with
+   sample records. No renderer below owns a type size or font stack. */
+function coachHomePage(){
+  const ui=window.COACH_UI;
+  const mine=coachListings();
+  const roster=teamRoster();
+  const sessions=providerSessions().filter(s=>s.date>=TODAY);
+  const ownBookings=(S.bookings||[]).filter(b=>(S.listings||[]).includes(b.programId));
+  const received=ownBookings.filter(b=>/paid|confirmed/i.test(String(b.paymentStatus||b.status||"")))
+    .reduce((sum,b)=>sum+Number(b.price||0),0);
+  const gs=gettingStarted();
+  const steps=gs.steps.map(([label,done,tab])=>({
+    label:ui.html(`<b>${esc(label)}</b><small>${done?"Complete":"Required before your workspace is fully ready"}</small>`),
+    value:ui.html(done
+      ? `<span class="cui-badge cui-badge--good">Done</span>`
+      : ui.Button({label:"Open",size:"sm",variant:"secondary",attrs:`data-ctab="${esc(tab)}"`})),
+    mono:false,
+  }));
+  const todayRows=sessions.slice(0,6).map(s=>({
+    label:ui.html(`<b>${esc(s.p.title)}</b><small>${esc(fmtDate(s.date))} · ${esc(s.p.address||s.address||"Location pending")}</small>`),
+    value:s.startTime,
+  }));
+  const body=[
+    ui.Block({
+      title:"Stats",
+      subtitle:"Loaded listings, clients, sessions, and paid booking records in this workspace.",
+      body:ui.StatGrid([
+        {label:"Active listings",value:String(mine.length),context:"Published records loaded"},
+        {label:"Clients",value:String(roster.length),context:"Athletes on the current roster"},
+        {label:"Upcoming sessions",value:String(sessions.length),context:"From the loaded schedule"},
+        {label:"Received",value:money(received),context:"Paid booking records only"},
+      ]),
+    }),
+    ui.Block({
+      title:"Getting started",
+      subtitle:"Each step is derived from your profile, catalogue, availability, verification, and payout state.",
+      body:ui.ListCard(steps),
+    }),
+    ui.Block({
+      title:"Today",
+      subtitle:"The next sessions across your published listings, ordered by date and start time.",
+      action:ui.Button({label:"Full schedule",size:"sm",variant:"secondary",attrs:'data-ctab="schedule"'}),
+      body:ui.ListCard(todayRows,{emptyTitle:"No upcoming sessions",emptyBody:"Add availability before families can choose a time."}),
+    }),
+  ].join("");
+  return ui.Page({
+    page:"home",eyebrow:"Coach dashboard",h1:"Home",
+    lede:isCoachGuest()
+      ? "A disclosed sample workspace showing how a team runs clients, sessions, and bookings in one place."
+      : "The operational state of your coaching business, from setup through today's schedule.",
+    body:body,
+  });
+}
+
+function coachClientsPage(){
+  const ui=window.COACH_UI;
+  const roster=teamRoster();
+  const requests=(S.waitlistEntries||[]).slice();
+  const history=(S.bookings||[]).slice();
+  const tabs=[
+    {key:"roster",label:"Roster",count:roster.length},
+    {key:"requests",label:"Requests",count:requests.filter(r=>r.status==="waiting").length},
+    {key:"import",label:"Import"},
+    {key:"history",label:"History",count:history.length},
+  ];
+  const active=ui.activeTab(tabs,"roster","clientsPageTab");
+  let body="";
+  if(active==="roster"){
+    body+=ui.Block({
+      title:SEED.teams[0].name,
+      subtitle:"Clients currently attached to this team; payment status comes from each loaded relationship.",
+      body:ui.DataTable({
+        columns:[{key:"client",label:"Client"},{key:"jersey",label:"Jersey",mono:true},{key:"available",label:"Available"},{key:"payment",label:"Payment"},{key:"actions",label:"Actions"}],
+        rows:roster.map((row,index)=>({
+          client:ui.html(`<b>${esc(row.name)}</b>${row.guardian?`<small>${esc(row.guardian)}</small>`:""}`),
+          jersey:"#"+String(row.jersey||"—"),
+          available:ui.html(`<span class="cui-badge ${row.available?"cui-badge--good":"cui-badge--warn"}">${row.available?"Yes":"No"}</span>`),
+          payment:ui.html(`<span class="cui-badge ${row.paid?"cui-badge--good":"cui-badge--warn"}">${row.paid?"Paid":row.payState==="sent"?"Link sent":"Unpaid"}</span>`),
+          actions:row.paid?"—":ui.html(ui.Button({label:row.payState==="sent"?"Mark paid":"Send payment link",size:"sm",variant:"secondary",attrs:row.payState==="sent"?`data-simpaid="${index}"`:`data-paylink="${index}"`})),
+        })),
+        emptyTitle:"No clients yet",emptyBody:"Add a client to start the team roster.",
+      }),
+    });
+    body+=ui.Block({
+      title:"Coaching staff",
+      subtitle:"Every staff member keeps an individual affiliation and background-check state.",
+      action:ui.Button({label:"Invite trainer",size:"sm",variant:"secondary",attrs:'data-addtrainer="1"'}),
+      body:ui.DataTable({
+        columns:[{key:"name",label:"Trainer"},{key:"specialty",label:"Specialty"},{key:"affiliation",label:"Affiliation"},{key:"check",label:"Background check"}],
+        rows:(S.trainers||[]).map(member=>({
+          name:ui.html(`<b>${esc(member.name)}</b>`),specialty:member.specialty,
+          affiliation:member.affiliation,
+          check:ui.html(`<span class="cui-badge ${member.bg==="verified"?"cui-badge--good":"cui-badge--warn"}">${member.bg==="verified"?"Verified":member.bg==="pending"?"Pending":"Not started"}</span>`),
+        })),
+        emptyTitle:"No trainers yet",emptyBody:"Invite staff only when they have a role in this workspace.",
+      }),
+    });
+  } else if(active==="requests"){
+    body=ui.Block({
+      title:"Client requests",
+      subtitle:"Waitlist and roster requests loaded for your listings; an offer never charges a family.",
+      body:ui.DataTable({
+        columns:[{key:"athlete",label:"Athlete"},{key:"guardian",label:"Guardian"},{key:"listing",label:"Listing"},{key:"status",label:"Status"},{key:"actions",label:"Actions"}],
+        rows:requests.map(row=>{
+          const p=programById(row.programId);
+          return {
+            athlete:ui.html(`<b>${esc(row.athlete||"Athlete")}</b>${row.athleteAge?`<small>Age ${esc(row.athleteAge)}</small>`:""}`),
+            guardian:row.parent||"—",listing:p?p.title:"Listing unavailable",
+            status:ui.html(`<span class="cui-badge ${row.status==="accepted"?"cui-badge--good":"cui-badge--warn"}">${esc(row.status||"waiting")}</span>`),
+            actions:(row.status==="waiting"||row.status==="expired")
+              ? ui.html(ui.Button({label:"Offer spot",size:"sm",variant:"secondary",attrs:`data-co-offer="${esc(row.id)}"`})) : "—",
+          };
+        }),
+        emptyTitle:"No open requests",emptyBody:"New roster and waitlist requests will appear here.",
+      }),
+    });
+  } else if(active==="import"){
+    body=ui.Block({
+      title:"Import clients",
+      subtitle:"Bring existing relationships into this workspace without claiming payment or consent on a family's behalf.",
+      action:ui.Button({label:"Start import",size:"sm",variant:"secondary",attrs:'data-import="1"'}),
+      body:ui.ListCard([
+        {label:ui.html("<b>Accepted columns</b><small>Client name, guardian, contact, team, jersey, and balance.</small>"),value:"CSV",mono:true},
+        {label:ui.html("<b>Identity rule</b><small>An imported client remains a shadow record until the family claims it.</small>"),value:"Family-owned",mono:false},
+        {label:ui.html("<b>Consent rule</b><small>Media consent is never inferred from an import.</small>"),value:"Not imported",mono:false},
+      ]),
+    });
+  } else {
+    body=ui.Block({
+      title:"Client history",
+      subtitle:"Read-only booking history for relationships currently loaded into this workspace.",
+      body:ui.DataTable({
+        columns:[{key:"date",label:"Date",mono:true},{key:"client",label:"Client"},{key:"listing",label:"Listing"},{key:"status",label:"Status"},{key:"amount",label:"Amount",mono:true}],
+        rows:history.map(row=>({
+          date:fmtDate(String(row.createdAt||row.date||TODAY).slice(0,10)),client:row.athlete||"—",
+          listing:row.program||"—",status:row.status||"—",amount:money(Number(row.price||0)),
+        })),
+        emptyTitle:"No client history",emptyBody:"Completed and submitted booking records will appear here.",
+      }),
+    });
+  }
+  return ui.Page({
+    page:"clients",eyebrow:"Clients",h1:"Clients",
+    lede:"Roster relationships, inbound requests, imports, and their read-only history in one client system.",
+    actions:[ui.Button({label:"Add client",size:"lg",variant:"primary",attrs:'data-addathlete="1"'})],
+    tabs:tabs,active:active,stateKey:"clientsPageTab",tabLabel:"Client sections",body:body,
+  });
+}
+
+function coachSchedulePage(){
+  const ui=window.COACH_UI;
+  const sessions=providerSessions().filter(s=>s.date>=TODAY);
+  const rules=(S.recurringSlots||[]).slice();
+  const tabs=[
+    {key:"calendar",label:"Calendar",count:sessions.length},
+    {key:"availability",label:"Availability",count:rules.length},
+    {key:"time-off",label:"Time off"},
+  ];
+  const active=ui.activeTab(tabs,"calendar","schedulePageTab");
+  let body="";
+  if(active==="calendar"){
+    body=ui.Block({
+      title:"Upcoming sessions",
+      subtitle:"Bookable and booked sessions loaded across your active listings, ordered by date and time.",
+      body:ui.DataTable({
+        columns:[{key:"date",label:"Date",mono:true},{key:"time",label:"Time",mono:true},{key:"listing",label:"Listing"},{key:"location",label:"Location"},{key:"capacity",label:"Capacity",mono:true}],
+        rows:sessions.map(s=>({date:fmtDate(s.date),time:s.startTime,listing:ui.html(`<b>${esc(s.p.title)}</b><small>${esc(s.p.sport)}</small>`),location:s.address||s.p.address||"—",capacity:`${s.p.enrolled}/${s.p.cap}`})),
+        emptyTitle:"No sessions scheduled",emptyBody:"Add a session or publish recurring availability to open the calendar.",
+      }),
+    });
+  } else if(active==="availability"){
+    const days=["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"];
+    body=ui.Block({
+      title:"Recurring availability",
+      subtitle:"Weekly blocks that generate the times families may request from your active listings.",
+      action:ui.Button({label:"Add block",size:"sm",variant:"secondary",attrs:'data-modal="addslot"'}),
+      body:ui.DataTable({
+        columns:[{key:"name",label:"Block"},{key:"listing",label:"Listing"},{key:"day",label:"Day"},{key:"time",label:"Time",mono:true},{key:"capacity",label:"Capacity",mono:true},{key:"actions",label:"Actions"}],
+        rows:rules.map(rule=>{
+          const p=DEMO_CATALOGUE.find(x=>x.id===rule.programId)||PROGRAMS.find(x=>x.id===rule.programId);
+          return {name:ui.html(`<b>${esc(rule.name||"Recurring block")}</b>`),listing:p?p.title:"Listing unavailable",day:days[Number(rule.weekday)]||"—",time:`${rule.start}–${rule.end}`,capacity:String(rule.capacity||"—"),actions:ui.html(ui.Button({label:"Remove",size:"sm",variant:"secondary",attrs:`data-co-delslot="${esc(rule.id)}"`}))};
+        }),
+        emptyTitle:"No recurring availability",emptyBody:"Add a block to make bookable times repeat each week.",
+      }),
+    });
+  } else {
+    body=ui.Block({
+      title:"Time off",
+      subtitle:"One-off scheduling exceptions will appear here without changing your recurring weekly rules.",
+      body:ui.EmptyState("No time-off records loaded","Scheduling exceptions are not connected to this web demo yet; recurring availability remains unchanged."),
+    });
+  }
+  return ui.Page({
+    page:"schedule",eyebrow:"Clients",h1:"Schedule",
+    lede:"Sessions families can attend, the availability that creates them, and exceptions that keep the calendar honest.",
+    actions:[ui.Button({label:"Add session",size:"lg",variant:"primary",attrs:'data-addsession="1"'})],
+    tabs:tabs,active:active,stateKey:"schedulePageTab",tabLabel:"Schedule sections",body:body,
+  });
+}
+
+function coachListingsPage(){
+  const ui=window.COACH_UI;
+  const mine=coachListings();
+  const statusOf=p=>p.status==="draft"||p.published===false?"draft":p.status==="archived"?"archived":"active";
+  const groups={active:mine.filter(p=>statusOf(p)==="active"),drafts:mine.filter(p=>statusOf(p)==="draft"),archived:mine.filter(p=>statusOf(p)==="archived")};
+  const tabs=[
+    {key:"active",label:"Active",count:groups.active.length},
+    {key:"drafts",label:"Drafts",count:groups.drafts.length},
+    {key:"archived",label:"Archived",count:groups.archived.length},
+  ];
+  const active=ui.activeTab(tabs,"active","listingsPageTab");
+  const rows=groups[active];
+  const table=ui.DataTable({
+    columns:[{key:"listing",label:"Listing"},{key:"sport",label:"Sport"},{key:"price",label:"Price",mono:true},{key:"capacity",label:"Capacity",mono:true},{key:"next",label:"Next session",mono:true},{key:"actions",label:"Actions"}],
+    rows:rows.map(p=>{
+      const next=slotsFor(p.id).filter(s=>s.date>=TODAY).sort((a,b)=>a.date.localeCompare(b.date)||minsOf(a.startTime)-minsOf(b.startTime))[0];
+      return {
+        listing:ui.html(`<b>${esc(p.title)}</b><small>Ages ${esc(p.minAge)}–${esc(p.maxAge)}${p.sample?" · disclosed sample":""}</small>`),
+        sport:p.sport,price:`${money(p.price)} ${modelLabel(p.model)}`,capacity:`${p.enrolled}/${p.cap}`,
+        next:next?`${fmtDate(next.date)} · ${next.startTime}`:"—",
+        actions:ui.html(`<span class="cui-inline">${active==="active"&&!isCoachGuest()?ui.Button({label:"Signups",size:"sm",variant:"secondary",attrs:`data-signups="${esc(p.id)}"`}):""}${ui.Button({label:"Edit",size:"sm",variant:"secondary",attrs:`data-editlisting="${esc(p.id)}"`})}</span>`),
+      };
+    }),
+    emptyTitle:`No ${active} listings`,emptyBody:active==="active"?"Create a listing when you are ready to publish an offer.":`Listings moved to ${active} will appear here.`,
+  });
+  const body=ui.Callout({body:"A listing takes bookings only after the background check clears."})+
+    ui.Block({
+      title:active==="active"?"Taking bookings":active==="drafts"?"Not published":"No longer public",
+      subtitle:active==="active"?"Published listings in the loaded catalogue, including their real capacity and next session.":active==="drafts"?"Listings saved without publication remain invisible to families.":"Archived listings preserve their record without accepting new bookings.",
+      body:table,
+    });
+  return ui.Page({
+    page:"listings",eyebrow:"Catalog",h1:"Listings",
+    lede:"The offers families can discover, what is still being prepared, and the records you have retired.",
+    actions:[ui.Button({label:"New listing",size:"lg",variant:"primary",attrs:'data-newlisting="1"'})],
+    tabs:tabs,active:active,stateKey:"listingsPageTab",tabLabel:"Listing sections",body:body,
+  });
+}
+
+function coachEarningsPage(){
+  const ui=window.COACH_UI;
+  const mineIds=S.listings||[];
+  const tx=(S.bookings||[]).filter(b=>mineIds.includes(b.programId));
+  const gross=tx.reduce((sum,b)=>sum+Number(b.price||0),0);
+  const fee=tx.reduce((sum,b)=>sum+Number(b.fee||Math.round(Number(b.price||0)*FEE_RATE)),0);
+  const net=gross-fee;
+  const tabs=[
+    {key:"summary",label:"Summary"},
+    {key:"payouts",label:"Payouts"},
+    {key:"transactions",label:"Transactions",count:tx.length},
+    {key:"tax-documents",label:"Tax documents"},
+  ];
+  const active=ui.activeTab(tabs,"summary","earningsPageTab");
+  let body="";
+  if(active==="summary"){
+    body=ui.Block({
+      title:"Booking totals",
+      subtitle:"Amounts are calculated from loaded booking records; Sporv does not invent missing payout data.",
+      body:ui.StatGrid([
+        {label:"Gross",value:money(gross),context:"All loaded booking payments"},
+        {label:"Platform fee",value:money(fee),context:"Recorded per booking"},
+        {label:"Net",value:money(net),context:"Gross less recorded fees"},
+      ]),
+    });
+  } else if(active==="payouts"){
+    const st=coachState();
+    body=ui.Block({
+      title:"Payout state",
+      subtitle:"Read-only account state loaded from the provider record; Stripe remains the source of settlement details.",
+      body:ui.ListCard([
+        {label:ui.html("<b>Connection</b><small>Whether the provider row reports payouts enabled.</small>"),value:st.payouts?"Enabled":"Not enabled",mono:false},
+        {label:ui.html("<b>Net recorded</b><small>Net across the booking rows currently loaded.</small>"),value:money(net)},
+        {label:ui.html("<b>Settlement detail</b><small>No payout ledger is exposed by this web client.</small>"),value:"Stripe-owned",mono:false},
+      ]),
+    });
+  } else if(active==="transactions"){
+    body=ui.Block({
+      title:"Transactions",
+      subtitle:"Read-only booking-level movements loaded for this provider, with the recorded fee itemized.",
+      body:ui.DataTable({
+        columns:[{key:"date",label:"Date",mono:true},{key:"listing",label:"Listing"},{key:"client",label:"Client"},{key:"gross",label:"Gross",mono:true},{key:"fee",label:"Fee",mono:true},{key:"net",label:"Net",mono:true},{key:"status",label:"Status"}],
+        rows:tx.map(row=>{
+          const rowFee=Number(row.fee||Math.round(Number(row.price||0)*FEE_RATE));
+          return {date:fmtDate(String(row.createdAt||row.date||TODAY).slice(0,10)),listing:row.program||"—",client:row.athlete||"—",gross:money(Number(row.price||0)),fee:money(rowFee),net:money(Number(row.price||0)-rowFee),status:row.paymentStatus||row.status||"—"};
+        }),
+        emptyTitle:"No transactions",emptyBody:"Paid and submitted booking records will appear here.",
+      }),
+    });
+  } else {
+    body=ui.Block({
+      title:"Tax documents",
+      subtitle:"Read-only documents will appear only when a tax record is returned for this provider.",
+      body:ui.EmptyState("No tax documents loaded","This client has not received a tax-document record from the API."),
+    });
+  }
+  return ui.Page({
+    page:"earnings",eyebrow:"Business",h1:"Earnings",
+    lede:"Read-only booking revenue, payout state, transactions, and tax records for this provider.",
+    tabs:tabs,active:active,stateKey:"earningsPageTab",tabLabel:"Earnings sections",body:body,
+  });
+}
+
+function coachApprovalsPage(){
+  const ui=window.COACH_UI;
+  const live=(S.coachQueue||[]).slice();
+  const drafts=coachState().isReal?[]:approvalDrafts();
+  const sent=S.approvalSent||[];
+  const label={booking_confirmed:"Booking confirmed",reminder_24h:"24-hour reminder",post_session:"Post-session recap",no_show_followup:"No-show follow-up",rebook_nudge:"Rebooking nudge"};
+  let queue;
+  if(live.length){
+    queue=ui.DataTable({
+      columns:[{key:"kind",label:"Draft"},{key:"message",label:"Message"},{key:"status",label:"Status"},{key:"actions",label:"Actions"}],
+      rows:live.map(row=>{
+        const text=(row.content&&(row.content.body||row.content.text||row.content.message))||"No draft body";
+        let actions="—";
+        if(S.qDeciding&&S.qDeciding[row.id]) actions="Working…";
+        else if(row.status==="drafted") actions=ui.html(`<span class="cui-inline">${ui.Button({label:"Approve & send",size:"sm",variant:"secondary",attrs:`data-qdecide="approve:${esc(row.id)}"`})}${ui.Button({label:"Skip",size:"sm",variant:"secondary",attrs:`data-qdecide="reject:${esc(row.id)}"`})}</span>`);
+        else if(row.status==="approved") actions=ui.html(ui.Button({label:"Return to draft",size:"sm",variant:"secondary",attrs:`data-qdecide="redraft:${esc(row.id)}"`}));
+        return {kind:ui.html(`<b>${esc(label[row.event_type]||row.event_type)}</b>`),message:text,status:row.status,actions:actions};
+      }),
+      emptyTitle:"Nothing waiting",emptyBody:"New drafts appear after eligible booking and session events.",
+    });
+  } else {
+    queue=ui.DataTable({
+      columns:[{key:"kind",label:"Draft"},{key:"message",label:"Message"},{key:"actions",label:"Actions"}],
+      rows:drafts.map((draft,index)=>({
+        kind:ui.html(`<b>${esc(draft.kind)}</b><small>${esc(draft.to)} · Drafted from ${esc(draft.src)}</small>`),
+        message:ui.html(`<div class="cui-draft" contenteditable="true" spellcheck="false" id="apvBody${index}" role="textbox" aria-label="Draft message — editable">${esc(draft.body)}</div>`),
+        actions:ui.html(`<span class="cui-inline">${ui.Button({label:"Approve & send",size:"sm",variant:"secondary",attrs:`data-qapprove="${index}"`})}${ui.Button({label:"Dismiss",size:"sm",variant:"secondary",attrs:`data-qdismiss="${index}"`})}</span>`),
+      })),
+      emptyTitle:"Nothing waiting",emptyBody:"Sporv drafts eligible reminders and recaps, but sends nothing without approval.",
+    });
+  }
+  const blocks=[ui.Block({
+    title:"Approval queue",
+    subtitle:"Every row requires an explicit decision; no draft is sent merely because it appears here.",
+    body:queue,
+  })];
+  if(sent.length) blocks.push(ui.Block({
+    title:"Approval history",
+    subtitle:"Read-only record of drafts this coach explicitly approved and sent.",
+    body:ui.ListCard(sent.map(row=>({label:ui.html(`<b>${esc(row.kind)}</b><small>${esc(row.to||"")}</small>`),value:"Sent",mono:false}))),
+  }));
+  return ui.Page({
+    page:"approvals",eyebrow:"Business",h1:"Approvals",
+    lede:"One queue for generated messages that remain under the coach's control from draft to delivery.",
+    body:blocks.join(""),
+  });
+}
+
+function coachOperationsPage(){
+  const ui=window.COACH_UI;
+  const reviews=(S.reviews||[]).filter(row=>(S.listings||[]).includes(row.programId));
+  const policies=S.policies||{};
+  const messages=S.autoMessages||[];
+  const tabs=[
+    {key:"insights",label:"Insights"},
+    {key:"reviews",label:"Reviews",count:reviews.length},
+    {key:"policies",label:"Policies"},
+    {key:"automated-messages",label:"Automated messages",count:messages.length},
+  ];
+  const active=ui.activeTab(tabs,"insights","operationsPageTab");
+  let body="";
+  if(active==="insights"){
+    const warnings=!isCoachGuest()&&window.MOD_INSIGHTS&&window.MOD_INSIGHTS.availabilityWarnings
+      ? window.MOD_INSIGHTS.availabilityWarnings() : [];
+    body=ui.Block({
+      title:"Operating signals",
+      subtitle:"Signals are derived from loaded listings, sessions, capacity, and booking cadence rather than asserted totals.",
+      body:isCoachGuest()?ui.EmptyState("Sign in to see insights","Operating signals can identify private clients and remain hidden in preview mode.")
+        :ui.ListCard(warnings.map(row=>({label:ui.html(`<b>${esc(row.text)}</b><small>${esc(row.action||"")}</small>`),value:row.level==="good"?"Clear":"Review",mono:false})),{emptyTitle:"No operating signals",emptyBody:"Nothing in the loaded state currently needs attention."}),
+    });
+  } else if(active==="reviews"){
+    body=ui.Block({
+      title:"Verified reviews",
+      subtitle:"Feedback appears only after its review record is loaded; an empty list does not invent social proof.",
+      body:ui.DataTable({
+        columns:[{key:"date",label:"Date",mono:true},{key:"author",label:"Family"},{key:"listing",label:"Listing"},{key:"rating",label:"Rating",mono:true},{key:"review",label:"Review"},{key:"actions",label:"Actions"}],
+        rows:reviews.map(row=>{
+          const p=DEMO_CATALOGUE.find(x=>x.id===row.programId)||PROGRAMS.find(x=>x.id===row.programId);
+          return {date:row.date?fmtDate(row.date):"—",author:row.author||"Family",listing:p?p.title:"Listing unavailable",rating:String(row.rating||"—"),review:row.body||"—",actions:p?ui.html(ui.Button({label:"Open listing",size:"sm",variant:"secondary",attrs:`data-open="${esc(p.id)}"`})) : "—"};
+        }),
+        emptyTitle:"No reviews yet",emptyBody:"A family can review only after a completed session.",
+      }),
+    });
+  } else if(active==="policies"){
+    body=ui.Block({
+      title:"Booking policies",
+      subtitle:"These loaded terms attach to published listings and are shown before a family pays.",
+      action:ui.Button({label:"Edit policies",size:"sm",variant:"secondary",attrs:'data-modal="editpolicy"'}),
+      body:ui.ListCard([
+        {label:ui.html("<b>Cancellation</b><small>The policy snapshotted onto a booking.</small>"),value:policies.cancellation||"Not loaded",mono:false},
+        {label:ui.html("<b>Late-arrival grace</b><small>Minutes before the session may proceed without the athlete.</small>"),value:policies.graceMinutes==null?"Not loaded":String(policies.graceMinutes)+" min"},
+        {label:ui.html("<b>No-show fee</b><small>Applied only under the loaded no-show policy.</small>"),value:policies.noShowFee==null?"Not loaded":money(policies.noShowFee)},
+        {label:ui.html("<b>Weather</b><small>The currently loaded make-up or refund rule.</small>"),value:policies.weather||"Not loaded",mono:false},
+      ]),
+    });
+  } else {
+    body=ui.Block({
+      title:"Automated messages",
+      subtitle:"Templates fill from the booking at send time and still pass through the configured approval rule.",
+      body:ui.DataTable({
+        columns:[{key:"trigger",label:"Trigger"},{key:"status",label:"Status"},{key:"preview",label:"Template"},{key:"actions",label:"Actions"}],
+        rows:messages.map(row=>({
+          trigger:ui.html(`<b>${esc(String(row.trigger||"").replace(/_/g," "))}</b>`),
+          status:ui.html(`<span class="cui-badge ${row.enabled?"cui-badge--good":""}">${row.enabled?"On":"Off"}</span>`),
+          preview:row.body||"—",
+          actions:ui.html(ui.Button({label:row.enabled?"Turn off":"Turn on",size:"sm",variant:"secondary",attrs:`data-automsg-toggle="${esc(row.trigger)}"`})),
+        })),
+        emptyTitle:"No message templates",emptyBody:"Templates will appear when the operations state is loaded.",
+      }),
+    });
+  }
+  return ui.Page({
+    page:"operations",eyebrow:"Business",h1:"Operations",
+    lede:"The signals, feedback, policies, and message rules used to run the practice after publication.",
+    tabs:tabs,active:active,stateKey:"operationsPageTab",tabLabel:"Operations sections",body:body,
+  });
+}
+
 function coachBody(t){
   const mine=coachListings();
   const pp=SEED.providerProfile;
+  if(t==="dashboard") return coachHomePage();
+  if(t==="roster") return coachClientsPage();
+  if(t==="schedule") return coachSchedulePage();
+  if(t==="listings") return coachListingsPage();
+  if(t==="finances") return coachEarningsPage();
+  if(t==="approvals") return coachApprovalsPage();
+  if(t==="operations") return coachOperationsPage();
   const mv=modView(t); if(mv) return mv();
   if(t==="search") return coachSearchHTML();
-  if(t==="dashboard") return dashboardHTML();
   if(t==="__legacy_dashboard"){
     const revenue=S.bookings.filter(b=>S.listings.includes(b.programId)).reduce((s,b)=>s+b.price,0);
     const enrolled=mine.reduce((s,p)=>s+p.enrolled,0);
@@ -11866,7 +12331,11 @@ function modules(){
    inbound link that still asks for it by name is redirected here, so a stale
    token lands on the real surface instead of a tab the rail no longer offers. */
 function setCoachTab(v){
-  if(v==="slots"){S.coachTab="schedule";S.schedTab="slots";return;}
+  /* Local page tabs live in ?tab=. A rail change starts a different page, so
+     carrying the old page's tab into the new one would select an unrelated
+     pane (or leave a stale URL that disagrees with the visible fallback). */
+  if(window.COACH_UI&&window.COACH_UI.clearTab) window.COACH_UI.clearTab();
+  if(v==="slots"){S.coachTab="schedule";S.schedTab="slots";S.schedulePageTab="availability";return;}
   /* Insights, Reviews, Policies and Automated messages merged into Operations;
      every old name still resolves, landing on its sub-tab rather than a rail
      entry that no longer exists. */
@@ -13804,6 +14273,11 @@ document.querySelectorAll('.sig-ai-coach').forEach(sigAiCoachWire);
   /* Operations sub-tabs. Owned by the host, not mod-coachops, because the tab
      now mixes host-rendered Reviews with views from two different modules. */
   $("[data-opstab]").forEach(b=>b.onclick=()=>{S.opsTab=b.dataset.opstab;window.scrollTo(0,0);render();});
+  $("[data-automsg-toggle]").forEach(b=>b.onclick=()=>requireAuth(()=>{
+    const row=(S.autoMessages||[]).find(x=>x.trigger===b.dataset.automsgToggle);
+    if(!row) return;
+    row.enabled=!row.enabled;render();toast(row.enabled?"Automated message turned on":"Automated message turned off");
+  }));
   /* Coach search. Typing re-renders so the result list stays in sync with the
      box; the caret is put back afterwards, otherwise focus would be lost on
      every keystroke because #app's innerHTML is replaced wholesale. */
@@ -13884,6 +14358,10 @@ document.querySelectorAll('.sig-ai-coach').forEach(sigAiCoachWire);
      which runs it when signed in and otherwise stores it as the pending intent
      and raises the sheet — so the action completes itself after sign-in. */
   $("[data-newlisting]").forEach(b=>b.onclick=()=>requireAuth(()=>{S.modal={type:"newlisting"};render();}));
+  /* The Media-derived Schedule header has one primary action. It opens the
+     existing full recurring-block form, which is the schedule write path this
+     client already validates, rather than inventing a second session writer. */
+  $("[data-addsession]").forEach(b=>b.onclick=()=>requireAuth(()=>{S.modal={type:"addslot"};render();}));
   $("[data-editlisting]").forEach(b=>b.onclick=()=>requireAuth(()=>{S.modal={type:"editlisting",id:b.dataset.editlisting};render();}));
   $("[data-signups]").forEach(b=>b.onclick=()=>{S.modal={type:"signups",id:b.dataset.signups};render();});
   $("[data-addtrainer]").forEach(b=>b.onclick=()=>requireAuth(()=>{S.modal={type:"addtrainer"};render();}));
@@ -16071,6 +16549,352 @@ document.addEventListener("click",e=>{
 
 <!-- ═══ FEATURE MODULES (inlined; each registers a window.MOD_* object) ═══ -->
 <script>
+/* ---- mod-coachui.js ---- */
+"use strict";
+/* ═══════════════════════════════════════════════════════════════════
+   MOD_COACHUI — the approved Media page extracted into shared pieces.
+
+   Page renderers pass data and already-authorized action attributes; this
+   module owns the coach-dashboard typography, spacing, surfaces, buttons,
+   URL-backed local tabs, and responsive table behavior. Page files should
+   not mint their own font sizes or font stacks around these components.
+   ═══════════════════════════════════════════════════════════════════ */
+(function(){
+
+const esc = value => String(value == null ? "" : value).replace(/[&<>"']/g,
+  c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const html = value => ({ html:String(value == null ? "" : value) });
+const valueHTML = value => value && typeof value === "object" && "html" in value
+  ? String(value.html) : esc(value);
+const attrs = value => value ? " " + String(value).trim() : "";
+
+function Button(options){
+  options = options || {};
+  const size = options.size === "sm" ? "sm" : "lg";
+  const variant = options.variant === "primary" ? "primary" : "secondary";
+  const tag = options.href ? "a" : "button";
+  const href = options.href ? ` href="${esc(options.href)}"` : "";
+  const type = tag === "button" ? ` type="${esc(options.type || "button")}"` : "";
+  return `<${tag} class="cui-button cui-button--${size} cui-button--${variant}"${type}${href}${attrs(options.attrs)}>${valueHTML(options.label || "")}</${tag}>`;
+}
+
+function PageHeader(options){
+  options = options || {};
+  const actions = (options.actions || []).filter(Boolean).join("");
+  return `<header class="cui-header">
+    <div class="cui-header__row">
+      <div class="cui-header__copy">
+        <p class="cui-eyebrow">${esc(options.eyebrow || "Coach dashboard")}</p>
+        <h1 class="cui-h1"${options.id ? ` id="${esc(options.id)}"` : ""}>${esc(options.h1 || "")}</h1>
+        <p class="cui-lede">${esc(options.lede || "")}</p>
+      </div>
+      ${actions ? `<div class="cui-header__actions">${actions}</div>` : ""}
+    </div>
+  </header>`;
+}
+
+function TabStrip(options){
+  options = options || {};
+  const tabs = options.tabs || [];
+  if(tabs.length <= 1) return "";
+  return `<nav class="cui-tabs" role="tablist" aria-label="${esc(options.label || "Page sections")}">
+    ${tabs.map(tab => `<button type="button" class="cui-tab${tab.key === options.active ? " on" : ""}"
+      role="tab" aria-selected="${tab.key === options.active}" tabindex="${tab.key === options.active ? "0" : "-1"}"
+      data-cui-page="${esc(options.page || "")}" data-cui-state="${esc(options.stateKey || "")}" data-cui-tab="${esc(tab.key)}">
+      ${esc(tab.label)}${tab.count === undefined || tab.count === null ? "" : `<span class="cui-count">${esc(tab.count)}</span>`}
+    </button>`).join("")}
+  </nav>`;
+}
+
+function Block(options){
+  options = options || {};
+  return `<section class="cui-block"${options.id ? ` id="${esc(options.id)}"` : ""}>
+    <div class="cui-block__head">
+      <div>
+        <h2 class="cui-block__title">${esc(options.title || "")}</h2>
+        <p class="cui-block__subtitle">${esc(options.subtitle || "")}</p>
+      </div>
+      ${options.action || ""}
+    </div>
+    ${options.body || ""}
+  </section>`;
+}
+
+function StatCard(options){
+  options = options || {};
+  return `<div class="cui-card cui-stat">
+    <div class="cui-stat__label">${esc(options.label || "")}</div>
+    <div class="cui-stat__value">${esc(options.value == null ? "" : options.value)}</div>
+    <div class="cui-stat__context">${esc(options.context || "")}</div>
+  </div>`;
+}
+
+function StatGrid(cards){
+  const list = (cards || []).filter(Boolean);
+  if(!list.length) return "";
+  return `<div class="cui-statgrid cui-statgrid--${Math.min(4, list.length)}">${list.map(StatCard).join("")}</div>`;
+}
+
+function ListCard(rows, options){
+  options = options || {};
+  const list = rows || [];
+  if(!list.length) return EmptyState(options.emptyTitle || "Nothing here yet", options.emptyBody || "No records are available for this section.");
+  return `<div class="cui-card cui-list">${list.map(row => `<div class="cui-list__row">
+    <span class="cui-list__label">${valueHTML(row.label)}</span>
+    <span class="cui-list__value${row.mono === false ? "" : " cui-mono"}">${valueHTML(row.value)}</span>
+  </div>`).join("")}</div>`;
+}
+
+function DataTable(options){
+  options = options || {};
+  const columns = options.columns || [];
+  const rows = options.rows || [];
+  if(!rows.length) return EmptyState(options.emptyTitle || "No records", options.emptyBody || "Nothing has been loaded for this view.");
+  return `<div class="cui-tablewrap"><table class="cui-table">
+    <thead><tr>${columns.map(col => `<th scope="col">${esc(col.label || "")}</th>`).join("")}</tr></thead>
+    <tbody>${rows.map(row => `<tr>${columns.map(col => `<td data-label="${esc(col.label || "")}"${col.mono ? ` class="cui-mono"` : ""}>${valueHTML(row[col.key])}</td>`).join("")}</tr>`).join("")}</tbody>
+  </table></div>`;
+}
+
+function Callout(options){
+  options = typeof options === "string" ? { body:options } : (options || {});
+  return `<aside class="cui-callout">${options.title ? `<b>${esc(options.title)}</b> ` : ""}${esc(options.body || "")}</aside>`;
+}
+
+function Card(body, className){
+  return `<div class="cui-card${className ? " " + esc(className) : ""}">${body || ""}</div>`;
+}
+
+function EmptyState(title, body){
+  return `<div class="cui-card cui-empty"><b>${esc(title || "Nothing here yet")}</b><p>${esc(body || "")}</p></div>`;
+}
+
+function Page(options){
+  options = options || {};
+  return `<section class="cui-page" data-cui-page-root="${esc(options.page || "")}" aria-labelledby="${esc(options.headingId || "cui-page-title")}">
+    ${PageHeader({
+      eyebrow:options.eyebrow,
+      h1:options.h1,
+      lede:options.lede,
+      actions:options.actions,
+      id:options.headingId || "cui-page-title",
+    })}
+    <div class="cui-scroll" data-cui-scroll="${esc(options.page || "")}">
+      ${TabStrip({page:options.page,tabs:options.tabs,active:options.active,stateKey:options.stateKey,label:options.tabLabel})}
+      <div class="cui-pane" role="tabpanel">${options.body || ""}</div>
+    </div>
+  </section>`;
+}
+
+function activeTab(tabs, fallback, stateKey){
+  const keys = (tabs || []).map(tab => typeof tab === "string" ? tab : tab.key);
+  let fromUrl = null;
+  try { fromUrl = new URLSearchParams(window.location.search).get("tab"); } catch(_e) {}
+  if(keys.indexOf(fromUrl) >= 0){
+    if(stateKey && typeof S !== "undefined") S[stateKey] = fromUrl;
+    return fromUrl;
+  }
+  const fromState = stateKey && typeof S !== "undefined" ? S[stateKey] : null;
+  const chosen = keys.indexOf(fromState) >= 0 ? fromState : (keys.indexOf(fallback) >= 0 ? fallback : keys[0]);
+  if(chosen) writeTab(chosen);
+  return chosen;
+}
+
+function writeTab(value){
+  try {
+    const url = new URL(window.location.href);
+    url.searchParams.set("tab", value);
+    history.replaceState(null, "", url.pathname + url.search + url.hash);
+  } catch(_e) {}
+}
+
+function clearTab(){
+  try {
+    const url = new URL(window.location.href);
+    if(!url.searchParams.has("tab")) return;
+    url.searchParams.delete("tab");
+    history.replaceState(null, "", url.pathname + (url.searchParams.toString() ? "?" + url.searchParams.toString() : "") + url.hash);
+  } catch(_e) {}
+}
+
+function wire(){
+  const groups = {};
+  Array.prototype.slice.call(document.querySelectorAll("[data-cui-tab]")).forEach(button => {
+    const key = button.dataset.cuiPage || "page";
+    (groups[key] = groups[key] || []).push(button);
+    button.onclick = () => {
+      if(button.dataset.cuiState && typeof S !== "undefined") S[button.dataset.cuiState] = button.dataset.cuiTab;
+      writeTab(button.dataset.cuiTab);
+      if(typeof render === "function") render();
+    };
+  });
+  Object.keys(groups).forEach(key => groups[key].forEach((button, index) => {
+    button.onkeydown = event => {
+      const list = groups[key];
+      if(!["ArrowLeft","ArrowRight","Home","End"].includes(event.key)) return;
+      event.preventDefault();
+      let next = index;
+      if(event.key === "ArrowLeft") next = (index - 1 + list.length) % list.length;
+      if(event.key === "ArrowRight") next = (index + 1) % list.length;
+      if(event.key === "Home") next = 0;
+      if(event.key === "End") next = list.length - 1;
+      list[next].click();
+    };
+  }));
+}
+
+const CSS = `
+.cui-page{
+  --fs-h1:24px;--fs-nav-side:14px;--fs-eyebrow:12px;--fs-body:14px;--fs-fine:12px;
+  --cui-bg:#0E0E0F;--cui-panel:#121315;--cui-panel-2:#17191C;
+  --cui-line:#1F2226;--cui-line-2:#2A3138;--cui-ink:#F5F5F2;
+  --cui-ink-2:#A3A3AB;--cui-ink-3:#8B98A6;--cui-steel:#6B7F9E;
+  --cui-good:#8FD19E;--cui-warn:#C9A227;--cui-gutter:32px;
+  grid-row:2;min-width:0;min-height:0;height:100%;margin:0 calc(var(--cui-gutter) * -1);
+  display:grid;grid-template-rows:auto minmax(0,1fr);overflow:hidden;
+  background:var(--cui-bg);color:var(--cui-ink);color-scheme:dark;
+  font-family:"Inter",system-ui,-apple-system,"Segoe UI",sans-serif;font-size:var(--fs-body)
+}
+#app:has(.cui-page) .coachtop{display:none}
+#app:has(.cui-page) .dash{height:calc(100vh - 60px);overflow:hidden}
+#app:has(.cui-page) .dash>.rail{height:100%;overflow-y:auto}
+#app:has(.cui-page) .dash>div{height:100%;display:grid;grid-template-rows:auto minmax(0,1fr);overflow:hidden}
+.cui-page button,.cui-page input,.cui-page textarea,.cui-page select{font:inherit;color:inherit}
+.cui-page :focus-visible{outline:2px solid var(--cui-steel);outline-offset:2px}
+.cui-header{padding:22px 28px 0;background:var(--cui-bg)}
+.cui-header__row{display:flex;align-items:flex-start;gap:24px}
+.cui-header__copy{min-width:0}
+.cui-header__actions{margin-left:auto;display:flex;align-items:center;gap:8px;flex:none}
+.cui-eyebrow{margin:0 0 8px;color:var(--cui-ink-3);font-family:"Roboto Condensed",sans-serif;
+  font-size:var(--fs-eyebrow);font-weight:600;letter-spacing:.06em;text-transform:uppercase}
+.cui-page .cui-h1{margin:0 0 6px;color:var(--cui-ink);font-family:"Roboto Condensed",sans-serif;
+  font-size:var(--fs-h1);font-weight:500;letter-spacing:.01em;line-height:1.15;text-transform:uppercase}
+.cui-lede{max-width:64ch;margin:0;color:var(--cui-ink-2);font-size:var(--fs-body);line-height:1.55}
+.cui-scroll{min-height:0;overflow:auto;overscroll-behavior:contain;scrollbar-color:var(--cui-line-2) transparent}
+.cui-tabs{position:sticky;top:0;z-index:4;display:flex;gap:0;margin-top:18px;padding:0 28px;
+  overflow-x:auto;border-bottom:1px solid var(--cui-line);background:rgba(14,14,15,.97);backdrop-filter:blur(10px);
+  scrollbar-width:none}
+.cui-tabs::-webkit-scrollbar{display:none}
+.cui-tab{min-height:43px;margin-bottom:-1px;padding:0 16px;border:0;border-bottom:2px solid transparent;
+  display:flex;align-items:center;gap:8px;flex:none;color:var(--cui-ink-3);font-family:"Roboto Condensed",sans-serif;
+  font-size:var(--fs-eyebrow);font-weight:600;letter-spacing:.05em;text-transform:uppercase;white-space:nowrap}
+.cui-tab:hover{color:var(--cui-ink-2)}
+.cui-tab.on{border-color:var(--cui-ink);color:var(--cui-ink)}
+.cui-count{padding:2px 7px;border-radius:999px;background:var(--cui-panel-2);color:var(--cui-ink-3);
+  font-family:"JetBrains Mono",monospace;font-size:var(--fs-fine);letter-spacing:0;font-variant-numeric:tabular-nums}
+.cui-pane{padding:24px 28px 60px}
+.cui-block{margin:0 0 28px}
+.cui-block:last-child{margin-bottom:0}
+.cui-block__head{display:flex;align-items:flex-end;justify-content:space-between;gap:16px;margin:0 0 14px}
+.cui-block__title{margin:0 0 4px;color:var(--cui-ink);font-family:"Roboto Condensed",sans-serif;
+  font-size:var(--fs-nav-side);font-weight:600;letter-spacing:.04em;line-height:1.25;text-transform:uppercase}
+.cui-block__subtitle{margin:0;color:var(--cui-ink-3);font-size:var(--fs-fine);line-height:1.5}
+.cui-card{padding:18px;border:1px solid var(--cui-line);border-radius:12px;background:var(--cui-panel)}
+.cui-button{border:1px solid var(--cui-line-2);border-radius:8px;display:inline-flex;align-items:center;
+  justify-content:center;gap:7px;color:var(--cui-ink);font-family:"Roboto Condensed",sans-serif;
+  font-size:var(--fs-eyebrow);font-weight:700;letter-spacing:.04em;line-height:1;text-decoration:none;text-transform:uppercase}
+.cui-button--lg{height:36px;padding:0 14px}
+.cui-button--sm{height:30px;padding:0 10px}
+.cui-button--secondary{background:transparent}
+.cui-button--secondary:hover{border-color:#3B424B;background:var(--cui-panel-2)}
+.cui-page .cui-button--primary{border-color:#FFFFFF;background:#FFFFFF;color:#0E0E0F}
+.cui-page .cui-button--primary:hover{border-color:#E9E9E6;background:#E9E9E6;color:#0E0E0F}
+.cui-button:disabled{cursor:not-allowed;opacity:.42}
+.cui-statgrid{display:grid;gap:14px}
+.cui-statgrid--1{grid-template-columns:1fr}
+.cui-statgrid--2{grid-template-columns:repeat(2,minmax(0,1fr))}
+.cui-statgrid--3{grid-template-columns:repeat(3,minmax(0,1fr))}
+.cui-statgrid--4{grid-template-columns:repeat(4,minmax(0,1fr))}
+.cui-stat__label{color:var(--cui-ink-3);font-family:"Roboto Condensed",sans-serif;
+  font-size:var(--fs-eyebrow);font-weight:600;letter-spacing:.06em;text-transform:uppercase}
+.cui-stat__value{margin:8px 0 2px;color:var(--cui-ink);font-family:"JetBrains Mono",monospace;
+  font-size:26px;font-variant-numeric:tabular-nums}
+.cui-stat__context{color:var(--cui-ink-3);font-size:var(--fs-fine);line-height:1.45}
+.cui-list{padding:6px 18px}
+.cui-list__row{display:flex;justify-content:space-between;align-items:center;gap:20px;padding:12px 0;
+  border-bottom:1px solid var(--cui-line);color:var(--cui-ink-2);font-size:var(--fs-body);line-height:1.45}
+.cui-list__row:last-child{border-bottom:0}
+.cui-list__label{min-width:0}.cui-list__label b{color:var(--cui-ink);font-weight:600}
+.cui-list__label small{display:block;margin-top:2px;color:var(--cui-ink-3);font-size:var(--fs-fine)}
+.cui-list__value{flex:none;color:var(--cui-ink-3);font-size:var(--fs-fine)}
+.cui-mono{font-family:"JetBrains Mono",monospace;font-variant-numeric:tabular-nums}
+.cui-tablewrap{overflow:hidden;border:1px solid var(--cui-line);border-radius:12px;background:var(--cui-panel)}
+.cui-table{width:100%;border-collapse:collapse;color:var(--cui-ink-2);font-size:var(--fs-body)}
+.cui-table thead{background:var(--cui-panel-2)}
+.cui-table th{padding:10px 16px;text-align:left;color:var(--cui-ink-3);font-family:"Roboto Condensed",sans-serif;
+  font-size:var(--fs-eyebrow);font-weight:600;letter-spacing:.06em;text-transform:uppercase}
+.cui-table td{padding:13px 16px;border-top:1px solid var(--cui-line);vertical-align:middle}
+.cui-table td b{color:var(--cui-ink);font-weight:600}
+.cui-table td small{display:block;margin-top:2px;color:var(--cui-ink-3);font-size:var(--fs-fine);line-height:1.45}
+.cui-table td:last-child{text-align:right}
+.cui-callout{margin:0 0 18px;padding:14px 16px;border:1px solid var(--cui-line);border-left:2px solid var(--cui-steel);
+  border-radius:10px;background:var(--cui-panel);color:var(--cui-ink-2);font-size:var(--fs-body);line-height:1.55}
+.cui-callout b{color:var(--cui-ink);font-weight:600}
+.cui-empty{text-align:center;color:var(--cui-ink-3)}
+.cui-empty b{display:block;color:var(--cui-ink);font-weight:600}
+.cui-empty p{margin:6px auto 0;max-width:58ch;font-size:var(--fs-fine);line-height:1.55}
+.cui-stack{display:flex;flex-direction:column;gap:12px}
+.cui-inline{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.cui-badge{display:inline-flex;width:max-content;padding:3px 9px;border:1px solid var(--cui-line-2);border-radius:999px;
+  color:var(--cui-ink-3);font-size:var(--fs-fine);white-space:nowrap}
+.cui-badge--good{border-color:#2C4433;color:var(--cui-good)}
+.cui-badge--warn{border-color:#4A3F16;color:var(--cui-warn)}
+.cui-draft{margin:8px 0 12px;padding:12px;border:1px solid var(--cui-line-2);border-radius:8px;
+  background:var(--cui-bg);color:var(--cui-ink-2);font-size:var(--fs-body);line-height:1.55}
+.cui-draft:focus{border-color:var(--cui-steel)}
+.cui-note{color:var(--cui-ink-3);font-size:var(--fs-fine);line-height:1.5}
+.cui-error{margin:14px 0 0;color:#F0A3A3;font-size:var(--fs-fine)}
+.cui-teamthumb{width:72px;aspect-ratio:3/2;border-radius:8px;object-fit:cover;vertical-align:middle}
+@media(max-width:1100px){
+  .cui-statgrid--4{grid-template-columns:repeat(2,minmax(0,1fr))}
+}
+@media(max-width:1020px){
+  .cui-page{--cui-gutter:0}
+  #app:has(.cui-page) .dash{height:calc(100vh - 65px);grid-template-rows:auto minmax(0,1fr)}
+  #app:has(.cui-page) .dash>.rail{height:auto;overflow-x:auto;overflow-y:hidden}
+  #app:has(.cui-page) .dash>div{min-height:0}
+}
+@media(max-width:760px){
+  .cui-header{padding:20px 18px 0}
+  .cui-header__row{flex-direction:column;gap:16px}
+  .cui-header__actions{width:100%;margin-left:0}
+  .cui-header__actions .cui-button{flex:1}
+  .cui-tabs{padding:0 8px}
+  .cui-tab{min-height:46px;padding:0 12px}
+  .cui-pane{padding:20px 18px 48px}
+  .cui-statgrid--2,.cui-statgrid--3,.cui-statgrid--4{grid-template-columns:1fr}
+  .cui-block__head{align-items:flex-start;flex-direction:column}
+  .cui-tablewrap{overflow:visible;border:0;background:transparent}
+  .cui-table,.cui-table tbody,.cui-table tr,.cui-table td{display:block;width:100%}
+  .cui-table thead{display:none}
+  .cui-table tbody{display:flex;flex-direction:column;gap:12px}
+  .cui-table tr{overflow:hidden;border:1px solid var(--cui-line);border-radius:12px;background:var(--cui-panel)}
+  .cui-table td{display:grid;grid-template-columns:minmax(96px,.8fr) minmax(0,1fr);gap:14px;padding:10px 14px;
+    border-top:1px solid var(--cui-line);text-align:right}
+  .cui-table td:first-child{border-top:0}
+  .cui-table td::before{content:attr(data-label);align-self:start;text-align:left;color:var(--cui-ink-3);
+    font-family:"Roboto Condensed",sans-serif;font-size:var(--fs-eyebrow);font-weight:600;letter-spacing:.06em;text-transform:uppercase}
+  .cui-table td:last-child{text-align:right}
+}
+@media(max-width:480px){
+  .cui-list__row{align-items:flex-start;flex-direction:column;gap:5px}
+  .cui-list__value{white-space:normal}
+}
+@media(prefers-reduced-motion:reduce){.cui-scroll{scroll-behavior:auto}}
+`;
+
+window.COACH_UI = {
+  html:html, Button:Button, PageHeader:PageHeader, TabStrip:TabStrip, Block:Block,
+  StatCard:StatCard, StatGrid:StatGrid, ListCard:ListCard, DataTable:DataTable,
+  Callout:Callout, Card:Card, EmptyState:EmptyState, Page:Page,
+  activeTab:activeTab, writeTab:writeTab, clearTab:clearTab,
+};
+window.MOD_COACHUI = { css:CSS, wire:wire };
+
+})();
+
+</script>
+<script>
 /* ---- mod-api.js ---- */
 /* mod-api.js — the site's one door to the backend.
    ---------------------------------------------------------------------------
@@ -17692,18 +18516,10 @@ document.addEventListener("click",e=>{
      hand the coach to Stripe, Stripe tells the webhook, the webhook writes the
      row, and the next load() is when this page changes its mind. A plan
      inferred from a redirect is a plan the coach did not necessarily buy. */
-  var CSS = `
-.cb-head{display:flex;justify-content:space-between;align-items:flex-start;gap:16px;margin:18px 0 6px;flex-wrap:wrap}
-.cb-lede{color:var(--muted);font-size:var(--text-base);max-width:64ch;margin-top:5px}
-.cb-two{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,360px);gap:20px;align-items:start;margin-top:16px}
-.cb-plan{display:block;font-size:var(--text-lg);font-weight:600;letter-spacing:-.02em;margin-top:10px}
-.cb-note{color:var(--ink-2);font-size:var(--text-base);margin-top:6px;max-width:52ch}
-.cb-fine{color:var(--muted);font-size:var(--text-sm);line-height:1.55;margin-top:8px;max-width:52ch}
-.cb-fine a{color:var(--slate-ink)}
-.cb-acts{display:flex;gap:10px;flex-wrap:wrap;margin-top:16px}
-.cb-row{margin-top:14px}
-@media(max-width:900px){.cb-two{grid-template-columns:1fr}}
-`;
+  /* Billing now uses MOD_COACHUI for all page-level presentation. Keeping an
+     empty module stylesheet prevents this page from minting a parallel type
+     scale or button system. */
+  var CSS = "";
 
   function billingView() {
     /* Same gate the host applies to every private coach tab. Billing states a
@@ -17713,46 +18529,56 @@ document.addEventListener("click",e=>{
         typeof coachLockHTML === "function") {
       return coachLockHTML("Billing", "your plan, its renewal date and the card Stripe holds");
     }
+    var ui = window.COACH_UI;
+    if (!ui) return "";
     var st = ACCOUNT.plan();
     var free = PLANS.free, pro = PLANS.pro, ent = PLANS.enterprise;
-    return `
-    <div class="cb-head"><div>
-      <h2>Billing</h2>
-      <p class="cb-lede">Your plan, what it includes, and the card Stripe holds. Sporv takes no
-        share of a booking.</p>
-    </div></div>
-
-    <div class="cb-two">
-      <div class="panel">
-        <p class="eyebrow">Current plan</p>
-        <b class="cb-plan">${esc(st.label)}</b>
-        <p class="cb-note">${esc(st.entitled ? st.plan.adds : free.adds)}</p>
-        ${provider ? "" : `<p class="cb-fine">Your coach profile has not loaded yet, so this reads
-          from nothing — reopen the tab in a moment.</p>`}
-        <div class="cb-acts">
-          ${st.entitled
-            ? `<button class="btn" data-cb-portal="1">Manage billing</button>`
-            : `<button class="btn" data-cb-buy="pro">Upgrade to ${esc(pro.name)}</button>`}
-        </div>
-        <p class="cb-fine">${st.entitled
-          ? "Card, invoices and cancellation open in Stripe's billing portal."
-          : esc(pro.price + pro.per + ". " + pro.adds)}</p>
-        <p class="err hide cb-row" data-cb-err role="alert"></p>
-      </div>
-
-      <div class="panel">
-        <p class="eyebrow">Plans</p>
-        <div class="linerow cb-row"><span>${esc(free.name)}</span>
-          <span class="num">${esc(free.price)}</span></div>
-        <p class="cb-fine">${esc(free.adds)}</p>
-        <div class="linerow cb-row"><span>${esc(pro.name)}</span>
-          <span class="num">${esc(pro.price + pro.per)}</span></div>
-        <p class="cb-fine">${esc(pro.adds)}</p>
-        <p class="cb-fine">${esc(ent.price + ent.per)} Enterprise (multi-player workspace) is in
-          development — <a href="mailto:support@sporve.com?subject=Enterprise%20early%20access">contact
-          Sporv for early access</a>.</p>
-      </div>
-    </div>`;
+    var tabs = [
+      { key:"plan", label:"Plan" },
+      { key:"payment-method", label:"Payment method" },
+      { key:"invoices", label:"Invoices" },
+    ];
+    var active = ui.activeTab(tabs, "plan", "billingTab");
+    var actions = active === "plan" && !st.entitled
+      ? [ui.Button({ label:"Go Pro", size:"lg", variant:"primary", attrs:'data-cb-buy="pro"' })]
+      : [];
+    var body = "";
+    if (active === "plan") {
+      body = ui.Block({
+        title:"Current plan",
+        subtitle:"Plan state comes from the loaded provider record; a checkout redirect never changes it by itself.",
+        body:ui.ListCard([
+          { label:ui.html("<b>" + esc(st.label) + "</b><small>" + esc(st.entitled ? st.plan.adds : free.adds) + "</small>"), value:st.entitled ? esc(st.plan.price + st.plan.per) : esc(free.price), mono:true },
+          { label:ui.html("<b>" + esc(free.name) + "</b><small>" + esc(free.adds) + "</small>"), value:esc(free.price), mono:true },
+          { label:ui.html("<b>" + esc(pro.name) + "</b><small>" + esc(pro.adds) + "</small>"), value:esc(pro.price + pro.per), mono:true },
+          { label:ui.html("<b>" + esc(ent.name) + "</b><small>Multi-player workspace is not self-serve.</small>"), value:esc(ent.price + ent.per), mono:true },
+        ]),
+      });
+    } else if (active === "payment-method") {
+      body = ui.Block({
+        title:"Payment method",
+        subtitle:"Stripe owns card details; this client displays no card number and opens Stripe for any change.",
+        action:st.entitled ? ui.Button({ label:"Manage in Stripe", size:"sm", variant:"secondary", attrs:'data-cb-portal="1"' }) : "",
+        body:st.entitled
+          ? ui.ListCard([{ label:ui.html("<b>Billing payment method</b><small>Card details stay in Stripe's hosted portal.</small>"), value:"Stripe-owned", mono:false }])
+          : ui.EmptyState("No subscription payment method","A payment method is collected only if you choose Pro from the Plan tab."),
+      });
+    } else {
+      body = ui.Block({
+        title:"Invoices",
+        subtitle:"Invoices remain read-only here and are available only through Stripe's hosted billing record.",
+        action:st.entitled ? ui.Button({ label:"Open Stripe", size:"sm", variant:"secondary", attrs:'data-cb-portal="1"' }) : "",
+        body:ui.EmptyState("No invoice records loaded",st.entitled
+          ? "Open Stripe to view the authoritative invoice history for this subscription."
+          : "The free plan has no subscription invoices."),
+      });
+    }
+    body += '<p class="cui-error hide" data-cb-err role="alert"></p>';
+    return ui.Page({
+      page:"billing", eyebrow:"Business", h1:"Billing",
+      lede:"Your plan, Stripe-owned payment method, and read-only invoice history; Sporv takes no share of a booking.",
+      actions:actions, tabs:tabs, active:active, stateKey:"billingTab", tabLabel:"Billing sections", body:body,
+    });
   }
 
   function cbErr(msg) {
@@ -24989,7 +25815,7 @@ function seedItems(){
     /* ── profile ──────────────────────────────────────────────── */
     mk({ id: "md_1", kind: "profile", slot: "headshot", mediaType: "photo", durationSec: null,
       sessionId: null, programId: null, athleteIds: [],
-      caption: "Head coach, Apex Performance Club", createdAt: "2026-06-02T14:00:00.000Z",
+      caption: "Head coach, Northside Flight Basketball", createdAt: "2026-06-02T14:00:00.000Z",
       published: true }),
     mk({ id: "md_2", kind: "profile", slot: "intro_video", mediaType: "video", durationSec: 72,
       sessionId: null, programId: null, athleteIds: [],
@@ -24997,11 +25823,11 @@ function seedItems(){
       published: true }),
     mk({ id: "md_3", kind: "profile", slot: "facility", mediaType: "photo", durationSec: null,
       sessionId: null, programId: (myListings()[0] || DEMO_CATALOGUE[0]).id, athleteIds: [],
-      caption: "Main pitch, Lincoln Park — shaded parent seating along the east side",
+      caption: "Northside Community Gym — court and parent seating",
       createdAt: "2026-06-09T16:10:00.000Z", published: true }),
     mk({ id: "md_4", kind: "profile", slot: "action", mediaType: "photo", durationSec: null,
       sessionId: s0.id, programId: s0.programId, athleteIds: ["athlete_1"],
-      caption: "First touch under pressure", createdAt: "2026-07-14T18:05:00.000Z",
+      caption: "Closeout footwork under pressure", createdAt: "2026-07-14T18:05:00.000Z",
       published: true, shareable: true }),
     /* mixed tagging: one athlete has profile consent, one does not */
     mk({ id: "md_5", kind: "profile", slot: "action", mediaType: "photo", durationSec: null,
@@ -25011,26 +25837,26 @@ function seedItems(){
     /* ── session ──────────────────────────────────────────────── */
     mk({ id: "md_6", kind: "session", slot: null, mediaType: "video", durationSec: 24,
       sessionId: s0.id, programId: s0.programId, athleteIds: ["athlete_1"],
-      caption: "Wall-pass drill — six clean reps in a row", createdAt: "2026-07-14T18:40:00.000Z",
+      caption: "Off-hand finishing — six clean reps in a row", createdAt: "2026-07-14T18:40:00.000Z",
       shareable: true, sharedWith: [{ athleteId: "athlete_1", at: "2026-07-14T19:02:00.000Z" }] }),
     mk({ id: "md_7", kind: "session", slot: null, mediaType: "photo", durationSec: null,
       sessionId: s0.id, programId: s0.programId, athleteIds: ["athlete_2"],
-      caption: "Receiving on the half-turn", createdAt: "2026-07-14T18:44:00.000Z",
+      caption: "Catch-and-shoot footwork", createdAt: "2026-07-14T18:44:00.000Z",
       shareable: true }),
     mk({ id: "md_8", kind: "session", slot: null, mediaType: "photo", durationSec: null,
       sessionId: s1.id, programId: s1.programId, athleteIds: ["athlete_3"],
       caption: "Shooting form from the elbow", createdAt: "2026-07-21T17:30:00.000Z" }),
     mk({ id: "md_9", kind: "session", slot: null, mediaType: "photo", durationSec: null,
       sessionId: s0.id, programId: s0.programId, athleteIds: ["athlete_1", "athlete_2"],
-      caption: "Partner rondo before the scrimmage", createdAt: "2026-07-14T18:51:00.000Z",
+      caption: "Shell drill before the scrimmage", createdAt: "2026-07-14T18:51:00.000Z",
       shareable: true }),
     mk({ id: "md_10", kind: "session", slot: null, mediaType: "video", durationSec: 31,
       sessionId: s2.id, programId: s2.programId, athleteIds: ["athlete_5"],
-      caption: "Serve toss, slow motion", createdAt: "2026-07-28T16:15:00.000Z",
+      caption: "Free-throw release, slow motion", createdAt: "2026-07-28T16:15:00.000Z",
       shareable: true }),
     mk({ id: "md_11", kind: "session", slot: null, mediaType: "photo", durationSec: null,
       sessionId: s3.id, programId: s3.programId, athleteIds: ["athlete_4"],
-      caption: "Overhand serve, first clean landing", createdAt: "2026-07-30T17:05:00.000Z",
+      caption: "Outlet pass, first clean read", createdAt: "2026-07-30T17:05:00.000Z",
       shareable: true, sharedWith: [{ athleteId: "athlete_4", at: "2026-07-30T18:00:00.000Z" }] }),
   ];
 }
@@ -26159,7 +26985,7 @@ function profileChecklist(){
 }
 
 function performancePaneHTML(){
-  /* The seeded Apex workspace is the product demo, even after the demo login
+  /* The seeded Northside Flight workspace is the product demo, even after the demo login
      marks it verified. Real provider rows never receive invented analytics. */
   const demo = typeof coachState === "function" ? !coachState().isReal : true;
   const stats = demo
@@ -26195,6 +27021,7 @@ function performancePaneHTML(){
   </div>
   <div class="mfmt-block">
     <h2 class="mfmt-section-title">Most viewed</h2>
+    <p class="mfmt-section-sub">Published items ordered by the parent-facing view records available to this workspace.</p>
     <div class="mfmt-card mfmt-list">
       ${most.length ? most.map((it, i) => `<div class="mfmt-list-row"><span>${esc(it.caption)}</span>
         <span class="mfmt-num">${demo ? esc(views[i].toLocaleString()) : "—"}</span></div>`).join("")
@@ -26204,6 +27031,14 @@ function performancePaneHTML(){
 }
 
 function mediaView(){
+  /* Shared coach pages keep their local pane in ?tab=. Media remains the
+     approved reference implementation, but follows the same deep-link rule. */
+  let hasUrlPane = false;
+  try {
+    const fromUrl = new URLSearchParams(window.location.search).get("tab");
+    if (["profile", "library", "consent", "performance"].indexOf(fromUrl) >= 0){ mediaPane = fromUrl; hasUrlPane = true; }
+  } catch (_e) {}
+  if (!hasUrlPane && window.COACH_UI && window.COACH_UI.writeTab) window.COACH_UI.writeTab(mediaPane);
   const panes = [
     ["profile", "Profile", "", profilePaneHTML],
     ["library", "Library", String(state.mediaItems.length), libraryPaneHTML],
@@ -26497,6 +27332,7 @@ function wire(){
   const paneKeys = ["profile", "library", "consent", "performance"];
   q("[data-md-pane]").forEach(b => b.onclick = () => {
     mediaPane = paneKeys.indexOf(b.dataset.mdPane) >= 0 ? b.dataset.mdPane : "profile";
+    if (window.COACH_UI && window.COACH_UI.writeTab) window.COACH_UI.writeTab(mediaPane);
     render();
     window.scrollTo({ top: 0, behavior: "auto" });
     requestAnimationFrame(() => {
@@ -28983,7 +29819,7 @@ window.MOD_INSIGHTS = {
 <script>
 /* ---- mod-companies.js ---- */
 /* ═══════════════════════════════════════════════════════════════════
-   MOD_COMPANIES — the six sample businesses as first-class entities,
+   MOD_COMPANIES — the sample businesses as first-class entities,
    plus offering-type-aware booking.
 
    Thesis: a team, a camp and a private trainer are three different
@@ -29049,6 +29885,14 @@ function shift(iso, days){
    checks — they never render a trust badge, and their imagery is
    deliberately plainer so the photography agrees with the state. */
 const COMPANIES = [
+  {
+    id:"northside-flight", name:"Northside Flight Basketball", verified:false,
+    tagline:"A disclosed 14U AAU team operations demo",
+    bio:"A fictional Chicago AAU organization used to demonstrate tryout registration, roster operations, recurring practices, family messaging, billing boundaries, and media consent without taking a real payment.",
+    hood:"North Side, Chicago", founded:2024, coaches:3, seed:"northside-flight",
+    look:"Candid indoor basketball — charcoal and slate-blue practice kit, real gym texture, disciplined team energy.",
+    heroAsset:"assets/teams/northside-flight-14u-card.jpg",
+  },
   {
     id:"apex", name:"Apex Performance Club", verified:true,
     tagline:"Elite training clinics for junior athletes",
@@ -29162,6 +30006,12 @@ const ASSET = {
    only produced a guaranteed net::ERR_FILE_NOT_FOUND before falling back. When
    real assets land, restore the real-first src + data-cofb fallback. */
 function imgTag(real, fallback, alt){
+  /* Generated team assets are committed and known to exist. Other documented
+     asset paths are still prospective, so they keep the self-contained SVG
+     rather than generating a guaranteed failed request. */
+  if(real && String(real).indexOf("assets/teams/") === 0){
+    return `<img src="${esc(real)}" data-cofb="${esc(fallback)}" alt="${esc(alt || "")}" loading="lazy">`;
+  }
   return `<img src="${esc(fallback)}" alt="${esc(alt || "")}" loading="lazy">`;
 }
 function imagesFor(p){
@@ -29175,7 +30025,8 @@ function imagesFor(p){
     });
   }
   return {
-    hero:ASSET.listing(p.id, "hero"),
+    hero:(p.cardAsset || (p.img && String(p.img).indexOf("assets/teams/")===0))
+      ? (p.cardAsset || p.img) : ASSET.listing(p.id, "hero"),
     heroFallback:shot(p.id, 900, 700),
     ratio:spec.ratio, gRatio:spec.gRatio, gallery:g,
     /* what a photographer or generator needs to produce for this listing */
@@ -29369,6 +30220,7 @@ function quote(kind, p, m){
 function commit(kind, p, m){
   const h = H();
   const q = quote(kind, p, m);
+  const sample = !!p.sample;
   const a = pickAthlete(p, m);
   const n = ((h.bookings && h.bookings.length) || 0) + 1;
   const bookId = "book_co" + n, txId = "tx_co" + n;
@@ -29380,8 +30232,9 @@ function commit(kind, p, m){
     athleteId:a.sel ? a.sel.id : null,
     programId:p.id, program:p.title, offeringType:kind,
     createdAt:TODAY,
-    price:q.due,
-    totalCents:cents(q.total), dueCents:cents(q.due), balanceCents:cents(q.balance),
+    price:sample?0:q.due,
+    totalCents:cents(q.total), dueCents:sample?0:cents(q.due), balanceCents:sample?0:cents(q.balance),
+    sample:sample, quotedDueCents:cents(q.due),
     /* the policy in force at purchase, captured now — a later change by the
        operator must not move this booking's refund terms */
     cancellationPolicy:p.cancellationPolicy || "moderate",
@@ -29397,7 +30250,7 @@ function commit(kind, p, m){
     rec.date = rec.tryoutDate;
     rec.session = "Tryout — " + fmt(rec.tryoutDate);
     rec.status = "applied";
-    rec.paymentStatus = "tryout_fee_paid";
+    rec.paymentStatus = sample ? "sample_no_charge" : "tryout_fee_paid";
     rec.seasonCost = q.total;
   } else if(kind === "camp"){
     rec.date = q.session.start;
@@ -29654,7 +30507,7 @@ function companiesView(){
     const ps = progsOf(c), mix = mixOf(c), sports = sportsOf(c);
     const avg = ps.length ? (ps.reduce((a, p) => a + Number(p.rating || 0), 0) / ps.length).toFixed(1) : "—";
     return `<button class="co-card ${c.verified ? "" : "co-pending"}" data-company="${esc(c.id)}">
-      <div class="co-shot">${imgTag(ASSET.company(c.id, "hero"), shot(c.seed + "-hero", 900, 600), c.name)}</div>
+      <div class="co-shot">${imgTag(c.heroAsset||ASSET.company(c.id, "hero"), shot(c.seed + "-hero", 900, 600), c.name)}</div>
       <div class="co-body">
         <div class="co-nm">${esc(c.name)}</div>
         <div class="co-tag">${esc(c.tagline)}</div>
@@ -29704,7 +30557,7 @@ function companiesView(){
   <section class="band alt" style="padding:64px 0 56px">
     <div class="shell">
       <div class="eyebrow" data-rev>Examples</div>
-      <h1 style="margin-top:16px;max-width:18ch" data-rev>Six sample businesses in Chicago.</h1>
+      <h1 style="margin-top:16px;max-width:18ch" data-rev>${nBiz} sample businesses in Chicago.</h1>
       <p class="lede" style="margin:16px 0 0;max-width:56ch;text-align:left" data-rev>${nProg} programmes,
         ${/* COUNTED, not asserted — the same rule as every other figure on this
              page. "Verification is pending across the roster" was stated flatly
@@ -29744,7 +30597,7 @@ function companiesView(){
 
   <section class="band alt">
     <div class="shell">
-      <div class="eyebrow" data-rev>What the six prove</div>
+      <div class="eyebrow" data-rev>What the samples prove</div>
       <div class="co-trows" data-rev>
         ${rows.map(([ic, t, d]) => `<div class="co-trow">
           <span class="ic" aria-hidden="true">${ic}</span>
@@ -29824,7 +30677,7 @@ function companyView(){
           ${c.verified ? "" : `<div class="co-note"><b>Verification pending.</b>
             No coach here carries a trust badge until their own check clears.</div>`}
         </div>
-        <div class="co-heroshot">${imgTag(ASSET.company(c.id, "hero"), shot(c.seed + "-hero", 900, 700), c.name)}</div>
+        <div class="co-heroshot">${imgTag(c.heroAsset||ASSET.company(c.id, "hero"), shot(c.seed + "-hero", 900, 700), c.name)}</div>
       </div>
     </div>
   </section>
@@ -29989,13 +30842,14 @@ function campSheet(p, m){
 /* — TEAM: not a booking. A tryout registration. — */
 function teamSheet(p, m){
   const q = quote("team", p, m), meta = q.meta, total = q.total;
+  const sample = !!p.sample;
   const tryout = m.tryout || meta.tryouts[0].date;
   const a = pickAthlete(p, m);
 
   return `
-  <div class="co-note plain"><b>This is an application, not a purchase.</b>
+  <div class="co-note plain"><b>This is an application, not a season purchase.</b>
     You are registering for a tryout. ${esc(p.biz)} evaluates the athlete and announces
-    the roster on ${fmtY(meta.rosterAnnounced)}. Nothing beyond the tryout fee is charged unless a spot is offered.</div>
+    the roster on ${fmtY(meta.rosterAnnounced)}. ${sample?"This disclosed demo writes a local registration and charges nothing.":"Nothing beyond the tryout fee is charged unless a spot is offered."}</div>
 
   ${fg("The programme", "8 fields", `<table class="co-tbl"><tbody>
     <tr><td>Tier</td><td>${esc(meta.tier)}</td></tr>
@@ -30011,8 +30865,9 @@ function teamSheet(p, m){
   ${fg("Pick a tryout", meta.tryouts.length + " dates", `<div class="co-opts">
     ${meta.tryouts.map(t => `<button class="co-opt ${tryout === t.date ? "on" : ""}" data-cotry="${esc(t.date)}">${fmt(t.date)} · ${esc(t.time)}</button>`).join("")}
   </div>
-  <div class="co-note">Registration closes ${fmtY(meta.tryoutDeadline)}. Tryout fee ${usd(meta.tryoutFee)},
-    charged now and non-refundable — it covers the evaluation session itself.</div>`)}
+  <div class="co-note">Registration closes ${fmtY(meta.tryoutDeadline)}. ${sample
+    ? `The example tryout fee is ${usd(meta.tryoutFee)}, but this sample flow does not open checkout or take payment.`
+    : `Tryout fee ${usd(meta.tryoutFee)}, charged now and non-refundable — it covers the evaluation session itself.`}</div>`)}
 
   ${fg("What a season actually costs", meta.costs.length + " lines", `
     <table class="co-tbl">
@@ -30039,9 +30894,9 @@ function teamSheet(p, m){
 
   <div class="co-foot">
     <div class="co-tot">
-      <div class="k">Charged today</div>
-      <div class="v">${usd(meta.tryoutFee)}</div>
-      <div class="d">Tryout only · ${usd(total)} season cost applies if selected</div>
+      <div class="k">${sample?"Demo registration":"Charged today"}</div>
+      <div class="v">${sample?usd(0):usd(meta.tryoutFee)}</div>
+      <div class="d">${sample?`${usd(meta.tryoutFee)} example tryout fee · nothing charged`:`Tryout only · ${usd(total)} season cost applies if selected`}</div>
     </div>
     <button class="btn" data-coconfirm="team" ${a.fits ? "" : "disabled"}>${esc(TYPE.team.cta)}</button>
   </div>`;
@@ -30089,7 +30944,12 @@ function wire(){
   $$("[data-cobook]").forEach(b => b.onclick = () => {
     const id = b.dataset.cobook;
     const open = () => { h.modal = { type:"cobook", pid:id }; render(); };
-    (typeof requireAuth === "function") ? requireAuth(open) : open();
+    const p = CAT().filter(x => x.id === id)[0];
+    /* A disclosed, local-only demo with a $0 commit can be exercised without
+       manufacturing an account. Every non-sample offer keeps the normal
+       authentication gate. */
+    if(p && p.sample) open();
+    else (typeof requireAuth === "function") ? requireAuth(open) : open();
   });
 
   /* sheet controls — each repaints through the host's render() */
@@ -30982,12 +31842,35 @@ function scheduleSave(){
   saveTimer = setTimeout(() => { saveTimer = null; saveState(); }, 250);
 }
 
+/* The disclosed coach workspace changed from the five-listing Apex sample to
+   the one-listing Northside Flight AAU sample. Session storage intentionally
+   survives reloads, so migrate that known demo shape instead of leaving an
+   old browser pointed at ids the current demo no longer owns. Real provider
+   rows remain server-owned and are not inferred here. */
+function migrateNorthsideDemo(){
+  const oldApex=["prog_1","prog_2","prog_3","prog_4","prog_5"];
+  const list=Array.isArray(S.listings)?S.listings:[];
+  const oldShape=list.length>1&&list.every(id=>oldApex.includes(id));
+  const orphaned=list.includes("prog_31")||!list.some(id=>DEMO_CATALOGUE.some(p=>p.id===id));
+  if(oldShape||orphaned) S.listings=["prog_1"];
+  (S.bookings||[]).forEach(row=>{
+    if(row.programId!=="prog_31"&&row.id!=="book_1") return;
+    row.programId="prog_1";row.program="Northside Flight 14U — AAU Season";
+    row.session="AAU tryout registration";row.price=0;row.status="applied";
+    row.paymentStatus="sample_no_charge";
+  });
+  (S.conversations||[]).forEach(row=>{
+    if(row.programId==="prog_31") row.programId="prog_1";
+  });
+}
+
 /* boot: merge module state, restore the session, then first paint.
    Order is load-critical — bootModules() seeds module keys with
    `if(!(k in S))`, so restoring before it would have those defaults
    overwrite the saved values. */
 bootModules();
 loadState();
+migrateNorthsideDemo();
 render();
 
 /* First paint is synchronous and the network is not, so the page shows one
