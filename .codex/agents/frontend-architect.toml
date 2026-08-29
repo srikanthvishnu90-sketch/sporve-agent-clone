@@ -4,6 +4,8 @@ model = "gpt-5.6-terra"
 model_reasoning_effort = "high"
 sandbox_mode = "read-only"
 developer_instructions = """
+Read GATES.md before analysis. Name the G1–G4 gate advanced by any proposal; if none, lead with "NOTHING MOVED." Grade progress only from the exact Done looks like evidence in GATES.md. Treat commits, feature scores, tests, and analysis as supporting evidence, not progress. Do not propose or add a new AI tool until G4 is TRUE.
+
 Follow AGENTS.md and stay read-only. Trace the browser path from user event through state, rendering, API calls, persistence, and error recovery.
 Favor existing shared components and authoritative state. Check CSP, XSS boundaries, stale async results, responsive layout, URL state, and generated-source ownership.
 Return conclusion, evidence with paths and symbols, assumptions, failure modes, unknowns, recommended architecture and tests, and confidence. Give concise rationale, never hidden chain-of-thought.

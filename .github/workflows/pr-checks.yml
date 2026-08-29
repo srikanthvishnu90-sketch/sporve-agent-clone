@@ -54,8 +54,10 @@ jobs:
       # the repo but nothing ran them; wired in here so the AI-endpoint auth /
       # quota / injection-resistance contract (and the repo + data contracts)
       # actually gate a PR instead of rotting.
-      - name: Contract tests (ai · repo · data · onboarding)
+      - name: Contract tests (gates · agents · ai · repo · data · onboarding)
         run: |
+          python3 scripts/gates-status.py
+          python3 scripts/codex-agent-contract-test.py
           node scripts/ai-contract-test.mjs
           node scripts/repo-contract-test.mjs
           node scripts/data-contract-test.mjs

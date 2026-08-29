@@ -8,6 +8,7 @@ import re
 ROOT = Path(__file__).resolve().parents[1]
 CONFIG = ROOT / ".codex" / "config.toml"
 AGENT_DIR = ROOT / ".codex" / "agents"
+GATES = ROOT / "GATES.md"
 
 SPECIALISTS = {
     "intent_clarifier",
@@ -56,6 +57,21 @@ def instructions_value(source: str) -> str:
 
 
 config_source = CONFIG.read_text(encoding="utf-8")
+gates_source = GATES.read_text(encoding="utf-8")
+require(
+    "Four gates. Nothing else counts as progress." in gates_source,
+    "GATES.md must remain the sole progress definition",
+)
+gate_matches = re.findall(
+    r"(?m)^## (G[1-4]) — [^\n]+\n\n\*\*Status: (TRUE|FALSE)\.\*\*",
+    gates_source,
+)
+require(
+    [gate_id for gate_id, _status in gate_matches] == ["G1", "G2", "G3", "G4"],
+    "GATES.md must contain exactly G1–G4 in order with explicit TRUE/FALSE statuses",
+)
+require(gates_source.count("**Done looks like:**") == 4, "every gate needs one Done looks like clause")
+require("Do not add a new AI tool until G4" in gates_source, "G4 must gate any new AI tool")
 require(
     re.search(r"(?m)^allow_login_shell\s*=\s*false\s*$", config_source) is not None,
     "login shells must remain disabled",
@@ -78,7 +94,10 @@ for path in sorted(AGENT_DIR.glob("*.toml")):
     string_value(source, "model")
     string_value(source, "model_reasoning_effort")
     require(string_value(source, "sandbox_mode") == "read-only", f"{path.name}: must be read-only")
-    profiles[name] = {"developer_instructions": instructions_value(source)}
+    instructions = instructions_value(source)
+    for required in ("GATES.md", "G1–G4", "NOTHING MOVED", "Done looks like", "new AI tool"):
+        require(required in instructions, f"{path.name}: gate contract omits {required}")
+    profiles[name] = {"developer_instructions": instructions}
 
 expected = SPECIALISTS | {LEAD}
 require(expected == profiles.keys(), f"agent profile mismatch: expected {sorted(expected)}, got {sorted(profiles)}")
@@ -102,4 +121,16 @@ for required in (
 ):
     require(required in test_instructions, f"test agent contract omits: {required}")
 
-print("Codex council contract: 1 lead + 15 read-only specialists including sporv_test_agent; login/legacy shell disabled")
+repository_contracts = {
+    ROOT / "AGENTS.md": ("GATES.md", "NOTHING MOVED", "Do not propose or add a new AI tool"),
+    ROOT / "CLAUDE.md": ("GATES.md", "NOTHING MOVED", "no new AI"),
+    ROOT / "evals" / "sporv-product-audit" / "test-agent-prompt.md": ("GATES.md", "NOTHING MOVED"),
+    ROOT / "docs" / "codex-scheduled-quality-task.md": ("GATES.md", "NOTHING MOVED"),
+    ROOT / ".github" / "workflows" / "scheduled-quality-audit.yml": ("gates-status.py", "not progress"),
+}
+for path, required_values in repository_contracts.items():
+    source = path.read_text(encoding="utf-8")
+    for required in required_values:
+        require(required in source, f"{path.relative_to(ROOT)} omits gate contract: {required}")
+
+print("Codex council contract: G1–G4-only progress rubric; 1 lead + 15 read-only specialists; login/legacy shell disabled")

@@ -20,6 +20,9 @@ jobs:
         with:
           python-version: "3.12"
 
+      - name: Grade business progress from GATES.md
+        run: python3 scripts/gates-status.py --output audit-output/gates-status.json
+
       - uses: actions/setup-node@v4
         with:
           node-version: "22"
@@ -45,7 +48,7 @@ jobs:
       - name: Verify the Codex council contract
         run: python3 scripts/codex-agent-contract-test.py
 
-      - name: Verify the 87-feature evidence catalogue
+      - name: Validate supporting 87-feature evidence (not progress)
         run: python3 scripts/sporv-feature-eval.py --output audit-output/feature-summary.json
 
       - name: Verify the latest dedicated-agent response

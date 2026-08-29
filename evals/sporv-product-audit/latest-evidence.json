@@ -1,5 +1,17 @@
 {
   "schema_version": 1,
+  "business_gate_snapshot": {
+    "source": "GATES.md",
+    "captured_at": "2026-08-29T19:52:07Z",
+    "progress_statement": "NOTHING MOVED",
+    "gates": {
+      "G1_SCHEMA": false,
+      "G2_MONEY": false,
+      "G3_SUPPLY": false,
+      "G4_GUARDS": false
+    },
+    "note": "The feature catalogue, tests, commits, and audits below are supporting evidence only."
+  },
   "captured_at": "2026-08-29T18:20:23Z",
   "repository": {
     "branch": "main",

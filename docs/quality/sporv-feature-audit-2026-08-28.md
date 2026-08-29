@@ -1,5 +1,9 @@
 # Sporv product reality audit — 2026-08-29
 
+> Supporting evidence only. `GATES.md` is the sole definition of progress; at
+> this audit snapshot G1, G2, G3, and G4 are all `FALSE`, so **NOTHING MOVED**.
+> The 87 feature scores below may expose blockers but cannot pass a gate.
+
 This report separates rendered breadth from production truth. It combines the validated 87-feature catalogue, a real run of the project custom agent sporv_test_agent, the full browser gate, two independent UX reviews, and a focused onboarding regression review.
 
 ## Decision

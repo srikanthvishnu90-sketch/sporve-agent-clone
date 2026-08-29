@@ -6,6 +6,11 @@
 > current instructions conflict, `AGENTS.md` wins, and text marked retired or
 > superseded is historical only.
 
+> **Progress contract (2026-08-29).** Read `GATES.md` before proposing work.
+> G1–G4 are the only progress grade; if none moves, report `NOTHING MOVED`.
+> Tests, feature scores, audits, and commits are evidence only, and no new AI
+> tool may be proposed or added until G4 is `TRUE`.
+
 ## 0. Coordinate with Codex before editing
 
 Codex may edit this repository concurrently. Read `.clo-sync/activity.md` when

@@ -5,6 +5,15 @@ The repository includes a project-scoped Codex agent named
 Codex configuration, not an in-product feature and not a second source of
 business data.
 
+## Sole progress rubric
+
+Every profile reads `GATES.md` before analysis. G1 SCHEMA, G2 MONEY, G3 SUPPLY,
+and G4 GUARDS are the only business-progress measures; when none of their exact
+**Done looks like** clauses is complete, the lead reports `NOTHING MOVED`.
+Feature scores, test counts, audits, documents, and commits remain useful
+evidence, but the council may not present them as progress. No agent may propose
+or add a new AI tool while G4 is `FALSE`.
+
 ## How to invoke it
 
 Ask the primary Codex chat to spawn or use `sporv_analytical_lead` for a decision
