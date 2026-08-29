@@ -117,6 +117,72 @@ function EmptyState(title, body){
   return `<div class="cui-card cui-empty"><b>${esc(title || "Nothing here yet")}</b><p>${esc(body || "")}</p></div>`;
 }
 
+/* Getting-started is a process, not a second card vocabulary. These three
+   helpers extend the approved Media component system so the onboarding module
+   supplies only state and copy; type, spacing, status chrome, and the drawer
+   remain shared with every coach page. */
+function ProgressCard(options){
+  options = options || {};
+  const value = Math.max(0, Math.min(100, Number(options.value) || 0));
+  return `<div class="cui-card cui-progress">
+    <div class="cui-progress__top">
+      <b>${esc(options.label || "Setup progress")}</b>
+      <span class="cui-mono">${esc(options.count || "")}</span>
+    </div>
+    <div class="cui-progress__track" role="progressbar" aria-label="${esc(options.label || "Setup progress")}" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${value}">
+      <i style="width:${value}%"></i>
+    </div>
+    ${options.context ? `<p>${valueHTML(options.context)}</p>` : ""}
+  </div>`;
+}
+
+function ProcessPhases(phases){
+  const statusLabel = { done:"Done", review:"In review", current:"Next", open:"Open", locked:"Locked", blocked:"Needs wiring" };
+  return (phases || []).map(phase => `<section class="cui-phase" aria-labelledby="cui-phase-${esc(phase.key)}">
+    <div class="cui-phase__label"><h2 id="cui-phase-${esc(phase.key)}">${esc(phase.label)}</h2><span></span></div>
+    <p class="cui-phase__subtitle">${esc(phase.subtitle || "")}</p>
+    <div class="cui-process">
+      ${(phase.steps || []).map(step => {
+        const status = statusLabel[step.state] ? step.state : "open";
+        return `<article class="cui-process__step cui-process__step--${status}">
+          <span class="cui-process__marker" aria-hidden="true">${status === "done"
+            ? '<svg viewBox="0 0 20 20" fill="none"><path d="M5 10.5l3 3 7-7"/></svg>' : ""}</span>
+          <div class="cui-process__copy">
+            <h3>${esc(step.title || "")}${step.optional ? ' <span class="cui-process__optional">Optional</span>' : ""}</h3>
+            <p>${esc(step.description || "")}</p>
+            <div class="cui-process__meta">
+              <span>Time <b class="cui-mono">${esc(step.time || "Varies")}</b></span>
+              <span>Owner <b>${esc(step.owner || "You")}</b></span>
+              <span>${esc(step.unlocks || "")}</span>
+            </div>
+          </div>
+          <div class="cui-process__action">
+            <span class="cui-process__status">${esc(statusLabel[status])}</span>
+            ${step.statusNote ? `<small>${esc(step.statusNote)}</small>` : ""}
+            ${step.action || ""}
+          </div>
+        </article>`;
+      }).join("")}
+    </div>
+  </section>`).join("");
+}
+
+function Drawer(options){
+  options = options || {};
+  return `<div class="cui-drawer-scrim" data-cui-drawer-close="1"></div>
+    <aside class="cui-drawer" role="dialog" aria-modal="true" aria-labelledby="${esc(options.headingId || "cui-drawer-title")}">
+      <header class="cui-drawer__head">
+        <span class="cui-mono">${esc(options.kicker || "")}</span>
+        <h2 id="${esc(options.headingId || "cui-drawer-title")}" tabindex="-1">${esc(options.title || "")}</h2>
+        <button type="button" class="cui-drawer__close" data-cui-drawer-close="1" aria-label="Close step details">
+          <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg>
+        </button>
+      </header>
+      <div class="cui-drawer__body">${options.body || ""}</div>
+      <footer class="cui-drawer__foot">${options.actions || ""}${options.time ? `<span>${esc(options.time)}</span>` : ""}</footer>
+    </aside>`;
+}
+
 function Page(options){
   options = options || {};
   return `<section class="cui-page" data-cui-page-root="${esc(options.page || "")}" aria-labelledby="${esc(options.headingId || "cui-page-title")}">
@@ -192,23 +258,27 @@ function wire(){
 }
 
 const CSS = `
-.cui-page{
+.cui-page,.cui-drawer{
   --fs-h1:24px;--fs-nav-side:14px;--fs-eyebrow:12px;--fs-body:14px;--fs-fine:12px;
   --cui-bg:#0E0E0F;--cui-panel:#121315;--cui-panel-2:#17191C;
   --cui-line:#1F2226;--cui-line-2:#2A3138;--cui-ink:#F5F5F2;
   --cui-ink-2:#A3A3AB;--cui-ink-3:#8B98A6;--cui-steel:#6B7F9E;
   --cui-good:#8FD19E;--cui-warn:#C9A227;--cui-gutter:32px;
+  color:var(--cui-ink);color-scheme:dark;
+  font-family:"Inter",system-ui,-apple-system,"Segoe UI",sans-serif;font-size:var(--fs-body)
+}
+.cui-page{
   grid-row:2;min-width:0;min-height:0;height:100%;margin:0 calc(var(--cui-gutter) * -1);
   display:grid;grid-template-rows:auto minmax(0,1fr);overflow:hidden;
-  background:var(--cui-bg);color:var(--cui-ink);color-scheme:dark;
-  font-family:"Inter",system-ui,-apple-system,"Segoe UI",sans-serif;font-size:var(--fs-body)
+  background:var(--cui-bg)
 }
 #app:has(.cui-page) .coachtop{display:none}
 #app:has(.cui-page) .dash{height:calc(100vh - 60px);overflow:hidden}
 #app:has(.cui-page) .dash>.rail{height:100%;overflow-y:auto}
 #app:has(.cui-page) .dash>div{height:100%;display:grid;grid-template-rows:auto minmax(0,1fr);overflow:hidden}
-.cui-page button,.cui-page input,.cui-page textarea,.cui-page select{font:inherit;color:inherit}
-.cui-page :focus-visible{outline:2px solid var(--cui-steel);outline-offset:2px}
+.cui-page button,.cui-page input,.cui-page textarea,.cui-page select,
+.cui-drawer button,.cui-drawer input,.cui-drawer textarea,.cui-drawer select{font:inherit;color:inherit}
+.cui-page :focus-visible,.cui-drawer :focus-visible{outline:2px solid var(--cui-steel);outline-offset:2px}
 .cui-header{padding:22px 28px 0;background:var(--cui-bg)}
 .cui-header__row{display:flex;align-items:flex-start;gap:24px}
 .cui-header__copy{min-width:0}
@@ -293,6 +363,70 @@ const CSS = `
 .cui-note{color:var(--cui-ink-3);font-size:var(--fs-fine);line-height:1.5}
 .cui-error{margin:14px 0 0;color:#F0A3A3;font-size:var(--fs-fine)}
 .cui-teamthumb{width:72px;aspect-ratio:3/2;border-radius:8px;object-fit:cover;vertical-align:middle}
+.cui-progress{padding:18px 20px;margin-bottom:22px}
+.cui-progress__top{display:flex;align-items:baseline;gap:12px;margin-bottom:10px}
+.cui-progress__top b{font-family:"Roboto Condensed",sans-serif;font-size:var(--fs-nav-side);font-weight:600;
+  letter-spacing:.04em;text-transform:uppercase}
+.cui-progress__top span{margin-left:auto;color:var(--cui-ink-2);font-size:var(--fs-fine)}
+.cui-progress__track{height:6px;overflow:hidden;border-radius:3px;background:var(--cui-panel-2)}
+.cui-progress__track i{display:block;height:100%;border-radius:3px;background:var(--cui-ink)}
+.cui-progress p{margin:12px 0 0;color:var(--cui-ink-2);font-size:var(--fs-body);line-height:1.55}
+.cui-progress p b{color:var(--cui-ink);font-weight:600}
+.cui-phase{margin:0 0 28px}
+.cui-phase:last-child{margin-bottom:0}
+.cui-phase__label{display:flex;align-items:center;gap:10px;margin-bottom:4px}
+.cui-phase__label h2{margin:0;color:var(--cui-ink-3);font-family:"Roboto Condensed",sans-serif;
+  font-size:var(--fs-eyebrow);font-weight:600;letter-spacing:.06em;text-transform:uppercase}
+.cui-phase__label span{height:1px;flex:1;background:var(--cui-line)}
+.cui-phase__subtitle{margin:0 0 14px;color:var(--cui-ink-3);font-size:var(--fs-fine);line-height:1.5}
+.cui-process{overflow:hidden;border:1px solid var(--cui-line);border-radius:12px;background:var(--cui-panel)}
+.cui-process__step{display:grid;grid-template-columns:26px minmax(0,1fr) auto;gap:14px;padding:16px 18px;
+  align-items:start;border-bottom:1px solid var(--cui-line)}
+.cui-process__step:last-child{border-bottom:0}
+.cui-process__marker{width:20px;height:20px;margin-top:2px;border:2px solid var(--cui-ink-3);border-radius:999px;
+  display:grid;place-items:center;color:var(--cui-bg)}
+.cui-process__marker svg{width:14px;height:14px;stroke:currentColor;stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round}
+.cui-process__step--done .cui-process__marker{border-color:var(--cui-good);background:var(--cui-good)}
+.cui-process__step--review .cui-process__marker{border-color:var(--cui-warn);border-style:dashed}
+.cui-process__step--current .cui-process__marker{border-color:var(--cui-ink)}
+.cui-process__step--locked .cui-process__marker,.cui-process__step--blocked .cui-process__marker{border-color:var(--cui-line-2)}
+.cui-process__copy h3{margin:0 0 3px;color:var(--cui-ink);font-size:var(--fs-body);font-weight:600;line-height:1.4}
+.cui-process__step--done .cui-process__copy h3,.cui-process__step--locked .cui-process__copy h3{color:var(--cui-ink-2);font-weight:500}
+.cui-process__copy>p{max-width:70ch;margin:0;color:var(--cui-ink-3);font-size:var(--fs-body);line-height:1.5}
+.cui-process__optional{margin-left:6px;color:var(--cui-ink-3);font-size:var(--fs-fine);font-weight:400}
+.cui-process__meta{display:flex;gap:14px;flex-wrap:wrap;margin-top:8px;color:var(--cui-ink-3);font-size:var(--fs-fine);line-height:1.5}
+.cui-process__meta span{display:inline-flex;gap:6px}
+.cui-process__meta b{color:var(--cui-ink-2);font-weight:500}
+.cui-process__action{display:flex;min-width:112px;align-items:flex-end;flex-direction:column;gap:7px}
+.cui-process__status{padding:5px 9px;border:1px solid var(--cui-line-2);border-radius:6px;color:var(--cui-ink-2);
+  font-family:"Roboto Condensed",sans-serif;font-size:var(--fs-fine);font-weight:600;letter-spacing:.06em;text-transform:uppercase}
+.cui-process__step--done .cui-process__status{border-color:#2C4433;color:var(--cui-good)}
+.cui-process__step--review .cui-process__status{border-color:#4A3F16;color:var(--cui-warn)}
+.cui-process__step--blocked .cui-process__status{border-color:#493334;color:#F0A3A3}
+.cui-process__action small{max-width:22ch;color:var(--cui-ink-3);font-size:var(--fs-fine);line-height:1.4;text-align:right}
+.cui-drawer-scrim{position:fixed;inset:0;z-index:210;background:rgba(0,0,0,.66)}
+.cui-drawer{position:fixed;z-index:211;inset:0 0 0 auto;width:min(560px,100%);display:flex;flex-direction:column;
+  border-left:1px solid var(--cui-line);background:var(--cui-bg);color:var(--cui-ink);box-shadow:-18px 0 48px rgba(0,0,0,.35)}
+.cui-drawer__head{display:grid;grid-template-columns:auto minmax(0,1fr) auto;align-items:center;gap:12px;padding:16px 20px;
+  border-bottom:1px solid var(--cui-line)}
+.cui-drawer__head>span{color:var(--cui-ink-3);font-size:var(--fs-fine)}
+.cui-drawer__head h2{margin:0;font-family:"Roboto Condensed",sans-serif;font-size:var(--fs-nav-side);font-weight:600;
+  letter-spacing:.03em;text-transform:uppercase}
+.cui-drawer__close{width:44px;height:44px;margin:-8px -10px -8px 0;display:grid;place-items:center;color:var(--cui-ink-2)}
+.cui-drawer__close svg{width:20px;height:20px;stroke:currentColor;stroke-width:1.8;stroke-linecap:round}
+.cui-drawer__body{flex:1;overflow:auto;padding:20px;overscroll-behavior:contain}
+.cui-drawer__intro{margin:0 0 20px;color:var(--cui-ink-2);font-size:var(--fs-body);line-height:1.6}
+.cui-drawer__section{margin:0 0 20px}
+.cui-drawer__section:last-child{margin-bottom:0}
+.cui-drawer__section h3{margin:0 0 8px;color:var(--cui-ink);font-family:"Roboto Condensed",sans-serif;
+  font-size:var(--fs-eyebrow);font-weight:600;letter-spacing:.06em;text-transform:uppercase}
+.cui-drawer__section ul,.cui-drawer__section ol{margin:0;padding-left:20px;color:var(--cui-ink-2);font-size:var(--fs-body);line-height:1.6}
+.cui-drawer__section li+li{margin-top:7px}
+.cui-drawer__truth{padding:14px 16px;border:1px solid var(--cui-line-2);border-radius:10px;background:var(--cui-panel);
+  color:var(--cui-ink-2);font-size:var(--fs-body);line-height:1.55}
+.cui-drawer__truth b{display:block;margin-bottom:4px;color:var(--cui-ink);font-weight:600}
+.cui-drawer__foot{display:flex;align-items:center;gap:10px;padding:16px 20px;border-top:1px solid var(--cui-line)}
+.cui-drawer__foot>span{margin-left:auto;color:var(--cui-ink-3);font-size:var(--fs-fine)}
 @media(max-width:1100px){
   .cui-statgrid--4{grid-template-columns:repeat(2,minmax(0,1fr))}
 }
@@ -323,6 +457,13 @@ const CSS = `
   .cui-table td::before{content:attr(data-label);align-self:start;text-align:left;color:var(--cui-ink-3);
     font-family:"Roboto Condensed",sans-serif;font-size:var(--fs-eyebrow);font-weight:600;letter-spacing:.06em;text-transform:uppercase}
   .cui-table td:last-child{text-align:right}
+  .cui-process__step{grid-template-columns:24px minmax(0,1fr);padding:16px}
+  .cui-process__action{grid-column:2;min-width:0;align-items:flex-start;flex-direction:row;flex-wrap:wrap}
+  .cui-process__action small{max-width:none;text-align:left}
+  .cui-process__action .cui-button{min-height:44px}
+  .cui-drawer__foot{align-items:stretch;flex-direction:column}
+  .cui-drawer__foot .cui-button{min-height:44px}
+  .cui-drawer__foot>span{margin-left:0}
 }
 @media(max-width:480px){
   .cui-list__row{align-items:flex-start;flex-direction:column;gap:5px}
@@ -334,7 +475,8 @@ const CSS = `
 window.COACH_UI = {
   html:html, Button:Button, PageHeader:PageHeader, TabStrip:TabStrip, Block:Block,
   StatCard:StatCard, StatGrid:StatGrid, ListCard:ListCard, DataTable:DataTable,
-  Callout:Callout, Card:Card, EmptyState:EmptyState, Page:Page,
+  Callout:Callout, Card:Card, EmptyState:EmptyState, ProgressCard:ProgressCard,
+  ProcessPhases:ProcessPhases, Drawer:Drawer, Page:Page,
   activeTab:activeTab, writeTab:writeTab, clearTab:clearTab,
 };
 window.MOD_COACHUI = { css:CSS, wire:wire };

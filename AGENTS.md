@@ -63,8 +63,13 @@ The fifteen specialist names are `intent_clarifier`, `requirements_analyst`,
 `ux_accessibility_reviewer`, `frontend_architect`, `backend_api_architect`,
 `supabase_rls_analyst`, `stripe_payments_risk_analyst`,
 `security_privacy_coppa_reviewer`, `reliability_observability_reviewer`,
-`performance_cost_analyst`, `qa_evals_release_reviewer`, and
+`performance_cost_analyst`, `sporv_test_agent`, and
 `adversarial_critic`.
+
+`sporv_test_agent` is the council's explicit quality gate. It stays read-only,
+labels demo/spec/unverified work honestly, and may propose improvements but
+never applies them autonomously. A recurring audit is a detector and review
+queue, not permission to edit, deploy, message, alter consent, or move money.
 
 ## Shared product contract
 

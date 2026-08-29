@@ -54,11 +54,13 @@ jobs:
       # the repo but nothing ran them; wired in here so the AI-endpoint auth /
       # quota / injection-resistance contract (and the repo + data contracts)
       # actually gate a PR instead of rotting.
-      - name: Contract tests (ai · repo · data)
+      - name: Contract tests (ai · repo · data · onboarding)
         run: |
           node scripts/ai-contract-test.mjs
           node scripts/repo-contract-test.mjs
           node scripts/data-contract-test.mjs
+          node scripts/getting-started-contract-test.mjs
+          node scripts/sporv-agent-response-test.mjs
 
       - name: Smoke (all checks, browser included)
         run: ./src/smoke.sh

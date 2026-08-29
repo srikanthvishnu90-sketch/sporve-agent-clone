@@ -1,0 +1,83 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "intent",
+    "release_verdict",
+    "executive_summary",
+    "deterministic_checks",
+    "feature_ratings",
+    "regressions",
+    "critical_stop_conditions",
+    "evidence_gaps",
+    "score_changes",
+    "top_improvements",
+    "schedule_health",
+    "confidence",
+    "next_action"
+  ],
+  "properties": {
+    "intent": { "type": "string", "const": "read" },
+    "release_verdict": { "type": "string", "enum": ["pass", "conditional", "fail"] },
+    "executive_summary": { "type": "string" },
+    "deterministic_checks": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["name", "status", "evidence"],
+        "properties": {
+          "name": { "type": "string" },
+          "status": { "type": "string", "enum": ["pass", "fail", "blocked", "not_run"] },
+          "evidence": { "type": "string" }
+        }
+      }
+    },
+    "feature_ratings": {
+      "type": "array",
+      "minItems": 87,
+      "maxItems": 87,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["id", "feature", "domain", "classification", "score", "evidence", "blocker", "confidence"],
+        "properties": {
+          "id": { "type": "integer", "minimum": 1, "maximum": 87 },
+          "feature": { "type": "string" },
+          "domain": { "type": "string" },
+          "classification": {
+            "type": "string",
+            "enum": ["live_verified", "implemented_unverified", "demo_only", "spec_only", "absent", "blocked"]
+          },
+          "score": { "type": "integer", "minimum": 0, "maximum": 10 },
+          "evidence": { "type": "array", "items": { "type": "string" } },
+          "blocker": { "type": "string" },
+          "confidence": { "type": "string", "enum": ["high", "medium", "low"] }
+        }
+      }
+    },
+    "regressions": { "type": "array", "items": { "type": "string" } },
+    "critical_stop_conditions": { "type": "array", "items": { "type": "string" } },
+    "evidence_gaps": { "type": "array", "items": { "type": "string" } },
+    "score_changes": { "type": "array", "items": { "type": "string" } },
+    "top_improvements": {
+      "type": "array",
+      "maxItems": 10,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["priority", "move", "features", "proof_required"],
+        "properties": {
+          "priority": { "type": "integer", "minimum": 1, "maximum": 10 },
+          "move": { "type": "string" },
+          "features": { "type": "array", "items": { "type": "integer", "minimum": 1, "maximum": 87 } },
+          "proof_required": { "type": "string" }
+        }
+      }
+    },
+    "schedule_health": { "type": "string" },
+    "confidence": { "type": "string", "enum": ["high", "medium", "low"] },
+    "next_action": { "type": "string" }
+  }
+}

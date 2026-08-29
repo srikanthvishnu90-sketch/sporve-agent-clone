@@ -10200,7 +10200,7 @@ function coachHTML(){
       ${extra.filter(([k])=>!GROUPS.some(([,its])=>its.some(i=>i[0]===k))).map(([k,l])=>
         `<button class="${t===k?"on":""}" data-ctab="${k}">${rIcon(k)}<span>${esc(l)}</span></button>`).join("")}
       <div class="raildiv"></div>
-      <button class="railgs ${t==="dashboard"?"on":""}" data-ctab="dashboard">
+      <button class="railgs ${t==="getting-started"?"on":""}" data-ctab="getting-started">
         <span>Getting started</span>
         <span class="gsbar"><i style="width:${Math.round(gs.done/gs.total*100)}%"></i></span>
         <span class="num">${gs.done} of ${gs.total}</span>
@@ -10217,6 +10217,18 @@ function coachHTML(){
 
 /* ── Getting started: 7 real steps, derived from actual state ─────── */
 function gettingStarted(){
+  /* The onboarding module owns the detailed, state-backed process. Keep the
+     compact tuple shape below as an adapter because Home and the legacy demo
+     dashboard both render this same source; neither gets to invent a second
+     completion rule. */
+  if(window.MOD_COACHONBOARD&&typeof window.MOD_COACHONBOARD.guide==="function"){
+    const guide=window.MOD_COACHONBOARD.guide();
+    const steps=guide.steps.map(step=>[
+      step.title,step.done,step.tab,step.unlocks,Number(String(step.time).match(/\d+/)||[0]),0,
+    ]);
+    const next=guide.next?steps[guide.steps.indexOf(guide.next)]:null;
+    return {steps,done:guide.done,total:guide.total,pct:guide.pct,next,process:guide.steps};
+  }
   const pp=SEED.providerProfile;
   const mine=coachListings();
   const mediaPct=(window.MOD_MEDIA&&window.MOD_MEDIA.strength)?window.MOD_MEDIA.strength().pct:0;
@@ -10707,6 +10719,7 @@ function coachHomePage(){
     ui.Block({
       title:"Getting started",
       subtitle:"Each step is derived from your profile, catalogue, availability, verification, and payout state.",
+      action:ui.Button({label:"Open guide",size:"sm",variant:"secondary",attrs:'data-ctab="getting-started"'}),
       body:ui.ListCard(steps),
     }),
     ui.Block({

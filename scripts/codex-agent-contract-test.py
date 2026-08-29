@@ -23,7 +23,7 @@ SPECIALISTS = {
     "security_privacy_coppa_reviewer",
     "reliability_observability_reviewer",
     "performance_cost_analyst",
-    "qa_evals_release_reviewer",
+    "sporv_test_agent",
     "adversarial_critic",
 }
 LEAD = "sporv_analytical_lead"
@@ -90,4 +90,16 @@ for specialist in SPECIALISTS:
 require("AGENTS.md" in lead_instructions, "lead must inherit the shared questioning contract")
 require("read | proposed | clarify | refuse" in lead_instructions, "lead must preserve the chatbox envelope")
 
-print("Codex council contract: 1 lead + 15 read-only specialists; login/legacy shell disabled")
+test_instructions = profiles["sporv_test_agent"]["developer_instructions"]
+for required in (
+    "live_verified",
+    "implemented_unverified",
+    "demo_only",
+    "spec_only",
+    "release_verdict=pass|conditional|fail",
+    "Never edit files",
+    "autonomous improvement is forbidden",
+):
+    require(required in test_instructions, f"test agent contract omits: {required}")
+
+print("Codex council contract: 1 lead + 15 read-only specialists including sporv_test_agent; login/legacy shell disabled")

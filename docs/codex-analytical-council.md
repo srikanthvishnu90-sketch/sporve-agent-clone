@@ -35,7 +35,7 @@ requested report before synthesis.
 | `security_privacy_coppa_reviewer` | Trust boundaries, secrets, abuse cases, privacy, and youth-data duties |
 | `reliability_observability_reviewer` | Failure modes, retries, timeouts, telemetry, and recovery |
 | `performance_cost_analyst` | Runtime cost, latency, concurrency, caching, and capacity |
-| `qa_evals_release_reviewer` | Regression coverage, evals, release gates, and production evidence |
+| `sporv_test_agent` | Executes evidence contracts, rates feature reality, and enforces release stop conditions |
 | `adversarial_critic` | Counterexamples, hidden assumptions, unsafe optimism, and stop conditions |
 
 ## Shared questioning contract
