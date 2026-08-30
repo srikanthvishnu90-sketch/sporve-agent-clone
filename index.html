@@ -21,7 +21,7 @@
 <meta name="twitter:description" content="Find coaches, trainers, camps and teams across 20+ sports in Chicagoland.">
 <meta name="twitter:image" content="https://the-sporve-web.vercel.app/og.png">
 <link rel="icon" href="data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%2032%2032'%3E%3Crect%20width='32'%20height='32'%20rx='7'%20fill='%2309090B'/%3E%3Ccircle%20cx='16'%20cy='16'%20r='6'%20fill='white'/%3E%3C/svg%3E">
-<meta name="sporve-build" content="9152d8836a90063d">
+<meta name="sporve-build" content="cd36c04e6d805a6e">
 </head>
 <body>
 <noscript><h1>Sporv — Every sport. One app.</h1><p>Sporv connects families and athletes with coaches, trainers, camps, and teams across more than 20 sports. Please enable JavaScript to use the app.</p></noscript>
@@ -1193,6 +1193,13 @@ img{max-width:100%;display:block}
 .imp-x:hover{color:var(--ink);background:var(--raise2)}
 .imp-empty{color:var(--faint);font-size:var(--text-sm);margin:12px 0 18px}
 .imp-actions{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-top:16px}
+/* review queue (obligations) */
+.obcard{border:1px solid var(--line);border-radius:12px;padding:14px 16px;margin-top:10px;background:var(--raise)}
+.obtop{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:6px}
+.obsrc{color:var(--faint);font-size:var(--text-xs)}
+.obtitle{display:block;font-size:var(--text-base);line-height:1.4}
+.obdetail{color:var(--muted);font-size:var(--text-sm);line-height:1.55;margin-top:5px}
+.obacts{display:flex;align-items:center;gap:8px;margin-top:11px;flex-wrap:wrap}
 .err{color:#C4362F}
 .cw .eyebrow,.cw legend.eyebrow{color:#57606E}
 .cw .num,.cw .cob-help{color:#57606E}
@@ -10175,6 +10182,7 @@ function coachHTML(){
      at Lucide's geometry — there is no Lucide package here, and adding one
      would mean a bundler this single-file build does not have. */
   const RI={
+    queue:'<path d="M4 6h16M4 12h16M4 18h10"/><path d="M18.5 16.5l1.6 1.6 2.4-2.6"/>',
     dashboard:'<path d="M3 10.5L12 3l9 7.5"/><path d="M5 9.5V21h14V9.5"/>',
     search:'<circle cx="11" cy="11" r="7"/><path d="M20 20l-3.6-3.6"/>',
     schedule:'<rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/>',
@@ -10191,7 +10199,7 @@ function coachHTML(){
   const rIcon=k=>`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"
     stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${RI[k]||RI.operations}</svg>`;
   const GROUPS=[
-    [null,      [["dashboard","Home"],["search","Search"]]],
+    [null,      [["queue","Queue"],["dashboard","Home"],["search","Search"]]],
     ["Clients", [["roster","Clients"],["inbox","Messages"],["schedule","Schedule"]]],
     ["Catalog", [["listings","Listings"],["media","Media"]]],
     ["Business",[["finances","Earnings"],["approvals","Approvals"],["operations","Operations"],["billing","Billing"]]],
@@ -11224,9 +11232,103 @@ function coachOperationsPage(){
   });
 }
 
+/* ═══════════════ THE REVIEW QUEUE — Sporv as an agent ════════════════════
+   The north star: "the work is already done when the director opens it." The
+   interface is a review queue, not a dashboard — draft obligations an agent
+   surfaced (from a forwarded email/schedule) waiting to be approved. Backed by
+   the obligations table (migration 20260830_000200); here it is a demo-durable
+   S.obligations store like S.teamRoster, since real drafts come from the RED
+   ingest/agent backend (steps 5-6). Every row carries WHERE it came from
+   (source) and moves draft -> approved -> done, undoable. */
+const OBLIG_META={
+  fee:      {label:"Collect",  tone:"warn"},
+  deadline: {label:"Deadline", tone:""},
+  schedule: {label:"Schedule", tone:""},
+  waiver:   {label:"Waiver",   tone:"warn"},
+  message:  {label:"Message",  tone:"good"},
+};
+const OBLIG_SRC={email:"forwarded email",pdf:"attached PDF",sms:"text message",agent:"weekend sweep",manual:"added by you"};
+function obligationQueue(){
+  if(!S.obligations) S.obligations=[
+    {id:"ob_1",kind:"fee",status:"draft",title:"Collect $150 Fall Classic entry — 8 families",
+     detail:"Tournament operator's email lists a $150 entry fee per athlete, due Sept 12. Drafted a charge for the 8 rostered families.",
+     sourceKind:"email",sourceRef:"Fwd: Fall Classic — entry + deadlines.pdf"},
+    {id:"ob_2",kind:"waiver",status:"draft",title:"3 athletes missing a signed waiver",
+     detail:"Cross-checked the roster against returned waivers — Nia O., Marcus B. and one more have no waiver on file before Saturday's game.",
+     sourceKind:"agent",sourceRef:"weekend roster sweep"},
+    {id:"ob_3",kind:"schedule",status:"draft",title:"Schedule conflict — Sat 10:00 gym double-booked",
+     detail:"The gym's texted change puts your 10:00 practice on the same court as another team. Drafted a move to 11:30.",
+     sourceKind:"sms",sourceRef:"Northside Gym — court change"},
+    {id:"ob_4",kind:"message",status:"draft",title:"Remind 8 families practice moved to Thursday",
+     detail:"Follow-up drafted from your schedule change; sends from you once approved.",
+     sourceKind:"agent",sourceRef:"weekend sweep"},
+  ];
+  return S.obligations;
+}
+/* Demo parser for step 5 ("unstructured input is a native input type"). A
+   forwarded email/text is pasted; heuristics turn it into DRAFT obligations.
+   The real per-artifact parse runs on the RED ingest backend (Gemini); this
+   shows the shape: paste in, obligations appear, nothing is sent or charged. */
+function parseObligations(text){
+  const t=String(text||"").trim(); if(!t) return [];
+  const firstLine=(t.split(/\n/)[0]||t).slice(0,80);
+  const out=[];
+  const money=t.match(/\$\s?(\d[\d,]*)(?:\.\d\d)?/);
+  if(money) out.push({kind:"fee",title:"Collect $"+money[1]+" — "+firstLine,
+    detail:"Amount detected in the forwarded text. Draft a charge for the rostered families once you confirm who it applies to."});
+  if(/\bwaiver|consent form|release\b/i.test(t)) out.push({kind:"waiver",title:"Waiver requirement — "+firstLine,
+    detail:"The text references a waiver/consent form. Flagged so you can check which athletes still need it."});
+  if(/\breschedul|moved to|conflict|change of (venue|time)|new time\b/i.test(t)) out.push({kind:"schedule",title:"Schedule change — "+firstLine,
+    detail:"A schedule change was detected. Draft the update and the family notification."});
+  if(/\bdeadline|due (by|on)|register by|rsvp\b/i.test(t)) out.push({kind:"deadline",title:"Deadline — "+firstLine,
+    detail:"A deadline was detected. Added as a dated obligation so it surfaces before it lapses."});
+  if(!out.length) out.push({kind:"message",title:"Draft follow-up — "+firstLine,
+    detail:"No fee, waiver, schedule change or deadline detected — drafted a message you can edit and send."});
+  return out;
+}
+function coachQueuePage(){
+  const q=obligationQueue();
+  const drafts=q.filter(o=>o.status==="draft");
+  const approved=q.filter(o=>o.status==="approved");
+  const done=q.filter(o=>o.status==="done");
+  const card=o=>{const m=OBLIG_META[o.kind]||OBLIG_META.message;
+    return `<div class="obcard">
+      <div class="obtop">
+        <span class="pill ${m.tone}">${esc(m.label)}</span>
+        <span class="obsrc">from ${esc(OBLIG_SRC[o.sourceKind]||o.sourceKind||"")}${o.sourceRef?` · ${esc(o.sourceRef)}`:""}</span>
+      </div>
+      <b class="obtitle">${esc(o.title)}</b>
+      ${o.detail?`<p class="obdetail">${esc(o.detail)}</p>`:""}
+      <div class="obacts">
+        ${o.status==="draft"?`<button class="btn sm" data-oblig-approve="${esc(o.id)}">Approve</button>
+          <button class="btn ghost sm" data-oblig-dismiss="${esc(o.id)}">Dismiss</button>`:""}
+        ${o.status==="approved"?`<button class="btn sm" data-oblig-done="${esc(o.id)}">Mark done</button>
+          <button class="btn ghost sm" data-oblig-undo="${esc(o.id)}">Undo approval</button>`:""}
+        ${o.status==="done"?`<span class="pill good">Done</span>
+          <button class="btn ghost sm" data-oblig-undo="${esc(o.id)}">Undo</button>`:""}
+      </div>
+    </div>`;};
+  return `<div class="sec-head" style="margin-top:18px"><div>
+      <h1>Queue</h1>
+      <p style="color:var(--muted);margin-top:5px;font-size:var(--text-base)">The work Sporv already did for you — review and approve. Nothing is sent or charged until you say so.</p>
+    </div></div>
+    <div class="panel">
+      <h3>Forward something to turn it into work</h3>
+      <p style="color:var(--muted);font-size:var(--text-sm);margin-top:4px">Paste a tournament email, a gym's schedule text, a registration deadline — Sporv drafts the fee, deadline, waiver check or message. (Demo parse; the real per-file read runs on the ingest backend.)</p>
+      <textarea id="obligIn" rows="3" style="width:100%;margin-top:10px;resize:vertical" placeholder="Fwd: Fall Classic — $150 entry per player, deadline Sept 12, waivers required at check-in..."></textarea>
+      <div class="imp-addrow" style="margin-top:8px"><button class="btn sm" data-oblig-parse="1">Turn into drafts</button></div>
+    </div>
+    <div style="margin-top:18px">
+      <div class="sec-head" style="margin:0"><h3>Waiting for you${drafts.length?` · ${drafts.length}`:""}</h3></div>
+      ${drafts.length?drafts.map(card).join(""):`<p class="imp-empty">Nothing waiting — the queue is clear.</p>`}
+    </div>
+    ${approved.length?`<div style="margin-top:18px"><div class="sec-head" style="margin:0"><h3>Approved · ${approved.length}</h3></div>${approved.map(card).join("")}</div>`:""}
+    ${done.length?`<div style="margin-top:18px"><div class="sec-head" style="margin:0"><h3>Done · ${done.length}</h3></div>${done.map(card).join("")}</div>`:""}`;
+}
 function coachBody(t){
   const mine=coachListings();
   const pp=SEED.providerProfile;
+  if(t==="queue") return coachQueuePage();
   if(t==="dashboard") return coachHomePage();
   if(t==="roster") return coachClientsPage();
   if(t==="schedule") return coachSchedulePage();
@@ -14877,6 +14979,26 @@ document.querySelectorAll('.sig-ai-coach').forEach(sigAiCoachWire);
     w.step=2; render();
   });
   $("[data-imp-close]").forEach(b=>b.onclick=()=>{S.modal=null;S.importWiz=null;render();});
+
+  /* Review-queue (obligations) handlers — draft -> approved -> done, undoable.
+     Demo store S.obligations; real drafts arrive from the ingest/agent backend.
+     Approving/finishing sends or charges nothing here — it advances the row. */
+  const obligBy=id=>obligationQueue().find(o=>o.id===id);
+  $("[data-oblig-approve]").forEach(b=>b.onclick=()=>{const o=obligBy(b.dataset.obligApprove);
+    if(o){o.status="approved";render();toast("Approved. It moves out of your queue — nothing was sent or charged.");}});
+  $("[data-oblig-dismiss]").forEach(b=>b.onclick=()=>{
+    S.obligations=obligationQueue().filter(o=>o.id!==b.dataset.obligDismiss);render();toast("Dismissed.");});
+  $("[data-oblig-done]").forEach(b=>b.onclick=()=>{const o=obligBy(b.dataset.obligDone);
+    if(o){o.status="done";render();toast("Marked done.");}});
+  $("[data-oblig-undo]").forEach(b=>b.onclick=()=>{const o=obligBy(b.dataset.obligUndo);
+    if(o){o.status="draft";render();toast("Back in your queue.");}});
+  $("[data-oblig-parse]").forEach(b=>b.onclick=()=>{
+    const el=document.getElementById("obligIn");const v=(el&&el.value||"").trim();
+    if(!v){toast("Paste an email, text or note first.");return;}
+    const drafts=parseObligations(v).map((d,i)=>({id:"ob_"+Date.now()+"_"+i,status:"draft",
+      sourceKind:"manual",sourceRef:"pasted just now",...d}));
+    S.obligations=[...drafts,...obligationQueue()];render();
+    toast(drafts.length+" draft"+(drafts.length===1?"":"s")+" added to your queue — review before anything happens.");});
 
   $("[data-foot]").forEach(b=>b.onclick=()=>{
     const [kind,val]=b.dataset.foot.split(":");
