@@ -1,0 +1,74 @@
+name: scheduled-quality-audit
+
+on:
+  schedule:
+    # Mondays at 15:17 UTC. GitHub schedules use UTC and can start late under load.
+    - cron: "17 15 * * 1"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Grade business progress from GATES.md
+        run: python3 scripts/gates-status.py --output audit-output/gates-status.json
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Cache Playwright browsers
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-chromium-1.62.1
+
+      - name: Install production dependencies
+        run: npm ci --ignore-scripts --no-audit --no-fund
+
+      - name: Install Playwright harness
+        run: npm install --no-save --package-lock=false --ignore-scripts --no-audit --no-fund playwright@1.62.1
+
+      - name: Install Chromium
+        run: npx playwright install --with-deps chromium
+
+      - name: Build
+        run: python3 src/build.py
+
+      - name: Verify the Codex council contract
+        run: python3 scripts/codex-agent-contract-test.py
+
+      - name: Validate supporting 87-feature evidence (not progress)
+        run: python3 scripts/sporv-feature-eval.py --output audit-output/feature-summary.json
+
+      - name: Verify the latest dedicated-agent response
+        run: node scripts/sporv-agent-response-test.mjs
+
+      - name: Run deterministic product contracts
+        run: |
+          node scripts/ai-contract-test.mjs
+          node scripts/repo-contract-test.mjs
+          node scripts/data-contract-test.mjs
+          node scripts/getting-started-contract-test.mjs
+
+      - name: Run the browser smoke suite
+        run: ./src/smoke.sh
+
+      - name: Preserve the decision evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: sporv-quality-audit-${{ github.run_id }}
+          path: audit-output/
+          if-no-files-found: warn
+          retention-days: 30

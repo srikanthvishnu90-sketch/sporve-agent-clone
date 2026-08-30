@@ -1280,15 +1280,333 @@ function wire(){
 
   /* first paint of the step's live figures, in case state arrived pre-filled */
   if (!d.submittedAt) sync();
+  wireGuide();
+}
+
+/* ═══════════════════ GETTING-STARTED GUIDE ═══════════════════
+   This is deliberately separate from the seven-screen APPLICATION above.
+   The application collects a coach's input; this guide reads the durable
+   product evidence that determines whether a family can find, book, and pay
+   them. A click in this guide never awards its own completion tick. */
+let guideOpenId = null;
+let guideFocusTrigger = null;
+let guideNeedsFocus = false;
+let guideSuppressed = [];
+
+const hasText = value => !!String(value == null ? "" : value).trim();
+const currentDate = () => {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`;
+};
+
+function signedInCoach(){
+  return !!(S && S.auth && S.auth.status === "verified" && S.auth.user && S.auth.user.role === "provider");
+}
+
+function guideOwnedListings(pv, real){
+  if (!real) return typeof coachListings === "function" ? coachListings() : [];
+  if (!pv || !pv.id) return [];
+  return (typeof PROGRAMS === "undefined" ? [] : PROGRAMS).filter(p => p && p.providerId === pv.id);
+}
+
+function listingHasFutureSession(listing){
+  if (!listing || typeof slotsFor !== "function") return false;
+  try { return (slotsFor(listing.id) || []).some(slot => slot && slot.date >= currentDate()); }
+  catch (_e) { return false; }
+}
+
+function guideSnapshot(){
+  const real = signedInCoach();
+  const pv = real ? S.coachProvider : null;
+  const pp = (typeof SEED !== "undefined" && SEED.providerProfile) || {};
+  const owned = guideOwnedListings(pv, real);
+  const media = window.MOD_MEDIA && typeof window.MOD_MEDIA.strength === "function"
+    ? window.MOD_MEDIA.strength() : { pct:0 };
+  const profileName = real ? pv && pv.business_name : pp.businessName;
+  const sports = real ? pv && pv.sports : pp.sports;
+  const location = real ? pv && pv.location : pp.location;
+  const bio = real ? pv && pv.bio : pp.bio;
+  const avatar = real ? pv && pv.avatar_url : media.pct >= 25;
+  const identityDone = !!(pv || !real) && hasText(profileName) && Array.isArray(sports) && sports.length > 0 && hasText(location);
+  const profileDone = identityDone && hasText(bio) && !!avatar;
+  const listingDone = owned.length > 0;
+  const futureSessions = owned.filter(listingHasFutureSession);
+  /* A local recurring rule is useful preview state, never completion evidence.
+     A dated session loaded from the catalogue is the only signal that agrees
+     with the promise shown to both a guest and a signed-in coach. */
+  const availabilityDone = futureSessions.length > 0;
+  const bg = real && pv ? String(pv.background_check_status || "none").toLowerCase() : "none";
+  const backgroundDone = !!(real && pv && bg === "verified" && pv.background_check_completed_at);
+  const backgroundReview = !!(real && pv && ["pending","submitted","processing","review"].includes(bg));
+  const payoutsDone = !!(real && pv && pv.stripe_charges_enabled);
+  const policyListings = owned.filter(p => hasText(p.cancellationPolicy));
+  const policyDone = listingDone && policyListings.length === owned.length;
+  const liveLabel = real ? "your provider row and loaded catalogue" : "the disclosed sample workspace";
+
+  const steps = [
+    {
+      id:"identity", phase:1, n:1, title:"Tell us who you coach", tab:real && pv && !pv.onboarding_completed ? "onboard" : "profile",
+      time:"3–5 min", owner:"You", done:identityDone,
+      description:"Set the public business name, sports, and service location that identify the right coach and power marketplace matching.",
+      unlocks:"Creates the durable provider identity used by the rest of setup.",
+      why:"Search, listing ownership, and payout onboarding all need one unambiguous provider identity. The check uses persisted provider fields, never a manually ticked checklist value.",
+      requirements:["A signed-in provider account","A public business or coaching name","At least one sport","A city or service area"],
+      process:["Finish the coach application if it is still open; otherwise review Business profile in Settings.","Enter the name families should see, the sports you actually coach, and the area you serve.","Submit the application or save the provider-owned fields.","Reload the workspace; completion is recalculated from the provider record."],
+      completeWhen:"The provider record contains a non-empty business name, at least one sport, and a location.",
+      evidence:identityDone ? `Complete from ${liveLabel}.` : real && !pv ? "Waiting for the signed-in provider record to load." : `One or more identity fields are absent in ${liveLabel}.`,
+      limit:"Verification, approval, background-check, and payout fields are server-controlled and are never editable here.",
+    },
+    {
+      id:"profile", phase:1, n:2, title:"Build your public profile", tab:"media", time:"5–10 min", owner:"You", done:profileDone,
+      needs:"identity", description:"Add a useful bio and a real coach image so a family can understand who will work with their athlete.",
+      unlocks:"Makes the listing understandable once it is discoverable.",
+      why:"A public name without context is not enough for a parent making a trust decision. Completion uses durable bio and avatar fields for a real account.",
+      requirements:["Completed provider identity","A short bio describing experience and session format","A real photo of the coach or organization"],
+      process:["Open Media → Profile.","Write the public bio and review how the profile reads.","Add the coach or organization image through the account-owned media path.","Reload and confirm the provider record still contains the bio and avatar URL."],
+      completeWhen:"The provider has identity fields, a non-empty bio, and a durable avatar URL.",
+      evidence:profileDone ? `Complete from ${liveLabel}.` : real ? "The durable provider bio or avatar URL is missing." : "Sample profile content is evaluated separately from live-account readiness.",
+      limit:"The Media library's session photos, video, headline, and gallery ordering are still demo/session state. They do not count as durable completion for a real coach.",
+    },
+    {
+      id:"listing", phase:1, n:3, title:"Publish your first listing", tab:"listings", time:"6–10 min", owner:"You", done:listingDone,
+      needs:"identity", description:"Create one purchasable service with a sport, price, ages, capacity, and—when possible—its first dated session.",
+      unlocks:"Creates marketplace supply; booking remains gated by safety, a future session, and Stripe.",
+      why:"A profile describes the coach; a listing defines the thing a family can actually choose. The completion signal is a loaded program row owned by this provider.",
+      requirements:["A provider record","Service title and sport","Description, price, pricing model, age range, and capacity","Optional first session date and time"],
+      process:["Open Listings and choose New listing.","Complete the service fields; the client sends only coach-owned listing data.","Sporv inserts the program under the signed-in provider. If a date is supplied, it then inserts the first session.","The catalogue reloads. A partial session failure leaves the listing intact and reports that the session still needs adding."],
+      completeWhen:"At least one loaded program has provider_id equal to the signed-in provider's id.",
+      evidence:listingDone ? `${owned.length} owned listing${owned.length === 1 ? "" : "s"} loaded.` : real ? "No owned listing is loaded for this provider." : "The sample workspace carries example listing data only.",
+      limit:"A published row is not proof that a booking can complete. The server still requires background clearance, an available session, capacity, and Stripe readiness.",
+    },
+    {
+      id:"check", phase:2, n:4, title:"Pass your background check", tab:"getting-started", time:"Varies", owner:"Sporv + screening provider", done:backgroundDone, review:backgroundReview,
+      description:"Complete the external screening flow; only a server-recorded verified result can clear the booking safety gate.",
+      unlocks:"Satisfies the personal safety gate required before a booking is accepted.",
+      why:"A coach cannot grade their own safety status. The web client reads the provider result but has no branch that can write verified or a completion timestamp.",
+      requirements:["A signed-in provider identity","The screening provider's separate disclosure and authorization","Any identity information requested on that provider's hosted flow"],
+      process:["Ask Sporv to initiate screening for the individual coach.","Review the screening provider's own disclosure, scope, and consent form before submitting anything.","Complete the provider-hosted identity steps; sensitive screening details do not belong in this checklist.","Sporv records the returned status. The page becomes Done only when status is verified and a completion timestamp exists."],
+      completeWhen:"providers.background_check_status is verified and background_check_completed_at is present.",
+      evidence:backgroundDone ? "Verified result and completion timestamp are present." : backgroundReview ? `Server status is ${bg}; the coach cannot accelerate or self-clear it here.` : real ? `Server status is ${bg || "none"}.` : "Sample mode never counts as a real background-check result.",
+      limit:"This repository does not prove a named screening vendor, a fixed screening scope, a self-service launch URL, or a turnaround SLA. The guide therefore does not invent Checkr, record types, or a 1–3 day promise.",
+      href:"mailto:support@sporve.com?subject=Start%20my%20background%20check", actionLabel:"Contact Sporv",
+    },
+    {
+      id:"availability", phase:2, n:5, title:"Open a real session", tab:"schedule", time:"4–8 min", owner:"You", done:availabilityDone,
+      needs:"listing", description:"Put at least one future dated session behind an owned listing so a family has a real time to choose.",
+      unlocks:"Gives an otherwise complete listing an actual bookable time.",
+      why:"A weekly intention is not availability until it produces a dated session the catalogue can load. Real-account completion therefore ignores local recurring-demo state.",
+      requirements:["An owned listing","A future date","Start time and capacity","A location on the listing or session"],
+      process:["Add the first session while creating a listing, or open Schedule to inspect what is already loaded.","Confirm the date is in the future and the session belongs to the intended listing.","After the session insert, reload the catalogue.","Verify the session appears under the owned listing before calling the step complete."],
+      completeWhen:"At least one owned listing has a future session returned by the loaded catalogue.",
+      evidence:availabilityDone ? `${futureSessions.length} owned listing${futureSessions.length === 1 ? " has" : "s have"} a future session.` : listingDone ? "No future session is loaded for an owned listing." : "A listing must exist before it can own a session.",
+      limit:"Recurring availability and time-off are not yet durable on this web surface. Local blocks can demonstrate the editor, but they do not count as production completion.",
+    },
+    {
+      id:"payouts", phase:3, n:6, title:"Connect Stripe payouts", tab:"finances", time:"5–10 min", owner:"Stripe", done:payoutsDone,
+      needs:"identity", description:"Use Stripe's hosted onboarding so bank and identity details stay with Stripe rather than inside Sporv.",
+      unlocks:"Satisfies the payment-readiness gate used by checkout.",
+      why:"Starting a Stripe account is not the same as finishing it. Completion reads stripe_charges_enabled from the provider row after the server checks Stripe.",
+      requirements:["A signed-in provider account","The information Stripe requests for this account and country","A supported payout destination"],
+      process:["Open Earnings and choose Turn on payouts or Finish payout setup.","Sporv calls stripe-connect-onboarding with an allowlisted return URL.","Complete the fields on Stripe's hosted page; Sporv does not collect the bank details.","On return, Sporv reloads the provider row. The step remains incomplete until Stripe reports charges enabled."],
+      completeWhen:"providers.stripe_charges_enabled is true; an account id by itself is not enough.",
+      evidence:payoutsDone ? "Stripe readiness is reflected as charges enabled on the provider row." : real && pv && pv.stripe_account_id ? "Stripe onboarding started, but charges are not enabled yet." : real ? "No completed Stripe Connect state is present." : "The sample workspace never counts as a connected Stripe account.",
+      limit:"Payout timing, review requirements, and requested fields vary by Stripe account state. This guide does not promise a two-day payout or infer readiness from a redirect.",
+    },
+    {
+      id:"policy", phase:3, n:7, title:"Confirm cancellation terms", tab:"operations", time:"2 min", owner:"Sporv policy engine", done:policyDone, optional:true,
+      needs:"listing", description:"Review the policy attached to each listing and understand that the checkout copy is snapshotted onto every booking.",
+      unlocks:"Gives the family stable refund terms that cannot be rewritten after purchase.",
+      why:"Cancellation terms affect money. The current platform policy is server-owned, so this is a review step—not a free-text coach override that could change refund math.",
+      requirements:["At least one owned listing","The policy displayed on that listing","An understanding of how the policy is frozen at checkout"],
+      process:["Open Operations → Policies or inspect the listing's cancellation terms.","Confirm the public wording matches the platform policy.","At checkout, Sporv copies that policy onto the booking.","Any later listing change leaves the existing booking snapshot untouched; refund eligibility reads the snapshot."],
+      completeWhen:"Every loaded owned listing exposes a cancellation policy.",
+      evidence:policyDone ? `All ${owned.length} owned listing${owned.length === 1 ? " exposes" : "s expose"} policy terms.` : listingDone ? `${policyListings.length} of ${owned.length} owned listings expose policy terms.` : "No owned listing exists yet.",
+      limit:"The prototype called this “Set your cancellation policy,” but the current refund rail intentionally does not let a coach rewrite cancellation policy from the client. Adding a fake selector would contradict the money contract.",
+    },
+  ];
+
+  const byId = Object.fromEntries(steps.map(step => [step.id, step]));
+  let current = null;
+  steps.forEach(step => {
+    if (step.done) step.state = "done";
+    else if (step.review) step.state = "review";
+    else if (step.needs && !byId[step.needs].done) step.state = "locked";
+    else if (!current && !step.optional) { step.state = "current"; current = step; }
+    else step.state = "open";
+    if (step.state === "locked") step.statusNote = `Finish ${byId[step.needs].title.toLowerCase()} first`;
+    else if (step.state === "review") step.statusNote = "Server result pending";
+    else if (step.id === "profile" && real && !profileDone) step.statusNote = "Durable media path incomplete";
+    else if (step.id === "availability" && real && !availabilityDone) step.statusNote = "Requires a dated server session";
+  });
+  const done = steps.filter(step => step.done).length;
+  const next = current || steps.find(step => !step.done && step.state !== "locked") || null;
+  return { real, steps, done, total:steps.length, pct:Math.round(done / steps.length * 100), next };
+}
+
+function guideDrawer(step, snapshot){
+  const ui = window.COACH_UI;
+  if (!ui || !step) return "";
+  const list = (items, ordered) => `<${ordered ? "ol" : "ul"}>${items.map(item => `<li>${esc(item)}</li>`).join("")}</${ordered ? "ol" : "ul"}>`;
+  const body = `<p class="cui-drawer__intro">${esc(step.why)}</p>
+    <section class="cui-drawer__section"><h3>What you need</h3>${list(step.requirements || [], false)}</section>
+    <section class="cui-drawer__section"><h3>The real process</h3>${list(step.process || [], true)}</section>
+    <section class="cui-drawer__section"><h3>Completion signal</h3><div class="cui-drawer__truth"><b>${esc(step.completeWhen)}</b>${esc(step.evidence)}</div></section>
+    <section class="cui-drawer__section"><h3>Current limitation</h3><div class="cui-drawer__truth">${esc(step.limit)}</div></section>
+    ${S.connectError && step.id === "payouts" ? `<p class="cui-error" role="alert">${esc(S.connectError)}</p>` : ""}`;
+  let action = "";
+  if (!snapshot.real){
+    action = ui.Button({label:"Sign in to continue",size:"sm",variant:"secondary",attrs:`data-gs-signin="${esc(step.tab)}"`});
+  } else if (step.href){
+    action = ui.Button({label:step.actionLabel || "Continue",size:"sm",variant:"secondary",href:step.href});
+  } else if (step.id === "payouts" && snapshot.real){
+    action = ui.Button({label:"Open Stripe setup",size:"sm",variant:"secondary",attrs:'data-connectpayouts="1"'});
+  } else {
+    action = ui.Button({label:`Open ${step.tab === "profile" ? "Settings" : step.tab === "media" ? "Media" : step.tab === "listings" ? "Listings" : step.tab === "schedule" ? "Schedule" : step.tab === "finances" ? "Earnings" : step.tab === "operations" ? "Operations" : "application"}`,
+      size:"sm",variant:"secondary",attrs:`data-gs-go="${esc(step.tab)}" data-gs-step="${esc(step.id)}"`});
+  }
+  return ui.Drawer({
+    kicker:`Step ${step.n} of ${snapshot.total}`,
+    title:step.title,
+    body:body,
+    actions:action,
+    time:step.time === "Varies" ? "Timing varies" : `About ${step.time}`,
+  });
+}
+
+function guideView(){
+  const ui = window.COACH_UI;
+  if (!ui) return "";
+  const snapshot = guideSnapshot();
+  const next = snapshot.next;
+  const phases = [
+    { key:"listed", label:"Phase 1 · Get listed", subtitle:"Create the provider identity, public proof, and first service that families can evaluate." },
+    { key:"bookable", label:"Phase 2 · Get cleared to take bookings", subtitle:"Background clearance and a real future session are separate requirements; both must be true." },
+    { key:"paid", label:"Phase 3 · Get paid", subtitle:"Stripe readiness and stable booking terms complete the money side without exposing bank data to Sporv." },
+  ].map((phase, index) => ({...phase,steps:snapshot.steps.filter(step => step.phase === index + 1).map(step => ({
+    ...step,
+    action:ui.Button({label:"View process",size:"sm",variant:"secondary",attrs:`data-gs-open="${esc(step.id)}" data-gs-trigger="step-${esc(step.id)}"`}),
+  }))}));
+  const progressContext = next
+    ? ui.html(`Next: <b>${esc(next.title)}</b> — ${esc(next.time)}. Completion changes only when its real evidence changes.`)
+    : ui.html("Every durable completion signal is present. Re-check the public listing before inviting families.");
+  const content = ui.ProgressCard({label:"Setup progress",count:`${snapshot.done} of ${snapshot.total} complete`,value:snapshot.pct,context:progressContext}) +
+    ui.Callout({title:'What “ready” actually means.',body:`A family can evaluate a published profile, but booking still requires an owned future session, a server-verified background result, available capacity, and Stripe readiness. Getting paid is a separate Stripe-controlled state. ${snapshot.real ? "Every status below comes from this signed-in account or its loaded catalogue." : "This guest view is a disclosed sample; none of its statuses prove a live coach is cleared or paid."}`}) +
+    ui.ProcessPhases(phases);
+  const page = ui.Page({
+    page:"getting-started",eyebrow:"Coach dashboard",h1:"Getting started",
+    lede:"Three phases: become understandable, satisfy the booking gates, and connect the money rail. Every step names its owner, exact completion evidence, and any gap the current web build cannot yet finish.",
+    actions:next ? [ui.Button({label:"Continue setup",size:"lg",variant:"primary",attrs:`data-gs-open="${esc(next.id)}" data-gs-trigger="header"`})] : [],
+    body:content,
+  });
+  const open = snapshot.steps.find(step => step.id === guideOpenId) || null;
+  return page + guideDrawer(open, snapshot);
+}
+
+function closeGuide(){
+  const back = guideFocusTrigger;
+  guideOpenId = null;
+  guideNeedsFocus = false;
+  restoreGuideBackground();
+  render();
+  if (back && typeof requestAnimationFrame === "function") requestAnimationFrame(() => {
+    const el = document.querySelector(`[data-gs-trigger="${back}"]`);
+    if (el) el.focus();
+  });
+}
+
+function restoreGuideBackground(){
+  guideSuppressed.splice(0).forEach(record => {
+    const el = record.el;
+    if (!el || !el.setAttribute) return;
+    if (record.hadInert) el.setAttribute("inert", ""); else el.removeAttribute("inert");
+    if (record.ariaHidden == null) el.removeAttribute("aria-hidden");
+    else el.setAttribute("aria-hidden", record.ariaHidden);
+  });
+}
+
+/* Isolate the dialog without moving it out of the module-owned DOM. At each
+   ancestor, every sibling except the drawer/scrim branch becomes inert and
+   hidden from accessibility APIs. That includes the rail and the separately
+   rendered AI layer, so neither pointer nor assistive-tech focus can escape. */
+function suppressGuideBackground(drawer, scrim){
+  restoreGuideBackground();
+  let child = drawer;
+  let keep = new Set([drawer, scrim]);
+  while (child && child.parentElement){
+    const parent = child.parentElement;
+    Array.prototype.slice.call(parent.children).forEach(el => {
+      if (keep.has(el) || /^(SCRIPT|STYLE|LINK)$/.test(el.tagName)) return;
+      guideSuppressed.push({el:el,hadInert:el.hasAttribute("inert"),ariaHidden:el.getAttribute("aria-hidden")});
+      el.setAttribute("inert", "");
+      el.setAttribute("aria-hidden", "true");
+    });
+    if (parent === document.body) break;
+    child = parent;
+    keep = new Set([child]);
+  }
+}
+
+function navigateGuide(tab){
+  guideOpenId = null;
+  restoreGuideBackground();
+  if (tab === "operations") S.operationsPageTab = "policies";
+  if (tab === "schedule") S.schedulePageTab = "calendar";
+  if (typeof setCoachTab === "function") setCoachTab(tab); else S.coachTab = tab;
+  window.scrollTo(0,0); render();
+}
+
+function wireGuide(){
+  if (typeof document === "undefined") return;
+  const q = selector => Array.prototype.slice.call(document.querySelectorAll(selector));
+  q("[data-gs-open]").forEach(button => button.onclick = () => {
+    guideOpenId = button.dataset.gsOpen;
+    guideFocusTrigger = button.dataset.gsTrigger || `step-${guideOpenId}`;
+    guideNeedsFocus = true;
+    render();
+  });
+  q("[data-cui-drawer-close]").forEach(button => button.onclick = closeGuide);
+  q("[data-gs-go]").forEach(button => button.onclick = () => navigateGuide(button.dataset.gsGo));
+  q("[data-gs-signin]").forEach(button => button.onclick = () => {
+    const tab = button.dataset.gsSignin || "getting-started";
+    guideOpenId = null;
+    restoreGuideBackground();
+    if (typeof requireAuth === "function") requireAuth(() => navigateGuide(tab));
+    else { S.modal = {type:"authsheet"}; render(); }
+  });
+  const drawer = document.querySelector(".cui-drawer");
+  if (drawer){
+    suppressGuideBackground(drawer, document.querySelector(".cui-drawer-scrim"));
+    drawer.onkeydown = event => {
+      if (event.key !== "Tab") return;
+      const focusable = q('.cui-drawer a[href],.cui-drawer button:not([disabled]),.cui-drawer [tabindex="0"]');
+      if (!focusable.length) return;
+      const first = focusable[0], last = focusable[focusable.length-1];
+      if (event.shiftKey && document.activeElement === first){ event.preventDefault(); last.focus(); }
+      else if (!event.shiftKey && document.activeElement === last){ event.preventDefault(); first.focus(); }
+    };
+    if (guideNeedsFocus && typeof requestAnimationFrame === "function") requestAnimationFrame(() => {
+      const h = document.getElementById("cui-drawer-title");
+      if (h) h.focus();
+      guideNeedsFocus = false;
+    });
+  } else restoreGuideBackground();
+  if (!window.__sporvGuideEscapeBound){
+    window.__sporvGuideEscapeBound = true;
+    document.addEventListener("keydown", event => {
+      if (event.key !== "Escape" || !guideOpenId) return;
+      event.preventDefault(); event.stopImmediatePropagation(); closeGuide();
+    }, true);
+  }
 }
 
 /* ═══════════════════ EXPORT ═══════════════════ */
 window.MOD_COACHONBOARD = {
   css: CSS,
-  views: { onboard: onboardView },
+  views: { onboard: onboardView, "getting-started": guideView },
   modals: { verifyid: verifyIdModal },
   wire: wire,
   state: { onboard: BLANK },
+  guide: guideSnapshot,
 };
 
 })();

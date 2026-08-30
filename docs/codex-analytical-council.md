@@ -5,6 +5,15 @@ The repository includes a project-scoped Codex agent named
 Codex configuration, not an in-product feature and not a second source of
 business data.
 
+## Sole progress rubric
+
+Every profile reads `GATES.md` before analysis. G1 SCHEMA, G2 MONEY, G3 SUPPLY,
+and G4 GUARDS are the only business-progress measures; when none of their exact
+**Done looks like** clauses is complete, the lead reports `NOTHING MOVED`.
+Feature scores, test counts, audits, documents, and commits remain useful
+evidence, but the council may not present them as progress. No agent may propose
+or add a new AI tool while G4 is `FALSE`.
+
 ## How to invoke it
 
 Ask the primary Codex chat to spawn or use `sporv_analytical_lead` for a decision
@@ -35,7 +44,7 @@ requested report before synthesis.
 | `security_privacy_coppa_reviewer` | Trust boundaries, secrets, abuse cases, privacy, and youth-data duties |
 | `reliability_observability_reviewer` | Failure modes, retries, timeouts, telemetry, and recovery |
 | `performance_cost_analyst` | Runtime cost, latency, concurrency, caching, and capacity |
-| `qa_evals_release_reviewer` | Regression coverage, evals, release gates, and production evidence |
+| `sporv_test_agent` | Executes evidence contracts, rates feature reality, and enforces release stop conditions |
 | `adversarial_critic` | Counterexamples, hidden assumptions, unsafe optimism, and stop conditions |
 
 ## Shared questioning contract

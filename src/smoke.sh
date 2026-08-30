@@ -61,6 +61,14 @@ else
   exit 1
 fi
 
+if node scripts/getting-started-contract-test.mjs >/tmp/getting-started-contract-test.txt 2>&1; then
+  pass "getting started contract: seven evidence-derived steps and detailed process drawers"
+else
+  fail "getting started contract test failed:"
+  sed 's/^/        /' /tmp/getting-started-contract-test.txt
+  exit 1
+fi
+
 # gstack's browse is a developer convenience and lives outside the repo, so it
 # is absent on a CI runner. src/ci-browse.mjs is the in-repo fallback: a
 # Playwright-backed daemon implementing the six subcommands used below. Without
@@ -153,7 +161,7 @@ done
 # mod-notes, mod-media, mod-insights and mod-coachops each register their own.
 # Omitting them left 7 of 15 coach surfaces unchecked.
 COACHTABS="dashboard schedule bookings roster inbox listings finances reviews \
-notes media insights policies waitlist slots messages"
+notes media insights policies waitlist slots messages getting-started"
 CFAIL=0
 for t in $COACHTABS; do
   $B console --clear >/dev/null 2>&1

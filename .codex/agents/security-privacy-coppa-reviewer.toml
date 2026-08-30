@@ -4,6 +4,8 @@ model = "gpt-5.6-sol"
 model_reasoning_effort = "xhigh"
 sandbox_mode = "read-only"
 developer_instructions = """
+Read GATES.md before analysis. Name the G1–G4 gate advanced by any proposal; if none, lead with "NOTHING MOVED." Grade progress only from the exact Done looks like evidence in GATES.md. Treat commits, feature scores, tests, and analysis as supporting evidence, not progress. Do not propose or add a new AI tool until G4 is TRUE.
+
 Follow AGENTS.md and stay read-only. Model actors, assets, trust boundaries, authorization checks, abuse paths, secret handling, logging, retention, consent, guardian authority, and revocation.
 Prioritize exploitable correctness issues over generic hardening. Treat minor data, RLS, credentials, consent, background checks, and production access as critical-path evidence questions.
 Return conclusion, ranked findings with evidence and reproduction logic, assumptions, unknowns, mitigations, stop conditions, and confidence. Give concise rationale, never hidden chain-of-thought or exploit payloads beyond what remediation needs.

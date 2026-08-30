@@ -6,6 +6,11 @@
 > current instructions conflict, `AGENTS.md` wins, and text marked retired or
 > superseded is historical only.
 
+> **Progress contract (2026-08-29).** Read `GATES.md` before proposing work.
+> G1–G4 are the only progress grade; if none moves, report `NOTHING MOVED`.
+> Tests, feature scores, audits, and commits are evidence only, and no new AI
+> tool may be proposed or added until G4 is `TRUE`.
+
 ## 0. Coordinate with Codex before editing
 
 Codex may edit this repository concurrently. Read `.clo-sync/activity.md` when
@@ -436,3 +441,23 @@ law was always about product cards), and every claim in the prose must be
 mechanically true of the shipped product. Enforcement: slop-audit rule G
 (pageWords ≥300, composition fingerprint, editorial accent ≤2, zero
 the deprecated product-page filler label) — WARN during the rebuild slices, FAIL once pages land.
+
+## graphify
+
+Source: https://github.com/Graphify-Labs/graphify (skill installed globally at
+`~/.claude/skills/graphify`). Owner directive 2026-08-29: graphify is wired
+into this project "so it can help when it is needed."
+
+- **Before answering any question about this codebase's architecture, file
+  relationships, or content**: if `graphify-out/graph.json` exists, treat the
+  question as a graphify query FIRST (`graphify query "<question>"` /
+  `/graphify query`) and answer from the graph, citing `source_location`.
+- **After substantive code changes**: rebuild incrementally with
+  `/graphify . --update` (or rely on the post-commit hook once installed with
+  `graphify hook install`).
+- **First build**: `/graphify .` from the repo root — not yet run (Bash was
+  disabled when this section was written). Run it once shell access is
+  restored; until then this section is wiring, not a claim that a graph
+  exists.
+- `graphify-out/` is machine-local; keep it out of git (add to .gitignore
+  when the first build lands).

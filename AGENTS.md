@@ -27,6 +27,21 @@ substantive request, create or continue the gitignored folder described in
 ask in `BREAKDOWN.md`, and close every ask with evidence in `STATUS.md`. Add
 mid-turn requests to the same open folder instead of relying on chat memory.
 
+## Four gates are the only progress rubric
+
+Read `GATES.md` before proposing, evaluating, or reporting work. It is the sole
+definition of business progress for every agent, session, audit, and scheduled
+watcher in this repository.
+
+- Name the G1–G4 gate a proposal advances before describing the work. If none
+  advances, lead with `NOTHING MOVED` and label the work cosmetic, diagnostic,
+  governance, or maintenance as appropriate.
+- A gate moves only when every item in its exact **Done looks like** clause has
+  observable evidence. Partial exercises, passing tests, feature scores,
+  commits, and analysis are supporting evidence; none is a passing gate.
+- Keep feature audits as detector evidence, never as the progress score.
+- Do not propose or add a new AI tool until G4 is `TRUE`.
+
 ## Analytical Codex council
 
 This project provides one project-scoped analytical lead and fifteen specialist
@@ -63,8 +78,13 @@ The fifteen specialist names are `intent_clarifier`, `requirements_analyst`,
 `ux_accessibility_reviewer`, `frontend_architect`, `backend_api_architect`,
 `supabase_rls_analyst`, `stripe_payments_risk_analyst`,
 `security_privacy_coppa_reviewer`, `reliability_observability_reviewer`,
-`performance_cost_analyst`, `qa_evals_release_reviewer`, and
+`performance_cost_analyst`, `sporv_test_agent`, and
 `adversarial_critic`.
+
+`sporv_test_agent` is the council's explicit quality gate. It stays read-only,
+labels demo/spec/unverified work honestly, and may propose improvements but
+never applies them autonomously. A recurring audit is a detector and review
+queue, not permission to edit, deploy, message, alter consent, or move money.
 
 ## Shared product contract
 
@@ -75,7 +95,7 @@ The fifteen specialist names are `intent_clarifier`, `requirements_analyst`,
   relevant current section when needed, but do not revive text marked retired
   or superseded.
 - Edit source files, never generated `index.html`. `python3 src/build.py`
-  produces the build, and `bash src/smoke.sh` is the required local gate when
+  produces the build, and `./src/smoke.sh` is the required local gate when
   command execution is available.
 - Treat RLS, Stripe writes, auth, database migrations, booking capacity,
   consent/COPPA, and secrets as `[CRITICAL-PATH]`. Default to analysis or a

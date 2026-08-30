@@ -1,0 +1,167 @@
+{
+  "schema_version": 1,
+  "business_gate_snapshot": {
+    "source": "GATES.md",
+    "captured_at": "2026-08-29T19:52:07Z",
+    "progress_statement": "NOTHING MOVED",
+    "gates": {
+      "G1_SCHEMA": false,
+      "G2_MONEY": false,
+      "G3_SUPPLY": false,
+      "G4_GUARDS": false
+    },
+    "note": "The feature catalogue, tests, commits, and audits below are supporting evidence only."
+  },
+  "captured_at": "2026-08-29T18:20:23Z",
+  "repository": {
+    "branch": "main",
+    "head_before_current_changes": "861e0d903c2dda59f716742e9255c45d8505fe68",
+    "worktree": "modified for the current unreleased audit and Getting Started implementation",
+    "local_build_stamp": "713146f29c7f37a6",
+    "local_build_size_bytes": 2376840
+  },
+  "checks": [
+    {
+      "name": "build",
+      "command": "python3 src/build.py",
+      "status": "pass",
+      "observed_at": "2026-08-29T18:18:00Z",
+      "output": "17 modules inlined; 3 font faces inlined; 17 sport-color pages AA-verified; CSP contains 19 inline script hashes; build stamp 713146f29c7f37a6."
+    },
+    {
+      "name": "ai contract",
+      "command": "node scripts/ai-contract-test.mjs",
+      "status": "pass",
+      "observed_at": "2026-08-29T18:18:00Z",
+      "output": "AI contract: 34 assertions passed"
+    },
+    {
+      "name": "Codex council contract",
+      "command": "python3 scripts/codex-agent-contract-test.py",
+      "status": "pass",
+      "observed_at": "2026-08-29T18:18:00Z",
+      "output": "1 lead and 15 read-only specialists including sporv_test_agent; login and legacy shell disabled."
+    },
+    {
+      "name": "repository contract",
+      "command": "node scripts/repo-contract-test.mjs",
+      "status": "pass",
+      "observed_at": "2026-08-29T18:18:00Z",
+      "output": "repo contract: 64 assertions passed"
+    },
+    {
+      "name": "data contract",
+      "command": "node scripts/data-contract-test.mjs",
+      "status": "pass",
+      "observed_at": "2026-08-29T18:18:00Z",
+      "output": "data contract: 17 assertions passed"
+    },
+    {
+      "name": "Getting Started contract",
+      "command": "node scripts/getting-started-contract-test.mjs",
+      "status": "pass",
+      "observed_at": "2026-08-29T18:18:00Z",
+      "output": "7 evidence-derived steps, 3 phases, detailed drawers, shared Media UI, dialog isolation, focus restoration, and 44px mobile step actions PASS."
+    },
+    {
+      "name": "87-feature evidence validator",
+      "command": "python3 scripts/sporv-feature-eval.py",
+      "status": "pass",
+      "observed_at": "2026-08-29T18:18:00Z",
+      "output": "87 ordered features; no validation errors; overall 3.68/10."
+    },
+    {
+      "name": "full elevated browser smoke",
+      "command": "bash src/smoke.sh",
+      "status": "pass",
+      "observed_at": "2026-08-29T18:19:00Z",
+      "output": "SMOKE PASSED: 13 visitor routes, 16 coach tabs including Getting Started, live Supabase catalogue (132 listings and 825 sessions), CSP, auth, booking, trust, persistence, accessibility, and product-page assertions passed. The suite retained four known family contrast baseline findings and ten legacy thin blocks as warnings."
+    },
+    {
+      "name": "dedicated agent response contract",
+      "command": "node scripts/sporv-agent-response-test.mjs",
+      "status": "pass",
+      "observed_at": "2026-08-29T18:56:00Z",
+      "output": "Validated the preserved custom-agent response as JSON with verdict fail, exactly 87 ordered ratings, required fields and enums, and an adjudicated average of 3.56/10."
+    }
+  ],
+  "manual_browser": {
+    "url": "http://127.0.0.1:4175/?live=0",
+    "status": "pass",
+    "observations": [
+      "Coach preview rendered Getting Started with exactly three phases and seven process actions.",
+      "The disclosed sample derived four of seven completions and did not count background screening, a future owned-listing session, or Stripe payout readiness.",
+      "The page rendered exactly one white header primary action.",
+      "At 390 by 844, document scroll width equaled viewport width (390) and every one of the seven process actions measured 44 pixels high.",
+      "The opaque detail drawer sits above Sporv AI, traps focus, marks the page, rail, and AI layer inert, closes on Escape, and returns focus to the exact triggering row.",
+      "For a guest, Sign in to continue closes the drawer, opens authentication, and preserves the requested workflow destination."
+    ]
+  },
+  "independent_review": {
+    "status": "release_blocker_found",
+    "observed_at": "2026-08-29T18:05:00Z",
+    "finding": "On the currently deployed family program detail, Apex Performance Club is labeled Verification in progress while an enabled session selector, Request to book, and Check out with a card are exposed.",
+    "scope": "Pre-existing production trust-path behavior; not introduced by the Getting Started implementation.",
+    "additional_findings": "Measured mobile tap-target and small-text contrast failures remain on family marketplace/detail, and the default-open coach AI panel compresses desktop work and obscures mobile content.",
+    "confidence": "high"
+  },
+  "dedicated_agent_run": {
+    "status": "completed",
+    "agent": "sporv_test_agent",
+    "runtime": "Codex CLI 0.150.1, normal non-interactive read-only thread; specialist phase approximately nine minutes",
+    "response": "evals/sporv-product-audit/latest-agent-response.json",
+    "release_verdict": "fail",
+    "feature_count": 87,
+    "overall_average": 3.56,
+    "score_changes": [
+      "Feature 27: 8 to 4 and implemented_unverified to blocked",
+      "Feature 32: 9 to 3 and live_verified to blocked"
+    ],
+    "usage": {
+      "input_tokens": 104042,
+      "cached_input_tokens": 58880,
+      "output_tokens": 9670,
+      "reasoning_output_tokens": 411
+    },
+    "attempt_notes": [
+      "The first attempt failed before reasoning because the response endpoint required explicit type fields beside enum and const schema constraints.",
+      "A no-shell attempt without injected evidence could not read uncommitted local files and was stopped rather than accepted.",
+      "Ephemeral mode rejected subagent spawning because the parent thread was not registered; the successful run used a normal thread with the same read-only boundary.",
+      "The successful run received the prompt, current evidence, full catalogue, and response contract directly; Stripe and Supabase MCP startup was disabled for that run."
+    ]
+  },
+  "connectors": {
+    "observed_at": "2026-08-29T18:32:00Z",
+    "stripe": {
+      "configuration": "enabled at https://mcp.stripe.com",
+      "allowed_capabilities": [
+        "stripe_api_search",
+        "stripe_api_details",
+        "search_stripe_documentation",
+        "stripe_implementation_planner"
+      ],
+      "write_tools_enabled": false,
+      "cli_auth_status": "Unknown; not invoked by the successful agent run",
+      "claim": "Configured for read/planning only; this capture does not prove an authenticated account context."
+    },
+    "supabase": {
+      "configuration": "enabled for project ref tseszaprvtvqrkfpditu with read_only=true",
+      "write_tools_enabled": false,
+      "cli_auth_status": "Failed OAuth token refresh during earlier Codex test-agent attempts",
+      "claim": "Project-scoped and read-only, but the MCP authentication is not currently proven healthy. The separate application smoke path did read the live Supabase catalogue successfully."
+    }
+  },
+  "production": {
+    "url": "https://the-sporve-web.vercel.app",
+    "current_change_deployed": false,
+    "last_recorded_release_commit": "861e0d903c2dda59f716742e9255c45d8505fe68",
+    "last_recorded_live_build_stamp": "6b640a511b402e48",
+    "claim": "The current Getting Started and audit changes are local at capture time; live deployment must be verified after release."
+  },
+  "rules": {
+    "score_10": "Requires safe, edge-cased, production-verified behavior.",
+    "demo_ceiling": 4,
+    "spec_ceiling": 3,
+    "unavailable_evidence": "Must be reported as unavailable or blocked, never inferred as a pass."
+  }
+}

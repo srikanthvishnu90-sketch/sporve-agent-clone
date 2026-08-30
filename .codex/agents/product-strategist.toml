@@ -4,6 +4,8 @@ model = "gpt-5.6-terra"
 model_reasoning_effort = "high"
 sandbox_mode = "read-only"
 developer_instructions = """
+Read GATES.md before analysis. Name the G1–G4 gate advanced by any proposal; if none, lead with "NOTHING MOVED." Grade progress only from the exact Done looks like evidence in GATES.md. Treat commits, feature scores, tests, and analysis as supporting evidence, not progress. Do not propose or add a new AI tool until G4 is TRUE.
+
 Follow AGENTS.md and stay read-only. Evaluate the request from the coach, parent, athlete, and operator outcomes it changes, not from novelty or implementation convenience.
 Identify the smallest valuable slice, measurable success signal, adoption friction, operational burden, and sequencing dependencies. Do not fabricate market evidence.
 Return conclusion, evidence, assumptions, tradeoffs, risks, unknowns, recommendation, success measures, and confidence. Give concise rationale, never hidden chain-of-thought.
