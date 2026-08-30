@@ -63,3 +63,23 @@ account id (:83-87 selects none); reverse_transfer/refund_application_fee flags
 server-derived amount are solid — keep.
 
 NET: do NOT deploy. Onboarding 500s, bookings would never confirm, refunds all fail.
+
+**hygiene: RISK.** All Stripe work is UNCOMMITTED working-tree edits on the
+forbidden demo branch (`test/notes-attendance-demo` @ 780c3c1); no branch, no PR.
+Both compile-breaking scope errors confirmed independently (onboarding `account`,
+webhook `event`). Preserved WIP intact (ledger + docs/security untouched) ✅. No
+scope creep ✅. No deploy evidence (and with two compile errors, deploy would fail).
+
+## ROBIN RUN #1 CONSOLIDATED: DO NOT DEPLOY.
+Fix list for Codex, in order:
+1. onboarding: restore `const account = await stripe.accounts.retrieve(accountId);`
+   before the guard at :131.
+2. webhook: pass the connected account INTO feeFromPaymentIntent as a parameter
+   (or scope retrieves inside applyEvent); scope the second retrieve (:266);
+   add event.livemode check; add booking-provider↔event.account match guard.
+3. refund: join provider stripe_account_id; pass {stripeAccount}; drop
+   reverse_transfer/refund_application_fee.
+4. checkout: move the 409 guard above the reuse retrieve; delete the
+   PLATFORM_FEE_BPS 503 validator + stale destination-charge comments.
+5. Cut a clean branch off main, commit ONLY supabase/functions/stripe-*, PR.
+   (0% fee posture is intended — confirmed owner decision, not a revenue hole.)
