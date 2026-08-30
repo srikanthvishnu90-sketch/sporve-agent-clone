@@ -21,7 +21,7 @@
 <meta name="twitter:description" content="Find coaches, trainers, camps and teams across 20+ sports in Chicagoland.">
 <meta name="twitter:image" content="https://the-sporve-web.vercel.app/og.png">
 <link rel="icon" href="data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%2032%2032'%3E%3Crect%20width='32'%20height='32'%20rx='7'%20fill='%2309090B'/%3E%3Ccircle%20cx='16'%20cy='16'%20r='6'%20fill='white'/%3E%3C/svg%3E">
-<meta name="sporve-build" content="713146f29c7f37a6">
+<meta name="sporve-build" content="9152d8836a90063d">
 </head>
 <body>
 <noscript><h1>Sporv — Every sport. One app.</h1><p>Sporv connects families and athletes with coaches, trainers, camps, and teams across more than 20 sports. Please enable JavaScript to use the app.</p></noscript>
@@ -10705,6 +10705,82 @@ function teamRoster(){
   if(!S.teamRoster) S.teamRoster=JSON.parse(JSON.stringify(SEED.teams[0].roster));
   return S.teamRoster;
 }
+/* ── SPEC-01 CSV roster import (client-side slice, 2026-08-29) ─────────────
+   Imported athletes are SHADOW records on S.teamRoster — never rows in the
+   real athletes table, which is family-owned and COPPA-consent-gated; a
+   shadow record stays a shadow until the family claims it. Committing an
+   import sends nothing and charges no one; invites remain the separate,
+   explicit step. Undo removes exactly one batch via batchId. */
+function csvParse(text){
+  const rows=[];let row=[],cell="",q=false;
+  for(let i=0;i<text.length;i++){const c=text[i];
+    if(q){ if(c==='"'){ if(text[i+1]==='"'){cell+='"';i++;} else q=false; } else cell+=c; }
+    else if(c==='"') q=true;
+    else if(c===","){row.push(cell);cell="";}
+    else if(c==="\n"||c==="\r"){ if(c==="\r"&&text[i+1]==="\n") i++;
+      row.push(cell);cell=""; if(row.some(x=>x.trim()!=="")) rows.push(row); row=[]; }
+    else cell+=c; }
+  row.push(cell); if(row.some(x=>x.trim()!=="")) rows.push(row);
+  return rows;
+}
+function guessCol(headers,keys){ const h=headers.map(x=>x.toLowerCase());
+  for(const k of keys){const i=h.findIndex(x=>x.includes(k)); if(i>=0) return i;} return -1; }
+/* Detect the file's date convention from evidence: a first token >12 proves
+   day-first, a second token >12 proves month-first, a 4-digit lead is ISO.
+   Ambiguous files default to US month-first — and the mapping screen shows
+   the first three interpreted dates so the director can overrule. */
+function detectDateFmt(vals){
+  let mdY=false,dMy=false,iso=false;
+  vals.forEach(v=>{const m=String(v||"").trim().match(/^(\d{1,4})[\/\-.](\d{1,2})[\/\-.](\d{1,4})$/);
+    if(!m) return; if(m[1].length===4){iso=true;return;}
+    if(+m[1]>12) dMy=true; if(+m[2]>12) mdY=true;});
+  return iso&&!mdY&&!dMy?"ISO":dMy&&!mdY?"DMY":"MDY";
+}
+function parseDob(v,fmt){
+  const m=String(v||"").trim().match(/^(\d{1,4})[\/\-.](\d{1,2})[\/\-.](\d{1,4})$/);
+  if(!m) return null;
+  let y,mo,d;
+  if(fmt==="ISO"||m[1].length===4){y=+m[1];mo=+m[2];d=+m[3];}
+  else if(fmt==="DMY"){d=+m[1];mo=+m[2];y=+m[3];}
+  else {mo=+m[1];d=+m[2];y=+m[3];}
+  if(y<100) y+=(y>30?1900:2000);
+  if(mo<1||mo>12||d<1||d>31||y<1990||y>2030) return null;
+  return y+"-"+String(mo).padStart(2,"0")+"-"+String(d).padStart(2,"0");
+}
+/* Dry run: classify every row before anything is written. Never auto-merge —
+   a same-name row with a differing or missing DOB is flagged for review and
+   excluded from the commit (two kids named Jack Smith in one club is normal).
+   Idempotency: a matching externalRef, or name+DOB already on the roster,
+   means a re-upload of the same file creates zero records. */
+function importDryRun(w){
+  const map=w.map||{}, fmt=w.dateFmt||"MDY", rows=w.csv.rows;
+  const existing=teamRoster();
+  const norm=s=>String(s||"").trim().toLowerCase().replace(/\s+/g," ");
+  const rx=/^[\w.+-]+@[\w-]+\.[\w.-]+$/;
+  const out={create:[],matched:[],review:[],rejected:[]};
+  const seen=new Set();
+  rows.forEach((r,idx)=>{
+    const get=k=>map[k]>=0?String(r[map[k]]||"").trim():"";
+    const name=map.name>=0?get("name"):[get("first"),get("last")].filter(Boolean).join(" ");
+    const email=get("email"), dobRaw=get("dob"), jersey=get("jersey")||"—", ref=get("ref");
+    if(!norm(name)){out.rejected.push({row:idx+2,name:"(blank)",why:"missing athlete name"});return;}
+    let dob=null;
+    if(map.dob>=0&&dobRaw){ dob=parseDob(dobRaw,fmt);
+      if(!dob){out.rejected.push({row:idx+2,name,why:"unreadable date of birth “"+dobRaw+"”"});return;} }
+    if(map.email>=0&&email&&!rx.test(email)){out.rejected.push({row:idx+2,name,why:"invalid guardian email “"+email+"”"});return;}
+    const key=norm(name)+"|"+(dob||"");
+    if(seen.has(key)){out.matched.push({name,why:"duplicate row in this file"});return;}
+    seen.add(key);
+    if(ref&&existing.some(e=>e.externalRef&&e.externalRef===ref)){
+      out.matched.push({name,why:"already imported (external ID "+ref+")"});return;}
+    const sameName=existing.filter(e=>norm(e.name)===norm(name));
+    if(sameName.length){
+      if(dob&&sameName.some(e=>e.dob===dob)){out.matched.push({name,why:"already on the roster (name + DOB)"});return;}
+      out.review.push({name,why:dob?"same name, different or missing DOB on roster":"same name, no DOB to compare — never auto-merged"});return;}
+    out.create.push({name,jersey,dob,email,externalRef:ref});
+  });
+  return out;
+}
 /* Demo Approvals drafts — the coach portal is sample data, so the AI-drafted
    queue is seeded (the prototype's 3: recap, reminder, rebooking nudge). Each
    carries a recipient + provenance and an editable body; approve moves it to
@@ -11326,7 +11402,11 @@ function coachBody(t){
       <div style="display:flex;flex-direction:column;gap:13px;margin-top:15px">${S.trainers.length?S.trainers.map(trainerRow).join(""):'<p style="color:var(--muted);font-size:var(--text-sm)">No trainers on your account yet — anyone you add clears their own background check before they can be booked.</p>'}</div></div>
     <div class="panel" style="margin-top:16px">
       <div class="sec-head" style="margin:0"><h3>${esc(SEED.teams[0].name)}</h3>
-        <button class="btn ghost sm" data-addathlete="1">+ Add athlete</button></div>
+        <span style="display:flex;gap:8px">
+          ${(S.importBatches||[]).some(x=>!x.undone)
+            ?`<button class="btn ghost sm" data-imp-undo="${esc(((S.importBatches||[]).filter(x=>!x.undone).slice(-1)[0]||{}).id||"")}">Undo last import</button>`:""}
+          <button class="btn ghost sm" data-import="1">Import clients</button>
+          <button class="btn ghost sm" data-addathlete="1">+ Add athlete</button></span></div>
       <p style="color:var(--muted);font-size:var(--text-base)">${esc(SEED.teams[0].sport)} · ${teamRoster().length} athlete${teamRoster().length===1?"":"s"}</p>
       <div class="tblwrap" style="margin-top:14px"><table class="tbl">
         <thead><tr><th>Athlete</th><th>Jersey</th><th>Available</th><th>Paid</th><th></th></tr></thead>
@@ -12217,9 +12297,65 @@ function modalHTML(){
       <span class="imp-dot ${w.step===1?"on":"done"}">1 · Names</span>
       <span class="imp-bar ${w.step===2?"on":""}"></span>
       <span class="imp-dot ${w.step===2?"on":""}">2 · Emails</span></div>`;
+    /* SPEC-01 CSV path: map → preview → done, alongside the manual name path.
+       Nothing is guessed silently (mapping needs confirmation), nothing is
+       written before the dry-run commit, and committing sends no email. */
+    if(w.step==="map"){
+      const opts=sel=>['<option value="-1">— not in this file —</option>']
+        .concat(w.csv.headers.map((h,i)=>`<option value="${i}"${sel===i?" selected":""}>${esc(h)}</option>`)).join("");
+      const fields=[["name","Athlete name (full)"],["first","First name"],["last","Last name"],
+        ["dob","Date of birth"],["email","Guardian email"],["jersey","Jersey #"],["ref","External ID (source system)"]];
+      const dobPrev=w.map.dob>=0?w.csv.rows.slice(0,3).map(r=>{
+        const raw=String(r[w.map.dob]||"").trim(); const p=parseDob(raw,w.dateFmt);
+        return `<li><span class="num">${esc(raw)}</span><span>→ ${p?`<b class="num">${esc(p)}</b>`:'<b>unreadable</b>'}</span></li>`;}).join(""):"";
+      return wrap("Match your columns",`
+        <p class="imp-sub">${esc(w.fileName||"Pasted CSV")} · ${w.csv.rows.length} row${w.csv.rows.length===1?"":"s"}.
+          Confirm which column is which — our guess is prefilled, never committed silently.</p>
+        ${fields.map(([k,l])=>`<div class="field"><label for="impMap-${k}">${l}</label>
+          <select id="impMap-${k}" data-imp-mapsel="${k}">${opts(w.map[k])}</select></div>`).join("")}
+        ${w.map.dob>=0?`<div class="field"><label for="impDateFmt">Date format in this file</label>
+          <select id="impDateFmt" data-imp-fmtsel="1">
+            <option value="MDY"${w.dateFmt==="MDY"?" selected":""}>MM/DD/YYYY (US)</option>
+            <option value="DMY"${w.dateFmt==="DMY"?" selected":""}>DD/MM/YYYY</option>
+            <option value="ISO"${w.dateFmt==="ISO"?" selected":""}>YYYY-MM-DD (ISO)</option></select>
+          <ul class="imp-list" style="margin-top:8px">${dobPrev}</ul></div>`:""}
+        <div id="impMapErr" class="err hide" style="margin:8px 0"></div>
+        <div class="imp-actions">
+          <button class="btn ghost sm" type="button" data-imp-mapback="1">Back</button>
+          <button class="btn" type="button" data-imp-mapnext="1">Preview import</button></div>`);
+    }
+    if(w.step==="preview"){
+      const d=w.dry;
+      const line=(arr,label)=>arr.length?`<div style="margin-top:12px"><h3>${label} · ${arr.length}</h3>
+        <ul class="imp-list">${arr.map(x=>`<li><span>${esc(x.name)}${x.row?` <span class="num">(row ${x.row})</span>`:""}</span>
+          <span style="color:var(--muted);font-size:var(--text-xs)">${esc(x.why||"")}</span></li>`).join("")}</ul></div>`:"";
+      return wrap("Dry run — nothing written yet",`
+        <p class="imp-sub"><b>${d.create.length} new</b> · ${d.matched.length} already here ·
+          ${d.review.length} need review · ${d.rejected.length} rejected. Commit is
+          all-or-nothing and sends no email or SMS to anyone.</p>
+        ${line(d.create.map(c=>({name:c.name,why:c.dob?"DOB "+c.dob:""})),"Will be created")}
+        ${line(d.matched,"Skipped — already on the roster")}
+        ${line(d.review,"Needs your review — never auto-merged")}
+        ${line(d.rejected,"Rejected rows")}
+        <div class="imp-actions" style="margin-top:14px">
+          <button class="btn ghost sm" type="button" data-imp-prevback="1">Back to mapping</button>
+          <button class="btn" type="button" data-imp-commit="1"${d.create.length?"":" disabled"}>Commit ${d.create.length} athlete${d.create.length===1?"":"s"}</button></div>`);
+    }
+    if(w.step==="done"){
+      const c=w.committed; const withEmail=c.created.filter(x=>x.contact).length;
+      return wrap("Import committed",`
+        <p class="imp-sub">${c.created.length} shadow record${c.created.length===1?"":"s"} added to
+          your roster. Nothing was sent to any family and no one was charged — each stays
+          a shadow record until its family claims it. Undo removes exactly this batch.</p>
+        <div class="imp-actions" style="margin-top:12px;flex-wrap:wrap;gap:8px">
+          <button class="btn ghost sm" type="button" data-imp-undo="${esc(c.batch)}">Undo this import</button>
+          ${withEmail?`<button class="btn" type="button" data-imp-toinvites="1">Send ${withEmail} invite${withEmail===1?"":"s"} →</button>`:""}
+          <button class="btn ghost sm" type="button" data-imp-close="1">Done</button></div>`);
+    }
     if(w.step===1) return wrap("Import your clients",`
-      <p class="imp-sub">Add the families you already coach, one at a time. Next you'll
-        add an email for each, then send everyone a branded invite from you.</p>
+      <p class="imp-sub">Add the families you already coach one at a time — or import the
+        whole roster from a CSV export (SportsEngine, TeamSnap, LeagueApps, a sheet).
+        Sending invites is always a separate, explicit step.</p>
       ${steps}
       <div class="field"><label for="impName">Add a name</label>
         <div class="imp-addrow">
@@ -12229,7 +12365,14 @@ function modalHTML(){
         ? `<ul class="imp-list">${w.people.map((p,i)=>`<li><span>${esc(p.name)}</span>
             <button class="imp-x" type="button" data-imp-remove="${i}" aria-label="Remove ${esc(p.name)}">Remove</button></li>`).join("")}</ul>`
         : `<p class="imp-empty">No families added yet — type a name and press Add.</p>`}
-      <button class="btn wide" type="button" data-imp-next="1"${w.people.length?"":" disabled"}>Next: add emails</button>`);
+      <button class="btn wide" type="button" data-imp-next="1"${w.people.length?"":" disabled"}>Next: add emails</button>
+      <div class="field" style="margin-top:16px"><label for="impCsv">Or paste a CSV (header row first)</label>
+        <textarea id="impCsv" rows="4" style="width:100%;resize:vertical"
+          placeholder="First,Last,DOB,Guardian Email&#10;Dana,Rivera,03/04/2012,dana.r@example.com"></textarea>
+        <div class="imp-addrow" style="margin-top:8px">
+          <input id="impCsvFile" type="file" accept=".csv,text/csv">
+          <button class="btn sm" type="button" data-imp-csv="1">Import CSV</button></div>
+        <div id="impCsvErr" class="err hide" style="margin-top:6px"></div></div>`);
     return wrap("Add their emails",`
       <p class="imp-sub">One email per family. Nothing is sent until you press Send, and
         families are never charged to accept.</p>
@@ -14664,6 +14807,76 @@ document.querySelectorAll('.sig-ai-coach').forEach(sigAiCoachWire);
     const n=people.length; S.modal=null; S.importWiz=null; render();
     toast(n+" invite"+(n===1?"":"s")+" sent");
   });
+  /* SPEC-01 CSV import handlers. Parse → map → dry-run → commit → done/undo.
+     Commit writes SHADOW records only (never real athletes rows) and sends
+     nothing; the invite send stays the explicit follow-up action. */
+  const impParse=text=>{
+    const err=document.getElementById("impCsvErr");
+    const rows=csvParse(text);
+    if(rows.length<2){ if(err){err.textContent="Need a header row plus at least one athlete row.";err.classList.remove("hide");} return; }
+    const w=S.importWiz;
+    const headers=rows[0].map(h=>h.trim()||"(unnamed)");
+    w.csv={headers,rows:rows.slice(1)};
+    w.map={ name:guessCol(headers,["athlete name","full name","player name"]),
+      first:guessCol(headers,["first"]), last:guessCol(headers,["last","surname"]),
+      dob:guessCol(headers,["dob","birth","d.o.b"]), email:guessCol(headers,["email","e-mail"]),
+      jersey:guessCol(headers,["jersey","uniform"]), ref:guessCol(headers,["external id","external ref","player id","athlete id"]) };
+    if(w.map.name>=0){w.map.first=-1;w.map.last=-1;}
+    w.dateFmt=w.map.dob>=0?detectDateFmt(w.csv.rows.map(r=>r[w.map.dob])):"MDY";
+    w._fmtTouched=false; w.step="map"; render();
+  };
+  $("[data-imp-csv]").forEach(b=>b.onclick=()=>{
+    const f=document.getElementById("impCsvFile");
+    const file=f&&f.files&&f.files[0];
+    if(file){ S.importWiz.fileName=file.name;
+      const rd=new FileReader(); rd.onload=()=>impParse(String(rd.result||"")); rd.readAsText(file); return; }
+    const ta=document.getElementById("impCsv");
+    S.importWiz.fileName=null;
+    impParse((ta&&ta.value||"").trim());
+  });
+  $("[data-imp-mapsel]").forEach(s=>s.onchange=()=>{
+    const w=S.importWiz; if(!w||!w.map) return;
+    w.map[s.dataset.impMapsel]=+s.value;
+    if(s.dataset.impMapsel==="name"&&+s.value>=0){w.map.first=-1;w.map.last=-1;}
+    if(w.map.dob>=0&&!w._fmtTouched) w.dateFmt=detectDateFmt(w.csv.rows.map(r=>r[w.map.dob]));
+    render();
+  });
+  $("[data-imp-fmtsel]").forEach(s=>s.onchange=()=>{
+    const w=S.importWiz; if(!w) return; w.dateFmt=s.value; w._fmtTouched=true; render();
+  });
+  $("[data-imp-mapnext]").forEach(b=>b.onclick=()=>{
+    const w=S.importWiz, err=document.getElementById("impMapErr");
+    if(w.map.name<0&&w.map.first<0){
+      if(err){err.textContent="Map the athlete's name — either a full-name column or a first-name column.";err.classList.remove("hide");}
+      return; }
+    w.dry=importDryRun(w); w.step="preview"; render();
+  });
+  $("[data-imp-mapback]").forEach(b=>b.onclick=()=>{const w=S.importWiz;w.csv=null;w.dry=null;w.step=1;render();});
+  $("[data-imp-prevback]").forEach(b=>b.onclick=()=>{S.importWiz.step="map";render();});
+  $("[data-imp-commit]").forEach(b=>b.onclick=()=>{
+    const w=S.importWiz; if(!w||!w.dry||!w.dry.create.length) return;
+    const batch="imp_"+Date.now();
+    const created=w.dry.create.map(c=>({name:c.name,jersey:c.jersey||"—",available:true,paid:false,payState:null,
+      guardian:"",contact:c.email||"",dob:c.dob||null,externalRef:c.externalRef||"",batchId:batch}));
+    teamRoster().push(...created);   // one synchronous append = all-or-nothing
+    S.importBatches=[...(S.importBatches||[]),{id:batch,at:Date.now(),count:created.length,file:w.fileName||"pasted CSV"}];
+    w.step="done"; w.committed={batch,created};
+    render();
+    toast(created.length+" athlete"+(created.length===1?"":"s")+" imported as shadow records — nothing was sent to any family.");
+  });
+  $("[data-imp-undo]").forEach(b=>b.onclick=()=>{
+    const id=b.dataset.impUndo; if(!id) return;
+    S.teamRoster=teamRoster().filter(r=>r.batchId!==id);
+    S.importBatches=(S.importBatches||[]).map(x=>x.id===id?{...x,undone:true}:x);
+    if(S.importWiz&&S.importWiz.step==="done"){S.modal=null;S.importWiz=null;}
+    render(); toast("Import undone — the roster is back to its previous state.");
+  });
+  $("[data-imp-toinvites]").forEach(b=>b.onclick=()=>{
+    const w=S.importWiz; if(!w||!w.committed) return;
+    w.people=w.committed.created.filter(c=>c.contact).map(c=>({name:c.name,email:c.contact}));
+    w.step=2; render();
+  });
+  $("[data-imp-close]").forEach(b=>b.onclick=()=>{S.modal=null;S.importWiz=null;render();});
 
   $("[data-foot]").forEach(b=>b.onclick=()=>{
     const [kind,val]=b.dataset.foot.split(":");
