@@ -304,6 +304,20 @@ memory, which is the actual failure mode here.
 
 ## 7. Changelog
 
+- **2026-08-29 — G1 baseline landed; migration ownership MOVED to WEB
+  (`~/the-sporve-web`), superseding the 2026-08-11 Option A (APP) decision.**
+  The owner directed the baseline dump into THIS repo
+  (`supabase/migrations/00000000000000_baseline.sql`, captured object-by-object
+  from prod: 50 tables, 95 functions, 134 policies, 41 triggers, 90 indexes,
+  84 FKs, 10 views, RLS on all 50 tables, grants incl. the providers
+  column-privacy model), and Codex linked this repo on 2026-08-27. The prod
+  ledger — which had grown to **69** entries since the 17 recorded on 08-11 —
+  was backed up to `supabase/ledger-backup-2026-08-29.json` and repaired to the
+  single baseline row, so `supabase migration list` now agrees with this repo.
+  Consequences: APP's 73 migration files are HISTORY (superseded by the
+  baseline; never `db push` them), `db push` authority moves here, and new
+  migrations are authored here going forward. §2/§4 below predate this and are
+  kept for lineage.
 - **2026-08-11 — created.** Decided: LANDING owns edge functions, on the
   evidence in §2.1 (LANDING's copy larger in all ten shared functions;
   production's ledger contains exactly LANDING's AI-observability migrations;
