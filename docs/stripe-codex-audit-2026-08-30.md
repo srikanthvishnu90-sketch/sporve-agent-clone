@@ -83,3 +83,33 @@ Fix list for Codex, in order:
    PLATFORM_FEE_BPS 503 validator + stale destination-charge comments.
 5. Cut a clean branch off main, commit ONLY supabase/functions/stripe-*, PR.
    (0% fee posture is intended — confirmed owner decision, not a revenue hole.)
+
+## ROBIN RUN #2 — 2026-08-30 ~18:20 (Codex editing live during audit)
+
+- **onboarding: CORRECT** ✅ — `accounts.retrieve(accountId)` restored at :131 (top-level
+  scope); `type:"standard"`, no capabilities. Compile blocker cleared. (minor: odd indent :131-133)
+- **checkout: INCOMPLETE** — 409 guard moved above the retrieve ✅, BUT (a) PLATFORM_FEE_BPS
+  503 validator still at :177-186 (blocks checkout if env unset — dead fee), (b) stale
+  destination-charge comments remain (:9,:49,:192,:210-215), (c) a DUPLICATE destination
+  guard was reintroduced at :162-166 (dead code — :148 already returns).
+- **webhook: INCOMPLETE (make-or-break still broken)** — scope crash "fixed" by amputation:
+  `feeFromPaymentIntent` now hardcodes `return 0` with dead code below referencing undefined
+  `pi` (fresh type-check failure). Still MISSING: `{stripeAccount: event.account}` on the
+  `charge.refunded` retrieve (:262-266); `event.livemode` check; account-match guard
+  (`event.account` never read). Billing stays platform-scoped ✅; idempotency intact ✅.
+- **refund: WRONG (byte-identical to HEAD — untouched)** — no `{stripeAccount}`, no provider
+  join, `reverse_transfer`/`refund_application_fee` destination-charge flags still present.
+  Every direct-charge refund would 404. Auth + server-derived amount fine.
+- **hygiene: NEEDS-FIX** — still uncommitted on `test/notes-attendance-demo`, no branch/PR.
+  Pre-existing WIP preserved ✅. No scope creep ✅.
+
+### ROBIN RUN #2 CONSOLIDATED: STILL DO NOT DEPLOY. Delta: onboarding fixed; everything else open.
+Tightened fix list for Codex:
+1. webhook (CRITICAL): don't stub fee to 0 with dead code — delete the dead `pi` lines;
+   read `event.account`, scope BOTH paymentIntent retrieves for booking events, add
+   `event.livemode` check + reject when `event.account != booking provider stripe_account_id`.
+2. refund: STILL UNTOUCHED — join provider `stripe_account_id`, pass `{stripeAccount}`,
+   remove `reverse_transfer`/`refund_application_fee`.
+3. checkout: remove the PLATFORM_FEE_BPS 503 validator + stale destination-charge comments +
+   the reintroduced duplicate 409 guard (:162-166).
+4. Cut a clean branch off main; commit ONLY supabase/functions/stripe-*; PR. Re-run robin.
