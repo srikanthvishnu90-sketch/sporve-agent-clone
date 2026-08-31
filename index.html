@@ -21,7 +21,7 @@
 <meta name="twitter:description" content="Find coaches, trainers, camps and teams across 20+ sports in Chicagoland.">
 <meta name="twitter:image" content="https://sporv.vercel.app/og.png">
 <link rel="icon" href="data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%2032%2032'%3E%3Crect%20width='32'%20height='32'%20rx='7'%20fill='%2309090B'/%3E%3Ccircle%20cx='16'%20cy='16'%20r='6'%20fill='white'/%3E%3C/svg%3E">
-<meta name="sporve-build" content="95aac854307ffdf8">
+<meta name="sporve-build" content="98d4a7910dd6b958">
 </head>
 <body>
 <noscript><h1>Sporv — Every sport. One app.</h1><p>Sporv connects families and athletes with coaches, trainers, camps, and teams across more than 20 sports. Please enable JavaScript to use the app.</p></noscript>
@@ -15143,6 +15143,17 @@ document.querySelectorAll('.sig-ai-coach').forEach(sigAiCoachWire);
       guardian:"",contact:c.email||"",dob:c.dob||null,externalRef:c.externalRef||"",batchId:batch}));
     teamRoster().push(...created);   // one synchronous append = all-or-nothing
     S.importBatches=[...(S.importBatches||[]),{id:batch,at:Date.now(),count:created.length,file:w.fileName||"pasted CSV"}];
+    /* SERVER commit (2026-08-31): a signed-in coach with a provider row writes
+       the DURABLE batch record to import_batches (000100) — batch metadata
+       only, NO child PII, by COPPA design: athlete rows stay family-owned and
+       consent-gated, so the linkage fills in as families join. The undo spine
+       is now real; the shadow roster above stays the working demo view. */
+    const pv=S.coachProvider;
+    if(pv&&pv.id&&window.SporveAPI&&window.SporveAPI.isSignedIn&&window.SporveAPI.isSignedIn()){
+      try{window.SporveAPI.from("import_batches","",{method:"POST",body:{
+        provider_id:pv.id,source_filename:w.fileName||"pasted CSV",
+        row_count:created.length}});}catch(_){/* demo view already committed */}
+    }
     w.step="done"; w.committed={batch,created};
     render();
     toast(created.length+" athlete"+(created.length===1?"":"s")+" imported as shadow records — nothing was sent to any family.");
