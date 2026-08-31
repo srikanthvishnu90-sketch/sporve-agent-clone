@@ -4415,7 +4415,10 @@ body.reg-coach .rail button.on{font-weight:600}
 /* Full-screen stadium hero (owner 2026-08-30 v5: explore hero, centred, no
    search) */
 .herofull{padding:0;border-bottom:0;background:#0B0D0F}
-.herofull .hero-panel{position:relative;min-height:calc(100svh - 64px);
+.herofull .hero-panel{position:relative;min-height:100svh;
+  /* Full 100svh, NOT minus the topbar (owner 2026-08-31): with the in-flow
+     sticky topbar above, subtracting it left a sliver of the next band inside
+     the first screen. At 100svh the stadium owns the entire first viewport. */
   display:flex;align-items:center;justify-content:center;overflow:hidden;
   border-radius:0;margin:0;width:100%}
 .herofull-in{position:relative;z-index:1;width:100%;text-align:center;padding:0 20px}
