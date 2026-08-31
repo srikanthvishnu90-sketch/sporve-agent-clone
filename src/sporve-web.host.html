@@ -4401,6 +4401,14 @@ body.reg-coach .rail button.on{font-weight:600}
 .lp26 .close p{max-width:52ch;margin:0 auto 30px}
 .lp26 .foot{border-top:1px solid var(--w-line);padding:24px 0;display:flex;justify-content:space-between;font-size:13px;color:var(--w-2)}
 @media(max-width:600px){.lp26 .foot{flex-direction:column;gap:8px}.lp26 .btn{width:100%}}
+/* Full-screen stadium hero (owner 2026-08-30 v4) */
+.herofull{padding:0;border-bottom:0;background:#0B0D0F}
+.herofull .hero-panel{position:relative;min-height:calc(100svh - 64px);
+  display:flex;align-items:flex-end;overflow:hidden}
+.herofull-in{position:relative;z-index:1;width:100%;padding-bottom:76px}
+.herofull .eyebrow{color:#B9C4D2}
+.herofull .display{color:#FFFFFF}
+.herofull .lede{color:rgba(255,255,255,.86);max-width:56ch}
 /* Contrast deviation #2 (documented): the paste's --steel #6B7F9E measures
    3.60:1 on the off ground and 4.07:1 on white — under the 4.5 gate. Same
    hue, two steps darker, only on light grounds. */
@@ -8320,17 +8328,20 @@ function landingHTML(){
   const f=landingFacts();
   const heroSports=["Soccer","Basketball","Tennis","Baseball","Swimming"];
   return `
-  <section class="band hero heroL">
-    <div class="shell hero-in">
-      <p class="eyebrow">Youth sports · Chicago</p>
-      <h1 class="display">Coaching. Booked.</h1>
-      <p class="lede">Every sport, one app — and no one takes a booking here
-        until they have cleared a background check.</p>
-      ${searchPillHTML()}
-      <div class="chiprow">
-        ${heroSports.map(s=>`<button class="hchip" data-sportjump="${esc(s)}">
-          <i style="background:${sportColor(s)}"></i>${esc(s)}</button>`).join("")}
-        <button class="hchip alt" data-nav="explore">All sports →</button>
+  ${/* FULL-SCREEN STADIUM HERO (owner 2026-08-30 v4): the stadium photograph
+       IS the first screen — full viewport, headline overlaid, and the B2B
+       chapter flows directly beneath as ONE page. The search pill and sport
+       chips are DELETED (owner: "there shouldn't be a single searchbar…
+       there is no marketplace"). heroMediaHTML() + the hero-media scrim are
+       the same machinery the browse hero uses. */""}
+  <section class="hero heroL herofull">
+    <div class="hero-panel">
+      ${heroMediaHTML()}
+      <div class="shell hero-in herofull-in">
+        <p class="eyebrow">Youth sports · Chicago</p>
+        <h1 class="display">Coaching. Booked.</h1>
+        <p class="lede">Every sport, one app — and no one takes a booking here
+          until they have cleared a background check.</p>
       </div>
     </div>
   </section>
