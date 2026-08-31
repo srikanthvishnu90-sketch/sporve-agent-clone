@@ -105,3 +105,78 @@ The .scrolly CSS (~4312-4360) and wireLanding()'s [data-scrolly] handler stay in
     </div></div>
   </section>
 ```
+
+## 3. Family middle sections deleted 2026-08-30 (owner: landing = hero + B2B only). Re-add verbatim:
+```html
+  <section class="band alt">
+    <div class="shell" data-rev>
+      <h2>What changes with Sporv</h2>
+      <div class="cmp-wrap" style="margin-top:18px">
+        <table class="cmp" aria-label="Finding a coach, compared">
+          <thead><tr><th>The job</th><th>Elsewhere</th><th>On Sporv</th></tr></thead>
+          <tbody>
+            <tr><th scope="row">Finding a coach</th>
+              <td>Group-chat threads, a flyer at the gym, a friend of a friend.</td>
+              <td>Browse every coach free. Search by sport, your child's age, and budget.</td></tr>
+            <tr><th scope="row">Knowing who you're hiring</th>
+              <td>A business vouches for its own staff.</td>
+              <td>Each person clears their own background check before they can take a booking.</td></tr>
+            <tr><th scope="row">Booking and paying</th>
+              <td>Texts until a time sticks, then cash or Venmo.</td>
+              <td>A real open slot that holds while you pay. Sessions, receipts and messages in one thread.</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+
+  <section class="band dark">
+    <div class="shell lgrid">
+      <div data-rev>
+        <div class="eyebrow" style="color:var(--accent-on-dark)">What's on Sporv today</div>
+        <h2 style="margin-top:12px">The rules every listing runs on.</h2>
+        <p class="sub" style="margin-top:14px">
+          The catalogue below is sample inventory, shown so you can see how Sporv
+          works — every demo card is labelled. Real coaches are onboarding now, and
+          these are the rules they clear before a listing goes live.</p>
+        <div class="lchecks">
+          ${[["Per-person background checks, not business-level"],
+             ["Reviews open only after a completed session"],
+             ["A child profile needs recorded parental consent"]]
+            .map(([t])=>`<div class="lcheck"><i>${TICK(12,3.4)}</i><span>${esc(t)}</span></div>`).join("")}
+        </div>
+      </div>
+      ${/* B2, not a card: the figures sit bare on the dark ground, hairline
+           -separated. The card chrome (.lcard bg/border) is stripped in CSS —
+           a stat row is only credible when it is not dressed up. */""}
+      <div class="lcard bare" data-rev data-rev-d="1">
+        <div class="lstats">
+          <div class="lstat"><span>Programs</span><b class="num">${f.programs}</b></div>
+          <div class="lstat"><span>Sports</span><b class="num">${f.sports}</b></div>
+          <div class="lstat"><span>Businesses</span><b class="num">${f.bizCount}</b></div>
+        </div>
+        <div class="lrow"><span>Background-checked businesses</span>
+          <em>${f.verifiedCount} of ${f.bizCount}</em></div>
+        <div class="lrow"><span>Sessions start from</span><em>${money(f.minPrice)}</em></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="band">
+    <div class="shell" data-rev>
+      <h2>What you get, and how it starts</h2>
+      <div class="deflist">
+        ${[["Background checks, per person","An unverified coach cannot take a booking. Not policy copy — the booking system refuses it."],
+           ["Search in plain words","Describe the goal; matching covers age, level, budget and distance."],
+           ["One thread per athlete","Sessions, receipts, and coach updates stay together."],
+           ["Message before you commit","Ask about equipment, group size, or experience before you spend anything."]]
+          .map(([t,d])=>`<div class="defrow"><b>${esc(t)}</b><p>${esc(d)}</p></div>`).join("")}
+        ${[["Search","Tell us the sport, your kid's age, and your budget."],
+           ["Book","Pick a real open slot and pay in one flow — cancellation terms shown before you commit."],
+           ["Show up","Directions, coach contact, notes and receipts land in the thread."]]
+          .map(([t,d],i)=>`<div class="defrow"><b><span class="defnum num">0${i+1}</span>${esc(t)}</b><p>${esc(d)}</p></div>`).join("")}
+      </div>
+    </div>
+  </section>
+
+```

@@ -628,13 +628,17 @@ img{max-width:100%;display:block}
 /* §4 CTA — the white pill on the black bar. White, not accent, so it does not
    spend the page's orange budget. */
 .navcta{
-  display:inline-flex;align-items:center;height:34px;padding:0 14px;   /* slightly smaller (owner 2026-08-24) */
-  /* Exact reference slate --slate:#7692AE (owner 2026-08-24, "use the exact color"). */
-  border-radius:var(--r-pill);background:#7692AE;color:#FFFFFF;
+  /* Rectangular bordered CTA (owner 2026-08-30, "same design as the Book a
+     call button"): 6px radius, hairline border, transparent ground; hover
+     inverts to white. Current fonts kept — only the shape/fill changed from
+     the slate pill (owner 2026-08-24, superseded). */
+  display:inline-flex;align-items:center;height:34px;padding:0 14px;
+  border-radius:6px;background:transparent;color:#CBD4DE;
+  border:1px solid #2A333C;
   font-family:var(--nav-face);font-weight:600;font-size:var(--t-body);white-space:nowrap;
-  transition:filter .15s;
+  transition:background .18s,color .18s,border-color .18s;
 }
-.navcta:hover{filter:brightness(1.1)}
+.navcta:hover{background:#FFFFFF;color:#0B0D0F;border-color:#FFFFFF}
 /* Account control (T1): the desktop hamburger+avatar PILL is retired. On
    desktop a bare avatar glyph keeps the account menu reachable (sign-in is
    action-triggered per the product's auth model); at <=900 it becomes the
@@ -4373,6 +4377,9 @@ body.reg-coach .rail button.on{font-weight:600}
 .b2no{font-family:var(--display);text-transform:uppercase;font-weight:700;
   font-size:var(--text-md);letter-spacing:.06em;margin-top:12px;color:#94A3B8}
 @media(max-width:820px){.b2price{grid-template-columns:1fr;gap:24px}}
+.b2foot{border-top:1px solid #1C222B;margin-top:64px;padding-top:22px;
+  display:flex;justify-content:space-between;font-size:var(--text-sm);color:#8A93A3}
+@media(max-width:600px){.b2foot{flex-direction:column;gap:8px}}
 
 /* ═══ Scroll-linked pinned showcase (landing only, marketing surface) ═══════
    DEFAULT (no .js-rev — reduced-motion / no-JS): three readable stacked blocks,
@@ -8309,76 +8316,7 @@ function landingHTML(){
 
   ${/* Pinned scrollytelling demo removed 2026-08-30 (owner: "the only thing that shouldve been removed is the demo scrolling"). Saved verbatim in docs/archive/landing-sections-2026-08-30.md; wireLanding()'s [data-scrolly] guard makes its handler a no-op. */""}
 
-  <section class="band alt">
-    <div class="shell" data-rev>
-      <h2>What changes with Sporv</h2>
-      <div class="cmp-wrap" style="margin-top:18px">
-        <table class="cmp" aria-label="Finding a coach, compared">
-          <thead><tr><th>The job</th><th>Elsewhere</th><th>On Sporv</th></tr></thead>
-          <tbody>
-            <tr><th scope="row">Finding a coach</th>
-              <td>Group-chat threads, a flyer at the gym, a friend of a friend.</td>
-              <td>Browse every coach free. Search by sport, your child's age, and budget.</td></tr>
-            <tr><th scope="row">Knowing who you're hiring</th>
-              <td>A business vouches for its own staff.</td>
-              <td>Each person clears their own background check before they can take a booking.</td></tr>
-            <tr><th scope="row">Booking and paying</th>
-              <td>Texts until a time sticks, then cash or Venmo.</td>
-              <td>A real open slot that holds while you pay. Sessions, receipts and messages in one thread.</td></tr>
-          </tbody>
-        </table>
-      </div>
-    </div>
-  </section>
-
-  <section class="band dark">
-    <div class="shell lgrid">
-      <div data-rev>
-        <div class="eyebrow" style="color:var(--accent-on-dark)">What's on Sporv today</div>
-        <h2 style="margin-top:12px">The rules every listing runs on.</h2>
-        <p class="sub" style="margin-top:14px">
-          The catalogue below is sample inventory, shown so you can see how Sporv
-          works — every demo card is labelled. Real coaches are onboarding now, and
-          these are the rules they clear before a listing goes live.</p>
-        <div class="lchecks">
-          ${[["Per-person background checks, not business-level"],
-             ["Reviews open only after a completed session"],
-             ["A child profile needs recorded parental consent"]]
-            .map(([t])=>`<div class="lcheck"><i>${TICK(12,3.4)}</i><span>${esc(t)}</span></div>`).join("")}
-        </div>
-      </div>
-      ${/* B2, not a card: the figures sit bare on the dark ground, hairline
-           -separated. The card chrome (.lcard bg/border) is stripped in CSS —
-           a stat row is only credible when it is not dressed up. */""}
-      <div class="lcard bare" data-rev data-rev-d="1">
-        <div class="lstats">
-          <div class="lstat"><span>Programs</span><b class="num">${f.programs}</b></div>
-          <div class="lstat"><span>Sports</span><b class="num">${f.sports}</b></div>
-          <div class="lstat"><span>Businesses</span><b class="num">${f.bizCount}</b></div>
-        </div>
-        <div class="lrow"><span>Background-checked businesses</span>
-          <em>${f.verifiedCount} of ${f.bizCount}</em></div>
-        <div class="lrow"><span>Sessions start from</span><em>${money(f.minPrice)}</em></div>
-      </div>
-    </div>
-  </section>
-
-  <section class="band">
-    <div class="shell" data-rev>
-      <h2>What you get, and how it starts</h2>
-      <div class="deflist">
-        ${[["Background checks, per person","An unverified coach cannot take a booking. Not policy copy — the booking system refuses it."],
-           ["Search in plain words","Describe the goal; matching covers age, level, budget and distance."],
-           ["One thread per athlete","Sessions, receipts, and coach updates stay together."],
-           ["Message before you commit","Ask about equipment, group size, or experience before you spend anything."]]
-          .map(([t,d])=>`<div class="defrow"><b>${esc(t)}</b><p>${esc(d)}</p></div>`).join("")}
-        ${[["Search","Tell us the sport, your kid's age, and your budget."],
-           ["Book","Pick a real open slot and pay in one flow — cancellation terms shown before you commit."],
-           ["Show up","Directions, coach contact, notes and receipts land in the thread."]]
-          .map(([t,d],i)=>`<div class="defrow"><b><span class="defnum num">0${i+1}</span>${esc(t)}</b><p>${esc(d)}</p></div>`).join("")}
-      </div>
-    </div>
-  </section>
+  ${/* Family middle chapter (comparison table, dark rules, definition list) and the FAQ removed 2026-08-30 — owner: landing = stadium hero + the B2B chapter only. Saved verbatim in docs/archive/landing-sections-2026-08-30.md; faqSectionHTML stays defined (page:what-is still calls it). */""}
 
   ${/* ═══ B2B CHAPTER (owner spec 2026-08-30) — clubs, camps, trainers ═══
        Five bands adapted from the pasted static HTML into the house system:
@@ -8392,6 +8330,9 @@ function landingHTML(){
       <p class="sub" data-rev data-rev-d="2" style="margin-top:12px;max-width:54ch">Rosters, dues,
         and waivers for travel teams, camps, and private trainers. The follow-ups
         write themselves — you press send.</p>
+      <div class="ctarow" data-rev data-rev-d="2" style="margin-top:22px;justify-content:flex-start">
+        <a class="btn" href="mailto:hello@sporv.com?subject=Sporv%20setup%20call">Book a 15-minute setup call</a>
+      </div>
       <div class="b2q" data-rev data-rev-d="2">
         <div class="b2q-h"><span class="b2q-t">Review queue</span>
           <span class="b2q-c num">12 drafted · $4,290</span>
@@ -8440,23 +8381,6 @@ function landingHTML(){
   </section>
 
   <section class="band dark">
-    <div class="shell b2switch">
-      <div data-rev>
-        <p class="eyebrow">Switching</p>
-        <h2 style="margin:14px 0 16px;max-width:20ch">Send us your export. Your roster is in before the call ends.</h2>
-        <p class="sub">SportsEngine, TeamSnap, LeagueApps, or a spreadsheet somebody
-          has maintained for four years. We do the import on the call, with you
-          watching, and you keep your current system running until you're satisfied.</p>
-      </div>
-      <div class="b2files" data-rev data-rev-d="1">
-        ${[["roster_fall_2026.csv","SportsEngine"],["teamsnap_members.xlsx","TeamSnap"],
-           ["Dues tracker (Sheet1)","Google Sheets"],["waivers_signed.pdf","Scanned"]]
-          .map(f=>`<div><span>${esc(f[0])}</span><span class="s num">${esc(f[1])}</span></div>`).join("")}
-      </div>
-    </div>
-  </section>
-
-  <section class="band dark">
     <div class="shell b2price">
       <div data-rev>
         <p class="eyebrow">Pricing</p>
@@ -8474,6 +8398,23 @@ function landingHTML(){
   </section>
 
   <section class="band dark">
+    <div class="shell b2switch">
+      <div data-rev>
+        <p class="eyebrow">Switching</p>
+        <h2 style="margin:14px 0 16px;max-width:20ch">Send us your export. Your roster is in before the call ends.</h2>
+        <p class="sub">SportsEngine, TeamSnap, LeagueApps, or a spreadsheet somebody
+          has maintained for four years. We do the import on the call, with you
+          watching, and you keep your current system running until you're satisfied.</p>
+      </div>
+      <div class="b2files" data-rev data-rev-d="1">
+        ${[["roster_fall_2026.csv","SportsEngine"],["teamsnap_members.xlsx","TeamSnap"],
+           ["Dues tracker (Sheet1)","Google Sheets"],["waivers_signed.pdf","Scanned"]]
+          .map(f=>`<div><span>${esc(f[0])}</span><span class="s num">${esc(f[1])}</span></div>`).join("")}
+      </div>
+    </div>
+  </section>
+
+  <section class="band dark">
     <div class="shell" data-rev>
       <h2 style="max-width:18ch">Fifteen minutes, your real roster.</h2>
       <p class="sub" style="margin-top:12px;max-width:60ch">Bring last season's export.
@@ -8481,13 +8422,12 @@ function landingHTML(){
         isn't obviously better than what you do now, that's the end of it.</p>
       <div class="ctarow" style="margin-top:22px;justify-content:flex-start">
         <a class="btn" href="mailto:hello@sporv.com?subject=Sporv%20setup%20call">Book a 15-minute setup call</a>
-        <button class="btn ghost" data-nav="explore">Find a coach</button>
-        <button class="btn ghost" data-becomecoach="1">Become a coach</button>
+      </div>
+      <div class="b2foot">
+        <span>Sporv</span><span>Chicagoland · hello@sporv.com</span>
       </div>
     </div>
-  </section>
-
-  ${faqSectionHTML()}`;
+  </section>`;
 }
 
 /* The FAQ closes the page, on full black. Kept as its own function rather than
