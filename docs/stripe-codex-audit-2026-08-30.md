@@ -113,3 +113,12 @@ Tightened fix list for Codex:
 3. checkout: remove the PLATFORM_FEE_BPS 503 validator + stale destination-charge comments +
    the reintroduced duplicate 409 guard (:162-166).
 4. Cut a clean branch off main; commit ONLY supabase/functions/stripe-*; PR. Re-run robin.
+
+## robin run #3 (2026-08-30 ~18:45) — Codex batch edited 18:05–18:40
+
+- **onboarding — CORRECT.** Standard account, capabilities block removed, `accounts.retrieve` + account-links intact. Cosmetic: header comment still says "Express".
+- **refund — CORRECT.** Connected-scope refund (`{stripeAccount}`), provider join resolves the account, no invalid `reverse_transfer`/`refund_application_fee` keys (only in dead comments), searcher-only auth. Cosmetic: stale destination-charge comment block.
+- **webhook — INCOMPLETE.** `feeFromPaymentIntent(connectedAccountId, stripe, pi)` is now a real 3-arg fn, but both booking callers (:272,:285) invoke `feeFromPaymentIntent(stripe, pi)` — wrong arg order → `paymentIntentId` undefined → retrieve short-circuits, fee always null. Account-match guard, `event.livemode`, event-id idempotency, charge.refunded connected scope, and platform-scoped billing are all correct. Booking still CONFIRMS (fee=null is recoverable), so not a silent-non-confirm — but spec item #1 (connected-scope PI fee) is not wired.
+- **checkout — WRONG (build-breaking).** Verified directly: after the `if(existingSessionId){…}` block sits a STRAY unconditional `return json(…409)` + lone `}` that orphans session creation — every eligible booking 409s. Stale `PLATFORM_FEE_BPS` 503 validator + RAW/BPS defs still present; stale "destination charge" comments. The real direct-charge logic underneath (no application_fee, no transfer_data, `stripeAccount:destination` on create AND the reuse retrieve, single real 409 guard) is CORRECT.
+
+**Verdict: DO NOT DEPLOY — 2 precise fixes** (checkout stray-block + fee-cruft; webhook caller arg order). Codex prompt handed to owner. Refire robin after the fix batch.
