@@ -122,3 +122,11 @@ Tightened fix list for Codex:
 - **checkout — WRONG (build-breaking).** Verified directly: after the `if(existingSessionId){…}` block sits a STRAY unconditional `return json(…409)` + lone `}` that orphans session creation — every eligible booking 409s. Stale `PLATFORM_FEE_BPS` 503 validator + RAW/BPS defs still present; stale "destination charge" comments. The real direct-charge logic underneath (no application_fee, no transfer_data, `stripeAccount:destination` on create AND the reuse retrieve, single real 409 guard) is CORRECT.
 
 **Verdict: DO NOT DEPLOY — 2 precise fixes** (checkout stray-block + fee-cruft; webhook caller arg order). Codex prompt handed to owner. Refire robin after the fix batch.
+
+## robin FINAL run (2026-08-31, pre-deploy gate) — branch fix/stripe-standard-direct-charges
+- **onboarding — CORRECT** (Standard, no capabilities, write-back, legacy-409, origin-guarded links; zero "express" strings).
+- **checkout — CORRECT** (direct charge, stripeAccount+idempotency on create AND reuse retrieve, single 409 guard, no PLATFORM_FEE_BPS, control flow verified line-by-line).
+- **refund — CORRECT** (connected scope, opts-merged idempotencyKey verified reaching Stripe, server-priced only; nit: redundant second admin client).
+- **webhook — INCOMPLETE → FIXED SAME RUN.** Real finding: ownership guard read only metadata.booking_id while applyEvent also resolves ids from client_reference_id / PI metadata — a connected account could write another club's booking. Fix (committed): authoritative guard moved INSIDE applyEvent on the exact id applied; fast pre-guard widened to client_reference_id. deno check clean.
+- **Backstop:** deno typecheck 0 non-noise errors on onboarding/webhook/refund; checkout's 9 = pre-existing typegen noise (identical at HEAD). Git: clean branch, 2 commits (b2cd937 + guard fix), WIP preserved.
+**VERDICT: GREEN — deployment unlocked.** Deploy = owner one-liner or Codex 3-step (endpoint + secret + test charge).
