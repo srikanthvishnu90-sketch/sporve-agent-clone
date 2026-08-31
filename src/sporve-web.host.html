@@ -4422,6 +4422,51 @@ body.reg-coach .rail button.on{font-weight:600}
   display:flex;align-items:center;justify-content:center;overflow:hidden;
   border-radius:0;margin:0;width:100%}
 .herofull-in{position:relative;z-index:1;width:100%;text-align:center;padding:0 20px}
+
+/* ═══ PRODUCT-PAGE LAYOUT SYSTEMS (owner 2026-08-31) ═══════════════════════
+   Every mod-productpages page carries lay-b (Layout 2 · full-bleed bands ·
+   mask reveal) or lay-c (Layout 3 · spec sheet · wipe-from-left) — an 11/7
+   split. CSS-scoped RESKIN over unchanged markup: the slop audit's rhythm/
+   recipe/copy contracts read classes and data-prose, both untouched. Dark
+   bands keep the audit-pinned #0A0C0F ground. */
+#app .lay-b .pg-serif.pg-h1,#app .lay-c .pg-serif.pg-h1,
+#app .lay-b h2.pg-serif,#app .lay-c h2.pg-serif,
+.lay-b h1,.lay-b h2,.lay-c h1,.lay-c h2{
+  font-family:var(--roboto-cond,"Roboto Condensed");text-transform:uppercase;
+  font-weight:600;line-height:1;letter-spacing:-.005em}
+.lay-b h3,.lay-c h3{font-family:var(--roboto-cond,"Roboto Condensed");
+  text-transform:uppercase;font-weight:600;letter-spacing:.03em}
+.lay-b .pg-eyebrow,.lay-c .pg-eyebrow{font-family:var(--mono);font-size:11px;
+  letter-spacing:.18em;text-transform:uppercase;font-weight:400}
+.lay-b .pg-ctarow .btn,.lay-c .pg-ctarow .btn{border-radius:6px;
+  font-family:var(--roboto-cond,"Roboto Condensed");text-transform:uppercase;
+  font-weight:700;letter-spacing:.06em}
+/* lay-b grounds: black (pinned) / white / off-white alternation */
+.lay-b .pgband.slate,.lay-b .pgband.slate.alt{background:#EEF1F5;border-bottom-color:#D6DCE5}
+.lay-b .pgband.white:nth-of-type(even){background:#EEF1F5}
+/* lay-b motion: MASK reveal (bottom-up clip) replaces the rise */
+.js-rev .lay-b [data-rev]{transform:scale(.985);opacity:0;
+  clip-path:inset(100% 0 0 0);
+  transition:opacity .9s cubic-bezier(.2,.7,.2,1),
+    clip-path 1s cubic-bezier(.2,.7,.2,1),transform 1s cubic-bezier(.2,.7,.2,1)}
+.js-rev .lay-b [data-rev].in{opacity:1;transform:none;clip-path:inset(0 0 0 0)}
+/* lay-c: spec sheet — off ground, ruled mast, label-grid rows, left wipes */
+.lay-c .pgband.white,.lay-c .pgband.slate,.lay-c .pgband.slate.alt{
+  background:#EEF1F5;border-bottom-color:#D6DCE5}
+.lay-c .pg-hero{border-bottom:2px solid #0F1419}
+.lay-c .pg-walk-step{display:grid;grid-template-columns:230px 1fr;gap:14px 48px;
+  padding:44px 0;border-bottom:1px solid #D6DCE5;align-items:start}
+.lay-c .pg-walk-step .pg-walk-num{font-family:var(--mono);font-size:11px;
+  letter-spacing:.18em;grid-column:1}
+.lay-c .pg-walk-step h2{grid-column:1;font-size:17px;letter-spacing:.03em;margin:0}
+.lay-c .pg-walk-step p{grid-column:2;grid-row:1 / span 2;margin:0}
+@media(max-width:900px){.lay-c .pg-walk-step{grid-template-columns:1fr}
+  .lay-c .pg-walk-step p{grid-column:1;grid-row:auto}}
+.lay-c .pg-comparison th{font-family:var(--roboto-cond,"Roboto Condensed");
+  text-transform:uppercase;font-weight:600;font-size:12px;letter-spacing:.06em}
+.js-rev .lay-c [data-rev]{transform:none;opacity:0;clip-path:inset(0 100% 0 0);
+  transition:opacity .7s ease,clip-path .95s cubic-bezier(.2,.7,.2,1)}
+.js-rev .lay-c [data-rev].in{opacity:1;clip-path:inset(0 0 0 0)}
 /* Two-colour law: every accent on the slate grounds is black (owner:
    "change the text to black"). */
 .lp26 .off .n,.lp26 .off .m,.lp26 .light .n,.lp26 .light .m,

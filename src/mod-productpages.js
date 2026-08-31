@@ -35,8 +35,25 @@
       (o.aside || "") + "</div></section>";
   }
 
+  /* Layout assignment (owner 2026-08-31): every product page renders in ONE of
+     two pasted layout systems — lay-b "full-bleed bands · mask reveal" or
+     lay-c "spec sheet · labels wipe from left" — at a 61/39 split. This is a
+     CSS-scoped reskin (see the .lay-b/.lay-c blocks in the host): the class
+     changes paint, type and motion, never structure or copy, so the slop
+     audit's rhythm/recipe/word contracts hold unchanged. */
+  var LAYOUT = {
+    "what-is": "lay-b", "search": "lay-b", "map-search": "lay-b",
+    "instant-booking": "lay-b", "messaging": "lay-b", "athlete-progress": "lay-b",
+    "scheduling": "lay-b", "roster": "lay-b", "session-notes": "lay-b",
+    "enterprise": "lay-b", "enterprise-roster": "lay-b",
+    "background-checks": "lay-c", "payments": "lay-c", "bookings-receipts": "lay-c",
+    "media-consent": "lay-c", "insights": "lay-c",
+    "enterprise-finance": "lay-c", "enterprise-compliance": "lay-c"
+  };
+
   function wrap(id, recipe, composition, rhythm, body) {
-    return "<div class='pgroot pg-" + id + " rebuild-page' data-product-page='true' data-page-id='" +
+    return "<div class='pgroot pg-" + id + " rebuild-page " + (LAYOUT[id] || "lay-b") +
+      "' data-product-page='true' data-page-id='" +
       id + "' data-recipe='" + recipe + "' data-composition='" + composition +
       "' data-rhythm='" + rhythm + "'>" + body + "</div>";
   }
