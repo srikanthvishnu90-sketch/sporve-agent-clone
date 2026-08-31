@@ -14191,8 +14191,11 @@ function render(){
     if(r.name==="info") body=infoHTML(r.arg||"help");
     else body=coachHTML();
   }
-  else if(r.name==="start") body=startHTML();
-  else if(r.name==="home") body=landingHTML();
+  /* "start" retired as a surface (owner 2026-08-30): route/portal PERSIST in
+     sessionStorage (GUEST_KEEP), so any tab that ever visited the old minimal
+     start page restored it forever and the new landing looked "uneditable".
+     A restored/legacy start route now renders the landing. */
+  else if(r.name==="start"||r.name==="home") body=landingHTML();
   /* PART 1/3 — the two new nav destinations */
   else if(r.name==="coachinfo") body=coachLandingHTML();
   else if(r.name==="pricing") body=pricingHTML();
