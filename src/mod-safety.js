@@ -419,6 +419,7 @@
          states are exactly what a card is for, and the host's
          `.band.dark .prodcard` rules already invert their type correctly. */
     return `${sub}
+    <div class="lay-c sf-lay">
     <section class="band alt sf-hero">
       <div class="shell" data-rev>
         <p class="eyebrow">Trust &amp; safety</p>
@@ -519,7 +520,7 @@
                   "No privacy requests.", "Your privacy requests")}
         </div>
       </div>
-    </section>`;
+    </section></div>`;
   }
 
   /* ═══════════════════ WIRING ═══════════════════ */

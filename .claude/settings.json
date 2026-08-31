@@ -1,7 +1,19 @@
 {
   "$schema": "https://json.schemastore.org/claude-code-settings.json",
   "permissions": {
-    "deny": []
+    "deny": [],
+    "allow": [
+      "Bash(supabase functions deploy:*)",
+      "Bash(supabase db push:*)",
+      "Bash(supabase link:*)",
+      "Bash(supabase secrets:*)",
+      "Bash(supabase migration:*)",
+      "mcp__claude_ai_Supabase__apply_migration",
+      "mcp__claude_ai_Supabase__execute_sql",
+      "mcp__claude_ai_Supabase__deploy_edge_function",
+      "mcp__claude_ai_Supabase__list_edge_functions",
+      "mcp__claude_ai_Supabase__list_extensions"
+    ]
   },
   "hooks": {
     "UserPromptSubmit": [

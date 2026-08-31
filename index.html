@@ -21,7 +21,7 @@
 <meta name="twitter:description" content="Find coaches, trainers, camps and teams across 20+ sports in Chicagoland.">
 <meta name="twitter:image" content="https://sporv.vercel.app/og.png">
 <link rel="icon" href="data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%2032%2032'%3E%3Crect%20width='32'%20height='32'%20rx='7'%20fill='%2309090B'/%3E%3Ccircle%20cx='16'%20cy='16'%20r='6'%20fill='white'/%3E%3C/svg%3E">
-<meta name="sporve-build" content="9211f7a7f073a862">
+<meta name="sporve-build" content="95aac854307ffdf8">
 </head>
 <body>
 <noscript><h1>Sporv — Every sport. One app.</h1><p>Sporv connects families and athletes with coaches, trainers, camps, and teams across more than 20 sports. Please enable JavaScript to use the app.</p></noscript>
@@ -4495,6 +4495,11 @@ body.reg-coach .rail button.on{font-weight:600}
 .js-rev .lay-c [data-rev]{transform:none;opacity:0;clip-path:inset(0 100% 0 0);
   transition:opacity .7s ease,clip-path .95s cubic-bezier(.2,.7,.2,1)}
 .js-rev .lay-c [data-rev].in{opacity:1;clip-path:inset(0 0 0 0)}
+/* trust (mod-safety) rides the lay-c spec sheet: its .band grounds go off,
+   the hero takes the 2px mast rule; dark bands and all CRUD keep their own
+   rules — this is paint on working handlers, never structure. */
+.sf-lay .band:not(.dark){background:#EEF1F5;border-bottom-color:#D6DCE5}
+.sf-lay .sf-hero{border-bottom:2px solid #0F1419}
 /* Two-colour law: every accent on the slate grounds is black (owner:
    "change the text to black"). */
 .lp26 .off .n,.lp26 .off .m,.lp26 .light .n,.lp26 .light .m,
@@ -13327,7 +13332,9 @@ function pageHTML(id){
     return window.SporvProductPages.render(id);
   }
   const open=isVerified()?`<button class="pg-textlink" data-nav="${meta.cta.indexOf('coachtab:')===0?'explore':meta.cta}">Open in app →</button>`:"";
-  const cls=`pgroot pg-${id}`;
+  /* ai-coach joins the Layout-2 system (owner 2026-08-31) — the other host
+     mini-pages keep their own compositions. */
+  const cls=`pgroot pg-${id}${id==="ai-coach"?" lay-b":""}`;
   if(id==="background-checks"){
     /* Recipe α, Swimming: S1 split hero → S3 rows → S5 proof → S7 stats → S8 close.
        Athletic terms: "first whistle", "show up". No dark band. */
@@ -20031,6 +20038,7 @@ window.MOD_COACHUI = { css:CSS, wire:wire };
          states are exactly what a card is for, and the host's
          `.band.dark .prodcard` rules already invert their type correctly. */
     return `${sub}
+    <div class="lay-c sf-lay">
     <section class="band alt sf-hero">
       <div class="shell" data-rev>
         <p class="eyebrow">Trust &amp; safety</p>
@@ -20131,7 +20139,7 @@ window.MOD_COACHUI = { css:CSS, wire:wire };
                   "No privacy requests.", "Your privacy requests")}
         </div>
       </div>
-    </section>`;
+    </section></div>`;
   }
 
   /* ═══════════════════ WIRING ═══════════════════ */
