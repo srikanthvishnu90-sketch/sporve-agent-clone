@@ -264,7 +264,7 @@ else:
 # A finished <head> (100-point #88): real title, description, Open Graph +
 # Twitter cards, theme-color, and a self-contained SVG favicon (no external
 # host, so the CSP + single-file constraints still hold).
-_OG = "https://the-sporve-web.vercel.app/og.png"
+_OG = "https://sporv.vercel.app/og.png"
 _FAVICON = ("data:image/svg+xml,"
     "%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%2032%2032'%3E"
     "%3Crect%20width='32'%20height='32'%20rx='7'%20fill='%2309090B'/%3E"
@@ -284,7 +284,7 @@ STANDALONE = (
     '<meta property="og:site_name" content="Sporv">\n'
     '<meta property="og:title" content="Sporv — Every sport. One app.">\n'
     '<meta property="og:description" content="Find coaches, trainers, camps and teams across 20+ sports in Chicagoland.">\n'
-    '<meta property="og:url" content="https://the-sporve-web.vercel.app/">\n'
+    '<meta property="og:url" content="https://sporv.vercel.app/">\n'
     f'<meta property="og:image" content="{_OG}">\n'
     '<meta property="og:image:width" content="1200">\n'
     '<meta property="og:image:height" content="630">\n'

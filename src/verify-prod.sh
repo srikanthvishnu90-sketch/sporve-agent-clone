@@ -13,7 +13,7 @@
 set -uo pipefail
 cd "$(dirname "$0")/.." || exit 2
 
-URL="${1:-https://the-sporve-web.vercel.app}"
+URL="${1:-https://sporv.vercel.app}"
 FAIL=0
 pass(){ printf "  \033[32mPASS\033[0m  %s\n" "$1"; }
 fail(){ printf "  \033[31mFAIL\033[0m  %s\n" "$1"; FAIL=1; }

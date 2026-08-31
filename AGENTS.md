@@ -116,7 +116,7 @@ local diff or passing test alone. After verification:
 2. Push the current `main` commit to `origin/main` on GitHub.
 3. Wait for that commit's Vercel production deployment for project
    `the-sporve-web` to finish successfully.
-4. Verify `https://the-sporve-web.vercel.app` using a source marker, response
+4. Verify `https://sporv.vercel.app` using a source marker, response
    size comparison, or live DOM assertion. Do not search served HTML for text
    produced at runtime by a template literal.
 5. Record the commit SHA, deployment result, verification method, and live URL

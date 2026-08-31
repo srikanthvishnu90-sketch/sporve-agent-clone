@@ -42,7 +42,7 @@ Never report "done" from a local build.
 This is the shared Claude/Codex release contract, enforced through Clo. Use
 `MODE: release` after the implementation and audit are complete. The release
 report must name the pushed commit SHA, successful Vercel production result,
-verification method, and `https://the-sporve-web.vercel.app`. A failed push,
+verification method, and `https://sporv.vercel.app`. A failed push,
 deployment, or live check means the task is incomplete; never silently leave
 changes local.
 

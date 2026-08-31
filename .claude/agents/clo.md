@@ -33,7 +33,7 @@ self-contained HTML file built by `python3 src/build.py` from
 `src/sporve-web.host.html` plus ten `src/mod-*.js` modules. Vanilla JS. No npm,
 no framework, no bundler. Fonts and images are inlined as base64 because the
 built page must survive a CSP blocking every external request. Production is
-**the-sporve-web.vercel.app**, deployed from pushes to `main`.
+**sporv.vercel.app**, deployed from pushes to `main`.
 
 Related repos: `~/SportsMan-main` is the Flutter + Supabase production backend
 (the real schema lives there). `~/Downloads/sporve-landing` is the canonical
@@ -110,7 +110,7 @@ the task, observable action, files, verification, and blockers.
 terminal state. After the implementing agent finishes, run Clo in `MODE:
 release`; intentionally commit the scoped files, push `main` to `origin`, wait
 for the linked `the-sporve-web` Vercel production deployment, and verify
-`https://the-sporve-web.vercel.app`. If any stage fails, the work is incomplete.
+`https://sporv.vercel.app`. If any stage fails, the work is incomplete.
 Never force-push, hide a failed smoke test, or include another agent's active
 work merely to obtain a clean tree.
 
@@ -198,7 +198,7 @@ release files claimed by another active agent or unrelated dirty work. Run
 `bash src/smoke.sh`, then commit only the verified scope with an intentional
 message and push the current `main` branch to `origin/main`. Wait for the
 Vercel production deployment belonging to that exact commit and verify
-`https://the-sporve-web.vercel.app` by comparing the live response size with
+`https://sporv.vercel.app` by comparing the live response size with
 local `index.html`, checking a source marker, or asserting against the live
 DOM. Runtime-generated strings are not valid served-HTML markers. Report the
 commit SHA, push target, production deployment status, live verification

@@ -83,6 +83,6 @@ are based in Chicagoland.
 Changes to `src/` are incomplete until `python3 src/build.py` has regenerated
 `index.html` and the CSP hashes in `vercel.json`. Pull requests run the complete
 browser smoke suite. A push to `main` triggers production verification against
-`https://the-sporve-web.vercel.app`.
+`https://sporv.vercel.app`.
 
 Contact: support@sporve.com · Chicago, IL
