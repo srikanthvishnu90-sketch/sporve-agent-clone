@@ -21,7 +21,7 @@
 <meta name="twitter:description" content="Find coaches, trainers, camps and teams across 20+ sports in Chicagoland.">
 <meta name="twitter:image" content="https://sporv.vercel.app/og.png">
 <link rel="icon" href="data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%2032%2032'%3E%3Crect%20width='32'%20height='32'%20rx='7'%20fill='%2309090B'/%3E%3Ccircle%20cx='16'%20cy='16'%20r='6'%20fill='white'/%3E%3C/svg%3E">
-<meta name="sporve-build" content="bb758d2d6a5330b3">
+<meta name="sporve-build" content="9211f7a7f073a862">
 </head>
 <body>
 <noscript><h1>Sporv — Every sport. One app.</h1><p>Sporv connects families and athletes with coaches, trainers, camps, and teams across more than 20 sports. Please enable JavaScript to use the app.</p></noscript>
@@ -8072,7 +8072,7 @@ function pricingHTML(){
      `Automatic payout of the full amount — Sporv takes ${FEE_PCT}% of bookings. You keep every dollar families pay.`],
     ["Running the season, as a coach",
      "Spreadsheets, screenshots, a shoebox of notes.",
-     "Roster, schedule, session notes and messages in one place. Free to start; Pro is $34.99 a month."],
+     "Roster, schedule, session notes and messages in one place — no monthly fee."],
   ];
   return `<main class="shell">
     ${/* C4, tell 9: the top-level answer to "what does this cost" was set one
@@ -8082,8 +8082,10 @@ function pricingHTML(){
          single constant checkout charges; it is never retyped as prose. */""}
     <div class="pr-head">
       <p class="eyebrow">Pricing</p>
-      <h1 class="display">Pick the plan that fits your stage.</h1>
-      <p class="lede">Sporv takes ${FEE_PCT}% of bookings — families pay the coach's listed price.<br>Start free, upgrade when it grows.</p>
+      <h1 class="display">2.9% + 30¢. No monthly fee.</h1>
+      <p class="lede">That's card processing on your club's own Stripe account — the club is the
+        merchant of record, and Sporv adds ${FEE_PCT}% on top.<br>If a season doesn't get
+        billed, you don't pay anything.</p>
     </div>
     ${/* OLD DESIGN RESTORED (owner 2026-08-23) — the motion.dev serif-card grid
          (PR #211), re-expanded from three cards to FOUR plan types at the owner's
@@ -8094,45 +8096,12 @@ function pricingHTML(){
          marker (honesty law). Prices are the shipped monthly config constants;
          the fifth shipped tier ("Max", $249.99) is folded into Enterprise here to
          hit the requested four — its data still lives in the plans config. */""}
-    ${(()=>{
-      const CK=`<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6L9 17l-5-5"/></svg>`;
-      const CARDS=[
-        {id:"free",name:"Free",price:"$0",per:"",
-         desc:"For a coach just getting started.",
-         feats:["Browse checked coaches, free","List your services, no fee","Verified badge — one-time add-on to reach parents · planned","3 AI actions a month","0% taken from bookings"],
-         cta:"Start free"},
-        {id:"pro",name:"Pro",price:"$34.99",per:"/mo",rec:true,
-         desc:"For a private trainer or solo coach.",
-         feats:["Verified badge — background check included · planned","Unlimited AI actions — drafts, recaps & parent updates","Roster, schedule, session notes & messaging","Automatic payouts","Up to 3 seats","0% taken from bookings"],
-         cta:"Start coaching"},
-        {id:"grow",name:"Grow",price:"$99.99",per:"/mo",
-         desc:"For a growing training business.",
-         feats:["5× AI usage — recaps, progress reports & campaigns","Up to 10 staff seats with roles","Group sessions, camps & clinic pages · planned","Retention & revenue analytics · planned","0% taken from bookings"],
-         cta:"Talk to us"},
-        {id:"enterprise",name:"Enterprise",price:"Custom",per:"",dev:true,
-         desc:"For a club, AAU team, or academy.",
-         feats:["Unlimited coach & staff seats","Roles & granular permissions","Per-staff background-check gating","Compliance dashboard — certs & waivers","Consolidated org billing · planned"],
-         cta:"Talk to team"},
-      ];
-      const feat=f=>{const i=f.indexOf(" · planned");return i<0?esc(f):esc(f.slice(0,i))+`<em class="pt-planned"> · planned</em>`;};
-      return `<section class="pp-plans" aria-label="Plans">${CARDS.map(t=>{
-        const rec=!!t.rec;
-        return `<div class="pp-card${rec?" pp-rec":""}">
-          ${rec?`<span class="pp-badge">Recommended</span>`:""}
-          <h3 class="pp-name">${esc(t.name)}</h3>
-          <div class="pp-price"><b>${esc(t.price)}</b>${t.per?`<span>${esc(t.per)}</span>`:""}</div>
-          <p class="pp-desc">${esc(t.desc)}</p>
-          <ul class="pp-feats">${t.feats.map(f=>`<li>${CK}<span>${feat(f)}</span></li>`).join("")}</ul>
-          <button class="${rec?"btn pp-cta":"pp-cta pp-cta-alt"}" data-planbuy="${t.id}">${esc(t.cta)}</button>
-          ${t.dev?`<p class="pp-dev">In development — early access only</p>`:""}
-        </div>`;
-      }).join("")}</section>`;
-    })()}
     <div class="pr-stats" role="list">
-      <div role="listitem"><b class="num">${FEE_PCT}%</b><span>of a booking taken by Sporv — coaches keep 100%</span></div>
-      <div role="listitem"><b class="num">$34.99</b><span>a month for Pro — unlimited AI, up to 3 people</span></div>
-      <div role="listitem"><b class="num">$0</b><span>to join, list, browse, and message — the Free plan is real</span></div>
+      <div role="listitem"><b class="num">2.9% + 30¢</b><span>per card transaction — standard processing on your club's own Stripe account</span></div>
+      <div role="listitem"><b class="num">${FEE_PCT}%</b><span>added by Sporv — coaches and clubs keep 100% of what families pay</span></div>
+      <div role="listitem"><b class="num">$0</b><span>monthly — no seat count, no per-team price, no annual contract</span></div>
     </div>
+
     <div class="cmp-wrap">
       <table class="cmp" aria-label="What Sporv costs, compared">
         <thead><tr><th>The job</th><th>Elsewhere</th><th>On Sporv</th></tr></thead>
@@ -8140,11 +8109,12 @@ function pricingHTML(){
       </table>
     </div>
     <p class="cmp-fine">Joining, listing, browsing and messaging are free on both sides.
-      Pro is the one self-serve plan today ($34.99 a month); Grow and
-      Enterprise are set up by our team. No plan takes a percentage of a booking.</p>
+      The 2.9% + 30¢ is Stripe's standard card-processing rate, charged on your
+      club's own account — Sporv adds ${FEE_PCT}% and takes no seat, team, or
+      monthly fee.</p>
     <div class="cmp-ctas">
-      <button class="btn" data-becomecoach="1">Become a coach</button>
-      <button class="btn ghost" data-nav="explore">Find a coach</button>
+      <a class="btn" href="mailto:hello@sporv.com?subject=Sporv%20setup%20call">Book a 15-minute setup call</a>
+      <button class="btn ghost" data-becomecoach="1">Get started</button>
     </div>
   </main>`;
 }
@@ -11441,6 +11411,29 @@ function obligationQueue(){
      sourceKind:"agent",sourceRef:"weekend sweep"},
   ];
   return S.obligations;
+}
+/* LIVE queue (2026-08-31): a signed-in coach with a real provider row reads
+   the obligations TABLE (000200) — filled nightly by generate_dues_obligations
+   (000400) — instead of the guest demo seeds. Real rows replace the demo
+   wholesale: for a real club an empty queue is the truth, not a reason to
+   show fiction. Guests/preview keep the demo. */
+function loadLiveObligations(){
+  const pv=S.coachProvider;
+  if(S.obligLoading||S.obligLive) return;
+  if(!(pv&&pv.id&&window.SporveAPI&&window.SporveAPI.isSignedIn&&window.SporveAPI.isSignedIn())) return;
+  S.obligLoading=true;
+  window.SporveAPI.from("obligations",
+    "select=id,kind,status,title,detail,amount_cents,source_kind,source_ref,due_at"+
+    "&provider_id=eq."+pv.id+"&status=neq.void&order=created_at.desc&limit=50")
+    .then(rows=>{
+      if(!Array.isArray(rows)) return;
+      S.obligations=rows.map(r=>({id:r.id,kind:r.kind,status:r.status,
+        title:r.title,detail:r.detail||"",sourceKind:r.source_kind,
+        sourceRef:r.source_ref||"",live:true}));
+      S.obligLive=true;render();
+    })
+    .catch(()=>{/* table not applied yet or offline: demo stands, honestly labelled */})
+    .finally(()=>{S.obligLoading=false;});
 }
 /* Demo parser for step 5 ("unstructured input is a native input type"). A
    forwarded email/text is pasted; heuristics turn it into DRAFT obligations.
@@ -15164,14 +15157,24 @@ document.querySelectorAll('.sig-ai-coach').forEach(sigAiCoachWire);
   /* Review-queue (obligations) handlers — draft -> approved -> done, undoable.
      Demo store S.obligations; real drafts arrive from the ingest/agent backend.
      Approving/finishing sends or charges nothing here — it advances the row. */
+  if(S.portal==="coach"&&S.coachTab==="queue") loadLiveObligations();
   const obligBy=id=>obligationQueue().find(o=>o.id===id);
+  /* Live rows PATCH the obligations table; the 000200 lifecycle trigger is the
+     authority (draft→approved→done, void from any non-done). The local update
+     is optimistic; a trigger rejection would surface on the next load. */
+  const obligPatch=(o,status)=>{if(o.live&&window.SporveAPI)
+    window.SporveAPI.from("obligations","id=eq."+o.id,{method:"PATCH",body:{status:status}}).catch(()=>{});};
   $("[data-oblig-approve]").forEach(b=>b.onclick=()=>{const o=obligBy(b.dataset.obligApprove);
-    if(o){o.status="approved";render();toast("Approved. It moves out of your queue — nothing was sent or charged.");}});
+    if(o){o.status="approved";obligPatch(o,"approved");render();toast("Approved. It moves out of your queue — nothing was sent or charged.");}});
   $("[data-oblig-dismiss]").forEach(b=>b.onclick=()=>{
-    S.obligations=obligationQueue().filter(o=>o.id!==b.dataset.obligDismiss);render();toast("Dismissed.");});
+    const o=obligBy(b.dataset.obligDismiss);
+    if(o&&o.live){o.status="void";obligPatch(o,"void");
+      S.obligations=obligationQueue().filter(x=>x.id!==o.id);render();toast("Dismissed (voided on the record).");return;}
+    S.obligations=obligationQueue().filter(x=>x.id!==b.dataset.obligDismiss);render();toast("Dismissed.");});
   $("[data-oblig-done]").forEach(b=>b.onclick=()=>{const o=obligBy(b.dataset.obligDone);
-    if(o){o.status="done";render();toast("Marked done.");}});
+    if(o){o.status="done";obligPatch(o,"done");render();toast("Marked done.");}});
   $("[data-oblig-undo]").forEach(b=>b.onclick=()=>{const o=obligBy(b.dataset.obligUndo);
+    if(o&&o.live){toast("A live approval can't move backwards — Dismiss voids it instead (the record keeps its history).");return;}
     if(o){o.status="draft";render();toast("Back in your queue.");}});
   $("[data-oblig-parse]").forEach(b=>b.onclick=()=>{
     const el=document.getElementById("obligIn");const v=(el&&el.value||"").trim();

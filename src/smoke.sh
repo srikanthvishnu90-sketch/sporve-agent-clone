@@ -1278,7 +1278,7 @@ hardcoded=$(grep -nE "\*\s*0\.12\b" src/sporve-web.host.html src/mod-*.js 2>/dev
 # as 100, not a phantom "00".
 feep=$($B js "
 (()=>{const pcts=new Set();
- const scan=()=>{const t=document.getElementById('app').innerText;const re=/(?<!\d)(\d{1,3})%/g;let m;
+ const scan=()=>{const t=document.getElementById('app').innerText;const re=/(?<![\d.])(\d{1,3}(?:\.\d)?)%/g;let m;
    while((m=re.exec(t))){const c=t.slice(Math.max(0,m.index-45),m.index+30).toLowerCase();
      if(c.includes('fee')||c.includes('sporve')||c.includes('booking'))pcts.add(m[1])}};
  S.auth={status:'verified'};S.portal='family';
@@ -1290,7 +1290,11 @@ feep=$($B js "
  const a=[...pcts];
  if(typeof FEE_PCT==='undefined')return 'NOFEECONST';
  if(!a.length)return 'NONE';
- const ok=a.every(p=>p===String(FEE_PCT)||p==='100');
+ /* '2.9' allowed 2026-08-31 (owner): the pricing page states Stripe's
+    card-processing pass-through under Standard direct charges — a rate the
+    club pays its own processor, not a Sporv fee. FEE_PCT stays the only
+    Sporv rate. */
+ const ok=a.every(p=>p===String(FEE_PCT)||p==='100'||p==='2.9');
  return ok?'OK:'+a.sort().join('+'):'MIXED:'+a.join(',')})()" 2>/dev/null | tr -d '\"\r')
 case "$feep" in
   OK:*)        pass "fee: rendered rates are exactly {${feep#OK:}} — FEE_PCT and the 100% coaches keep" ;;
