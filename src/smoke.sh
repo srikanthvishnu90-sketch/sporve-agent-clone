@@ -1728,6 +1728,7 @@ document.querySelectorAll('body *').forEach(el=>{if(!el.offsetParent)return;
  if(s>=21&&s<=27)return;    // --text-xl clamp
  if(s>=24&&s<=32)return;    // --text-2xl clamp
  if(s>=32&&s<=61)return;    // --text-hero clamp 56 + landing hero --text-hero-lp ceiling 61 (Roboto Condensed, owner 2026-08-23)
+ if(s>=52&&s<=104&&el.closest('.lp26 .price'))return; // paste-verbatim pricing figure clamp(52,8.5vw,104) (owner 2026-08-30 B2B v3)
  bad.add(s)});
 return bad.size?[...bad].join(','):'CLEAN'})()" 2>/dev/null)
 [ "${off//\"/}" = "CLEAN" ] && pass "every rendered size is on the 8-step scale" \

@@ -628,13 +628,13 @@ img{max-width:100%;display:block}
 /* §4 CTA — the white pill on the black bar. White, not accent, so it does not
    spend the page's orange budget. */
 .navcta{
-  /* Rectangular bordered CTA (owner 2026-08-30, "same design as the Book a
-     call button"): 6px radius, hairline border, transparent ground; hover
-     inverts to white. Current fonts kept — only the shape/fill changed from
-     the slate pill (owner 2026-08-24, superseded). */
+  /* SLATE rectangular CTA (owner 2026-08-30 v3: "make the get started button
+     on the top right slate"): the exact reference slate #7692AE fill, white
+     text, 6px radius. White-on-#7692AE is the owner-accepted brand exception
+     already counted in smoke's family contrast baseline of 4. */
   display:inline-flex;align-items:center;height:34px;padding:0 14px;
-  border-radius:6px;background:transparent;color:#CBD4DE;
-  border:1px solid #2A333C;
+  border-radius:6px;background:#7692AE;color:#FFFFFF;
+  border:1px solid #7692AE;
   font-family:var(--nav-face);font-weight:600;font-size:var(--t-body);white-space:nowrap;
   transition:background .18s,color .18s,border-color .18s;
 }
@@ -4313,73 +4313,98 @@ body.reg-coach .rail button.on{font-weight:600}
 .start-btn:hover{background:#fff;transform:translateY(-1px)}
 .start-btn:focus-visible{outline:2px solid #fff;outline-offset:3px}
 
-/* ═══ B2B chapter (landing, owner spec 2026-08-30) — tokens only ═══════════
-   Queue preview, numbered rows, who-for trio, switching files, pricing.
-   Dark-band internals use the house dark literals (#1C222B hairline family);
-   light bands ride --rule/--raise. All type on the token scale. */
-.b2q{margin-top:34px;border:1px solid var(--rule-strong);border-radius:10px;overflow:hidden;
-  background:var(--paper);text-align:left}
-.b2q-h{display:flex;align-items:center;gap:14px;padding:12px 16px;background:var(--raise2);
-  border-bottom:1px solid var(--rule-strong)}
-.b2q-t{font-family:var(--display);text-transform:uppercase;font-weight:700;
-  font-size:var(--text-md);letter-spacing:.05em}
-.b2q-c{font-size:var(--text-sm);color:var(--muted)}
-.b2q-b{margin-left:auto;display:flex;gap:8px}
-.b2q-b span{font-family:var(--display);text-transform:uppercase;font-weight:700;
-  font-size:var(--text-sm);letter-spacing:.06em;padding:7px 12px;
-  border:1px solid var(--rule-strong);border-radius:6px;color:var(--muted)}
-.b2q-b span.p{background:var(--ink);color:var(--paper);border-color:var(--ink)}
-.b2q-r{display:grid;grid-template-columns:150px 1fr 80px 86px;gap:16px;padding:12px 16px;
-  border-bottom:1px solid var(--rule);align-items:center;font-size:var(--text-base)}
-.b2q-r:last-of-type{border-bottom:0}
-.b2q-nm{font-weight:600;color:var(--ink-2)}
-.b2q-nm small{display:block;color:var(--muted);font-size:var(--text-sm);font-weight:400}
-.b2q-msg{color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.b2q-amt{text-align:right}
-.b2q-st{font-family:var(--display);text-transform:uppercase;font-weight:700;
-  font-size:var(--text-xs);letter-spacing:.07em;text-align:right;
-  color:#1D7A50}  /* --good is 3.35:1 on white; this deep green is 5.3:1 */
-.b2q-st.hold{color:var(--warn)}
-.b2q-f{padding:11px 16px;color:var(--muted);font-size:var(--text-sm);
-  border-top:1px solid var(--rule);background:var(--raise2)}
-.b2fine{margin-top:12px;font-size:var(--text-sm);color:var(--faint)}
-@media(max-width:860px){
-  .b2q-r{grid-template-columns:1fr 86px;gap:8px}
-  .b2q-msg,.b2q-amt{display:none}
-  .b2q-b span:not(.p){display:none}
+/* ═══ B2B landing chapter v3 (owner 2026-08-30, "copy this html") ═════════
+   The paste's stylesheet VERBATIM, scoped under .lp26 so its .band/.k/.btn
+   cannot leak into the rest of the app. Faces are the embedded Roboto
+   Condensed / Inter / JetBrains Mono — the paste's exact trio, no network
+   fonts. One deliberate deviation: --w-2 alpha .42→.55 so fine print clears
+   the 4.5:1 contrast gate; visually near-identical on black. Reveals ride the
+   existing data-rev observer instead of the paste's own IntersectionObserver. */
+.lp26{
+  --black:#0B0D0F;--slate-900:#161C22;--slate-800:#1D242B;--slate-700:#2A333C;
+  --slate-300:#AEBAC7;--slate-200:#CBD4DE;--slate-50:#EEF1F5;
+  --white:#fff;--steel:#6B7F9E;--steel-l:#9DB0CB;--sand:#C9A227;--ok:#7FA98C;
+  --w-1:rgba(226,233,241,.70);--w-2:rgba(226,233,241,.55);--w-line:rgba(174,186,199,.18);
+  --b-1:#4D5966;--b-line:#D6DCE5;
+  font-family:Inter,system-ui,sans-serif;font-size:16px;line-height:1.6;
 }
-.b2lines{border-top:1px solid var(--rule-strong);margin-top:30px}
-.b2row{display:grid;grid-template-columns:44px 1fr;gap:20px;padding:22px 0;
-  border-bottom:1px solid var(--rule);align-items:baseline}
-.b2n{font-size:var(--text-sm);color:var(--muted)}
-.b2row h3{margin:0 0 6px}
-@media(max-width:600px){.b2row{grid-template-columns:1fr;gap:6px}}
-.b2who{display:grid;grid-template-columns:repeat(3,1fr);border-top:1px solid var(--rule-strong);margin-top:30px}
-.b2who>div{padding:26px 26px 26px 0;border-right:1px solid var(--rule)}
-.b2who>div:last-child{border-right:0}
-.b2who h3{margin:0 0 8px}
-.b2m{margin-top:14px;padding-top:11px;border-top:1px solid var(--rule);
-  font-size:var(--text-sm);color:var(--muted)}
-@media(max-width:820px){.b2who{grid-template-columns:1fr}
-  .b2who>div{border-right:0;border-bottom:1px solid var(--rule);padding-right:0}}
-.band.dark .b2who>div,.band.dark .b2m{border-color:#1C222B}
-.b2switch{display:grid;grid-template-columns:1.1fr 1fr;gap:52px;align-items:center}
-.b2files{border:1px solid #1C222B;border-radius:10px;background:#131519;padding:4px}
-.b2files div{display:flex;justify-content:space-between;gap:16px;padding:13px 14px;
-  font-size:var(--text-base);border-bottom:1px solid #1C222B;color:#C3CBD4}
-.b2files div:last-child{border-bottom:0}
-.b2files .s{font-size:var(--text-sm);color:#94A3B8;flex:none}
-@media(max-width:820px){.b2switch{grid-template-columns:1fr;gap:26px}}
-.b2price{display:grid;grid-template-columns:1fr 1fr;gap:52px;align-items:center}
-.b2big{font-family:var(--display);font-weight:700;font-size:clamp(52px,8.5vw,96px);
-  line-height:.9;letter-spacing:-.02em;color:#F7F9FF}
-.b2big span{font-size:.32em;letter-spacing:.02em}
-.b2no{font-family:var(--display);text-transform:uppercase;font-weight:700;
-  font-size:var(--text-md);letter-spacing:.06em;margin-top:12px;color:#94A3B8}
-@media(max-width:820px){.b2price{grid-template-columns:1fr;gap:24px}}
-.b2foot{border-top:1px solid #1C222B;margin-top:64px;padding-top:22px;
-  display:flex;justify-content:space-between;font-size:var(--text-sm);color:#8A93A3}
-@media(max-width:600px){.b2foot{flex-direction:column;gap:8px}}
+.lp26 section{position:relative;overflow:hidden;border-bottom:0}
+.lp26 .wrap{max-width:1180px;margin:0 auto;padding:0 clamp(20px,5vw,56px)}
+.lp26 .k{font-family:"JetBrains Mono",monospace;font-size:11px;letter-spacing:.18em;text-transform:uppercase}
+.lp26 h1,.lp26 h2,.lp26 h3{font-family:"Roboto Condensed",sans-serif;text-transform:uppercase;font-weight:600;margin:0;line-height:1;letter-spacing:-.005em}
+.lp26 h2{font-size:clamp(26px,3.2vw,40px)}
+.lp26 h3{font-size:17px;letter-spacing:.03em}
+.lp26 p{margin:0}
+.lp26 .dark{background:var(--black);color:#E9EDF3}
+.lp26 .dark .k{color:var(--steel-l)} .lp26 .dark p{color:var(--w-1)} .lp26 .dark .rule{border-color:var(--w-line)}
+.lp26 .dark2{background:var(--slate-900);color:#E9EDF3}
+.lp26 .dark2 .k{color:var(--steel-l)} .lp26 .dark2 p{color:var(--w-1)} .lp26 .dark2 .rule{border-color:var(--w-line)}
+.lp26 .light{background:var(--white);color:#0F1419}
+.lp26 .light .k{color:var(--steel)} .lp26 .light p{color:var(--b-1)} .lp26 .light .rule{border-color:var(--b-line)}
+.lp26 .off{background:var(--slate-50);color:#0F1419}
+.lp26 .off .k{color:var(--steel)} .lp26 .off p{color:var(--b-1)} .lp26 .off .rule{border-color:var(--b-line)}
+.lp26 .btn{display:inline-flex;align-items:center;justify-content:center;height:50px;padding:0 24px;border-radius:6px;font-family:"Roboto Condensed",sans-serif;text-transform:uppercase;font-weight:700;font-size:15px;letter-spacing:.06em;border:1px solid currentColor;transition:background .18s,color .18s;background:none;cursor:pointer}
+.lp26 .dark .btn.pri,.lp26 .dark2 .btn.pri{background:#fff;color:var(--black);border-color:#fff}
+.lp26 .dark .btn.pri:hover,.lp26 .dark2 .btn.pri:hover{background:transparent;color:#fff}
+.lp26 .herox{padding:44px 0 84px}
+.lp26 .herox .sub{max-width:54ch;font-size:19px;line-height:1.5}
+.lp26 .herox .acts{margin-top:30px}
+.lp26 .herox .fine{margin-top:14px;font-size:13px;color:var(--w-2)}
+.lp26 .queue{margin-top:54px;border:1px solid var(--w-line);border-radius:10px;overflow:hidden;background:var(--slate-900)}
+.lp26 .queue .qh{display:flex;align-items:center;gap:14px;padding:14px 18px;background:var(--slate-800);border-bottom:1px solid var(--w-line)}
+.lp26 .queue .qh .t{font-family:"Roboto Condensed",sans-serif;text-transform:uppercase;font-weight:600;font-size:14px;letter-spacing:.05em}
+.lp26 .queue .qh .c{font-family:"JetBrains Mono",monospace;font-size:12px;color:var(--slate-300)}
+.lp26 .queue .qh .b{margin-left:auto;display:flex;gap:8px}
+.lp26 .queue .qh .b span{font-family:"Roboto Condensed",sans-serif;text-transform:uppercase;font-weight:700;font-size:12px;letter-spacing:.06em;padding:8px 13px;border:1px solid var(--slate-700);border-radius:6px;color:var(--slate-300)}
+.lp26 .queue .qh .b span.p{background:#fff;color:var(--black);border-color:#fff}
+.lp26 .queue .r{display:grid;grid-template-columns:158px 1fr 90px 92px;gap:18px;padding:13px 18px;border-bottom:1px solid rgba(174,186,199,.10);align-items:center;font-size:14px}
+.lp26 .queue .r:last-of-type{border-bottom:0}
+.lp26 .queue .r .nm{font-weight:500;color:#E9EDF3}
+.lp26 .queue .r .nm small{display:block;color:var(--w-2);font-size:12px;font-weight:400}
+.lp26 .queue .r .msg{color:var(--w-1);font-size:13.5px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.lp26 .queue .r .amt{font-family:"JetBrains Mono",monospace;font-size:13px;text-align:right}
+.lp26 .queue .r .st{font-family:"Roboto Condensed",sans-serif;text-transform:uppercase;font-weight:600;font-size:11px;letter-spacing:.07em;text-align:right;color:var(--ok)}
+.lp26 .queue .r .st.hold{color:var(--sand)}
+.lp26 .queue .qf{padding:12px 18px;color:var(--w-2);font-size:12.5px;border-top:1px solid var(--w-line);background:var(--slate-800)}
+@media(max-width:860px){
+  .lp26 .queue .r{grid-template-columns:1fr 88px;gap:8px}
+  .lp26 .queue .r .msg,.lp26 .queue .r .amt{display:none}
+  .lp26 .queue .qh .b span:not(.p){display:none}
+}
+.lp26 .band{padding:clamp(72px,9vh,110px) 0}
+.lp26 .band .head{max-width:60ch;margin-bottom:40px}
+.lp26 .band .head h2{margin-bottom:14px;max-width:20ch}
+.lp26 .lines{border-top:1px solid}
+.lp26 .lines .row{display:grid;grid-template-columns:44px 1fr;gap:22px;padding:24px 0;border-bottom:1px solid;align-items:baseline}
+.lp26 .lines .n{font-family:"JetBrains Mono",monospace;font-size:12px;color:var(--steel)}
+.lp26 .lines h3{font-size:20px;font-weight:600;letter-spacing:.02em}
+@media(max-width:600px){.lp26 .lines .row{grid-template-columns:1fr;gap:6px}}
+.lp26 .who{display:grid;grid-template-columns:repeat(3,1fr);border-top:1px solid}
+.lp26 .who>div{padding:28px 28px 28px 0;border-right:1px solid}
+.lp26 .who>div:last-child{border-right:0}
+.lp26 .who h3{margin-bottom:10px}
+.lp26 .who .m{margin-top:16px;padding-top:12px;border-top:1px solid;font-family:"JetBrains Mono",monospace;font-size:12px;color:var(--steel)}
+@media(max-width:820px){.lp26 .who{grid-template-columns:1fr}.lp26 .who>div{border-right:0;border-bottom:1px solid;padding-right:0}}
+.lp26 .price{display:grid;grid-template-columns:1fr 1fr;gap:56px;align-items:center}
+.lp26 .price .big{font-family:"Roboto Condensed",sans-serif;font-weight:700;font-size:clamp(52px,8.5vw,104px);line-height:.9;letter-spacing:-.02em}
+.lp26 .price .big span{font-size:.32em;letter-spacing:.02em}
+.lp26 .price .no{font-family:"Roboto Condensed",sans-serif;text-transform:uppercase;font-weight:600;font-size:15px;letter-spacing:.06em;margin-top:12px;color:var(--steel-l)}
+@media(max-width:820px){.lp26 .price{grid-template-columns:1fr;gap:24px}}
+.lp26 .switch{display:grid;grid-template-columns:1.1fr 1fr;gap:56px;align-items:center}
+.lp26 .files{border:1px solid var(--w-line);border-radius:10px;background:var(--slate-800);padding:4px}
+.lp26 .files div{display:flex;justify-content:space-between;gap:16px;padding:14px;font-size:14px;border-bottom:1px solid rgba(174,186,199,.10)}
+.lp26 .files div:last-child{border-bottom:0}
+.lp26 .files .s{font-family:"JetBrains Mono",monospace;font-size:12px;color:var(--steel-l);flex:none}
+@media(max-width:820px){.lp26 .switch{grid-template-columns:1fr;gap:28px}}
+.lp26 .close{padding:clamp(88px,12vh,150px) 0;text-align:center}
+.lp26 .close h2{max-width:20ch;margin:0 auto 18px}
+.lp26 .close p{max-width:52ch;margin:0 auto 30px}
+.lp26 .foot{border-top:1px solid var(--w-line);padding:24px 0;display:flex;justify-content:space-between;font-size:13px;color:var(--w-2)}
+@media(max-width:600px){.lp26 .foot{flex-direction:column;gap:8px}.lp26 .btn{width:100%}}
+/* Contrast deviation #2 (documented): the paste's --steel #6B7F9E measures
+   3.60:1 on the off ground and 4.07:1 on white — under the 4.5 gate. Same
+   hue, two steps darker, only on light grounds. */
+.lp26 .off .n,.lp26 .off .m,.lp26 .light .n,.lp26 .light .m{color:#546E8C}
 
 /* ═══ Scroll-linked pinned showcase (landing only, marketing surface) ═══════
    DEFAULT (no .js-rev — reduced-motion / no-JS): three readable stacked blocks,
@@ -8318,116 +8343,98 @@ function landingHTML(){
 
   ${/* Family middle chapter (comparison table, dark rules, definition list) and the FAQ removed 2026-08-30 — owner: landing = stadium hero + the B2B chapter only. Saved verbatim in docs/archive/landing-sections-2026-08-30.md; faqSectionHTML stays defined (page:what-is still calls it). */""}
 
-  ${/* ═══ B2B CHAPTER (owner spec 2026-08-30) — clubs, camps, trainers ═══
-       Five bands adapted from the pasted static HTML into the house system:
-       tokens not hex, data-rev not a second observer, --display uppercase
-       heads (the embedded Roboto Condensed IS the paste's face). The queue
-       preview is labelled illustrative — the repo's honesty law. */""}
-  <section class="band alt">
-    <div class="shell">
-      <p class="eyebrow" data-rev>Youth sports clubs</p>
-      <h2 data-rev data-rev-d="1" style="max-width:22ch">You billed the season. You didn't collect all of it.</h2>
-      <p class="sub" data-rev data-rev-d="2" style="margin-top:12px;max-width:54ch">Rosters, dues,
-        and waivers for travel teams, camps, and private trainers. The follow-ups
-        write themselves — you press send.</p>
-      <div class="ctarow" data-rev data-rev-d="2" style="margin-top:22px;justify-content:flex-start">
-        <a class="btn" href="mailto:hello@sporv.com?subject=Sporv%20setup%20call">Book a 15-minute setup call</a>
+  ${/* ═══ B2B LANDING v3 (owner 2026-08-30, third ask): the paste COPIED, not
+       adapted — its own scoped stylesheet (.lp26), its exact copy, grounds and
+       sizes. The stadium hero above REPLACES the paste hero's headline+grid;
+       everything from the queue down is the paste verbatim. Reveals use the
+       existing data-rev observer. */""}
+  <div class="lp26">
+
+  <section class="dark herox">
+    <div class="wrap">
+      <p class="k" data-rev>Youth sports clubs</p>
+      <p class="sub" data-rev data-rev-d="1">Rosters, dues, and waivers for travel teams, camps, and private trainers. The follow-ups write themselves — you press send.</p>
+      <div class="acts" data-rev data-rev-d="2"><a class="btn pri" href="mailto:hello@sporv.com?subject=Sporv%20setup%20call">Book a 15-minute setup call</a></div>
+
+      <div class="queue" data-rev data-rev-d="2">
+        <div class="qh">
+          <span class="t">Review queue</span><span class="c">12 drafted · $4,290</span>
+          <span class="b"><span class="p">Approve all</span><span>Review each</span></span>
+        </div>
+      <div class="r"><span class="nm">Dana Reyes<small>Flight 14U</small></span><span class="msg">Hi Dana — installment 3 for Ava's season fee was due Sept 1…</span><span class="amt">$390</span><span class="st">Ready</span></div>
+      <div class="r"><span class="nm">Priya Thomas<small>Flight 14U</small></span><span class="msg">Hi Priya — quick note that installment 3 hasn't come through…</span><span class="amt">$390</span><span class="st">Ready</span></div>
+      <div class="r"><span class="nm">Sam Kowalski<small>Flight 16U</small></span><span class="msg">Hi Sam — Liam's third installment is outstanding as of today…</span><span class="amt">$425</span><span class="st">Ready</span></div>
+      <div class="r"><span class="nm">Ruth Delgado<small>Flight 12U</small></span><span class="msg">Hi Ruth — following up on the September installment…</span><span class="amt">$340</span><span class="st">Ready</span></div>
+      <div class="r"><span class="nm">Marcus Bell<small>Summer camp</small></span><span class="msg">Held — guardian disputed this charge on Aug 14</span><span class="amt">$260</span><span class="st hold">Needs you</span></div>
+      <div class="r"><span class="nm">Elena Novak<small>Flight 16U</small></span><span class="msg">Hi Elena — installment 3 for Mia's season is outstanding…</span><span class="amt">$425</span><span class="st">Ready</span></div>
+        <div class="qf">6 of 12 shown. Nothing here sends until someone approves it.</div>
       </div>
-      <div class="b2q" data-rev data-rev-d="2">
-        <div class="b2q-h"><span class="b2q-t">Review queue</span>
-          <span class="b2q-c num">12 drafted · $4,290</span>
-          <span class="b2q-b"><span class="p">Approve all</span><span>Review each</span></span></div>
-        ${[["Dana Reyes","Flight 14U","Hi Dana — installment 3 for Ava's season fee was due Sept 1…","$390","Ready",""],
-           ["Priya Thomas","Flight 14U","Hi Priya — quick note that installment 3 hasn't come through…","$390","Ready",""],
-           ["Sam Kowalski","Flight 16U","Hi Sam — Liam's third installment is outstanding as of today…","$425","Ready",""],
-           ["Ruth Delgado","Flight 12U","Hi Ruth — following up on the September installment…","$340","Ready",""],
-           ["Marcus Bell","Summer camp","Held — guardian disputed this charge on Aug 14","$260","Needs you"," hold"],
-           ["Elena Novak","Flight 16U","Hi Elena — installment 3 for Mia's season is outstanding…","$425","Ready",""]]
-          .map(r=>`<div class="b2q-r"><span class="b2q-nm">${esc(r[0])}<small>${esc(r[1])}</small></span>
-            <span class="b2q-msg">${esc(r[2])}</span><span class="b2q-amt num">${esc(r[3])}</span>
-            <span class="b2q-st${r[5]}">${esc(r[4])}</span></div>`).join("")}
-        <div class="b2q-f">6 of 12 shown. Nothing here sends until someone approves it.</div>
-      </div>
-      <p class="b2fine" data-rev data-rev-d="2">Product preview. Names and amounts are illustrative.</p>
+      <p class="fine" data-rev data-rev-d="2">Product preview. Names and amounts are illustrative.</p>
     </div>
   </section>
 
-  <section class="band alt">
-    <div class="shell">
-      <p class="eyebrow" data-rev>What it does</p>
-      <h2 data-rev data-rev-d="1">Three things, done properly.</h2>
-      <div class="b2lines">
-        ${[["01","Import your roster in ten minutes","Teams, families, guardians, and contact details, from whatever you keep them in now."],
-           ["02","Bill the season as installments, by card or bank","One charge for a camp, a payment plan for a season, per session for a trainer. Same ledger underneath."],
-           ["03","Chase what's late, with your approval on every message","The follow-ups are drafted before you log in, addressed to the right guardian with the right amount. You read the batch and send once."]]
-          .map((r,i)=>`<div class="b2row" data-rev${i?` data-rev-d="${i}"`:""}><span class="b2n num">${r[0]}</span>
-            <div><h3>${esc(r[1])}</h3><p>${esc(r[2])}</p></div></div>`).join("")}
+  <section class="off band">
+    <div class="wrap">
+      <div class="head"><p class="k" data-rev>What it does</p><h2 data-rev data-rev-d="1">Three things, done properly.</h2></div>
+      <div class="lines rule">
+        <div class="row rule" data-rev><span class="n">01</span><div><h3>Import your roster in ten minutes</h3><p style="margin-top:8px">Teams, families, guardians, and contact details, from whatever you keep them in now.</p></div></div>
+        <div class="row rule" data-rev data-rev-d="1"><span class="n">02</span><div><h3>Bill the season as installments, by card or bank</h3><p style="margin-top:8px">One charge for a camp, a payment plan for a season, per session for a trainer. Same ledger underneath.</p></div></div>
+        <div class="row rule" data-rev data-rev-d="2"><span class="n">03</span><div><h3>Chase what's late, with your approval on every message</h3><p style="margin-top:8px">The follow-ups are drafted before you log in, addressed to the right guardian with the right amount. You read the batch and send once.</p></div></div>
       </div>
     </div>
   </section>
 
-  <section class="band">
-    <div class="shell">
-      <p class="eyebrow" data-rev>Who it's for</p>
-      <h2 data-rev data-rev-d="1" style="max-width:24ch">Travel and AAU teams. Camps. Private trainers.</h2>
-      <div class="b2who">
-        ${[["Travel and AAU teams","A season fee split across installments, with families at different points in the plan.","Billing · N installments"],
-           ["Camps","A block of days with a roster cap and one charge up front.","Billing · one charge"],
-           ["Private trainers","Individual sessions billed as they happen, with a running balance per family.","Billing · per session"]]
-          .map((c,i)=>`<div data-rev${i?` data-rev-d="${i}"`:""}><h3>${esc(c[0])}</h3><p>${esc(c[1])}</p>
-            <p class="b2m num">${esc(c[2])}</p></div>`).join("")}
+  <section class="light band">
+    <div class="wrap">
+      <div class="head"><p class="k" data-rev>Who it's for</p><h2 data-rev data-rev-d="1">Travel and AAU teams. Camps. Private trainers.</h2></div>
+      <div class="who rule">
+        <div data-rev><h3>Travel and AAU teams</h3><p>A season fee split across installments, with families at different points in the plan.</p><p class="m rule">Billing · N installments</p></div>
+        <div class="rule" data-rev data-rev-d="1"><h3>Camps</h3><p>A block of days with a roster cap and one charge up front.</p><p class="m rule">Billing · one charge</p></div>
+        <div class="rule" data-rev data-rev-d="2"><h3>Private trainers</h3><p>Individual sessions billed as they happen, with a running balance per family.</p><p class="m rule">Billing · per session</p></div>
       </div>
     </div>
   </section>
 
-  <section class="band dark">
-    <div class="shell b2price">
+  <section class="dark2 band">
+    <div class="wrap price">
       <div data-rev>
-        <p class="eyebrow">Pricing</p>
-        <div class="b2big num">2.9%<span> + 30¢</span></div>
-        <div class="b2no">No monthly fee</div>
+        <p class="k">Pricing</p>
+        <div class="big">2.9%<span> + 30¢</span></div>
+        <div class="no">No monthly fee</div>
       </div>
       <div data-rev data-rev-d="1">
-        <p class="sub">A percentage of what actually flows through the platform. If a
-          season doesn't get billed, you don't pay us. No seat count, no per-team
-          price, no annual contract.</p>
-        <p class="sub" style="margin-top:16px">Most clubs are already paying more than
-          this to a processor that doesn't chase anything.</p>
+        <p>A percentage of what actually flows through the platform. If a season doesn't get billed, you don't pay us. No seat count, no per-team price, no annual contract.</p>
+        <p style="margin-top:16px">Most clubs are already paying more than this to a processor that doesn't chase anything.</p>
       </div>
     </div>
   </section>
 
-  <section class="band dark">
-    <div class="shell b2switch">
+  <section class="dark band">
+    <div class="wrap switch">
       <div data-rev>
-        <p class="eyebrow">Switching</p>
-        <h2 style="margin:14px 0 16px;max-width:20ch">Send us your export. Your roster is in before the call ends.</h2>
-        <p class="sub">SportsEngine, TeamSnap, LeagueApps, or a spreadsheet somebody
-          has maintained for four years. We do the import on the call, with you
-          watching, and you keep your current system running until you're satisfied.</p>
+        <p class="k">Switching</p>
+        <h2 style="margin:14px 0 16px">Send us your export. Your roster is in before the call ends.</h2>
+        <p>SportsEngine, TeamSnap, LeagueApps, or a spreadsheet somebody has maintained for four years. We do the import on the call, with you watching, and you keep your current system running until you're satisfied.</p>
       </div>
-      <div class="b2files" data-rev data-rev-d="1">
-        ${[["roster_fall_2026.csv","SportsEngine"],["teamsnap_members.xlsx","TeamSnap"],
-           ["Dues tracker (Sheet1)","Google Sheets"],["waivers_signed.pdf","Scanned"]]
-          .map(f=>`<div><span>${esc(f[0])}</span><span class="s num">${esc(f[1])}</span></div>`).join("")}
+      <div class="files" data-rev data-rev-d="1">
+        <div><span>roster_fall_2026.csv</span><span class="s">SportsEngine</span></div>
+        <div><span>teamsnap_members.xlsx</span><span class="s">TeamSnap</span></div>
+        <div><span>Dues tracker (Sheet1)</span><span class="s">Google Sheets</span></div>
+        <div><span>waivers_signed.pdf</span><span class="s">Scanned</span></div>
       </div>
     </div>
   </section>
 
-  <section class="band dark">
-    <div class="shell" data-rev>
-      <h2 style="max-width:18ch">Fifteen minutes, your real roster.</h2>
-      <p class="sub" style="margin-top:12px;max-width:60ch">Bring last season's export.
-        We import it on the call and show you what the queue would have caught. If it
-        isn't obviously better than what you do now, that's the end of it.</p>
-      <div class="ctarow" style="margin-top:22px;justify-content:flex-start">
-        <a class="btn" href="mailto:hello@sporv.com?subject=Sporv%20setup%20call">Book a 15-minute setup call</a>
-      </div>
-      <div class="b2foot">
-        <span>Sporv</span><span>Chicagoland · hello@sporv.com</span>
-      </div>
+  <section class="dark close">
+    <div class="wrap">
+      <h2 data-rev>Fifteen minutes, your real roster.</h2>
+      <p data-rev data-rev-d="1">Bring last season's export. We import it on the call and show you what the queue would have caught. If it isn't obviously better than what you do now, that's the end of it.</p>
+      <div data-rev data-rev-d="2"><a class="btn pri" href="mailto:hello@sporv.com?subject=Sporv%20setup%20call">Book a 15-minute setup call</a></div>
     </div>
-  </section>`;
+    <div class="wrap"><div class="foot" style="margin-top:72px"><span>Sporv</span><span>Chicagoland · hello@sporv.com</span></div></div>
+  </section>
+
+  </div>`;
 }
 
 /* The FAQ closes the page, on full black. Kept as its own function rather than
