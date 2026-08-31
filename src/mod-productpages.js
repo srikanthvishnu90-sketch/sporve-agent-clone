@@ -6,7 +6,11 @@
 
   var IDS = [
     "what-is", "background-checks",
-    "search", "map-search", "instant-booking", "messaging",
+    /* "search" and "map-search" removed (spec 01 + owner 2026-08-31: keep the
+       product pages, delete only content that doesn't relate to what we're
+       building — parent-side discovery is exactly that). Bodies archived via
+       tag pre-pivot-2026-08. */
+    "instant-booking", "messaging",
     "bookings-receipts", "athlete-progress",
     "scheduling", "payments", "roster", "session-notes",
     "media-consent", "insights",

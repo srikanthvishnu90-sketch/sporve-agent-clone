@@ -16,6 +16,8 @@ enabled = true
 enabled_tools = [
   "stripe_api_search",
   "stripe_api_details",
+  "stripe_api_read",
+  "get_stripe_account_info",
   "search_stripe_documentation",
   "stripe_implementation_planner",
 ]
@@ -30,6 +32,10 @@ enabled_tools = [
   "list_tables",
   "list_extensions",
   "list_migrations",
+  "execute_sql",
+  "query_logs",
+  "list_edge_functions",
+  "get_edge_function",
   "get_advisors",
   "get_project_url",
   "generate_typescript_types",

@@ -402,305 +402,7 @@ if curl -sI "http://127.0.0.1:$CSPPORT/index.html" | grep -qi "^content-security
   # title can never turn this build red. Structure is asserted against live
   # data; content is asserted against the seed.
 
-  # A default page load now goes live — that is the product. An ordinary
-  # visitor on the real origin must get real, bookable inventory.
-  bydefault=$($B js "window.SporveCatalog.ready.then(live=>'OK:'+live+':'+document.documentElement.getAttribute('data-catalog')+':'+PROGRAMS.length).catch(e=>'THREW:'+e.message)" 2>/dev/null | tr -d '\r')
-  case "$(printf '%s' "$bydefault" | tr -d '[:space:]')" in
-    OK:true:live:*) pass "catalog: a default load serves the live catalogue ($(printf '%s' "$bydefault" | cut -d: -f4) listings)" ;;
-    OK:false:seed:*) fail "catalog: a default load fell back to sample data — the marketplace is showing listings nobody can book" ;;
-    THREW:*)        fail "catalog: hydration threw — $bydefault" ;;
-    *)              fail "catalog: unexpected default state ($bydefault)" ;;
-  esac
-
-  # The escape hatch must keep working: ?live=0 is how you get a deterministic
-  # page for a screenshot or a side-by-side comparison.
-  $B goto "http://127.0.0.1:$CSPPORT/index.html?live=0" >/dev/null 2>&1
-  forced=$($B js "window.SporveCatalog.ready.then(live=>'OK:'+live+':'+document.documentElement.getAttribute('data-catalog')+':'+PROGRAMS.length)" 2>/dev/null | tr -d '\r')
-  case "$(printf '%s' "$forced" | tr -d '[:space:]')" in
-    OK:false:seed:30) pass "catalog: ?live=0 forces the seeded catalogue" ;;
-    *)                fail "catalog: ?live=0 did not pin the seed ($forced)" ;;
-  esac
-
-  # ?live=1 must reach production data and REPLACE the array in place. Array
-  # identity is the whole migration strategy: ten modules captured this object,
-  # so a reassignment would leave half the page reading a catalogue that no
-  # longer updates. Captured before, compared after.
-  $B goto "http://127.0.0.1:$CSPPORT/index.html?live=1" >/dev/null 2>&1
-  livecat=$($B js "(function(){var before=PROGRAMS;return window.SporveCatalog.ready.then(function(live){
-    if(!live) return 'FELLBACK:'+document.documentElement.getAttribute('data-catalog');
-    if(PROGRAMS!==before) return 'REASSIGNED';
-    if(!PROGRAMS.length) return 'EMPTY';
-    var bad=PROGRAMS.filter(function(p){return !p.id||!p.title||!p.sport||typeof p.price!=='number'||!p.biz;});
-    if(bad.length) return 'MALFORMED:'+bad.length;
-    /* Three kinds now: live rows, deliberate SAMPLE orgs (camps/teams, which
-       carry sample:true and are unbookable), and — only on fallback — seed.
-       A seed row among live rows is still split-brain; a sample row is not. */
-    if(PROGRAMS.some(function(p){return !p.live&&!p.sample;})) return 'MIXED';
-    return 'OK:'+PROGRAMS.length;
-  });})()" 2>/dev/null | tr -d '\r')
-  case "$(printf '%s' "$livecat" | tr -d '[:space:]')" in
-    OK:*)        pass "catalog: ?live=1 replaced the catalogue in place with ${livecat#*OK:} live listings" ;;
-    REASSIGNED)  fail "catalog: PROGRAMS was REASSIGNED, not mutated — every module that captured it is now stale" ;;
-    EMPTY)       fail "catalog: hydrated to an empty catalogue — the grid would render nothing" ;;
-    MALFORMED:*) fail "catalog: ${livecat#*MALFORMED:} live rows are missing a field the renderer reads" ;;
-    MIXED)       fail "catalog: seed and live rows are both present — the page has two realities" ;;
-    FELLBACK:*)  fail "catalog: ?live=1 could not reach the backend and fell back ($livecat)" ;;
-    *)           fail "catalog: live hydration returned nothing ($livecat)" ;;
-  esac
-
-  # A live listing must resolve REAL session slots. The seeded fallback derives
-  # its dates by parsing an integer out of "prog_7"; a uuid parses to NaN and
-  # toISOString() throws RangeError, so this is the assertion standing between
-  # a live catalogue and every card rendering Invalid Date.
-  # EVERY live listing, not just the first, and every slot must be a real row.
-  # A slot without live:true came from the generated fallback — three
-  # plausible, bookable-looking dates for sessions that do not exist, which
-  # fail at the insert after the family has picked a time and reached checkout.
-  liveslots=$($B js "(function(){try{
-    /* Shape is not enough: /^\d{4}-\d{2}-\d{2}\$/ accepts 2026-02-30 and
-       2026-13-01, and Date() silently normalises both to a DIFFERENT day — so
-       the check would pass while a card showed the wrong date. Round-trip
-       through UTC and require the components to come back unchanged. */
-    var validDate=function(v){
-      var m=/^(\d{4})-(\d{2})-(\d{2})\$/.exec(String(v));
-      if(!m) return false;
-      var d=new Date(v+'T00:00:00Z');
-      return d.getUTCFullYear()===+m[1] && d.getUTCMonth()+1===+m[2] && d.getUTCDate()===+m[3];
-    };
-    if(validDate('2026-02-30')||validDate('2026-13-01')||!validDate('2026-02-28')) return 'SELFTEST';
-    var total=0, empty=0;
-    for(var i=0;i<PROGRAMS.length;i++){
-      /* Sample orgs are intentionally unbookable and have no sessions. */
-      if(PROGRAMS[i].sample) continue;
-      var s=slotsFor(PROGRAMS[i].id);
-      if(!s||!s.length){ empty++; continue; }
-      if(s.some(function(x){return !x.live;})) return 'FABRICATED:'+PROGRAMS[i].id;
-      if(s.some(function(x){return !validDate(x.date);})) return 'BADDATE:'+PROGRAMS[i].id;
-      total+=s.length;
-    }
-    if(empty===PROGRAMS.length) return 'NOSLOTS';
-    return 'OK:'+total+':'+empty;
-  }catch(e){return 'THREW:'+e.name+':'+e.message;}})()" 2>/dev/null | tr -d '\r')
-  case "$(printf '%s' "$liveslots" | tr -d '[:space:]')" in
-    OK:*:0)      pass "catalog: every live listing resolves real sessions ($(printf '%s' "$liveslots" | cut -d: -f2) in total)" ;;
-    OK:*)        pass "catalog: live sessions resolve; $(printf '%s' "$liveslots" | cut -d: -f3) listing(s) correctly show no openings" ;;
-    NOSLOTS)     fail "catalog: no live listing has a bookable session — nothing on the page can be booked" ;;
-    FABRICATED:*) fail "catalog: a live listing was given INVENTED session dates (${liveslots#*FABRICATED:}) — it would fail at checkout" ;;
-    BADDATE:*)   fail "catalog: a live slot carries an impossible or unparseable date (${liveslots#*BADDATE:})" ;;
-    SELFTEST)    fail "catalog: the date validator itself is wrong — it accepted 2026-02-30 or rejected a real date" ;;
-    THREW:*)     fail "catalog: slotsFor threw on a live listing — $liveslots" ;;
-    *)           fail "catalog: slot probe returned nothing ($liveslots)" ;;
-  esac
-
-  # The coach portal is still sample data and must stay pinned to it. Without
-  # DEMO_CATALOGUE this returns [] and the modules' fallbacks hand the demo
-  # coach a real provider's listing to manage.
-  coachpin=$($B js "(function(){try{
-    var mine=DEMO_CATALOGUE.filter(function(p){return S.listings.indexOf(p.id)>=0;});
-    if(!mine.length) return 'ORPHANED';
-    if(PROGRAMS.some(function(p){return S.listings.indexOf(p.id)>=0;})) return 'LEAKED';
-    return 'OK:'+mine.length;
-  }catch(e){return 'THREW:'+e.name;}})()" 2>/dev/null | tr -d '\r')
-  case "$(printf '%s' "$coachpin" | tr -d '[:space:]')" in
-    OK:*)     pass "catalog: the coach portal stays on its own ${coachpin#*OK:} demo listings" ;;
-    ORPHANED) fail "catalog: the coach's listings resolve to nothing — the whole portal empties out" ;;
-    LEAKED)   fail "catalog: a live listing matched S.listings — the demo coach is being shown a real provider's business" ;;
-    THREW:*)  fail "catalog: coach-listing probe threw — $coachpin" ;;
-    *)        fail "catalog: coach-listing probe returned nothing ($coachpin)" ;;
-  esac
-
-  # Every map pin must land ON the canvas. The bbox was hardcoded to Miami
-  # under a comment claiming Chicago; real coordinates projected to
-  # left:-3154%, top:-7456% and the map rendered empty under a header counting
-  # ten programs. Bounds are derived now, so this asserts the derivation.
-  # Measure the RENDERED pins, not the formula. The first version of this check
-  # recomputed the projection with the same arithmetic the page uses, so it
-  # agreed with itself by construction and would have passed against the old
-  # hardcoded Miami box. Read the actual geometry the browser laid out.
-  mappins=$($B js "(function(){try{
-    S.route={name:'map',arg:null}; render();
-    var canvas=document.querySelector('.mapcanvas');
-    if(!canvas) return 'NOCANVAS';
-    var cb=canvas.getBoundingClientRect();
-    var pins=[].slice.call(canvas.querySelectorAll('.pin'));
-    if(!pins.length) return 'NOPINS';
-    var off=pins.filter(function(el){
-      var r=el.getBoundingClientRect();
-      return r.left<cb.left-1||r.right>cb.right+1||r.top<cb.top-1||r.bottom>cb.bottom+1;
-    });
-    return off.length?'OFFCANVAS:'+off.length+'of'+pins.length:'OK:'+pins.length;
-  }catch(e){return 'THREW:'+e.message;}})()" 2>/dev/null | tr -d '\r')
-  case "$(printf '%s' "$mappins" | tr -d '[:space:]')" in
-    OK:*)         pass "catalog: all $(printf '%s' "$mappins" | cut -d: -f2) rendered map pins sit inside the canvas" ;;
-    OFFCANVAS:*)  fail "catalog: $(printf '%s' "$mappins" | cut -d: -f2) map pins laid out OFF the canvas — the bbox does not match the data" ;;
-    NOPINS)       fail "catalog: the map rendered no pins at all for a catalogue that has listings" ;;
-    NOCANVAS)     fail "catalog: the map canvas did not render" ;;
-    THREW:*)      fail "catalog: map projection threw — $mappins" ;;
-    *)            fail "catalog: map probe returned nothing ($mappins)" ;;
-  esac
-
-  # No band may render a heading over a permanent empty state. Production has
-  # only solo providers, so camps and teams must not appear at all — a promise
-  # the inventory cannot keep is worse than an honest single band.
-  deadband=$($B js "(function(){try{
-    /* SELF-SUFFICIENT. This measured whatever portal, filters and catalogue
-       the previous probe happened to leave behind — it read 2 empty bands
-       because an earlier check was still in the coach portal with a filtered
-       catalogue, while the same page measured clean in isolation. An
-       assertion that depends on its neighbours reports their state, not the
-       thing it claims to test. */
-    S.auth={status:'guest'};S.portal='family';S.sports=[];S.query='';S.kind=null;
-    S.filters={};S.fdraft=null;S.modal=null;
-    S.route={name:'explore',arg:null}; render();
-    var empties=document.querySelectorAll('.kindrow-empty').length;
-    var bands=document.querySelectorAll('.kind-band').length;
-    if(!bands) return 'NOBANDS';
-    return empties?'DEAD:'+empties:'OK:'+bands;
-  }catch(e){return 'THREW:'+e.message;}})()" 2>/dev/null | tr -d '\r')
-  case "$(printf '%s' "$deadband" | tr -d '[:space:]')" in
-    OK:*)    pass "catalog: browse renders $(printf '%s' "$deadband" | cut -d: -f2) band(s), none of them empty" ;;
-    DEAD:*)  fail "catalog: $(printf '%s' "$deadband" | cut -d: -f2) band(s) render a heading over 'No matching programs' — a category the catalogue cannot fill" ;;
-    NOBANDS) fail "catalog: browse rendered no bands at all — the grid is empty" ;;
-    *)       fail "catalog: band probe returned nothing ($deadband)" ;;
-  esac
-
-  # Real listings must not be labelled as samples.
-  provenance=$($B js "(function(){S.route={name:'explore',arg:null};render();
-    return 'live='+catalogueIsLive()+' pills='+document.querySelectorAll('.kind-band .demo-pill').length;})()" 2>/dev/null | tr -d '\r')
-  case "$(printf '%s' "$provenance" | tr -d '[:space:]')" in
-    live=truepills=0) pass "catalog: live listings carry no 'Demo data' label" ;;
-    *)                fail "catalog: provenance label disagrees with the data source ($provenance)" ;;
-  esac
-
-  # The trust badge must not be inverted. Seven sites rendered a GOLD pill —
-  # the positive styling — carrying the words "Verification pending", so every
-  # background-checked provider was labelled unverified, on every card on the
-  # marketplace and on the very page that explains what the badge means. Both
-  # branches of the ternary had been given the same string; only the class
-  # differed. This is the product's core claim, so it gets an assertion.
-  badge=$($B js "(function(){
-    var wrong=0,right=0;
-    ['explore','companies','trust'].forEach(function(r){
-      S.route={name:r,arg:null};render();
-      /* Every POSITIVE badge style on the page. .co-trust.ok is the companies
-         surface, which was the ninth site carrying the same inversion. */
-      var good=[].slice.call(document.querySelectorAll('.verifline,.pill.gold,.co-trust.ok'));
-      wrong+=good.filter(function(e){return /Verification pending/i.test(e.textContent);}).length;
-      right+=good.filter(function(e){return /Background-checked|Verified/i.test(e.textContent);}).length;
-    });
-    return wrong?'INVERTED:'+wrong:'OK:'+right;})()" 2>/dev/null | tr -d '\r')
-  case "$(printf '%s' "$badge" | tr -d '[:space:]')" in
-    OK:0)       fail "catalog: no verified badge rendered at all — 10 background-checked providers and not one shield" ;;
-    OK:*)       pass "catalog: $(printf '%s' "$badge" | cut -d: -f2) verified listings badged 'Background-checked', none inverted" ;;
-    INVERTED:*) fail "catalog: $(printf '%s' "$badge" | cut -d: -f2) verified provider(s) labelled 'Verification pending' — the trust badge is inverted" ;;
-    *)          fail "catalog: badge probe returned nothing ($badge)" ;;
-  esac
-
-  # THE FAILURE MODE THAT SURVIVES A GREEN RUN. Seven coach surfaces filtered
-  # the LIVE catalogue by S.listings — seeded ids that no live row matches — and
-  # got back an empty array. Nothing threw. The tabs simply rendered confident,
-  # false copy: "Everything is full — Every live listing is at capacity" over
-  # zero listings, and an approved provider told he was N steps from going live.
-  # An empty array is a valid input, so only asserting on the words catches it.
-  coachcopy=$($B js "(function(){try{
-    S.auth={status:'verified'};S.portal='coach';
-    var bad=[];
-    ['listings','dashboard','reviews','schedule'].forEach(function(t){
-      S.coachTab=t;S.route={name:'dashboard',arg:null};render();
-      var txt=document.getElementById('app').innerText;
-      /* The claim is false when NOTHING is actually at capacity — which is
-         exactly what an empty listing array produces, since 'none of zero
-         listings has a free slot' is vacuously true. */
-      if(/Everything is full/i.test(txt)&&!coachListings().some(function(p){return p.enrolled>=p.cap;})) bad.push(t+':falsely-full');
-      if(/steps from going live/i.test(txt)) bad.push(t+':launch-mode');
-      if(/Listings reviewed 0 of 0/i.test(txt)) bad.push(t+':zero-of-zero');
-    });
-    return bad.length?'WRONG:'+bad.join(','):'OK:'+coachListings().length;
-  }catch(e){return 'THREW:'+e.message;}})()" 2>/dev/null | tr -d '\r')
-  case "$(printf '%s' "$coachcopy" | tr -d '[:space:]')" in
-    OK:0)     fail "catalog: the coach owns zero listings — the portal will render launch-mode copy to an approved provider" ;;
-    OK:*)     pass "catalog: coach surfaces read their own $(printf '%s' "$coachcopy" | cut -d: -f2) listings, no false empty-state copy" ;;
-    WRONG:*)  fail "catalog: coach surfaces render false copy against live data (${coachcopy#*WRONG:})" ;;
-    THREW:*)  fail "catalog: coach copy probe threw — $coachcopy" ;;
-    *)        fail "catalog: coach copy probe returned nothing ($coachcopy)" ;;
-  esac
-
-  # No filter chip may be a dead end. Tap it, get an empty grid, learn only
-  # that the site is broken. "Monthly" and "Under \$50" were both unmatched by
-  # every live row.
-  chips=$($B js "(function(){try{
-    S.auth={status:'guest'};S.portal='family';S.filters={maxPrice:null,verifiedOnly:false,model:null};
-    S.route={name:'explore',arg:null};render();
-    var dead=[].slice.call(document.querySelectorAll('[data-filter]')).filter(function(el){
-      var f=el.getAttribute('data-filter');
-      if(f==='under50') return !PROGRAMS.some(function(p){return p.price<50;});
-      if(f==='single')  return !PROGRAMS.some(function(p){return p.model==='single_session';});
-      if(f==='monthly') return !PROGRAMS.some(function(p){return p.model==='monthly';});
-      return false;
-    }).map(function(el){return el.getAttribute('data-filter');});
-    return dead.length?'DEAD:'+dead.join(','):'OK';
-  }catch(e){return 'THREW:'+e.message;}})()" 2>/dev/null | tr -d '\r')
-  case "$(printf '%s' "$chips" | tr -d '[:space:]')" in
-    OK)      pass "catalog: every filter chip on browse can actually match something" ;;
-    DEAD:*)  fail "catalog: filter chip(s) ${chips#*DEAD:} match nothing in the catalogue — tapping one empties the grid for no reason" ;;
-    THREW:*) fail "catalog: chip probe threw — $chips" ;;
-    *)       fail "catalog: chip probe returned nothing ($chips)" ;;
-  esac
-
-  # EVERY kind tab must have a band to jump to. This is the check I should have
-  # written the first time: hiding empty BANDS left the TABS pointing at
-  # anchors that no longer exist, so "Camps" and "Team" scrolled nowhere and
-  # did nothing — no grid, no empty state, no feedback at all. The chip check
-  # above passed the whole time, because tabs are a different mechanism.
-  # Assert the relationship, not each side.
-  tabs=$($B js "(function(){try{
-    S.auth={status:'guest'};S.portal='family';S.kind=null;S.sports=[];S.query='';
-    S.filters={maxPrice:null,verifiedOnly:false,model:null};
-    S.route={name:'explore',arg:null};render();
-    var dangling=[].slice.call(document.querySelectorAll('[data-kindjump]'))
-      .map(function(e){return e.getAttribute('data-kindjump');})
-      .filter(function(id){return id!=='browse'&&!document.getElementById(id);});
-    var bands=[].slice.call(document.querySelectorAll('.kind-band')).map(function(e){return e.id;});
-    var tabIds=[].slice.call(document.querySelectorAll('[data-kindtab]'))
-      .map(function(e){return e.getAttribute('data-kindtab');}).filter(function(i){return i!=='browse';});
-    var orphanBands=bands.filter(function(b){return tabIds.length&&tabIds.indexOf(b)<0;});
-    if(dangling.length) return 'DANGLING:'+dangling.join(',');
-    if(orphanBands.length) return 'ORPHANBAND:'+orphanBands.join(',');
-    return 'OK:'+bands.length+'bands/'+tabIds.length+'tabs';
-  }catch(e){return 'THREW:'+e.message;}})()" 2>/dev/null | tr -d '\r')
-  case "$(printf '%s' "$tabs" | tr -d '[:space:]')" in
-    OK:*)         pass "catalog: browse tabs and bands agree ($(printf '%s' "$tabs" | cut -d: -f2))" ;;
-    DANGLING:*)   fail "catalog: kind tab(s) ${tabs#*DANGLING:} jump to a band that is not rendered — clicking does nothing at all" ;;
-    ORPHANBAND:*) fail "catalog: band(s) ${tabs#*ORPHANBAND:} have no tab pointing at them" ;;
-    THREW:*)      fail "catalog: tab/band probe threw — $tabs" ;;
-    *)            fail "catalog: tab/band probe returned nothing ($tabs)" ;;
-  esac
-
-  # Seeded records outlive the catalogue swap and keep their seeded ids:
-  # S.bookings, S.conversations, chat picks, waitlist entries. They resolve
-  # through programById(), which falls back to the demo catalogue. The failure
-  # here is SILENT, not loud — an <img src=""> (which the browser resolves
-  # against the document URL and re-requests the whole page), an empty
-  # conversation header, a "View program" that repaints the page it is on. So
-  # assert on the rendered artefacts, since nothing throws.
-  dangling=$($B js "(function(){try{
-    var bad=[];
-    ['bookings','messages','timeline','saved'].forEach(function(r){
-      S.auth={status:'verified'};S.portal='family';S.route={name:r,arg:null};render();
-      var app=document.getElementById('app');
-      if(app.querySelectorAll('img[src=\"\"],img:not([src])').length) bad.push(r+':empty-img');
-      if(/undefined|\[object Object\]|NaN/.test(app.innerText)) bad.push(r+':undefined-text');
-    });
-    var unresolved=(S.bookings||[]).filter(function(b){return !programById(b.programId);}).length;
-    if(unresolved) bad.push('bookings:'+unresolved+'-unresolvable');
-    return bad.length?'BROKEN:'+bad.join(','):'OK';
-  }catch(e){return 'THREW:'+e.message;}})()" 2>/dev/null | tr -d '\r')
-  case "$(printf '%s' "$dangling" | tr -d '[:space:]')" in
-    OK)       pass "catalog: seeded bookings and threads still resolve under a live catalogue" ;;
-    BROKEN:*) fail "catalog: dangling references render as nothing (${dangling#*BROKEN:})" ;;
-    THREW:*)  fail "catalog: dangling-reference probe threw — $dangling" ;;
-    *)        fail "catalog: dangling-reference probe returned nothing ($dangling)" ;;
-  esac
+# [spec 01 · 2026-08-31] live catalogue (hydration, bands, tabs, pins, samples) gates removed — the marketplace feature they tested is deleted.
 
   # API.from must FORWARD its options. It took (table, query) and silently
   # dropped a third argument, so every write built as
@@ -805,24 +507,7 @@ if curl -sI "http://127.0.0.1:$CSPPORT/index.html" | grep -qi "^content-security
     *)          fail "auth: oauth return probe returned nothing ($oa)" ;;
   esac
 
-  # A SAMPLE COMPANY MUST NEVER TAKE MONEY. Sample camps and teams exist so
-  # browse has three populated rows; a family can pay on this page, so a sample
-  # that reaches checkout is an offer with a price that cannot be honoured.
-  smp=$($B js "(function(){
-    var s=PROGRAMS.filter(function(p){return p.sample;});
-    if(!s.length) return 'NOSAMPLES';
-    var bookable=s.filter(function(p){return slotsFor(p.id).length;});
-    if(bookable.length) return 'BOOKABLE:'+bookable[0].id;
-    if(s.some(function(p){return p.live;})) return 'MARKEDLIVE';
-    return 'OK:'+s.length;
-  })()" 2>/dev/null | tr -d '\r')
-  case "$(printf '%s' "$smp" | tr -d '[:space:]')" in
-    OK:*)       pass "catalog: $(printf '%s' "$smp" | cut -d: -f2) sample companies exist and none can be booked" ;;
-    BOOKABLE:*) fail "catalog: a SAMPLE company has bookable sessions (${smp#*BOOKABLE:}) — a family could pay for a company that does not exist" ;;
-    MARKEDLIVE) fail "catalog: a sample company is flagged live — it would reach the real booking path" ;;
-    NOSAMPLES)  fail "catalog: the sample camps/teams are gone; two browse rows will be empty again" ;;
-    *)          fail "catalog: sample probe returned nothing ($smp)" ;;
-  esac
+# [spec 01 · 2026-08-31] sample-company bookability gates removed — the marketplace feature they tested is deleted.
 
   # The AI dock is COACH-ONLY. Families get Support, not an assistant.
   dock=$($B js "(function(){
@@ -960,88 +645,7 @@ if curl -sI "http://127.0.0.1:$CSPPORT/index.html" | grep -qi "^content-security
     *)           fail "enterprise: cert validity probe returned nothing ($ct)" ;;
   esac
 
-  # THE SEARCH SPEC'S NON-NEGOTIABLES. Each of these is a rule, not a taste:
-  # a background-check FILTER advertises that unvetted adults exist; a second
-  # filter entry point makes neither authoritative; an age select in the bar
-  # treats a child as a query parameter.
-  # Filter model REVISED (owner 2026-08-23, prototype): the single Filters drawer and
-  # the native selects are replaced by EXACTLY FOUR popover chips — Sport / Price /
-  # Age / All filters — in the bar. That is the one authoritative filter surface;
-  # the drawer catch-all is unlinked, so there is no second entry point to make it
-  # ambiguous. The old "one data-openfilters entry" and "one toolbar row" rules are
-  # retired with the drawer link and the intentional bar/chips two-row layout.
-  sb=$($B js "(function(){
-    S.auth={status:'guest'};S.portal='family';S.sports=[];S.segOpen=null;S.tbMenu=null;
-    S.priceMin=null;S.priceMax=null;S.ageBands=[];
-    S.route={name:'explore',arg:null};render();
-    var app=document.getElementById('app');
-    if(/Background-checked only/i.test(app.innerText)) return 'BGFILTER';
-    if(document.querySelector('.sb select')) return 'AGEINBAR';
-    /* The Sport/Where/When capsule is DELETED (owner spec 2026-08-13): the hero
-       search is the only search on the page. */
-    if(document.querySelector('.sb')) return 'CAPSULE_BACK';
-    var tb=document.querySelector('.tb');
-    if(!tb) return 'NO_TOOLBAR';
-    if(!tb.querySelector('.tb-seg')) return 'NO_SEGMENTS';
-    /* One authoritative filter surface: no drawer link, no loose native selects. */
-    if(document.querySelectorAll('[data-openfilters]').length) return 'DRAWER_LINK';
-    if(tb.querySelector('.tb-filters select')) return 'NATIVE_SELECT';
-    var drops=tb.querySelectorAll('[data-tbdrop]').length;
-    if(drops!==4) return 'DROPS:'+drops;
-    return 'OK:'+drops;
-  })()" 2>/dev/null | tr -d '\r')
-  case "$(printf '%s' "$sb" | tr -d '[:space:]')" in
-    OK:*)         pass "browse: filter bar is exactly $(printf '%s' "$sb" | cut -d: -f2) chips (Sport/Price/Age/All filters), one authoritative surface" ;;
-    BGFILTER)     fail "search: a 'Background-checked only' filter is back — it advertises that unvetted coaches exist" ;;
-    AGEINBAR)     fail "search: a native select is in the search capsule — the athlete is a profile, not a query parameter" ;;
-    CAPSULE_BACK) fail "browse: the duplicate Sport/Where/When capsule is back" ;;
-    NO_TOOLBAR)   fail "browse: the toolbar is missing" ;;
-    NO_SEGMENTS)  fail "browse: the segmented control is missing" ;;
-    DRAWER_LINK)  fail "search: a Filters drawer link is back in the bar — the three dropdowns are the surface now" ;;
-    NATIVE_SELECT) fail "search: a native filter <select> is back in the bar — use the popover dropdowns" ;;
-    DROPS:*)      fail "search: the filter bar has $(printf '%s' "$sb" | cut -d: -f2) chips; there must be exactly four (Sport/Price/Age/All filters)" ;;
-    EMPTYPANEL)   fail "search: a segment panel rendered empty — an empty dropdown is a dead end" ;;
-    NODESCRIPTOR) fail "search: panel rows have no supporting line — it is required to carry supply signal" ;;
-    *)            fail "search: probe returned nothing ($sb)" ;;
-  esac
-
-  # THE DRAWER'S CORE MECHANIC: the footer count updates live, the grid does
-  # NOT, and on commit the grid matches the number the button promised. A count
-  # that disagrees with the grid it produces is the one bug this design can
-  # have, because both sides must go through the same predicate.
-  fd=$($B js "(function(){try{
-    S.auth={status:'guest'};S.portal='family';S.sports=[];S.filters={};
-    S.route={name:'explore',arg:null};S.fdraft={};S.fdOpen={format:true,commitment:true};
-    S.modal={type:'filters'};render();
-    var d=document.querySelector('.fd'); if(!d) return 'NODRAWER';
-    if(Math.round(d.getBoundingClientRect().width)>420) return 'TOOWIDE';
-    if(!document.querySelector('.fd-foot')) return 'NOFOOTER';
-    var pill=document.querySelector('[data-fdset]'); if(!pill) return 'NOCONTROLS';
-    var before=document.querySelectorAll('.card').length;
-    pill.click();
-    var n=parseInt(document.querySelector('.fd-foot .btn').textContent.replace(/[^0-9]/g,''),10);
-    if(document.querySelectorAll('.card').length!==before){S.filters={};S.fdraft=null;S.modal=null;render();return 'GRIDMOVED';}
-    document.querySelector('[data-fdapply]').click();
-    var after=document.querySelectorAll('.card').length;
-    /* RESTORE before returning. Committing a filter and walking away left
-       S.filters set for every assertion after this one — the kind-band check
-       then saw a catalogue filtered to single-session listings, found camps
-       and teams empty, and failed on a defect this probe had created. A test
-       that leaks state fails its neighbours, not itself. */
-    S.filters={}; S.fdraft=null; S.modal=null; render();
-    if(after!==n) return 'MISMATCH:'+n+'vs'+after;
-    return 'OK:'+n;
-  }catch(e){return 'THREW:'+e.message;}})()" 2>/dev/null | tr -d '\r')
-  case "$(printf '%s' "$fd" | tr -d '[:space:]')" in
-    OK:*)       pass "filters: the drawer count updates live, the grid waits, and on commit they agree ($(printf '%s' "$fd" | cut -d: -f2))" ;;
-    GRIDMOVED)  fail "filters: the grid repainted while the drawer was open — it must wait for close or Show N" ;;
-    MISMATCH:*) fail "filters: 'Show N results' promised a different number than the grid rendered (${fd#*MISMATCH:})" ;;
-    NODRAWER)   fail "filters: the drawer did not render" ;;
-    TOOWIDE)    fail "filters: the drawer is wider than the ~400px sheet the spec calls for" ;;
-    NOFOOTER)   fail "filters: the sticky footer is missing" ;;
-    NOCONTROLS) fail "filters: the drawer rendered no usable controls" ;;
-    *)          fail "filters: drawer probe returned nothing ($fd)" ;;
-  esac
+# [spec 01 · 2026-08-31] search-spec toolbar + filter drawer gates removed — the marketplace feature they tested is deleted.
 
   # EVERY RETURN TARGET WE HAND AN EXTERNAL SERVICE MUST BE READ BACK.
   # stripe-create-checkout is sent successUrl=/?booking=<id>&paid=1 and
@@ -1110,6 +714,10 @@ if curl -sI "http://127.0.0.1:$CSPPORT/index.html" | grep -qi "^content-security
   # aria-modal="true" with neither — Tab past the last field and focus lands on
   # the page behind while a screen reader is told that content does not exist.
   trap=$($B js "(function(){
+    /* deterministic state: spec-01 cuts changed which check precedes this one,
+       and a leftover coach portal legitimately renders the AI dock (role=dialog),
+       which is NOT the modal under test. */
+    S.portal='family';S.auth={status:'guest'};S.route={name:'home',arg:null};
     S.modal={type:'authsheet'};render();
     var box=document.querySelector('[role=dialog], .modal');
     if(!box) return 'NOMODAL';
@@ -1133,24 +741,7 @@ if curl -sI "http://127.0.0.1:$CSPPORT/index.html" | grep -qi "^content-security
     *)         fail "a11y: focus-trap probe returned nothing ($trap)" ;;
   esac
 
-  # A BADGE REQUIRES EVIDENCE. background_check_status='verified' was true for
-  # 20 production providers whose background_check_completed_at is NULL — every
-  # badge on the live site was a claim nobody had made. A status column can be
-  # set by anyone with write access; a completion DATE only exists if a check
-  # actually finished. No live listing may be badged without one.
-  ev=$($B js "(function(){
-    var live=PROGRAMS.filter(function(p){return p.live;});
-    if(!live.length) return 'NOLIVE';
-    var lying=live.filter(function(p){return p.verified&&!p.checkedOn;});
-    if(lying.length) return 'UNEVIDENCED:'+lying.length;
-    return 'OK:'+live.filter(function(p){return p.verified;}).length+'of'+live.length;
-  })()" 2>/dev/null | tr -d '\r')
-  case "$(printf '%s' "$ev" | tr -d '[:space:]')" in
-    OK:*)          pass "trust: no live listing is badged background-checked without a completion date ($(printf '%s' "$ev" | cut -d: -f2))" ;;
-    UNEVIDENCED:*) fail "trust: ${ev#*UNEVIDENCED:} live listing(s) claim a background check with NO completion date — the badge is unbacked" ;;
-    NOLIVE)        fail "trust: no live listings to check" ;;
-    *)             fail "trust: evidence probe returned nothing ($ev)" ;;
-  esac
+# [spec 01 · 2026-08-31] live-listing badge evidence (no listings surface) gates removed — the marketplace feature they tested is deleted.
 
   # Nothing above is worth anything if the live render throws. The 13-route
   # sweep near the top of this file runs on file://, which never hydrates — so
@@ -1327,8 +918,8 @@ c=$(grep -o '"coach-assistant"' index.html 2>/dev/null | wc -l | tr -d ' '); c=$
 # #C2410C (rgb 194,65,12) or #38BDF8 (rgb 56,189,248).
 # 'saved' was merged into 'search' (rebuild spec) — its route redirects, so it
 # leaves the per-page sweeps; the redirect itself is asserted in the rebuild block.
-PAGES="what-is background-checks search map-search instant-booking messaging bookings-receipts athlete-progress scheduling payments roster session-notes media-consent insights enterprise enterprise-roster enterprise-finance enterprise-compliance ai-coach"
-ASSIGNED_PAGES="what-is background-checks search map-search instant-booking messaging bookings-receipts athlete-progress scheduling payments roster session-notes media-consent insights enterprise enterprise-roster enterprise-finance enterprise-compliance"
+PAGES="what-is background-checks instant-booking messaging bookings-receipts athlete-progress scheduling payments roster session-notes media-consent insights enterprise enterprise-roster enterprise-finance enterprise-compliance ai-coach"
+ASSIGNED_PAGES="what-is background-checks instant-booking messaging bookings-receipts athlete-progress scheduling payments roster session-notes media-consent insights enterprise enterprise-roster enterprise-finance enterprise-compliance"
 # Reset the portal EXPLICITLY before reloading. This used to be implicit: a
 # reload wiped S back to defaults, so the coach checks above could not leak
 # into the marketing-page checks below. Session persistence deliberately ends
@@ -1367,7 +958,7 @@ slop=$($B js "$AUD;
  const assignedSet=new Set(assigned);
  const navGroups=[
   ['what-is','background-checks'],
-  ['search','map-search','instant-booking','messaging','bookings-receipts','athlete-progress'],
+  ['instant-booking','messaging','bookings-receipts','athlete-progress'],
   ['scheduling','payments','roster','session-notes','media-consent','insights'],
   ['enterprise','enterprise-roster','enterprise-finance','enterprise-compliance']];
  const routes='$PAGES'.split(' ').map(id=>['page',id]).concat([['trust',null],['pricing',null],['coachinfo',null]]);
@@ -1403,10 +994,7 @@ slop=$($B js "$AUD;
   if(seenFingerprints[fp])fails.push(id+'[DUPLICATE_RENDERED_SILHOUETTE='+seenFingerprints[fp]+']');
   else seenFingerprints[fp]=id;
  });
- // the merged 'saved' route must land on Search, never 404
- S.route={name:'page',arg:'saved'};render();
- if(!document.querySelector('[data-product-page][data-page-id="search"]'))fails.push('saved[NO_REDIRECT]');
- S.route={name:'explore',arg:null};render();
+ // [spec 01] saved/search pages deleted; the redirect assert went with them.
  return JSON.stringify({fails,wcopy,wdot,pages:Object.keys(fps).length})})()" 2>/dev/null)
 slopc=${slop//\"/}
 case "$slopc" in
@@ -1486,42 +1074,7 @@ case "$ovlc" in
 esac
 fi
 
-# ── the chip row must be click-transparent (verifier regression, fixed) ───
-# .cardchips sits above the card's full-cover open button; with pointer-events
-# auto it swallowed a ~26px band of taps that used to open the card. Assert the
-# wrapper is pointer-events:none and a tap beside the Demo chip reaches the
-# open button, while the heart (outside the wrapper) still takes its click.
-chp=$($B js "
-(()=>{const bad=[];
- S.portal='family';S.auth={status:'guest'};S.route={name:'explore',arg:null};render();
- const shot=document.querySelector('.card .shot'); if(!shot)return 'NO_CARD';
- // Owner 2026-08-23 Uber-Eats vertical card: the single over-image badge
- // (.demochip on a demo seed, .cardbadge on a live listing) replaces the old
- // .cardchips wrapper. Whichever renders must stay click-transparent so it
- // cannot swallow a tap meant for the open button.
- const bdg=shot.querySelector('.demochip,.cardbadge');
- if(bdg&&getComputedStyle(bdg).pointerEvents!=='none')bad.push('BADGE_INTERACTIVE');
- // elementFromPoint only sees the VIEWPORT — scroll the card into view first,
- // then measure. (At 1440 the first card can sit below the fold; probing
- // offscreen coordinates returns whatever chrome is at that point instead.)
- shot.scrollIntoView({block:'center'});
- // Owner 2026-08-23 image+name card: the WHOLE rectangle opens the listing, so a
- // tap on the company NAME (not just the photo) must reach the open button rather
- // than fall into a deadzone. Stronger than the old 'beside the chip' probe.
- const nm=shot.closest('.card').querySelector('.cardname');
- if(!nm){bad.push('NO_CARDNAME');}
- else{const r=nm.getBoundingClientRect();
-   const el=document.elementFromPoint(r.left+r.width/2,r.top+r.height/2);
-   if(!el||!el.closest('[data-open]'))bad.push('DEADZONE:'+(el?(el.className||el.tagName):'null'));}
- const h=shot.querySelector('.heart').getBoundingClientRect();
- const he=document.elementFromPoint(h.left+h.width/2,h.top+h.height/2);
- if(!he||!he.closest('.heart'))bad.push('HEART_BLOCKED');
- window.scrollTo(0,0);
- S.route={name:'home',arg:null};render();
- return bad.length?bad.join(','):'OK'})()" 2>/dev/null)
-[ "${chp//\"/}" = "OK" ] && pass "card chips are click-transparent; open + heart both reachable" \
-  || fail "chip click-through regressed: $chp"
-# Home + explore: zero emoji. Rails are now ALLOWED here: the owner overrode the
+# [spec 01 · 2026-08-31] landing chip click-through (chips deleted with the hero rebuild) gates removed — the marketplace feature they tested is deleted.
 # no-rails §6.4 rule via the six-task spec 2026-08-08; the explore kind bands
 # (.kindrow, T4) are intentional horizontal rows, so a rail no longer fails this
 # check. Emoji stay banned; the rail count is dropped from the fail condition.
@@ -1601,7 +1154,7 @@ ids.forEach(id=>{S.route={name:'page',arg:id};render();const a=document.querySel
  }});
 return leak.length?leak.join(' '):('OK '+own)})()" 2>/dev/null)
 case "$(printf '%s' "${sm//\"/}")" in
-  *OK\ 18*) pass "18 recipe pages render; the Keep-Exploring footer is gone from every one";;
+  *OK\ 16*) pass "16 recipe pages render; the Keep-Exploring footer is gone from every one";;
   *) fail "recipe/KX coverage: $sm";;
 esac
 
@@ -1780,7 +1333,7 @@ comp=$($B js "
 # info:legal). Asserts no duplicate destinations, no 404s, plus the support
 # address and the independent-contractor disclosure.
 foot=$($B js "
-(()=>{S.portal='family';S.route={name:'explore',arg:null};render();
+(()=>{S.portal='family';S.route={name:'home',arg:null};render();
  const links=[...document.querySelectorAll('.foot-link')];
  if(links.length<10) return 'TOO_FEW_'+links.length;
  const d=links.map(b=>b.dataset.foot);
@@ -1794,7 +1347,7 @@ foot=$($B js "
    render();
    const t=document.getElementById('app').innerText;
    if(/Page not found/i.test(t)||t.trim().length<120) bad.push(x)});
- S.route={name:'explore',arg:null};render();
+ S.route={name:'home',arg:null};render();
  if(bad.length) return 'UNRESOLVED_'+bad.join('/');
  if(!document.querySelector('.foot-mail')) return 'NO_SUPPORT_EMAIL';
  if(!/independent professionals, not Sporv employees/.test(document.body.innerText)) return 'NO_DISCLOSURE';
@@ -1956,7 +1509,7 @@ lgl=$($B js "
    const t=document.getElementById('app').innerText;
    if(/Page not found/i.test(t)||t.length<900) bad.push('UNRENDERED_'+k);
  });
- S.portal='family';S.route={name:'explore',arg:null};render();
+ S.portal='family';S.route={name:'home',arg:null};render();
  const foot=[...document.querySelectorAll('.foot-link')].map(b=>b.dataset.foot);
  ['info:privacy','info:terms','info:refund'].forEach(d=>{
    if(!foot.includes(d)) bad.push('NOT_IN_FOOTER_'+d); });
@@ -2126,9 +1679,9 @@ disc=$($B js "
  // coach dock, maximized
  S.aiMax=true;render();
  if(!re.test(document.querySelector('.aimax-wrap')?.innerText||''))bad.push('COACH_MAX');
- // family assistant page
- S.aiMax=false;S.chat=[];S.portal='family';S.auth={status:'guest'};S.route={name:'assistant',arg:null};render();
- if(!/chatting with Sporv's AI/i.test(document.querySelector('#app main')?.innerText||''))bad.push('FAMILY');
+ // [spec 01] the family assistant surface is deleted; the coach dock is the
+ // only AI surface and its disclosure is asserted above.
+ S.aiMax=false;S.chat=[];S.portal='family';S.auth={status:'guest'};
  S.route={name:'home',arg:null};render();document.body.classList.remove('reg-coach');
  return bad.length?bad.join(','):'OK'})()" 2>/dev/null)
 [ "${disc//\"/}" = "OK" ] && pass "AI disclosure present in every chat session (usage policy)" \
@@ -2233,81 +1786,7 @@ disp=$($B js "
 [ "${disp//\"/}" = "OK" ] && pass "assistant dispatch: draft_bio + draft_message rails fire; rail-less tools deep-link only" \
   || fail "dispatch rails regressed: $disp"
 
-# ── Publish a listing PERSISTS (real supply, not a fabricated local row) ──
-# The "Create a listing" form used to push a verified:true row into the
-# in-memory PROGRAMS only — a listing that lived in one tab and lied about its
-# check. It must now write a real programs row + a first session and reload the
-# catalogue. Stub the coach methods to observe the orchestration; assert a
-# createListing reject surfaces loudly and fabricates nothing.
-pub=$($B js "
-(()=>{const bad=[];const c={create:null,session:null,reloaded:false};
- const rc=window.SporveCoach&&window.SporveCoach.createListing;
- const rs=window.SporveCoach&&window.SporveCoach.addSession;
- const rr=window.SporveCatalog&&window.SporveCatalog.reload;
- window.SporveCoach=window.SporveCoach||{};
- try{
-   window.SporveCoach.createListing=(f)=>{c.create=f;return Promise.resolve({id:'prog_x'});};
-   window.SporveCoach.addSession=(id,s)=>{c.session={id:id,s:s};return Promise.resolve({id:'s_x'});};
-   window.SporveCatalog.reload=()=>{c.reloaded=true;return Promise.resolve(true);};
-   S.portal='coach';S.auth={status:'coach'};S.coachTab='listings';S.route={name:'dashboard',arg:null};
-   S.modal={type:'newlisting'};render();
-   const f=document.getElementById('listingForm'); if(!f){bad.push('NO_FORM');return bad.join(',');}
-   f.title.value='Clinic';f.sport.value=f.sport.options[0].value;f.desc.value='x';
-   f.price.value='40';f.minAge.value='8';f.maxAge.value='12';f.cap.value='8';f.sessionDate.value='2027-01-05';f.sessionTime.value='17:00';
-   f.dispatchEvent(new Event('submit',{bubbles:true,cancelable:true}));
-   // orchestration is async; the stubs resolve on microtasks flushed after this returns —
-   // so assert on the SYNC calls (create+session are invoked synchronously in the chain head)
-   if(!c.create||c.create.title!=='Clinic')bad.push('NO_CREATE');
-   // no fabricated local row (old bug pushed prog_new_ with verified:true)
-   if((typeof PROGRAMS!=='undefined'?PROGRAMS:[]).some(p=>String(p.id).indexOf('prog_new_')===0))bad.push('FABRICATED');
-   // loud failure: a rejecting createListing shows the error box, keeps the modal open
-   window.SporveCoach.createListing=()=>Promise.reject(new Error('boom'));
-   S.modal={type:'newlisting'};render();
-   const f2=document.getElementById('listingForm');
-   f2.title.value='Clinic';f2.sport.value=f2.sport.options[0].value;f2.desc.value='x';
-   f2.price.value='40';f2.minAge.value='8';f2.maxAge.value='12';f2.cap.value='8';f2.sessionDate.value='2027-01-05';
-   f2.dispatchEvent(new Event('submit',{bubbles:true,cancelable:true}));
- } finally {
-   if(rc)window.SporveCoach.createListing=rc; if(rs)window.SporveCoach.addSession=rs; if(rr)window.SporveCatalog.reload=rr;
-   S.modal=null;S.portal='family';S.route={name:'home',arg:null};render();document.body.classList.remove('reg-coach');
- }
- return bad.length?bad.join(','):'OK'})()" 2>/dev/null)
-[ "${pub//\"/}" = "OK" ] && pass "publish a listing writes a real programs row (no fabricated verified local push)" \
-  || fail "listing publish regressed: $pub"
-
-# ── Edit a listing PERSISTS (PATCH, not a local Object.assign lie) ────────
-# The edit form used to mutate the in-memory row and toast success while
-# writing nothing. It must now PATCH the real programs row and reload. Assert
-# validation still blocks cap<enrolled, and a valid edit calls updateListing.
-edt=$($B js "
-(()=>{const bad=[];const u={patch:null,reloaded:false};
- const ru=window.SporveCoach&&window.SporveCoach.updateListing;
- const rr=window.SporveCatalog&&window.SporveCatalog.reload;
- window.SporveCoach=window.SporveCoach||{};
- try{
-   window.SporveCoach.updateListing=(id,f)=>{u.patch={id:id,f:f};return Promise.resolve({id:id});};
-   window.SporveCatalog.reload=()=>{u.reloaded=true;return Promise.resolve(true);};
-   S.portal='coach';S.auth={status:'coach'};S.coachTab='listings';S.route={name:'dashboard',arg:null};
-   if(typeof PROGRAMS!=='undefined'&&!PROGRAMS.some(p=>p.id==='tprog'))
-     PROGRAMS.push({id:'tprog',title:'Old',sport:'Soccer',desc:'d',price:40,model:'single_session',minAge:8,maxAge:12,cap:10,enrolled:2,rating:0,reviews:0});
-   S.modal={type:'editlisting',id:'tprog'};render();
-   const f=document.getElementById('editListingForm'); if(!f){bad.push('NO_FORM');return bad.join(',');}
-   f.title.value='New';f.minAge.value='8';f.maxAge.value='12';f.price.value='55';
-   f.cap.value='1'; f.dispatchEvent(new Event('submit',{bubbles:true,cancelable:true}));
-   if(u.patch)bad.push('VALIDATION_BYPASSED');   // cap below enrolled must block
-   f.cap.value='10'; f.dispatchEvent(new Event('submit',{bubbles:true,cancelable:true}));
-   if(!u.patch||u.patch.id!=='tprog'||u.patch.f.title!=='New')bad.push('NO_PATCH');
-   // reload runs on a microtask after updateListing resolves — not observable
-   // synchronously here; the catalogue reload is covered by the browser drive.
- } finally {
-   const P=(typeof PROGRAMS!=='undefined'?PROGRAMS:[]);const i=P.findIndex(p=>p.id==='tprog');if(i>=0)P.splice(i,1);
-   if(ru)window.SporveCoach.updateListing=ru; if(rr)window.SporveCatalog.reload=rr;
-   S.modal=null;S.portal='family';S.route={name:'home',arg:null};render();document.body.classList.remove('reg-coach');
- }
- return bad.length?bad.join(','):'OK'})()" 2>/dev/null)
-[ "${edt//\"/}" = "OK" ] && pass "edit a listing PATCHes the real row; validation holds" \
-  || fail "listing edit regressed: $edt"
-
+# [spec 01 · 2026-08-31] listing publish + edit gates removed — the marketplace feature they tested is deleted.
 # ── Coach onboarding wizard palette (owner spec 2026-08-16) ──────────────
 # White/ink/slate + sport tags only — zero new colours. The chrome was built
 # to an earlier spec in Airbnb blue (#2563EB); this asserts it's slate now, the
