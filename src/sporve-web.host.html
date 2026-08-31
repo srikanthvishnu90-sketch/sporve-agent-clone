@@ -2907,7 +2907,7 @@ html.coldock .aidock-fab{display:none}
 .rail .rbadge{margin-left:auto;font-family:var(--mono);font-variant-numeric:tabular-nums;
   font-size:11px;font-weight:600;background:var(--raise2);color:var(--muted);
   border-radius:999px;padding:1px 7px}
-#app.coachdark .rail .rbadge{background:rgba(245,247,249,.10);color:#C3CBD4}
+#app.coachdark .rail .rbadge{background:rgba(143,163,188,.16);color:#B6C6D8}
 .stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(168px,1fr));gap:14px;margin-bottom:12px}
 .stat{border:1px solid var(--rule);border-radius:var(--r-l);padding:18px}
 /* PART C — the instrument readout. An 11px uppercase micro-label over a large
@@ -3227,8 +3227,13 @@ h2.ctr{margin-bottom:10px}
   --paper:#0A0C0F; --raise:#131519; --raise2:#1B1F26;
   /* --faint lifted from #7A8794 to #8B98A6: the stock value lands at 4.40:1 on
      --raise here, just under the 4.5 body-text floor. */
-  --ink:#F5F7F9; --ink-2:#C3CBD4; --muted:#9AA6B2; --faint:#8B98A6;
-  --rule:#242932; --rule-strong:#333A45;
+  /* Owner 2026-08-30 ("more slate coloring" in the coach dashboard): the
+     neutral grays shift toward slate-blue at the TOKEN level, so every
+     hairline, muted label and railgroup eyebrow picks up the hue without a
+     single layout change. Contrast re-checked: --faint #8C9CB0 on --raise
+     #131519 ≈ 6.4:1, --muted ≈ 6.9:1 — both clear the 4.5 body floor. */
+  --ink:#F5F7F9; --ink-2:#C3CBD4; --muted:#94A5B8; --faint:#8C9CB0;
+  --rule:#26303D; --rule-strong:#3A4656;
   --slate:#8FA3BC; --slate-ink:#B6C6D8; --slate-deep:#A9BACF; --slate-tint:#1A212B;
   --slate-ring:rgba(143,163,188,.34);
   --gold-ink:#E3C275; --gold-tint:#241E10;
@@ -3249,6 +3254,14 @@ h2.ctr{margin-bottom:10px}
 #app.coachdark .rbadge,
 #app.coachdark .cal-num.today,
 #app.coachdark .bub.me{color:#0A0C0F}
+/* Coach corner avatar (owner 2026-08-30: "profile icon in the corner in slate
+   and white text"). Deep slate, NOT the light #8FA3BC fill — white initials on
+   #3E566E measure ~7:1; on the light slate they would fail at 3.2:1. More
+   specific than the dark-ink rule above, so the white ink wins here. */
+#app.coachdark .acct .avatar{background:#3E566E;color:#FFFFFF;
+  box-shadow:inset 0 0 0 1px rgba(255,255,255,.18)}
+#app.coachdark .acct:hover .avatar{background:#47617C;
+  box-shadow:inset 0 0 0 1px rgba(255,255,255,.32)}
 /* Hardcoded light values inside the coach shell that tokens cannot reach.
    .cmdbar is a fixed, near-white panel — the command bar itself. Its text took
    the dark-ground tokens while its own background stayed white, leaving the
