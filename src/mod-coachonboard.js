@@ -841,8 +841,8 @@ function submittedHTML(d){
       <div class="cob-lock" style="margin:20px 0 0">
         <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"
           stroke-linecap="round" aria-hidden="true"><rect x="4" y="10" width="16" height="11" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/></svg>
-        <p>Your drafts are kept with your application. They are not in the marketplace catalogue,
-          so no search, map pin, or assistant answer can surface them.</p>
+        <p>Your drafts are kept with your application. They are private to your workspace,
+          so no family-facing surface can show them.</p>
       </div>
       <div class="cob-nav">
         <button class="btn" data-cob-dash="1">Go to your dashboard</button>
@@ -1347,7 +1347,7 @@ function guideSnapshot(){
     {
       id:"identity", phase:1, n:1, title:"Tell us who you coach", tab:real && pv && !pv.onboarding_completed ? "onboard" : "profile",
       time:"3–5 min", owner:"You", done:identityDone,
-      description:"Set the public business name, sports, and service location that identify the right coach and power marketplace matching.",
+      description:"Set the business name, sports, and service location that identify your club across the platform.",
       unlocks:"Creates the durable provider identity used by the rest of setup.",
       why:"Search, listing ownership, and payout onboarding all need one unambiguous provider identity. The check uses persisted provider fields, never a manually ticked checklist value.",
       requirements:["A signed-in provider account","A public business or coaching name","At least one sport","A city or service area"],
@@ -1370,7 +1370,7 @@ function guideSnapshot(){
     {
       id:"listing", phase:1, n:3, title:"Publish your first listing", tab:"listings", time:"6–10 min", owner:"You", done:listingDone,
       needs:"identity", description:"Create one purchasable service with a sport, price, ages, capacity, and—when possible—its first dated session.",
-      unlocks:"Creates marketplace supply; booking remains gated by safety, a future session, and Stripe.",
+      unlocks:"Creates a bookable offering; payment remains gated by safety, a future session, and Stripe.",
       why:"A profile describes the coach; a listing defines the thing a family can actually choose. The completion signal is a loaded program row owned by this provider.",
       requirements:["A provider record","Service title and sport","Description, price, pricing model, age range, and capacity","Optional first session date and time"],
       process:["Open Listings and choose New listing.","Complete the service fields; the client sends only coach-owned listing data.","Sporv inserts the program under the signed-in provider. If a date is supplied, it then inserts the first session.","The catalogue reloads. A partial session failure leaves the listing intact and reports that the session still needs adding."],

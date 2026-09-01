@@ -21,7 +21,7 @@
 <meta name="twitter:description" content="Find coaches, trainers, camps and teams across 20+ sports in Chicagoland.">
 <meta name="twitter:image" content="https://sporv.vercel.app/og.png">
 <link rel="icon" href="data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%2032%2032'%3E%3Crect%20width='32'%20height='32'%20rx='7'%20fill='%2309090B'/%3E%3Ccircle%20cx='16'%20cy='16'%20r='6'%20fill='white'/%3E%3C/svg%3E">
-<meta name="sporve-build" content="daef7ebc96cecda3">
+<meta name="sporve-build" content="a148c7fa372f7ff6">
 </head>
 <body>
 <noscript><h1>Sporv — Every sport. One app.</h1><p>Sporv connects families and athletes with coaches, trainers, camps, and teams across more than 20 sports. Please enable JavaScript to use the app.</p></noscript>
@@ -8139,7 +8139,6 @@ function notFoundHTML(name){
     <p style="margin-top:10px">We couldn't find <b>${esc(String(name||"the page"))}</b>.</p>
     <div style="display:flex;gap:10px;justify-content:center;margin-top:22px">
       <button class="btn" data-nav="home">Back to home</button>
-      <button class="btn ghost" data-nav="explore">Browse coaches</button>
     </div></div></main>`;
 }
 
@@ -9032,8 +9031,7 @@ function productHTML(){
         sides. The platform families book on is the same one coaches run their week on — and the
         rules below hold in both.</p>
       <div class="ctarow" style="margin-top:26px;justify-content:flex-start" data-rev>
-        <button class="btn" data-nav="explore">Start searching</button>
-        <button class="btn ghost" data-becomecoach="1">Become a coach</button>
+        <button class="btn" data-becomecoach="1">Set up your club</button>
       </div>
     </div>
   </section>
@@ -9082,8 +9080,7 @@ function productHTML(){
     <div class="shell ctr">
       <h2 data-rev>Start on either side</h2>
       <div class="ctarow" data-rev>
-        <button class="btn" data-nav="explore">Find a coach</button>
-        <button class="btn ghost" data-becomecoach="1">Become a coach</button>
+        <button class="btn" data-becomecoach="1">Set up your club</button>
       </div>
     </div>
   </section>`;
@@ -13624,18 +13621,7 @@ function pageHTML(id){
          hero → browse → close. Markup + styles preserved verbatim: the map
          strip, the dark session-recap chapter, the "Two ways in" two-path,
          and the FAQ accordion now live here on page:what-is. */""}
-  <section class="band slate mapstrip">
-    <div class="shell" data-rev>
-      <div class="mapstrip-in">
-        <div>
-          <div class="eyebrow">Nearby</div>
-          <h2 style="margin-top:10px">See every coach on the map.</h2>
-          <p class="sub" style="margin-top:10px">Filter by sport and distance, then book the closest open slot.</p>
-        </div>
-        <button class="btn" data-nav="map">Open the map →</button>
-      </div>
-    </div>
-  </section>
+
 
   <section class="band dark">
     <div class="shell lgrid">
@@ -13680,7 +13666,7 @@ function pageHTML(id){
                "Sessions, receipts and updates in one thread","One account, however many kids"]
               .map(t=>`<li><span>${esc(t)}</span></li>`).join("")}
           </ul>
-          <button class="btn" data-nav="explore">Find a coach</button>
+
         </div>
         <div class="dpath" data-rev data-rev-d="1">
           <div class="eyebrow">For coaches</div>
@@ -15553,9 +15539,11 @@ document.querySelectorAll('.sig-ai-coach').forEach(sigAiCoachWire);
             ?"Approved — this report is for you; nothing goes to families."
             :"Approved — no recipient on this one, nothing to send.");return;}
           return window.SporveAPI.fn("lifecycle-approve",{id:msgId})
-            .then(()=>toast("Approved and sent to the family."))
-            .catch(e=>toast(/hasn't joined/.test(e&&e.message||"")
-              ?"Approved — it will reach this family once they accept their invite."
+            .then(r=>toast(r&&r.queuedEmail
+              ?"Approved — emailing this family on the next delivery tick."
+              :"Approved and sent to the family."))
+            .catch(e=>toast(/bounced/.test(e&&e.message||"")
+              ?"Approved, but this guardian's email bounced — fix the address on their record."
               :"Approved, but sending failed: "+((e&&e.message)||"try again from Approvals.")));
         })
         .catch(e=>{o.status="draft";render();toast((e&&e.message)||"Could not approve.");});
@@ -15573,13 +15561,14 @@ document.querySelectorAll('.sig-ai-coach').forEach(sigAiCoachWire);
         o.status="approved";
         const msgId=await window.SporveAPI.rpc("approve_obligation_and_queue",{p_obligation_id:o.id});
         if(msgId){
-          try{await window.SporveAPI.fn("lifecycle-approve",{id:msgId});sent++;}
-          catch(e){if(/hasn't joined/.test(e&&e.message||""))held++;else failed++;}
+          try{const r=await window.SporveAPI.fn("lifecycle-approve",{id:msgId});
+              if(r&&r.queuedEmail)held++;else sent++;}
+          catch(e){failed++;}
         }
       }catch(_){o.status="draft";failed++;}
     }
     S.bulkApproving=false;render();
-    toast("Approved "+rows.length+" — "+sent+" sent"+(held?", "+held+" waiting on invites":"")+(failed?", "+failed+" failed":"")+".");
+    toast("Approved "+rows.length+" — "+sent+" sent in-app"+(held?", "+held+" queued for email":"")+(failed?", "+failed+" failed":"")+".");
   });
   /* auto-draft toggle: one row in lifecycle_message_prefs; 'off' stops the
      nightly cron for THIS org only (the generators check it per row). */
@@ -24149,8 +24138,8 @@ function submittedHTML(d){
       <div class="cob-lock" style="margin:20px 0 0">
         <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"
           stroke-linecap="round" aria-hidden="true"><rect x="4" y="10" width="16" height="11" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/></svg>
-        <p>Your drafts are kept with your application. They are not in the marketplace catalogue,
-          so no search, map pin, or assistant answer can surface them.</p>
+        <p>Your drafts are kept with your application. They are private to your workspace,
+          so no family-facing surface can show them.</p>
       </div>
       <div class="cob-nav">
         <button class="btn" data-cob-dash="1">Go to your dashboard</button>
@@ -24655,7 +24644,7 @@ function guideSnapshot(){
     {
       id:"identity", phase:1, n:1, title:"Tell us who you coach", tab:real && pv && !pv.onboarding_completed ? "onboard" : "profile",
       time:"3–5 min", owner:"You", done:identityDone,
-      description:"Set the public business name, sports, and service location that identify the right coach and power marketplace matching.",
+      description:"Set the business name, sports, and service location that identify your club across the platform.",
       unlocks:"Creates the durable provider identity used by the rest of setup.",
       why:"Search, listing ownership, and payout onboarding all need one unambiguous provider identity. The check uses persisted provider fields, never a manually ticked checklist value.",
       requirements:["A signed-in provider account","A public business or coaching name","At least one sport","A city or service area"],
@@ -24678,7 +24667,7 @@ function guideSnapshot(){
     {
       id:"listing", phase:1, n:3, title:"Publish your first listing", tab:"listings", time:"6–10 min", owner:"You", done:listingDone,
       needs:"identity", description:"Create one purchasable service with a sport, price, ages, capacity, and—when possible—its first dated session.",
-      unlocks:"Creates marketplace supply; booking remains gated by safety, a future session, and Stripe.",
+      unlocks:"Creates a bookable offering; payment remains gated by safety, a future session, and Stripe.",
       why:"A profile describes the coach; a listing defines the thing a family can actually choose. The completion signal is a loaded program row owned by this provider.",
       requirements:["A provider record","Service title and sport","Description, price, pricing model, age range, and capacity","Optional first session date and time"],
       process:["Open Listings and choose New listing.","Complete the service fields; the client sends only coach-owned listing data.","Sporv inserts the program under the signed-in provider. If a date is supplied, it then inserts the first session.","The catalogue reloads. A partial session failure leaves the listing intact and reports that the session still needs adding."],
@@ -26288,14 +26277,14 @@ window.MOD_NOTES = {
   }
 
   function insightsPage(meta) {
-    var argument = "Insights are useful only when the coach can tell measured account activity from an example. The current web build does not measure search impressions or profile views, so demand and funnel counts are seeded samples and carry that label. Price position is derived from comparable listings the org already runs. Availability and return timing are computed from current schedule and booking records, while named client watchlists stay behind sign-in. A number should lead to a decision the coach understands. Sample evidence demonstrates the intended reading; it is never described as this coach's performance.";
+    var argument = "Insights are useful only when every number traces to a record the club actually owns. The figures here read from the same tables that run billing: what was billed, what was collected, what is overdue, and who is behind — per team, derived at read time rather than stored as a flag that can go stale. Price position is derived from comparable offerings the org already runs. Availability and return timing are computed from current schedule and payment records, while named client watchlists stay behind sign-in. A number should lead to a decision the director understands, and every one shown can be traced back to the installment or record that produced it.";
     var rows = [
-      ["Read local demand",
-       "A coach guesses which sports, ages, or times families nearby want, usually from the messages loud enough to reach them. Quiet searches never enter that anecdotal picture.",
-       "The current web demo groups seeded search figures by sport and labels them Sample data. It shows the intended demand comparison without presenting those counts as measured account activity. The coach can compare the example with published sports and hours, but the screen does not claim that a family actually ran those searches."],
-      ["Follow the booking path",
-       "Page views, inquiries, and bookings live in separate tools, leaving no reliable way to see where interest stopped. A large top-line count can hide an unusable checkout path.",
-       "The funnel is a labeled sample 30-day window with appearances, profile views, checkout starts, and completed bookings. It demonstrates the stage-by-stage view; it does not claim those counts came from the signed-in coach. Real paid bookings remain separate from the sample funnel."],
+      ["Read the money at a glance",
+       "A treasurer reconciles dues from a spreadsheet, a bank export, and memory, and the three rarely agree once refunds and partial payments are counted against each other.",
+       "The treasurer view reads billed, collected, and overdue per team straight from the installment records — the same rows checkout and the ledger write. Overdue is derived from due date and status at the moment the screen loads, never from a stored flag, so the figure a director acts on is the figure the database can prove."],
+      ["Follow the collection path",
+       "Dues chase status lives in separate texts, emails, and a mental list, leaving no reliable way to see which family was reminded, when, and what happened next.",
+       "Every follow-up the agent drafts, every approval, and every payment that lands is a dated row on the same records. The collection view shows the chase stage per overdue installment — drafted, approved, sent, paid — so a director can answer why a message went out from the record itself."],
       ["Position a price",
        "A broad internet average mixes formats, locations, and age groups, then presents the result as advice for one coach. The average sounds precise while its peers remain invisible.",
        "Price position compares relevant listings and names the comparison set. Sporv shows evidence; the coach keeps authority over the price they publish. No suggested figure edits the listing by itself."],
@@ -26314,7 +26303,7 @@ window.MOD_NOTES = {
       "<div><strong>LIVE</strong><span>bookings, availability, and client dates</span></div></aside>";
     return wrap("insights", "R2", "metric-head-to-argument-to-stacked-table", "D-L-L", hero(meta,
       "A dashboard number should explain <em>what changed.</em>",
-      "Bookings, earnings, price position, availability, and returning clients can leave records as a coach works. Search demand and funnel activity do not yet: the current web build uses clearly labeled sample figures to demonstrate those views. Insights keeps derived account evidence separate from seeded examples, and the client watchlist stays private because business guidance never justifies exposing a family's history.",
+      "Billing, collections, price position, availability, and returning families all leave records as a club works, and Insights reads those records directly: billed, collected, and overdue per team come from the same installment rows checkout writes. The client watchlist stays private because business guidance never justifies exposing a family's history.",
       { tone: "dark", layout: "metrics", eyebrow: "COACH BUSINESS EVIDENCE", aside: snapshot }) +
       "<section class='pgband slate pg-insights-argument' data-section='argument' data-layout='narrow-right-argument'><div class='shell'><p class='pg-argument' data-prose>" +
       argument + "</p></div></section>" + table);
@@ -26326,8 +26315,8 @@ window.MOD_NOTES = {
       "Capacity is checked again when the booking is written. That second check matters when two families reach the last seat at nearly the same moment: one confirmed write can take it, and the other must choose another opening. A screen that merely looked open cannot override the stored count. Once full, the slot stops appearing as available. The coach sees confirmed capacity, not abandoned checkout attempts, and an expired hold returns to supply without requiring a manual calendar repair.",
       "Payment and the policy snapshot attach to the same booking record. The parent receives confirmation, the coach sees the athlete on the roster, and both sides can reopen the date, price, messages, receipt, and cancellation terms. If payment fails, the session is not presented as confirmed. A clean failure is safer than a booking that exists only in one person's inbox. A cancellation or agreed move updates this shared record rather than inventing a replacement in private messages. The change remains dated, attributed, and readable to both sides."
     ];
-    var figure = "<figure class='pg-flat-figure'><div class='pg-mono-ui' aria-label='Sample open baseball session'>" +
-      "<div class='pg-ui-head'><span>Grand Slam Baseball / Hitting Lab</span><span>Sample data</span></div>" +
+    var figure = "<figure class='pg-flat-figure'><div class='pg-mono-ui' aria-label='Example open baseball session'>" +
+      "<div class='pg-ui-head'><span>Grand Slam Baseball / Hitting Lab</span><span>Example</span></div>" +
       "<div class='pg-ui-row'><span class='pg-ui-key'>coach</span><span class='pg-ui-value'>Maya Rivera / background check cleared</span></div>" +
       "<div class='pg-ui-choice' aria-current='true'><span>Sat May 16 / 9:00 AM / 60 min</span><span>$45.00</span></div>" +
       "<div class='pg-ui-choice'><span>Sat May 16 / 10:30 AM / 60 min</span><span>$45.00</span></div>" +
@@ -26350,8 +26339,8 @@ window.MOD_NOTES = {
       "The timeline belongs to the athlete's family account, not to one coach's private notebook. Training with another coach does not erase the earlier record, and a new note does not rewrite an older one. Each entry keeps its author and session context, so continuity never turns into anonymous advice. The family decides which athlete record a booking uses. That ownership also prevents a coach from merging two athletes because their names look similar; every entry follows the selected account and source booking.",
       "Numbers appear only when someone recorded a real measure. A personal best can show the baseline and later result; an ordinary practice can remain a written observation. Sporv does not turn every child into a leaderboard or infer medical conclusions from coaching notes. The rule is simple: show what was observed, preserve who wrote it, and keep the history with the athlete. Corrections create a visible update rather than silently improving an old result, and a missing measurement remains missing until someone actually records one."
     ];
-    var figure = "<figure class='pg-flat-figure'><div class='pg-mono-ui' aria-label='Sample athlete progress timeline'>" +
-      "<div class='pg-ui-head'><span>Avery / Sprint development</span><span>Sample data</span></div>" +
+    var figure = "<figure class='pg-flat-figure'><div class='pg-mono-ui' aria-label='Example athlete progress timeline'>" +
+      "<div class='pg-ui-head'><span>Avery / Sprint development</span><span>Example</span></div>" +
       "<div class='pg-ui-row'><span class='pg-ui-key'>APR 18</span><span class='pg-ui-value'>Baseline 100m / 14.4s / first timed run</span></div>" +
       "<div class='pg-ui-row'><span class='pg-ui-key'>MAY 02</span><span class='pg-ui-value'>Block starts / first three steps sharper</span></div>" +
       "<div class='pg-ui-row'><span class='pg-ui-key'>MAY 16</span><span class='pg-ui-value'>150m rep / held form through the turn</span></div>" +
@@ -26374,12 +26363,12 @@ window.MOD_NOTES = {
       "Opening an athlete connects the practical history: upcoming and completed sessions, notes, payment state, messages, and media-consent status. The coach does not have to match a nickname in a group text to a payer in a receipt export. Parents still control their own account and consent decisions. A roster link gives the coach working context; it does not transfer ownership of family data. The family sees its own athletes and bookings, while the coach sees only the relationships required to deliver and account for instruction.",
       "The roster is private to the signed-in coach or authorized organization member. Public visitors see listings, not client names, attendance, or notes. Sorting and search happen inside that protected view. When access to an athlete is no longer justified, removing the coaching relationship closes future operational access without rewriting completed booking and payment records that both sides may still need. Organization roles narrow who may open, import, or message roster entries; belonging to the business is not blanket permission to read every family's history."
     ];
-    var figure = "<figure class='pg-flat-figure'><div class='pg-mono-ui' aria-label='Sample private client roster'>" +
-      "<div class='pg-ui-head'><span>Hockey roster / private coach view</span><span>Sample data</span></div>" +
+    var figure = "<figure class='pg-flat-figure'><div class='pg-mono-ui' aria-label='Example private client roster'>" +
+      "<div class='pg-ui-head'><span>Hockey roster / private coach view</span><span>Example</span></div>" +
       "<table class='pg-roster-ui'><thead><tr><th>Athlete</th><th>Sessions</th><th>Last seen</th></tr></thead><tbody>" +
       "<tr><td>Cole S.</td><td>31</td><td>Yesterday</td></tr><tr><td>Mason B.</td><td>24</td><td>2 days</td></tr>" +
       "<tr><td>Ella T.</td><td>12</td><td>5 days</td></tr><tr><td>Ava L.</td><td>8</td><td>1 week</td></tr>" +
-      "</tbody></table></div><figcaption data-prose>This table uses disclosed demo names and attendance counts to show the useful minimum at a glance. Names and attendance stay in the signed-in coach view; a public listing never inherits private roster data. Sorting the table changes order, not access, and every row opens the same athlete record rather than a copied profile for that coaching relationship. The real roster can also show a next session, an unfinished note, or missing consent as operational context, but those cues never turn private family information into roster of offerings content or a public ranking.</figcaption></figure>";
+      "</tbody></table></div><figcaption data-prose>This table uses disclosed demo names and attendance counts to show the useful minimum at a glance. Names and attendance stay in the signed-in coach view; a public listing never inherits private roster data. Sorting the table changes order, not access, and every row opens the same athlete record rather than a copied profile for that coaching relationship. The real roster can also show a next session, an unfinished note, or missing consent as operational context, but those cues never turn private family information into public content or a ranking.</figcaption></figure>";
     return wrap("roster", "R4", "compact-head-to-split-roster", "D-L-L", hero(meta,
       "Every client becomes <em>one working record.</em>",
       "Bring the families you already coach, then let new bookings add themselves. The roster joins each athlete to sessions, notes, payment state, messages, and consent without making the coach rebuild those links in a spreadsheet. It is a private operations view: families keep their own accounts and permissions, while public visitors never see the names or histories a coach uses to run the week.",
@@ -26590,7 +26579,7 @@ window.MOD_NOTES = {
     var rows = [
       ["Onboard the organization",
        "A new academy stitches together a booking site, a spreadsheet of families, a separate payments login, and a group chat, then re-enters the same people into each one before it can teach a single lesson.",
-       "The intended flow imports staff and existing families once, into a single organization with owner, admin, director, head-coach, assistant, and front-desk roles. This onboarding module is in development and shown here as a labelled sample."],
+       "The intended flow imports staff and existing families once, into a single organization with owner, admin, director, head-coach, assistant, and front-desk roles. This onboarding module is available by early access; the screen shown is an example."],
       ["Give people the right access",
        "Access is all-or-nothing: everyone shares one login, so a front-desk hire can open the payout account and any coach can edit another team's roster without anyone deciding they should.",
        "The design scopes each role to what it needs. A front-desk account books and checks people in, a director sees a location, and only an owner or admin reaches org-wide money. These permissions are the plan, not a live guarantee yet."],
@@ -26599,7 +26588,7 @@ window.MOD_NOTES = {
        "Multi-location is designed so programs, staff, and schedules belong to a named site while the organization reads across all of them at once. Coverage would grow site by site; this sample only shows the intended structure."],
       ["See the whole business at once",
        "A weekly picture means opening four tools and hoping the totals agree, which they rarely do once refunds, no-shows, and split pay are counted against each other.",
-       "The org dashboard is designed to summarise staff, active athletes, live programs, and a compliance score from the same records that run bookings. Every figure shown on this page is sample data while Enterprise is in development."]
+       "Every Thursday the agent compiles the eligibility report from real records: which members can't play Saturday, split into unpaid dues, unsigned waivers, and staff checks that lapse before game day. It lands in the review queue as one per-team list, drafted from the same rows that run billing and waivers — nothing on it is estimated."]
     ];
     // Real org figures for a signed-in org admin (from the same live hydration
     // as the compliance board); guests see the full labelled sample. Only the two
@@ -26615,8 +26604,8 @@ window.MOD_NOTES = {
         "<div><span>Cleared</span><b>" + ocO.cleared + " of " + ocO.total + "</b></div>" +
         "<div><span>Compliance</span><b>" + Math.round((ocO.cleared / ocO.total) * 100) + "%</b></div></aside>";
     } else {
-      board = "<aside class='pg-hero-orgboard' aria-label='Sample organization dashboard'>" +
-        "<div class='pg-board-top'><span>ACADEMY OS</span><span>Sample · Enterprise in development</span></div>" +
+      board = "<aside class='pg-hero-orgboard' aria-label='Example organization dashboard'>" +
+        "<div class='pg-board-top'><span>ACADEMY OS</span><span>Example</span></div>" +
         "<div><span>Staff</span><b>18</b></div><div><span>Active athletes</span><b>240</b></div>" +
         "<div><span>Programs</span><b>12</b></div><div><span>Compliance</span><b>92%</b></div></aside>";
     }
@@ -26628,7 +26617,7 @@ window.MOD_NOTES = {
       }).join("") + "</tbody></table></div></section>";
     return wrap("enterprise", "R2", "org-overview-slate-argument-comparison", "L-L-L", hero(meta,
       "One organization. <em>One operating record.</em>",
-      "Sporv Enterprise is the multi-player workspace an academy would run its whole operation on: many coaches, teams, and families under one organization instead of a dozen disconnected tools. It is in development and available by early access only, so every screen below is a labelled sample of the intended design rather than a live feature anyone can buy today.",
+      "Sporv Enterprise is the multi-player workspace an academy would run its whole operation on: many coaches, teams, and families under one organization instead of a dozen disconnected tools. It is available by early access, so the screens below are examples of the design rather than one academy's live data.",
       { tone: "white", layout: "org-overview", eyebrow: "ENTERPRISE · IN DEVELOPMENT", aside: board }) +
       "<section class='pgband slate pg-enterprise-argument' data-section='argument' data-layout='org-argument'><div class='shell'><p class='pg-argument' data-prose>" +
       argument + "</p></div></section>" + table);
@@ -26638,19 +26627,19 @@ window.MOD_NOTES = {
     var copy = [
       "The family side of the roster is designed around households, not loose contacts. A guardian record links to one or more athletes, so a parent with three children in three sports is one relationship rather than three duplicated entries. Medical notes, allergies, and emergency contacts attach to the athlete but sit behind a permission gate: a front-desk account can check a child in without reading their health history, while only the roles a director approves can open it. Waivers and consent are captured once and travel with the athlete instead of living on paper.",
       "The staff side is designed to make hiring legible. Each coach, assistant, and front-desk member is a person with a role, the locations they work, and their own background-check status, shown as clear, pending, or expired. A pending hire is never quietly treated as cleared to get through a busy week; the design fails closed, keeping an unverified person out of bookable supply. Smart groups can gather staff or athletes by sport, site, or age so a director messages exactly the right people without rebuilding a distribution list by hand every single time.",
-      "Because the roster is one organization record, a family is never re-entered when it moves between coaches inside the same academy, and a departing staff member's future access closes without erasing the completed sessions and payments both sides may still need. Guardians keep control of their own account and consent decisions; the organization sees the operational relationships required to deliver instruction, not a licence to read every family's private history. All of this is the intended design, presented as a labelled sample while Enterprise remains in development rather than a live product."
+      "Because the roster is one organization record, a family is never re-entered when it moves between coaches inside the same academy, and a departing staff member's future access closes without erasing the completed sessions and payments both sides may still need. Guardians keep control of their own account and consent decisions; the organization sees the operational relationships required to deliver instruction, not a licence to read every family's private history. All of this is the working design; the figures shown are examples, not any academy's records."
     ];
-    var figure = "<figure class='pg-flat-figure'><div class='pg-mono-ui' aria-label='Sample organization staff roster'>" +
-      "<div class='pg-ui-head'><span>Staff roster · Riverside Academy</span><span>Sample · Enterprise in development</span></div>" +
+    var figure = "<figure class='pg-flat-figure'><div class='pg-mono-ui' aria-label='Example organization staff roster'>" +
+      "<div class='pg-ui-head'><span>Staff roster · Riverside Academy</span><span>Example</span></div>" +
       "<table class='pg-staff-ui'><thead><tr><th>Name</th><th>Role</th><th>Check</th></tr></thead><tbody>" +
       "<tr><td>Dana Whitfield</td><td><span class='pg-role'>Director</span></td><td class='pg-ck pg-ck-clear'>Clear</td></tr>" +
       "<tr><td>Marcus Ellery</td><td><span class='pg-role'>Head coach</span></td><td class='pg-ck pg-ck-clear'>Clear</td></tr>" +
       "<tr><td>Priya Nadkarni</td><td><span class='pg-role'>Assistant</span></td><td class='pg-ck pg-ck-pending'>Pending</td></tr>" +
       "<tr><td>Tom Boyer</td><td><span class='pg-role'>Front desk</span></td><td class='pg-ck pg-ck-expired'>Expired</td></tr>" +
-      "</tbody></table></div><figcaption data-prose>This flat figure uses disclosed demo names to show the intended roster: each hire carries a role and their own background-check state, and a pending or expired check keeps that person out of bookable supply rather than being rounded up to cleared. Enterprise is in development, so these are sample rows, not live staff records.</figcaption></figure>";
+      "</tbody></table></div><figcaption data-prose>This flat figure uses disclosed demo names to show the intended roster: each hire carries a role and their own background-check state, and a pending or expired check keeps that person out of bookable supply rather than being rounded up to cleared. These rows are examples, not live staff records.</figcaption></figure>";
     return wrap("enterprise-roster", "R4", "roster-import-to-split-figure", "D-L-L", hero(meta,
       "Every household and every hire, <em>on one roster.</em>",
-      "Enterprise roster is designed to hold the two lists an academy actually runs on: the families it serves and the staff it employs. Guardians link to athletes, sensitive medical and emergency details stay permission-gated, and every staff member carries their own background-check state. It is in development and shown here as a labelled sample, not a live system anyone operates yet.",
+      "Enterprise roster is designed to hold the two lists an academy actually runs on: the families it serves and the staff it employs. Guardians link to athletes, sensitive medical and emergency details stay permission-gated, and every staff member carries their own background-check state. It is available by early access; the rows shown are examples, not a live roster.",
       { tone: "dark", layout: "roster-columns", eyebrow: "ENTERPRISE · IN DEVELOPMENT" }) +
       "<section class='pgband slate pg-enterprise-roster-figure pg-split-copy' data-section='product-copy' data-layout='household-copy'><div class='shell'><div class='pg-r4-copy'><h2>Two lists, one household-aware record.</h2>" +
       copy.map(function (p) { return "<p data-prose>" + p + "</p>"; }).join("") +
@@ -26662,21 +26651,21 @@ window.MOD_NOTES = {
     var prose = [
       "At one coach, payment is simple: the family pays the listed price and the whole amount reaches the coach. An academy adds a layer the design has to handle honestly, because the person who taught the session may not be the person who owns the payout account. Enterprise is designed so a booking can carry a revenue split: a head coach and an assistant, or a coach and the organization, each see the agreed share on the same record instead of settling up by side transfer after the fact every month.",
       "The split divides the coach revenue; it does not hide a platform cut. Sporv takes zero percent of a booking under this model, because the platform is funded by a flat software subscription rather than a percentage of what families pay for coaching. So the gross a family pays and the total that reaches the staff still match, and the split only decides how that same amount is shared between named people. A director can read gross, each share, and the net payout without reverse-engineering a booking fee that is not there.",
-      "Recurring memberships and invoicing are designed to sit beside single bookings, so a season pass, a monthly training plan, and a one-off clinic all land in one financial view rather than three exports. The dashboard's job is to show where money came from, which coach earned which share, and what is pending versus settled, read from the same records that run the schedule. Everything on this page is the intended design shown as a labelled sample; Enterprise is in development, and no figure here is a real transaction anyone was paid."
+      "Recurring memberships and invoicing are designed to sit beside single bookings, so a season pass, a monthly training plan, and a one-off clinic all land in one financial view rather than three exports. The dashboard's job is to show where money came from, which coach earned which share, and what is pending versus settled, read from the same records that run the schedule. The figures on this page are examples; no figure here is a real transaction anyone was paid."
     ];
     var worked = "<div class='pg-worked-math'><code>gross        $90.00\nhead coach   × .60    $54.00\nassistant    × .40    $36.00\nplatform     −$0.00\n------------------------\nstaff total           $90.00</code>" +
       "<p data-prose>A ninety-dollar session split sixty-forty between a head coach and an assistant pays fifty-four and thirty-six, and the two shares add back to the full ninety because Sporv takes nothing from the booking itself. These are disclosed demo amounts; the live calculation would read each share from the booking's stored gross rather than from a marketing example on a page.</p></div>";
-    var rail = "<aside class='pg-stat-rail' aria-label='Sample consolidated payout'>" +
+    var rail = "<aside class='pg-stat-rail' aria-label='Example consolidated payout'>" +
       "<div class='pg-rail-stat'><span class='pg-rail-value'>$90.00</span><span class='pg-rail-label'>family pays the listed session price · sample</span></div>" +
       "<div class='pg-rail-stat'><span class='pg-rail-value'>−$0.00</span><span class='pg-rail-label'>zero percent of bookings taken by Sporv</span></div>" +
       "<div class='pg-rail-stat'><span class='pg-rail-value'>$90.00</span><span class='pg-rail-label'>shared across the assigned staff · sample</span></div></aside>";
     var comp = "<aside class='pg-hero-comp' aria-label='Sample staff compensation summary'>" +
-      "<div class='pg-comp-top'><span>THIS MONTH</span><span>Sample · in development</span></div>" +
+      "<div class='pg-comp-top'><span>THIS MONTH</span><span>Example</span></div>" +
       "<div><span>Marcus E. · head coach</span><b>$2,140</b></div><div><span>Priya N. · assistant</span><b>$860</b></div>" +
       "<div><span>Org share · programs</span><b>$1,020</b></div></aside>";
     return wrap("enterprise-finance", "R3", "org-payout-split-essay-rail", "D-L-L", hero(meta,
       "Pay the whole staff, <em>from one ledger.</em>",
-      "Enterprise finance is designed for the academy that pays many coaches, not one. Consolidated payouts, per-coach revenue splits, recurring memberships, and a single financial view sit on the booking records families already pay into. Sporv still takes zero percent of a booking — the platform earns a flat software subscription — and every figure here is a labelled sample while the module is in development.",
+      "Enterprise finance is designed for the academy that pays many coaches, not one. Consolidated payouts, per-coach revenue splits, recurring memberships, and a single financial view sit on the booking records families already pay into. Sporv still takes zero percent of a booking — the platform earns a flat software subscription — and every figure here is an example, not an academy's live books.",
       { tone: "dark", layout: "comp-summary", eyebrow: "ENTERPRISE · IN DEVELOPMENT", aside: comp }) +
       "<section class='pgband slate pg-enterprise-ledger' data-section='essay-stat' data-layout='comp-essay'><div class='shell'><div class='pg-essay'><h2>One amount, shared between named people.</h2>" +
       prose.map(function (p) { return "<p data-prose>" + p + "</p>"; }).join("") + worked +
@@ -26687,7 +26676,7 @@ window.MOD_NOTES = {
   function enterpriseCompliancePage(meta) {
     var questions = [
       ["How does a check get run for a whole staff?",
-       "Each staff member is screened as an individual through an independent consumer reporting agency — the model here is a vendor such as Checkr. The organization can invite and track the check, but it never marks itself cleared. Sporv stores the state that comes back, and a director cannot type a result or grant a badge from an admin screen. This is the intended design, shown as a labelled sample while Enterprise is in development."],
+       "Each staff member is screened as an individual through an independent consumer reporting agency — the model here is a vendor such as Checkr. The organization can invite and track the check, but it never marks itself cleared. Sporv stores the state that comes back, and a director cannot type a result or grant a badge from an admin screen. This is the working design; the screen shown is an example."],
       ["What does the compliance dashboard show?",
        "The board is designed to list every staff member with their current check state, certification status, and waiver status, each tied to a date rather than a vague yes. A director can see at a glance who is clear, whose check is pending, and whose clearance has expired and needs a re-run. The sample board on this page shows pending as pending; it does not round an unfinished check up to cleared to make the screen look complete."],
       ["Can a pending or expired coach still be booked?",
@@ -26695,7 +26684,7 @@ window.MOD_NOTES = {
       ["What do parents see?",
        "Enterprise is designed to give families the same trust surface they get for an independent coach: the named person who will run the session and that person's current verification state, not a company logo standing in for an individual. A badge that stops being true stops showing. Parents should report any mismatch between the person listed and the person who arrives, because clearance never travels to a substitute."],
       ["How does this handle minors and COPPA?",
-       "Athlete records describe children, so the design keeps sensitive data permission-gated, keeps media consent a separate parent decision, and limits which roles can open a child's information. The organization holding a booking does not become an owner of the family's data. These COPPA-minded boundaries are the intended posture; Enterprise is in development, and this page is a labelled sample rather than a live compliance system."]
+       "Athlete records describe children, so the design keeps sensitive data permission-gated, keeps media consent a separate parent decision, and limits which roles can open a child's information. The organization holding a booking does not become an owner of the family's data. These COPPA-minded boundaries are the working posture; the screen shown is an example rather than one academy's records."]
     ];
     // Enterprise slice 1: a signed-in org admin sees their org's REAL clearance
     // board (from live organization_members, RLS-scoped, fail-closed); everyone
@@ -26737,7 +26726,7 @@ window.MOD_NOTES = {
         }).join("") + "</aside>";
     } else {
       board = "<aside class='pg-hero-compliance' aria-label='Sample organization compliance board'>" +
-        "<div class='pg-board-top'><span>COMPLIANCE BOARD</span><span>Sample · in development</span></div>" +
+        "<div class='pg-board-top'><span>COMPLIANCE BOARD</span><span>Example</span></div>" +
         "<div><span>Dana W. · director</span><b class='pg-cbd pg-cbd-clear'>Clear</b></div>" +
         "<div><span>Marcus E. · head coach</span><b class='pg-cbd pg-cbd-clear'>Clear</b></div>" +
         "<div><span>Priya N. · assistant</span><b class='pg-cbd pg-cbd-pending'>Pending</b></div>" +
@@ -26767,7 +26756,7 @@ window.MOD_NOTES = {
     ) : "";
     return wrap("enterprise-compliance", "R6", "compliance-board-to-split-ledger", "D-L-L", hero(meta,
       "Trust that <em>fails closed.</em>",
-      "Enterprise compliance is designed to run the trust layer for a whole staff at once: each person's background check orchestrated through an independent vendor, every certificate and waiver tracked to a date, and a single board showing who is clear, pending, or expired. The rule the whole company is built on holds here — an unverified person cannot take a booking. It is in development and shown as a labelled sample.",
+      "Enterprise compliance is designed to run the trust layer for a whole staff at once: each person's background check orchestrated through an independent vendor, every certificate and waiver tracked to a date, and a single board showing who is clear, pending, or expired. The rule the whole company is built on holds here — an unverified person cannot take a booking. It is available by early access; the board shown is an example.",
       { tone: "dark", layout: "compliance-board", eyebrow: "ENTERPRISE · IN DEVELOPMENT", aside: board }) +
       certForm +
       questionSection(questions.slice(0, 3), { tone: "slate", layout: "org-compliance-ledger", className: "pg-compliance-questions" }) +

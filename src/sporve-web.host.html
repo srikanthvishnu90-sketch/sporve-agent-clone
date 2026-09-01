@@ -8095,7 +8095,6 @@ function notFoundHTML(name){
     <p style="margin-top:10px">We couldn't find <b>${esc(String(name||"the page"))}</b>.</p>
     <div style="display:flex;gap:10px;justify-content:center;margin-top:22px">
       <button class="btn" data-nav="home">Back to home</button>
-      <button class="btn ghost" data-nav="explore">Browse coaches</button>
     </div></div></main>`;
 }
 
@@ -8988,8 +8987,7 @@ function productHTML(){
         sides. The platform families book on is the same one coaches run their week on — and the
         rules below hold in both.</p>
       <div class="ctarow" style="margin-top:26px;justify-content:flex-start" data-rev>
-        <button class="btn" data-nav="explore">Start searching</button>
-        <button class="btn ghost" data-becomecoach="1">Become a coach</button>
+        <button class="btn" data-becomecoach="1">Set up your club</button>
       </div>
     </div>
   </section>
@@ -9038,8 +9036,7 @@ function productHTML(){
     <div class="shell ctr">
       <h2 data-rev>Start on either side</h2>
       <div class="ctarow" data-rev>
-        <button class="btn" data-nav="explore">Find a coach</button>
-        <button class="btn ghost" data-becomecoach="1">Become a coach</button>
+        <button class="btn" data-becomecoach="1">Set up your club</button>
       </div>
     </div>
   </section>`;
@@ -13580,18 +13577,7 @@ function pageHTML(id){
          hero → browse → close. Markup + styles preserved verbatim: the map
          strip, the dark session-recap chapter, the "Two ways in" two-path,
          and the FAQ accordion now live here on page:what-is. */""}
-  <section class="band slate mapstrip">
-    <div class="shell" data-rev>
-      <div class="mapstrip-in">
-        <div>
-          <div class="eyebrow">Nearby</div>
-          <h2 style="margin-top:10px">See every coach on the map.</h2>
-          <p class="sub" style="margin-top:10px">Filter by sport and distance, then book the closest open slot.</p>
-        </div>
-        <button class="btn" data-nav="map">Open the map →</button>
-      </div>
-    </div>
-  </section>
+
 
   <section class="band dark">
     <div class="shell lgrid">
@@ -13636,7 +13622,7 @@ function pageHTML(id){
                "Sessions, receipts and updates in one thread","One account, however many kids"]
               .map(t=>`<li><span>${esc(t)}</span></li>`).join("")}
           </ul>
-          <button class="btn" data-nav="explore">Find a coach</button>
+
         </div>
         <div class="dpath" data-rev data-rev-d="1">
           <div class="eyebrow">For coaches</div>
@@ -15509,9 +15495,11 @@ document.querySelectorAll('.sig-ai-coach').forEach(sigAiCoachWire);
             ?"Approved — this report is for you; nothing goes to families."
             :"Approved — no recipient on this one, nothing to send.");return;}
           return window.SporveAPI.fn("lifecycle-approve",{id:msgId})
-            .then(()=>toast("Approved and sent to the family."))
-            .catch(e=>toast(/hasn't joined/.test(e&&e.message||"")
-              ?"Approved — it will reach this family once they accept their invite."
+            .then(r=>toast(r&&r.queuedEmail
+              ?"Approved — emailing this family on the next delivery tick."
+              :"Approved and sent to the family."))
+            .catch(e=>toast(/bounced/.test(e&&e.message||"")
+              ?"Approved, but this guardian's email bounced — fix the address on their record."
               :"Approved, but sending failed: "+((e&&e.message)||"try again from Approvals.")));
         })
         .catch(e=>{o.status="draft";render();toast((e&&e.message)||"Could not approve.");});
@@ -15529,13 +15517,14 @@ document.querySelectorAll('.sig-ai-coach').forEach(sigAiCoachWire);
         o.status="approved";
         const msgId=await window.SporveAPI.rpc("approve_obligation_and_queue",{p_obligation_id:o.id});
         if(msgId){
-          try{await window.SporveAPI.fn("lifecycle-approve",{id:msgId});sent++;}
-          catch(e){if(/hasn't joined/.test(e&&e.message||""))held++;else failed++;}
+          try{const r=await window.SporveAPI.fn("lifecycle-approve",{id:msgId});
+              if(r&&r.queuedEmail)held++;else sent++;}
+          catch(e){failed++;}
         }
       }catch(_){o.status="draft";failed++;}
     }
     S.bulkApproving=false;render();
-    toast("Approved "+rows.length+" — "+sent+" sent"+(held?", "+held+" waiting on invites":"")+(failed?", "+failed+" failed":"")+".");
+    toast("Approved "+rows.length+" — "+sent+" sent in-app"+(held?", "+held+" queued for email":"")+(failed?", "+failed+" failed":"")+".");
   });
   /* auto-draft toggle: one row in lifecycle_message_prefs; 'off' stops the
      nightly cron for THIS org only (the generators check it per row). */
