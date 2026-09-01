@@ -241,7 +241,10 @@
           }
           return existing;
         }
-        return API.from("providers", "", {
+        /* ?select= limits the RETURNING set to granted columns — a bare
+           return=representation implies SELECT *, and the column-level
+           lockdown (stripe ids, exact lat/lng) 401s the entire insert. */
+        return API.from("providers", "?select=id,business_name,status,stripe_onboarding_started,stripe_charges_enabled", {
           method: "POST",
           headers: { Prefer: "return=representation" },
           body: {

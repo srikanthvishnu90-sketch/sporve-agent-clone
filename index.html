@@ -21,7 +21,7 @@
 <meta name="twitter:description" content="Find coaches, trainers, camps and teams across 20+ sports in Chicagoland.">
 <meta name="twitter:image" content="https://sporv.vercel.app/og.png">
 <link rel="icon" href="data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%2032%2032'%3E%3Crect%20width='32'%20height='32'%20rx='7'%20fill='%2309090B'/%3E%3Ccircle%20cx='16'%20cy='16'%20r='6'%20fill='white'/%3E%3C/svg%3E">
-<meta name="sporve-build" content="47f7b3b32c28faba">
+<meta name="sporve-build" content="488a4f5a2fe70232">
 </head>
 <body>
 <noscript><h1>Sporv — Every sport. One app.</h1><p>Sporv connects families and athletes with coaches, trainers, camps, and teams across more than 20 sports. Please enable JavaScript to use the app.</p></noscript>
@@ -15314,7 +15314,11 @@ document.querySelectorAll('.sig-ai-coach').forEach(sigAiCoachWire);
           body:{provider_id:pv.id,source_filename:w.fileName||"pasted CSV",
                 row_count:created.length,content_hash:hash}}).catch(e=>{
           if(/duplicate|conflict|23505/i.test(String(e&&e.message)))return null;throw e;});
-        if(!b||!b[0]){toast("This exact file was already imported — nothing was created twice.");return;}
+        if(!b||!b[0]){
+          S.teamRoster=teamRoster().filter(r=>r.batchId!==batch);
+          S.importBatches=(S.importBatches||[]).filter(x=>x.id!==batch);
+          render();
+          toast("This exact file was already imported — nothing was created twice.");return;}
         const batchId=b[0].id; w.serverBatchId=batchId; w.serverBatchAt=Date.now();
         S.importBatches=(S.importBatches||[]).map(x=>x.id===batch?{...x,serverId:batchId,serverAt:Date.now()}:x);
         const members=[];
@@ -15448,10 +15452,15 @@ document.querySelectorAll('.sig-ai-coach').forEach(sigAiCoachWire);
       w.err="Finish coach onboarding first — your org record is what everything attaches to.";render();return;}
     w.busy=true;w.err=null;render();
     (async()=>{try{
-      const sRows=await window.SporveAPI.from("seasons","",{method:"POST",
-        headers:{Prefer:"return=representation"},
-        body:{provider_id:pv.id,name:d.season.name,start_date:d.season.start_date,end_date:d.season.end_date}});
-      const seasonId=sRows[0].id;
+      /* idempotent on retry: a failure after the season insert must not mint
+         a second season when the director resubmits */
+      let seasonId=w.seasonId;
+      if(!seasonId){
+        const sRows=await window.SporveAPI.from("seasons","",{method:"POST",
+          headers:{Prefer:"return=representation"},
+          body:{provider_id:pv.id,name:d.season.name,start_date:d.season.start_date,end_date:d.season.end_date}});
+        seasonId=w.seasonId=sRows[0].id;
+      }
       const out=[];
       for(const t of teams){
         const tr=await window.SporveAPI.from("teams","",{method:"POST",
@@ -18726,7 +18735,10 @@ window.MOD_COACHUI = { css:CSS, wire:wire };
           }
           return existing;
         }
-        return API.from("providers", "", {
+        /* ?select= limits the RETURNING set to granted columns — a bare
+           return=representation implies SELECT *, and the column-level
+           lockdown (stripe ids, exact lat/lng) 401s the entire insert. */
+        return API.from("providers", "?select=id,business_name,status,stripe_onboarding_started,stripe_charges_enabled", {
           method: "POST",
           headers: { Prefer: "return=representation" },
           body: {
