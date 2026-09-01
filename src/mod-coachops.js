@@ -70,7 +70,7 @@ const wdShort = n => (WD.find(w => w.n === n) || { s: "—" }).s;
    matches, and a bare PROGRAMS.find() would start returning null everywhere. */
 const prog = id => PROGRAMS.find(p => p.id === id) ||
                    DEMO_CATALOGUE.find(p => p.id === id) || null;
-/* The coach portal is still sample data (Phase E makes it live), so it owns
+/* The coach portal is still demo records (Phase E makes it live), so it owns
    seeded listings. Filtering the LIVE catalogue by S.listings returns nothing
    and the `|| PROGRAMS[0]` fallbacks below would then hand this demo coach a
    real provider's listing to manage — one operator shown another operator's

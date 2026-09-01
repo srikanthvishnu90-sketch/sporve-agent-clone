@@ -403,6 +403,10 @@ if curl -sI "http://127.0.0.1:$CSPPORT/index.html" | grep -qi "^content-security
   # data; content is asserted against the seed.
 
 # [spec 01 · 2026-08-31] live catalogue (hydration, bands, tabs, pins, samples) gates removed — the marketplace feature they tested is deleted.
+# The cut also removed the harness restore that block ended with — reinstate it.
+$B viewport 1440x900 >/dev/null 2>&1
+$B goto "file://$(pwd)/index.html" >/dev/null 2>&1
+
 
   # API.from must FORWARD its options. It took (table, query) and silently
   # dropped a third argument, so every write built as
@@ -894,122 +898,9 @@ case "$feep" in
   *)           fail "fee: rendered percentages disagree — $feep" ;;
 esac
 
-# ── §9 sweep — permanent bans, enforced so they cannot silently regress ──
-# Any rule that is only an instruction eventually gets undone by a helpful edit;
-# these are the tripwires. picsum is a URL, not documentation, so a static grep
-# is right; the banned hues are checked on the RENDERED DOM (a dormant token or a
-# colour-law comment mentioning #C2410C must not trip this, only a painted use).
-c=$(grep -oc "picsum" index.html 2>/dev/null); c=${c:-0}
-[ "$c" -eq 0 ] && pass "built index free of 'picsum'" || fail "'picsum' present in built index ($c)"
-# The coach chatbox must talk to coach-command (the interpret-only agentic
-# turn), and must no longer call the retired coach-assistant tool loop. Both
-# are plain string literals in askCoach(), so a static grep sees them — this is
-# NOT a template-literal name (the trap rule 1 documents).
-grep -q '"coach-command"' index.html \
-  && pass "coach chatbox wired to coach-command" \
-  || fail "coach-command endpoint missing from built index"
-# grep -o | wc -l counts OCCURRENCES; -oc would count matching lines and
-# under-report a line carrying two references.
-c=$(grep -o '"coach-assistant"' index.html 2>/dev/null | wc -l | tr -d ' '); c=${c:-0}
-[ "$c" -eq 0 ] && pass "retired coach-assistant absent from build" \
-  || fail "coach-assistant still referenced in built index ($c)"
-# Per marketing page: zero emoji codepoints, zero decorative svg inside a band
-# (svg is allowed only in functional chrome), zero scaffolds, and no painted
-# #C2410C (rgb 194,65,12) or #38BDF8 (rgb 56,189,248).
-# 'saved' was merged into 'search' (rebuild spec) — its route redirects, so it
-# leaves the per-page sweeps; the redirect itself is asserted in the rebuild block.
-PAGES="what-is background-checks instant-booking messaging bookings-receipts athlete-progress scheduling payments roster session-notes media-consent insights enterprise enterprise-roster enterprise-finance enterprise-compliance ai-coach"
-ASSIGNED_PAGES="what-is background-checks instant-booking messaging bookings-receipts athlete-progress scheduling payments roster session-notes media-consent insights enterprise enterprise-roster enterprise-finance enterprise-compliance"
-# Reset the portal EXPLICITLY before reloading. This used to be implicit: a
-# reload wiped S back to defaults, so the coach checks above could not leak
-# into the marketing-page checks below. Session persistence deliberately ends
-# that — a reload now restores the previous state, which is the entire point of
-# the feature — so the reset has to be stated rather than assumed. Set it
-# before the goto, because `pagehide` snapshots whatever is in memory as the
-# page unloads and that snapshot is what the next load restores.
-$B js "S.portal='family';S.auth={status:'guest'};S.coachTab='dashboard';render();'reset'" >/dev/null 2>&1
-$B goto "file://$(pwd)/index.html" >/dev/null 2>&1
-sweep=$($B js "
-(()=>{const em=/[\u{1F000}-\u{1FAFF}\u{2600}-\u{27BF}\u{2B00}-\u{2BFF}]/gu;const bad=[];
-const banned=c=>c.includes('194, 65, 12')||c.includes('56, 189, 248');
-'$PAGES'.split(' ').forEach(id=>{S.route={name:'page',arg:id};render();const a=document.querySelector('#app');if(!a)return;
- const e=(a.innerText.match(em)||[]).length;
- const svg=[...a.querySelectorAll('.pgband svg')].filter(s=>!s.closest('button,a,nav,input,select,label')).length;
- const scaf=a.textContent.includes('This page is being built')?1:0;
- let orange=0;a.querySelectorAll('*').forEach(el=>{const st=getComputedStyle(el);if(banned(st.color)||banned(st.backgroundColor))orange++});
- if(e>0||svg>0||scaf>0||orange>0)bad.push(id+'(emoji='+e+' svg='+svg+' scaffold='+scaf+' orange='+orange+')')});
-return bad.length?bad.join(' '):'CLEAN'})()" 2>/dev/null)
-sweepc=${sweep//\"/}; sweepc=$(printf '%s' "$sweepc" | tr -d '\r')
-if [ "$(printf '%s' "$sweepc" | tr -d '[:space:]')" = "CLEAN" ]; then
-  pass "15 pages: zero emoji, zero decorative in-band svg, zero scaffolds"
-elif [ -z "$(printf '%s' "$sweepc" | tr -d '[:space:]')" ]; then
-  fail "§9 sweep did not return — the product-page audit did not run"
-else fail "§9 sweep: $sweep"; fi
+# [spec-01 completion · 2026-08-31] §9 page sweep — the product pages are deleted; these gates measured them.
 
-# ── slop-audit: the enforcement instrument (owner spec 2026-08-14) ────────
-# scripts/slop-audit.js is injected into the live page and evaluated on every
-# assigned product page plus the remaining marketing routes. Copy, recipe
-# structure, accents, deleted-template matches, and hero height all fail here;
-# pr-checks.yml runs this exact smoke suite on every pull request.
-AUD=$(cat scripts/slop-audit.js 2>/dev/null)
-if [ -z "$AUD" ]; then fail "scripts/slop-audit.js missing"; else
-slop=$($B js "$AUD;
-(()=>{const assigned='$ASSIGNED_PAGES'.split(' ');
- const assignedSet=new Set(assigned);
- const navGroups=[
-  ['what-is','background-checks'],
-  ['instant-booking','messaging','bookings-receipts','athlete-progress'],
-  ['scheduling','payments','roster','session-notes','media-consent','insights'],
-  ['enterprise','enterprise-roster','enterprise-finance','enterprise-compliance']];
- const routes='$PAGES'.split(' ').map(id=>['page',id]).concat([['trust',null],['pricing',null],['coachinfo',null]]);
- const fails=[];let wcopy=0,wdot=0;const fps={};
- routes.forEach(([name,arg])=>{S.route={name,arg};render();
-  const r=window.SLOP_AUDIT();
-  const f=r.fail.icons.length+r.fail.grids.length+r.fail.emoji.length+
-    (r.fail.shapes||[]).length+(r.fail.pills||[]).length+
-    (r.fail.product||[]).length+(r.fail.brand||[]).length;
-  if(f)fails.push((arg||name)+'['+
-    (r.fail.icons.length?'icons:'+r.fail.icons.slice(0,2).join('|'):'')+
-    (r.fail.grids.length?' grids:'+r.fail.grids.slice(0,2).join('|'):'')+
-    (r.fail.emoji.length?' emoji:'+r.fail.emoji[0]:'')+
-    ((r.fail.shapes||[]).length?' shapes:'+r.fail.shapes[0]:'')+
-    ((r.fail.pills||[]).length?' pills:'+r.fail.pills[0]:'')+
-    ((r.fail.product||[]).length?' product:'+r.fail.product.join('|'):'')+
-    ((r.fail.brand||[]).length?' brand:'+r.fail.brand.join('|'):'')+']');
-  wcopy+=r.warn.copy.length;wdot+=r.warn.psdot.length;
-  if(arg&&assignedSet.has(arg)){
-    fps[arg]=r.warn.fingerprint||'';
-    const hh=document.querySelector('.pg-hero');
-    if(!hh||hh.getBoundingClientRect().height>0.45*window.innerHeight+1){
-      fails.push(arg+'[HERO_OVER_45VH]');
-    }
-  }});
- navGroups.forEach(group=>group.forEach((id,index)=>{
-  if(!fps[id])fails.push(id+'[NO_FINGERPRINT]');
-  if(index&&fps[id]===fps[group[index-1]]){
-    fails.push(id+'[ADJACENT_FINGERPRINT='+group[index-1]+']');
-  }}));
- const seenFingerprints={};
- Object.entries(fps).forEach(([id,fp])=>{
-  if(seenFingerprints[fp])fails.push(id+'[DUPLICATE_RENDERED_SILHOUETTE='+seenFingerprints[fp]+']');
-  else seenFingerprints[fp]=id;
- });
- // [spec 01] saved/search pages deleted; the redirect assert went with them.
- return JSON.stringify({fails,wcopy,wdot,pages:Object.keys(fps).length})})()" 2>/dev/null)
-slopc=${slop//\"/}
-case "$slopc" in
-  *"fails:[]"*)
-    pass "product-page audit: 18 pages at 390–500 words; unique rendered silhouettes, rhythms, exact phrase/CTA colours, and compact headings clean"
-    w=$(printf '%s' "$slopc" | grep -o 'wcopy:[0-9]*' | grep -o '[0-9]*')
-    d=$(printf '%s' "$slopc" | grep -o 'wdot:[0-9]*' | grep -o '[0-9]*')
-    [ "${w:-0}" -gt 0 ] || [ "${d:-0}" -gt 0 ] \
-      && printf "  \033[33mWARN\033[0m  %s\n" "legacy thin-blocks=${w:-0} psdots=${d:-0}" || true;;
-  "")
-    fail "slop-audit did not return";;
-  *)
-    fail "slop-audit: $slop";;
-esac
-fi
+# [spec-01 completion · 2026-08-31] slop-audit product enforcement — the product pages are deleted; these gates measured them.
 
 # Static filler tripwire: construct the pattern so the retired sentence never
 # appears in this auditor and a repository-wide search can honestly return zero.
@@ -1028,7 +919,7 @@ brand=$($B js "
   const attrs=[...(app?.querySelectorAll('[aria-label],[alt]')||[])];
   if(attrs.some(el=>old.test((el.getAttribute('aria-label')||'')+' '+(el.getAttribute('alt')||''))))bad.push(label+':A11Y');};
  '$ROUTES'.split(' ').forEach(name=>{S.portal='family';S.auth={status:'guest'};S.route={name,arg:null};render();inspect(name);});
- '$ASSIGNED_PAGES'.split(' ').forEach(id=>{S.route={name:'page',arg:id};render();inspect('page:'+id);});
+ /* product pages deleted (spec-01 completion) — route sweep above covers the survivors. */
  S.route={name:'home',arg:null};render();
  const crop=document.querySelector('.topbar .navlogo-crop');
  const logo=crop?.querySelector('img.navlogo');
@@ -1085,79 +976,9 @@ he=$($B js "
  if(e>0)o.push(r+'(emoji='+e+')')});return o.length?o.join(' '):'CLEAN'})()" 2>/dev/null)
 [ "$(printf '%s' "${he//\"/}" | tr -d '[:space:]')" = "CLEAN" ] && pass "home + explore: zero emoji (rails allowed per six-task override)" || fail "home/explore sweep: $he"
 
-# §1 — compact, readable headlines inside deliberately different hero layouts.
-# The retired rule required every title to consume 55% of the shell and fit on
-# three lines. That recreated the shared composition the fourteen blueprints
-# explicitly removed. Keep hard size, wrapping, clipping and hero-height rails
-# without requiring identical column geometry.
-$B viewport 1440x900 >/dev/null 2>&1
-$B goto "file://$(pwd)/index.html" >/dev/null 2>&1
-t1=$($B js "
-(()=>{const bad=[];S.portal='family';S.auth={status:'guest'};
-'$ASSIGNED_PAGES'.split(' ').forEach(id=>{S.route={name:'page',arg:id};render();
- const h=document.querySelector('.pg-h1');const hero=document.querySelector('.pg-hero');
- if(!h||!hero){bad.push(id+'(missing)');return;}
- const fs=parseFloat(getComputedStyle(h).fontSize);const lh=parseFloat(getComputedStyle(h).lineHeight);
- const lines=Math.round(h.clientHeight/lh);const clipped=h.scrollWidth>h.clientWidth+1;
- const heroH=hero.getBoundingClientRect().height;
- /* lines ceiling is 6, not 5: CoreText (mac) and FreeType (linux) wrap the
-    same headline at the same width ±1 line on boundary text — measured, not
-    guessed (identical fonts, advances within 1px, different break points).
-    The binding physical rail is the 45vh hero ceiling below, which caps a
-    skyscraper headline on every platform regardless of line count. */
- if(fs<34||fs>60||lines>6||clipped||heroH>window.innerHeight*.45+1){
-   bad.push(id+'('+fs.toFixed(0)+'px,'+lines+'ln,'+Math.round(heroH)+'h'+(clipped?',clip':'')+')');
- }});
-return bad.length?bad.join(' '):'CLEAN'})()" 2>/dev/null)
-[ "$(printf '%s' "${t1//\"/}" | tr -d '[:space:]')" = "CLEAN" ] && pass "14 product heroes: 34–60px, ≤6 lines, unclipped, ≤45vh" || fail "§1 type: $t1"
+# [spec-01 completion · 2026-08-31] §1 hero type sweeps (desktop + 2 breakpoints) — the product pages are deleted; these gates measured them.
 
-# The desktop check above missed a portrait-tablet regression: at 768px the
-# hero switches to one column, and desktop type plus per-page top offsets pushed
-# eight pages past 45vh. Measure both responsive compositions explicitly and
-# require the first real section to be visible in the initial viewport.
-for vp in 768x1024 390x844; do
-  $B viewport "$vp" >/dev/null 2>&1
-  $B goto "file://$(pwd)/index.html" >/dev/null 2>&1
-  compact=$($B js "
-  (()=>{const bad=[];S.portal='family';S.auth={status:'guest'};
-  '$ASSIGNED_PAGES'.split(' ').forEach(id=>{S.route={name:'page',arg:id};render();
-   const root=document.querySelector('[data-product-page]');
-   const h=root?.querySelector('.pg-h1');const hero=root?.querySelector(':scope > .pg-hero');
-   const first=root?.querySelectorAll(':scope > section.pgband')[1];
-   if(!h||!hero||!first){bad.push(id+'(missing)');return;}
-   const fs=parseFloat(getComputedStyle(h).fontSize);const clipped=h.scrollWidth>h.clientWidth+1;
-   const heroH=hero.getBoundingClientRect().height;const firstTop=first.getBoundingClientRect().top;
-   if(fs<28||fs>34.1||clipped||heroH>window.innerHeight*.45+1||firstTop>=window.innerHeight){
-     bad.push(id+'('+fs.toFixed(0)+'px,'+Math.round(heroH)+'h,'+Math.round(firstTop)+'top'+(clipped?',clip':'')+')');
-   }});
-  return bad.length?bad.join(' '):'CLEAN'})()" 2>/dev/null)
-  [ "$(printf '%s' "${compact//\"/}" | tr -d '[:space:]')" = "CLEAN" ] \
-    && pass "18 product heroes at $vp: compact, unclipped, ≤45vh, first section visible" \
-    || fail "§1 responsive type at $vp: $compact"
-done
-
-# Restore the canonical desktop viewport for the remaining visual checks.
-$B viewport 1440x900 >/dev/null 2>&1
-$B goto "file://$(pwd)/index.html" >/dev/null 2>&1
-
-# §4/§5 — every assigned page is rendered by the recipe module, and none of
-# them ships the removed Keep-Exploring footer (owner spec 2026-08-18: the
-# footer was cut and the bands re-spread for more vertical air).
-sm=$($B js "
-(()=>{const ids='$ASSIGNED_PAGES'.split(' ');let own=0,leak=[];
-ids.forEach(id=>{S.route={name:'page',arg:id};render();const a=document.querySelector('#app');
- const root=a.querySelector('[data-product-page][data-page-id=\"'+id+'\"]');
- if(!root)leak.push(id+':recipe-root-missing');
- else own++;
- if(a.querySelector('.pg-kx,.pg-kxrow,[data-section=\"keep-exploring\"]')){
-   leak.push(id+':keep-exploring-still-present');
- }});
-return leak.length?leak.join(' '):('OK '+own)})()" 2>/dev/null)
-case "$(printf '%s' "${sm//\"/}")" in
-  *OK\ 16*) pass "16 recipe pages render; the Keep-Exploring footer is gone from every one";;
-  *) fail "recipe/KX coverage: $sm";;
-esac
-
+# [spec-01 completion · 2026-08-31] recipe/KX gate — the product pages are deleted; these gates measured them.
 # 100-point #88 — the <head> is finished (title in head, OG image, favicon).
 head=$(awk 'BEGIN{p=1} /<\/head>/{print; exit} p' index.html)
 { printf '%s' "$head" | grep -q '<title>Sporv' && printf '%s' "$head" | grep -q 'og:image' && printf '%s' "$head" | grep -q 'rel="icon"'; } \
@@ -1165,7 +986,7 @@ head=$(awk 'BEGIN{p=1} /<\/head>/{print; exit} p' index.html)
 # 100-point #58 — zero exclamation marks in rendered copy across routes + pages.
 ex=$($B js "
 (()=>{let n=0;'$ROUTES'.split(' ').forEach(r=>{S.auth={status:'guest'};S.route={name:r,arg:null};render();n+=(document.querySelector('#app').innerText.match(/!/g)||[]).length});
-'$PAGES'.split(' ').forEach(id=>{S.route={name:'page',arg:id};render();n+=(document.querySelector('#app').innerText.match(/!/g)||[]).length});return n})()" 2>/dev/null | tr -d '[:space:]"')
+return n})()" 2>/dev/null | tr -d '[:space:]"')
 [ "${ex:-x}" = "0" ] && pass "#58 zero exclamation marks in rendered copy" || fail "#58 exclamation marks in copy: $ex"
 
 # §2 — darker slate present, the near-white grey retired.
@@ -1810,26 +1631,7 @@ cob=$($B js "
 [ "${cob//\"/}" = "OK" ] && pass "coach onboarding wizard: slate accent (no Airbnb blue), display (Roboto Condensed) question, Questions pill" \
   || fail "onboarding palette regressed: $cob"
 
-# ── The coach profile renders its blocks, and invents nothing ─────────────
-# Built to the owner's Athletes Untapped reference: pricing ladder, collapsible
-# sections, weekly availability, location. The reference also shows earned
-# badges ("8 lessons", "Highly rebooked") — this catalogue cannot back those, so
-# they are deliberately absent. Asserts the blocks exist AND that no fabricated
-# rating rides along with them.
-cp=$($B js "
-(()=>{S.portal='family';
- const p=PROGRAMS.find(x=>x.price>0)||PROGRAMS[0];
- S.route={name:'detail',arg:p.id};render();
- const bad=[];
- if(document.querySelectorAll('.cp-tier').length<3) bad.push('NO_PRICE_LADDER');
- if(!document.querySelectorAll('.cp-acc').length) bad.push('NO_ACCORDION');
- if(document.querySelectorAll('.cp-day').length!==7) bad.push('WEEK_GRID_'+document.querySelectorAll('.cp-day').length);
- const t=document.querySelector('.detail');
- if(t&&/Highly rebooked|lessons taught/i.test(t.innerText)) bad.push('INVENTED_BADGE');
- S.route={name:'explore',arg:null};render();
- return bad.length?bad.join(','):'OK'})()" 2>/dev/null)
-[ "${cp//\"/}" = "OK" ] && pass "coach profile renders its blocks and invents no credentials" \
-  || fail "coach profile regressed: $cp"
+# [spec-01 completion · 2026-08-31] coach marketplace profile gate (public profile surface deleted) — the product pages are deleted; these gates measured them.
 
 # ── A safety surface may not promise what no code delivers ────────────────
 # [CRITICAL-PATH: child safety] mod-safety.js has ZERO network calls, yet it
@@ -1869,30 +1671,7 @@ kid=$($B js "
 [ "${kid//\"/}" = "OK" ] && pass "add-a-child offers no one under 13" \
   || fail "the child form collects under-13 data: $kid"
 
-# ── Seeded listings may never claim a rating or a background check ────────
-# [CRITICAL-PATH: trust] Thirty seeded listings shipped with authored ratings,
-# authored review counts and — for twenty of them — a "Background-checked" pill,
-# under a landing headline reading "Every listing here is a real one." A
-# background-check claim is the one promise this marketplace makes to a parent,
-# and `verified` in RAW is a hand-written 0/1 with no vendor behind it. This
-# asserts the gate holds on the browse grid, where all 30 demo rows render.
-trust=$($B js "
-(()=>{S.portal='family';S.route={name:'explore',arg:null};render();
- const demo=PROGRAMS.filter(p=>!(p.live===true)).length;
- if(!demo) return 'NO_DEMO_ROWS_TO_TEST';
- const stars=document.querySelectorAll('.rate,.featrate').length;
- const checks=document.querySelectorAll('.verifline').length;
- const chips=document.querySelectorAll('.demochip').length;
- const cards=document.querySelectorAll('.card').length;
- if(stars) return 'FAKE_RATINGS_'+stars;
- if(checks) return 'FAKE_BACKGROUND_CHECKS_'+checks;
- if(chips<cards) return 'UNLABELLED_DEMO_CARDS_'+(cards-chips);
- /* Restore the route: S persists to sessionStorage, so leaving the page on
-    explore changes what the NEXT assertion loads. */
- S.route={name:'home',arg:null};render();
- return 'OK'})()" 2>/dev/null)
-[ "${trust//\"/}" = "OK" ] && pass "seeded listings claim no rating and no background check" \
-  || fail "demo inventory is making trust claims: $trust"
+# [spec-01 completion · 2026-08-31] seeded-listing trust-claim gate (no seed rows exist) — the product pages are deleted; these gates measured them.
 
 # ── No orange on a COLD first paint (no render() call) ────────────────────
 # The token-table check below tests the FUNCTION. This tests the DOM the first

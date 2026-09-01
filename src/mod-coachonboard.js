@@ -687,7 +687,7 @@ function backgroundStep(d, err){
     <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"
       stroke-linecap="round" aria-hidden="true"><rect x="4" y="10" width="16" height="11" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/></svg>
     <p>Until the check clears, your listings stay <b>hidden and unbookable</b>. They are saved as drafts,
-      they do not appear in search, in the map, or to the coach finder, and no family can pay for one.</p>
+      they do not appear in search, in the map, or to the assistant, and no family can pay for one.</p>
   </div>
 
   <div class="cob-two">

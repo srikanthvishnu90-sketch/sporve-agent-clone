@@ -1806,12 +1806,12 @@ img{max-width:100%;display:block}
 .lst-waitlist{margin-top:30px;padding-top:24px;border-top:1px solid var(--rule)}
 .lst-waitlist .co-head{margin-top:0}
 
-/* ── AI dock — the coach finder, collapsed to a button ───────────────
+/* ── AI dock — the assistant, collapsed to a button ───────────────
    Rendered into #layer, not #app, so it survives every route change and is
    unaffected by the coach portal's dark ground. z-index 85 is deliberate: above
    the coach .cmdbar (80) so it is never buried, below .scrim (100) so an open
    modal still covers it. It drives the same S.chat / askCoach() pipeline as the
-   full Coach finder page — one conversation, two entry points. */
+   full assistant page — one conversation, two entry points. */
 
 /* Three-category showcase. Card grid, 3 up on desktop, 1 up on a phone. */
 /* Slate ground (owner ask). White cards on slate is the contrast that makes
@@ -3283,7 +3283,7 @@ h2.ctr{margin-bottom:10px}
 .coachtop{position:static;z-index:45;border-bottom:1px solid var(--rule);background:rgba(255,255,255,.96)}  /* owner 2026-08-27: no scroll-follow */
 #app.coachdark .coachtop{background:rgba(10,12,15,.96)}
 /* Preview banner — shown only to a guest inside the coach portal so the seed
-   sample data never reads as their own account. On the near-black coach ground
+   demo records never reads as their own account. On the near-black coach ground
    text is white/slate LITERALS (colour law): #E9EEF4 body, #94A3B8 muted. */
 .previewbar{display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap;
   margin:0 0 22px;padding:12px 16px;border:1px solid #1C222B;border-radius:var(--r-m);
@@ -6224,38 +6224,10 @@ const PICON = {
 
 /* [id, business, verified, sport, title, desc, price, model, rating, reviews,
     lng, lat, featured, skill, ageGroup, minAge, maxAge, capacity, enrolled] */
-const RAW = [
-["prog_1","Northside Flight Basketball",0,"Basketball","Northside Flight 14U — AAU Season","A disclosed AAU team demo with three practices a week, regional tournament play, roster operations, and a non-charging tryout registration.",295,"monthly",0,0,-87.6845,41.9392,1,"Advanced","Teens (13-18)",13,14,12,8],
-["prog_2","Apex Performance Club",1,"Tennis","Junior Tennis Clinic - All Levels","Learn basic and advanced tennis strokes, service, and court strategies from certified instructors.",120,"monthly",4.5,8,-87.675,41.8508,0,"All Levels","Juniors (Under 16)",10,16,8,5],
-["prog_3","Apex Performance Club",1,"Basketball","Elite Basketball Skills, U14","Ball-handling, shooting mechanics, and court IQ for competitive guards and forwards.",55,"single_session",4.7,19,-87.6667,41.8292,1,"Advanced","Juniors (Under 16)",11,14,16,9],
-["prog_4","Apex Performance Club",1,"Volleyball","Youth Volleyball Fundamentals","Serving, passing, and rotation basics in a high-energy team environment.",40,"single_session",4.6,14,-87.655,41.8479,0,"Beginner","Youth (Under 12)",8,12,14,7],
-["prog_5","Apex Performance Club",1,"Swimming","Learn-to-Swim Clinic","Water confidence, freestyle, and backstroke for first-time swimmers.",50,"monthly",4.9,22,-87.6833,41.8536,0,"Beginner","All Ages",6,16,10,6],
-["prog_6","Coral Reef Aquatics",1,"Swimming","Competitive Swim Squad","Stroke refinement and race-pace sets for club swimmers chasing PBs.",90,"monthly",4.8,31,-87.5583,41.8795,1,"Advanced","Teens (13-18)",12,18,12,9],
-["prog_7","Coral Reef Aquatics",1,"Diving","Springboard Diving Basics","Approach, hurdle, and entry technique on the 1-meter board.",75,"single_session",4.5,11,-87.555,41.8938,0,"Intermediate","Juniors (Under 16)",10,16,8,5],
-["prog_8","Coral Reef Aquatics",1,"Water Polo","Junior Water Polo League","Eggbeater, ball control, and small-sided games for aspiring polo players.",65,"monthly",4.4,9,-87.5667,41.9082,0,"Intermediate","Teens (13-18)",12,18,16,12],
-["prog_9","Coral Reef Aquatics",1,"Surfing","Beginner Surf Camp","Pop-ups, paddling, and ocean safety on gentle South Beach breaks.",85,"package",4.7,17,-87.55,41.868,1,"Beginner","All Ages",8,18,8,6],
-["prog_10","Coral Reef Aquatics",1,"Swimming","Masters Stroke Technique","Adult-focused technique clinic for triathletes and lap swimmers.",60,"monthly",4.6,13,-87.5617,41.8867,0,"All Levels","All Ages",16,60,12,8],
-["prog_11","Downtown Hoops Academy",1,"Basketball","Guard Development Lab","Handles, footwork, and finishing for point and combo guards.",70,"single_session",4.9,40,-87.66,41.8565,1,"Advanced","Teens (13-18)",13,18,12,10],
-["prog_12","Downtown Hoops Academy",1,"Basketball","Little Ballers Intro","Fundamentals and fun for first-time players ages 6–9.",35,"single_session",4.7,24,-87.6683,41.8637,0,"Beginner","Youth (Under 12)",6,9,16,11],
-["prog_13","Downtown Hoops Academy",1,"Track & Field","Speed & Agility Training","Sprint mechanics, plyometrics, and acceleration for multi-sport athletes.",45,"monthly",4.6,15,-87.65,41.8508,0,"All Levels","Juniors (Under 16)",10,16,14,9],
-["prog_14","Downtown Hoops Academy",1,"Volleyball","Indoor Volleyball Clinic","Attacking, blocking, and defensive systems for club-level players.",55,"single_session",4.5,12,-87.6733,41.8436,0,"Intermediate","Teens (13-18)",12,18,14,10],
-["prog_15","Downtown Hoops Academy",1,"Dance","Hip-Hop & Movement","Choreography, rhythm, and performance for expressive young movers.",40,"monthly",4.8,20,-87.655,41.8694,1,"Beginner","All Ages",7,16,18,14],
-["prog_16","Everglade Racquet Institute",0,"Tennis","High-Performance Tennis","Topspin, serve mechanics, and point construction for tournament players.",110,"monthly",4.7,18,-87.875,41.8364,1,"Advanced","Teens (13-18)",12,18,6,4],
-["prog_17","Everglade Racquet Institute",0,"Pickleball","Pickleball for Everyone","Dinks, third-shot drops, and court positioning in a friendly setting.",35,"single_session",4.6,21,-87.8917,41.8292,0,"All Levels","All Ages",10,60,12,9],
-["prog_18","Everglade Racquet Institute",0,"Badminton","Badminton Footwork Clinic","Clears, drops, and shadow footwork for competitive juniors.",45,"single_session",4.4,8,-87.8667,41.8508,0,"Intermediate","Juniors (Under 16)",10,16,10,6],
-["prog_19","Everglade Racquet Institute",0,"Squash","Squash Fundamentals","Racquet prep, length, and movement patterns for the singles court.",60,"package",4.5,7,-87.8833,41.8192,0,"Beginner","Teens (13-18)",12,18,6,4],
-["prog_20","Everglade Racquet Institute",0,"Table Tennis","Table Tennis Spin Lab","Loops, pushes, and serve variation for developing paddlers.",30,"single_session",4.6,10,-87.9,41.8436,0,"All Levels","All Ages",9,60,8,5],
-["prog_21","Ironside Combat Gym",1,"Boxing","Youth Boxing Foundations","Stance, footwork, and pad work — non-contact, discipline-first.",50,"monthly",4.8,26,-87.6917,41.9656,1,"Beginner","Juniors (Under 16)",10,16,12,9],
-["prog_22","Ironside Combat Gym",1,"Wrestling","Folkstyle Wrestling Club","Takedowns, escapes, and conditioning for scholastic wrestlers.",55,"monthly",4.6,14,-87.6833,41.9585,0,"Intermediate","Teens (13-18)",12,18,16,12],
-["prog_23","Ironside Combat Gym",1,"Martial Arts","Mixed Martial Arts Intro","Striking, grappling, and movement fundamentals in a controlled setting.",65,"single_session",4.7,19,-87.7,41.98,0,"Beginner","Teens (13-18)",13,18,14,10],
-["prog_24","Ironside Combat Gym",1,"Karate","Traditional Karate Dojo","Kata, kihon, and respect-centered practice for all belt levels.",45,"monthly",4.9,33,-87.675,41.9728,1,"All Levels","All Ages",6,60,20,15],
-["prog_25","Ironside Combat Gym",1,"Judo","Judo Throws & Groundwork","Nage-waza and ne-waza basics with certified black-belt instruction.",50,"single_session",4.5,11,-87.7083,41.9628,0,"Beginner","Juniors (Under 16)",8,16,16,11],
-["prog_26","Sunset Field Athletics",0,"Baseball","Hitting & Fielding Camp","Swing mechanics, glove work, and situational baserunning.",60,"package",4.6,16,-87.725,41.7215,1,"Intermediate","Juniors (Under 16)",9,16,18,13],
-["prog_27","Sunset Field Athletics",0,"Softball","Fastpitch Softball Clinic","Pitching, slapping, and infield defense for competitive girls.",55,"monthly",4.7,12,-87.7417,41.7144,0,"Advanced","Teens (13-18)",12,18,14,10],
-["prog_28","Sunset Field Athletics",0,"Football","Flag Football Fundamentals","Routes, coverage, and non-contact game IQ for youth athletes.",40,"single_session",4.5,9,-87.7167,41.7359,0,"Beginner","Youth (Under 12)",7,12,20,15],
-["prog_29","Sunset Field Athletics",0,"Lacrosse","Intro to Lacrosse","Cradling, passing, and dodging in a fast-paced beginner clinic.",50,"single_session",4.4,7,-87.7333,41.7,0,"Beginner","Juniors (Under 16)",9,16,16,10],
-["prog_30","Sunset Field Athletics",0,"Cricket","Cricket Skills Academy","Batting technique, seam bowling, and fielding drills for all comers.",45,"monthly",4.6,8,-87.75,41.7287,1,"All Levels","All Ages",9,60,16,11],
-];
+/* Seed catalogue PURGED (spec-01 completion, 2026-08-31): the marketplace is
+   gone and fake rows cannot exist. Surviving screens read [] and render their
+   honest empty states ("No data yet"). Full seed at tag pre-pivot-2026-08. */
+const RAW = [];
 
 const K=["id","biz","verified","sport","title","desc","price","model","rating","reviews","lng","lat","featured","skill","ageGroup","minAge","maxAge","cap","enrolled"];
 const PROGRAMS = RAW.map(r=>{
@@ -6285,14 +6257,14 @@ const PROGRAMS = RAW.map(r=>{
    ---------------------------------------------------------------------------
    mod-catalog.js replaces the CONTENTS of PROGRAMS with live rows from the
    database (in place, so the 747 reads and the modules that captured the array
-   keep working). Two things still need the sample data after that happens:
+   keep working). Two things still need the demo records after that happens:
 
    1. THE COACH PORTAL. `S.listings` is seeded with the five Apex Performance
       Club ids below, and four modules do `PROGRAMS.filter(p =>
       S.listings.includes(p.id))`. Against a live catalogue that filter returns
       nothing, and each module's `|| PROGRAMS[0]` fallback would quietly hand
       the demo coach a REAL provider's listing to manage. Showing one operator
-      another operator's business is worse than showing sample data, so the
+      another operator's business is worse than showing demo records, so the
       coach side reads DEMO_CATALOGUE and stays explicitly a demo until Phase E
       makes it live. That boundary is now a named thing in the code rather than
       an accident of which array happened to be in scope.
@@ -6394,7 +6366,7 @@ function programById(id){
    None of that throws, which is why it survived a green smoke run — an empty
    array is a perfectly valid input that produces confidently wrong copy.
 
-   The coach portal is sample data until Phase E, so it reads the sample
+   The coach portal is demo records until Phase E, so it reads the sample
    catalogue. One function, so the next surface cannot pick the wrong array. */
 function coachListings(){
   return DEMO_CATALOGUE.filter(p=>S.listings.includes(p.id));
@@ -6403,9 +6375,7 @@ function coachListings(){
 /* Whether the catalogue currently in PROGRAMS came from the database. Read at
    render time, never cached — hydration resolves after the first paint, so a
    value captured at boot would always say "seed". */
-function catalogueIsLive(){
-  return !!(window.SporveCatalog&&window.SporveCatalog.isLive());
-}
+/* catalogue liveness check purged with the catalogue (spec-01 completion). */
 /* The DOMAIN, copied from the constraint rather than guessed:
      alter table providers add column provider_type text not null default 'solo'
        check (provider_type in ('solo','organization'));
@@ -7914,7 +7884,7 @@ function kindBandHTML(id,title,sub,type,full){
              source. Marking real, bookable listings from ten background-checked
              Chicago providers as "Demo data" is the same honesty failure in the
              opposite direction as the coach dashboard's seeded figures. */""}
-        <div class="band-sub"><span>${esc(sub)}</span>${catalogueIsLive()?"":`<span class="demotext">Sample data — real verified coaches are onboarding now.</span>`}</div>
+        <div class="band-sub"><span>${esc(sub)}</span></div>
       </div>
       <div class="band-tools">
         <button class="seeall" data-kindjump="${id}">See all ${items.length}</button>
@@ -8033,7 +8003,7 @@ function pricingHTML(){
      "Pick a real open slot. It holds while you pay."],
     ["Paying",
      "Cash, Venmo, chasing an invoice.",
-     "Card checkout. The coach's price is the price — no fee added for families."],
+     "Card checkout. The coach's price is the price — no fee added for family payers."],
     ["Getting paid, as a coach",
      "Chasing parents after practice.",
      `Automatic payout of the full amount — Sporv takes ${FEE_PCT}% of bookings. You keep every dollar families pay.`],
@@ -8102,8 +8072,8 @@ function notFoundHTML(name){
 function productMenuHTML(){
   /* §9.1: every bold menu row lands on its OWN marketing page (page:<id>), not
      an app view — this is the only path by which the 17 pages are reachable. */
-  /* Menu restructure (owner 2026-08-30, B2B pivot): the "For families" column,
-     Coach finder, Media & consent and Insights are marketplace-only surfaces —
+  /* Menu restructure (owner 2026-08-30, B2B pivot): the family column,
+     the finder, Media & consent and Insights are marketplace-only surfaces —
      removed from the menu (their pages stay routable). Coaches + Organizations
      merge into ONE column because a solo trainer and a club are the same
      customer at different sizes. Trust folds in under About. */
@@ -8933,7 +8903,7 @@ function productHTML(){
     [PICON.calendar,"Instant booking","Pick a real open slot and pay in one flow. No callback.","nav:explore"],
     [PICON.message,"Message before you commit","Ask a coach anything first. Conversations stay attached to the booking.","nav:messages"],
     [PICON.receipt,"Bookings & receipts","Every session, payment, and cancellation in one thread.","nav:bookings"],
-    [PICON.spark,"Coach finder","A grounded assistant that only recommends background-checked coaches.","nav:assistant"],
+    
     [PICON.chart,"Athlete progress","Notes, goals, and a plan that follows your athlete, not a coach.","nav:timeline"],
     [PICON.heart,"Saved","Keep the shortlist. Guests get three saves before signing in.","nav:saved"],
     [PICON.bell,"Notifications","Choose what reaches you by email, SMS, or push.","nav:notifications"],
@@ -8995,7 +8965,7 @@ function productHTML(){
   <section class="band">
     <div class="shell">
       <div class="prodsec" data-rev>
-        <h2>For families and athletes</h2>
+        <h2>Families pay, sign, and stay informed</h2>
         <p class="sub">Find someone you would trust with your kid, then book them without leaving the page.</p>
       </div>
       <div class="prodgrid" data-rev>${fam.map(r=>card(r[0],r[1],r[2],r[3])).join("")}</div>
@@ -9167,7 +9137,7 @@ function seasonScheduleHTML(id,p){
     </div>`:"";
   let body;
   if(f===null||f===undefined){ body=`<p style="color:var(--muted)">Loading the schedule…</p>`; }
-  else if(!f.length){ body=`<div class="bk-empty"><b>Schedule coming soon</b><p>${owner?"Add your first fixture below — dates, opponents, and locations appear here for families.":"The club posts fixtures here as the season is set — dates, opponents, and locations."}</p></div>`; }
+  else if(!f.length){ body=`<div class="bk-empty"><b>Schedule coming soon</b><p>${owner?"Add your first fixture below — dates, opponents, and locations appear here for family payers.":"The club posts fixtures here as the season is set — dates, opponents, and locations."}</p></div>`; }
   else { body=`<table class="bk-sessions"><thead><tr><th>Date</th><th>Type</th><th>Details</th></tr></thead><tbody>${f.map(x=>`<tr><td class="d">${fmtDate(String(x.starts_at).slice(0,10))}</td><td>${esc(cap(x.kind))}</td><td>${esc([x.opponent&&("vs "+x.opponent),x.location,x.home_away].filter(Boolean).join(" · ")||"—")}</td></tr>`).join("")}</tbody></table>`; }
   return `<section class="bk-sec"><h2>Season schedule</h2>${body}${form}</section>`;
 }
@@ -9385,7 +9355,7 @@ function savedHTML(){
   return `${subnavHTML()}
   <section class="band alt" style="padding:56px 0 44px">
     <div class="shell">
-      <div class="eyebrow" data-rev>For families</div>
+      <div class="eyebrow" data-rev>Families</div>
       <h1 style="margin-top:12px" data-rev>Keep the shortlist.</h1>
       <p class="lede" style="margin:14px 0 0;max-width:52ch;text-align:left" data-rev>Save a coach
         while you are still deciding. Guests get three before signing in.</p>
@@ -9557,7 +9527,7 @@ function mapHTML(){
             style="left:${px(p).toFixed(2)}%;top:${py(p).toFixed(2)}%;--pc:${sportColor(p.sport)}"
             data-pin="${p.id}" aria-label="${esc(p.title)}, ${money(p.price)}">
             <span class="num">${money(p.price)}</span></button>`).join("")}
-        <div class="mapnote">${catalogueIsLive()?"Pins use each listing's real coordinates.":"Pins use each listing's real coordinates from the app's seed data."}</div>
+        <div class="mapnote">Pins use each listing's real coordinates.</div>
       </div>
       <aside class="mapside">
         ${sel?`<div class="card" style="gap:11px">
@@ -9584,7 +9554,7 @@ function mapHTML(){
     </div></main>`;
 }
 
-/* ── Coach finder concierge — grounded: only ever cites seeded listings ── */
+/* ── (dead route) assistant concierge ── */
 function assistantHTML(){
   /* The chat itself stays exactly as it is -- turning a scrolling thread into
      stacked bands would break its layout and its scroll anchoring. What it
@@ -9593,7 +9563,7 @@ function assistantHTML(){
   return `${subnavHTML()}
   <section class="band alt" style="padding:52px 0 40px">
     <div class="shell">
-      <div class="eyebrow" data-rev>For families</div>
+      <div class="eyebrow" data-rev>Families</div>
       <h1 style="margin-top:12px" data-rev>Describe the goal. Get real coaches.</h1>
       <p class="lede" style="margin:14px 0 0;max-width:56ch;text-align:left" data-rev>Say what your
         athlete needs in plain words. Every suggestion is a real listing, and only ever one that has
@@ -9641,7 +9611,7 @@ function assistantHTML(){
           <i class="dotdot"></i><i class="dotdot" style="animation-delay:.16s"></i><i class="dotdot" style="animation-delay:.32s"></i></div>`:""}
       </div>
       <form class="msg-compose" id="chatForm">
-        <input id="chatInput" placeholder="Describe the goal, sport, age, and budget" aria-label="Ask the coach finder" autocomplete="off">
+        <input id="chatInput" placeholder="Describe the goal, sport, age, and budget" aria-label="Ask the assistant" autocomplete="off">
         <button class="btn" type="submit" aria-label="Send">${ICON.send}</button>
       </form>
     </div>
@@ -9655,7 +9625,7 @@ function assistantHTML(){
   </main>`;
 }
 /* ── AI dock ────────────────────────────────────────────────────────
-   The Coach finder, condensed to a button that lives in the bottom-right of
+   The assistant, condensed to a button that lives in the bottom-right of
    every screen. It reads and writes the SAME S.chat array and calls the same
    askCoach() as assistantHTML(), so a thread started on the full page continues
    in the dock and vice versa — there is one conversation, not two. Picks render
@@ -10918,7 +10888,7 @@ function importDryRun(w){
   });
   return out;
 }
-/* Demo Approvals drafts — the coach portal is sample data, so the AI-drafted
+/* Demo Approvals drafts — the coach portal is demo records, so the AI-drafted
    queue is seeded (the prototype's 3: recap, reminder, rebooking nudge). Each
    carries a recipient + provenance and an editable body; approve moves it to
    S.approvalSent. Production renders real outbound_messages via S.coachQueue. */
@@ -12244,7 +12214,7 @@ function modalHTML(){
           <select name="tier"><option>Standard</option><option>Premium (+$15)</option></select></div>
         <div style="border-top:1px solid var(--rule);margin-top:6px;padding-top:8px">
           <div class="linerow"><span>${esc(p.title)}</span><span class="num">${money(p.price)}</span></div>
-          <div class="linerow"><span>Booking fee for families</span><span class="num">$0</span></div>
+          <div class="linerow"><span>Booking fee for family payers</span><span class="num">$0</span></div>
           <div class="linerow total"><span>Total</span><span class="num">${money(p.price)}</span></div>
         </div>
         <button class="btn wide" type="submit" style="margin-top:14px">Confirm booking</button>
@@ -12717,8 +12687,7 @@ function modalHTML(){
           ${/* With the tab rail gone these are otherwise unreachable for a
                 guest. They render their own sign-in prompts, so listing them
                 costs nothing and strands nobody. */
-            [["bookings","Bookings"],["messages","Messages"],
-             ["profile","Profile"],
+            [["messages","Messages"],["profile","Profile"],
              ["trust","Trust & safety"],["about","About &amp; Support"]]
             .map(([k,l])=>`<button class="rail-lite" data-nav="${k}" style="text-align:left;padding:11px 12px;border-radius:var(--r-m);font-weight:600">${l}</button>`).join("")}
         </div>
@@ -12819,7 +12788,7 @@ const INFO={
   terms:{title:"Terms of Service (interim)",sections:[
     {h:"These terms are being finalized",b:"Sporv's full Terms of Service are being completed with counsel. Until they are published, the statements below describe how the service actually operates today, and they are the terms we hold ourselves to. Questions: support@sporve.com."},
     {h:"Coaches are independent professionals",b:"Coaches, trainers, camps and teams on Sporv are independent professionals, not Sporv employees. Sporv is the marketplace that connects you and processes payment."},
-    {h:"What Sporv charges",b:"Sporv takes 0% of bookings — coaches keep 100% of what families pay. Coaches run their business on a flat subscription (free to start; Pro is $34.99 a month). Families pay the coach's listed price; Sporv adds no booking fee for families. Bookings paid during the earlier 12% era keep their recorded fee on their receipts."},
+    {h:"What Sporv charges",b:"Sporv takes 0% of bookings — coaches keep 100% of what families pay. Coaches run their business on a flat subscription (free to start; Pro is $34.99 a month). Families pay the coach's listed price; Sporv adds no booking fee for family payers. Bookings paid during the earlier 12% era keep their recorded fee on their receipts."},
     {h:"Background checks",b:"A coach can take a booking only after clearing an individual background check with a recorded completion date. The system refuses bookings for anyone without one — this is enforced in the booking path, not just stated here."},
     {h:"Accounts and children",b:"An adult opens the account. Athlete profiles are limited to ages 13-18 until a verifiable parental-consent process is live, matching our published privacy notice."},
   ]},
@@ -12859,7 +12828,7 @@ const INFO={
    deletion had left with no entry point anywhere, are reachable again.
    Product is open by default: it's the group a visitor is most likely after. */
 const ABOUT_GROUPS=[
-  ["Product",[["Find a coach","nav:explore"],["Map","nav:map"],["Coach finder","nav:assistant"],
+  ["Product",[["Product","nav:product"],["Pricing","nav:pricing"],
               ["Become a coach","coach"],["Coach dashboard","tab:dashboard"]]],
   ["Company",[["About","info:legal"],["Careers","info:legal"],["Press","info:legal"]]],
   ["Trust",[["Background checks","nav:trust"],["Privacy & Security","info:privacy"],
@@ -13046,7 +13015,7 @@ const PAGE_META={
   "session-notes":{t:"Session notes",d:"Notes tied to the athlete and the session, shared with the parent.",sport:"Fencing",cta:"coachtab:notes",ctaL:"See session notes"},
   "media-consent":{t:"Media & consent",d:"Photos shared only with recorded consent, per child.",sport:"Gymnastics",cta:"coachtab:media",ctaL:"See media & consent"},
   "insights":{t:"Insights",d:"Demand, price position, and retention — derived from real records.",sport:"Rowing",cta:"coachtab:insights",ctaL:"Open insights"},
-  "ai-coach":{t:"Coach finder",d:"An assistant grounded in the catalogue — it cannot invent a coach.",sport:"Martial Arts",cta:"assistant",ctaL:"Try the assistant"},
+  "ai-coach":{t:"Assistant",d:"An assistant grounded in the catalogue — it cannot invent a coach.",sport:"Martial Arts",cta:"assistant",ctaL:"Try the assistant"},
   /* For organizations — the Enterprise ($149/mo) showcase. Enterprise is
      plan_entitlements.purchasable=false and billing-create-checkout rejects it,
      so cta points at the pricing tab (which describes early access) — never a
@@ -13067,7 +13036,7 @@ function pageEyebrow(meta){
   return `<span class="pg-eyebrow">${esc(meta.t)}</span>`;
 }
 function sig_background_checks(){ return `<div class="sig-background-checks" role="img" aria-label="Verification timeline for a swim coach: submitted and cleared, now bookable">
-  <div class="sbc-top"><span class="sbc-sport">Swimming · Chicago, IL</span><span class="demotext">Sample data</span></div>
+  <div class="sbc-top"><span class="sbc-sport">Swimming · Chicago, IL</span><span class="demotext">No data yet</span></div>
   <div class="sbc-name">Coral Reef Aquatics — Learn to Swim</div>
   <div class="sbc-sub">Deion Carter · lead swim coach</div>
   <ol class="sbc-rail">
@@ -13077,7 +13046,7 @@ function sig_background_checks(){ return `<div class="sig-background-checks" rol
   </ol>
 </div>`; }
 function sig_search(){ return `<div class="sig-search">
-  <div class="ss-top"><span class="ss-sport">Basketball · Chicago, IL</span><span class="demotext">Sample data</span></div>
+  <div class="ss-top"><span class="ss-sport">Basketball · Chicago, IL</span><span class="demotext">No data yet</span></div>
   <div class="ss-hint">Tap to filter</div>
   <input type="checkbox" class="ss-cb" id="ssf-u12"><label class="ss-chip" for="ssf-u12">U12</label>
   <input type="checkbox" class="ss-cb" id="ssf-cheap"><label class="ss-chip" for="ssf-cheap">Under $40</label>
@@ -13089,7 +13058,7 @@ function sig_search(){ return `<div class="sig-search">
   </div>
 </div>`; }
 function sig_map_search(){ return `<div class="sig-map-search">
-  <div class="sms-top"><span class="sms-sport">Cycling · Chicago, IL</span><span class="demotext">Sample data</span></div>
+  <div class="sms-top"><span class="sms-sport">Cycling · Chicago, IL</span><span class="demotext">No data yet</span></div>
   <div class="sms-map" role="img" aria-label="Map with four cycling-coach pins near Chicago">
     <div class="sms-pin" style="left:23%;top:31%"><span class="sms-tear"></span></div>
     <div class="sms-pin" style="left:63%;top:24%"><span class="sms-tear"></span></div>
@@ -13106,7 +13075,7 @@ function sig_map_search(){ return `<div class="sig-map-search">
   <div class="sms-hint">Hover the highlighted pin</div>
 </div>`; }
 function sig_instant_booking(){ return `<div class="sig-instant-booking">
-  <div class="sib-top"><span class="sib-sport">Baseball · Chicago, IL</span><span class="demotext">Sample data</span></div>
+  <div class="sib-top"><span class="sib-sport">Baseball · Chicago, IL</span><span class="demotext">No data yet</span></div>
   <div class="sib-name">Grand Slam Baseball — Hitting Lab</div>
   <div class="sib-sub">Pick an open slot · pay in the same flow</div>
   <input type="radio" name="sibslot" class="sib-r" id="sib-1"><label class="sib-slot" for="sib-1"><span class="sib-day">Sat May 16</span><span class="sib-time">9:00 AM</span><span class="sib-dur">60 min</span></label>
@@ -13120,7 +13089,7 @@ function sig_instant_booking(){ return `<div class="sig-instant-booking">
   </div>
 </div>`; }
 function sig_messaging(){ return `<div class="sig-messaging">
-  <div class="sm-hd"><span class="sm-who">Barton Springs Volleyball &middot; U13 Setting</span><span class="demotext">Sample data</span></div>
+  <div class="sm-hd"><span class="sm-who">Barton Springs Volleyball &middot; U13 Setting</span><span class="demotext">No data yet</span></div>
   <div class="sm-thread" data-sig-thread>
     <div class="sm-b sm-them">Hi — does U13 setting have room on Tuesdays?</div>
     <div class="sm-b sm-you">Yes &mdash; is a tryout needed first?</div>
@@ -13132,7 +13101,7 @@ function sig_messaging(){ return `<div class="sig-messaging">
   </div>
 </div>`; }
 function sig_bookings_receipts(){ return `<div class="sig-bookings-receipts">
-  <div class="sr-hd"><span class="sr-title">Gridiron Youth &mdash; QB Skills</span><span class="demotext">Sample data</span></div>
+  <div class="sr-hd"><span class="sr-title">Gridiron Youth &mdash; QB Skills</span><span class="demotext">No data yet</span></div>
   <div class="sr-sub">Football &middot; Chicago, IL &middot; Sat May 16 &middot; 10:00 AM</div>
   <div class="sr-lines">
     <div class="sr-line"><span>Session &middot; 60 min</span><span class="sr-amt">$44.75</span></div>
@@ -13161,7 +13130,7 @@ function sig_saved(){
     <span class="sv-price">${c[2]}</span>
   </label>`; }).join("");
   return `<div class="sig-saved">
-  <div class="sv-hd"><span class="sv-who">Saved boxing coaches</span><span class="demotext">Sample data</span></div>
+  <div class="sv-hd"><span class="sv-who">Saved boxing coaches</span><span class="demotext">No data yet</span></div>
   <div class="sv-grid">${cards}</div>
 </div>`;
 }
@@ -13176,12 +13145,12 @@ function sig_athlete_progress(){
     <div class="tl-note">${r[3]}</div>
   </details>`; }).join("");
   return `<div class="sig-athlete-progress">
-  <div class="tl-hd"><span class="tl-who">Sprint Development &middot; timeline</span><span class="demotext">Sample data</span></div>
+  <div class="tl-hd"><span class="tl-who">Sprint Development &middot; timeline</span><span class="demotext">No data yet</span></div>
   <div class="tl-rail">${rows}</div>
 </div>`;
 }
 function sig_scheduling(){ return `<div class="sig-scheduling">
-  <div class="sc-head"><div class="sc-title">This week · availability</div><span class="demotext">Sample data</span></div>
+  <div class="sc-head"><div class="sc-title">This week · availability</div><span class="demotext">No data yet</span></div>
   <div class="sc-grid">
     <div></div>
     <div class="sc-day">M</div><div class="sc-day">T</div><div class="sc-day">W</div><div class="sc-day">T</div><div class="sc-day">F</div><div class="sc-day">S</div><div class="sc-day">S</div>
@@ -13195,7 +13164,7 @@ function sig_scheduling(){ return `<div class="sig-scheduling">
   <div class="sc-legend"><span class="sc-key"></span>Open lesson slot · tap to book</div>
 </div>`; }
 function sig_payments(){ return `<div class="sig-payments" data-step="2">
-  <div class="py-head"><div class="py-title">Payout · Golf lesson</div><span class="demotext">Sample data</span></div>
+  <div class="py-head"><div class="py-title">Payout · Golf lesson</div><span class="demotext">No data yet</span></div>
   <div class="py-steps">
     <div class="py-step"><span class="py-node"></span><span class="py-lbl">Pending</span></div>
     <div class="py-step"><span class="py-node"></span><span class="py-lbl">In transit</span></div>
@@ -13210,7 +13179,7 @@ function sig_payments(){ return `<div class="sig-payments" data-step="2">
   <button class="py-adv" type="button">Advance state</button>
 </div>`; }
 function sig_roster(){ return `<div class="sig-roster">
-  <div class="ro-head"><div class="ro-title">Client roster · Hockey</div><span class="demotext">Sample data</span></div>
+  <div class="ro-head"><div class="ro-title">Client roster · Hockey</div><span class="demotext">No data yet</span></div>
   <table>
     <thead><tr>
       <th data-key="name">Athlete<span class="ro-car"></span></th>
@@ -13226,7 +13195,7 @@ function sig_roster(){ return `<div class="sig-roster">
   </table>
 </div>`; }
 function sig_session_notes(){ return `<div class="sig-session-notes">
-  <div class="sn-head"><div class="sn-title">Session note · Fencing</div><span class="demotext">Sample data</span></div>
+  <div class="sn-head"><div class="sn-title">Session note · Fencing</div><span class="demotext">No data yet</span></div>
   <div class="sn-cols">
     <div class="sn-col">
       <div class="sn-lbl">Your note · Nora L.</div>
@@ -13246,7 +13215,7 @@ function sig_session_notes(){ return `<div class="sig-session-notes">
   </div>
 </div>`; }
 function sig_media_consent(){ return `<div class="sig-media-consent" aria-label="Media consent demo">
-  <div class="mc-head"><span class="mc-sport">Gymnastics · Chicago, IL</span><span class="demotext">Sample data</span></div>
+  <div class="mc-head"><span class="mc-sport">Gymnastics · Chicago, IL</span><span class="demotext">No data yet</span></div>
   <div class="mc-grid">
     <div class="mc-tile"><span class="mc-cap">Level 3 floor</span></div>
     <div class="mc-tile"><span class="mc-cap">Beam practice</span></div>
@@ -13267,18 +13236,18 @@ function sig_insights(){ return `<div class="sig-insights" aria-label="Business 
     <div class="si-tile"><div class="si-k">Bookings</div><div class="si-v"><span class="si-zero">—</span><span class="si-real">38 <i class="si-up">↑</i></span></div></div>
     <div class="si-tile"><div class="si-k">Earnings</div><div class="si-v"><span class="si-zero">—</span><span class="si-real">$2,090</span></div></div>
     <div class="si-tile"><div class="si-k">Return rate</div><div class="si-v"><span class="si-zero">—</span><span class="si-real">74%</span></div></div>
-    <div class="si-tile si-demo"><span class="demotext">Sample data</span><div class="si-k">New this month</div><div class="si-v">9 <i class="si-up">↑</i></div></div>
+    <div class="si-tile si-demo"><span class="demotext">No data yet</span><div class="si-k">New this month</div><div class="si-v">9 <i class="si-up">↑</i></div></div>
   </div>
 </div>`; }
-function sig_ai_coach(){ return `<div class="sig-ai-coach" aria-label="Coach finder demo">
-  <div class="ac-head"><span class="ac-title">Coach finder · Chicago, IL</span><span class="demotext">Sample data</span></div>
+function sig_ai_coach(){ return `<div class="sig-ai-coach" aria-label="Assistant demo">
+  <div class="ac-head"><span class="ac-title">assistant · Chicago, IL</span><span class="demotext">No data yet</span></div>
   <!-- No inline onsubmit: the submit is already cancelled in JS a few hundred
        lines below (addEventListener('submit', e => { e.preventDefault(); … })),
        so the attribute was redundant. It was also the single inline event
        handler in the built page, and script hashes cannot cover those — it
        alone would have forced 'unsafe-inline' to stay in the CSP. -->
   <form class="ac-bar">
-    <input class="ac-input" type="text" value="a martial arts coach for my 9-year-old" aria-label="Ask the coach finder">
+    <input class="ac-input" type="text" value="a martial arts coach for my 9-year-old" aria-label="Ask the assistant">
     <button class="ac-go" type="submit">Ask</button>
   </form>
   <div class="ac-chiprow" data-acchips>
@@ -13395,7 +13364,7 @@ function pageHTML(id){
         <p class="pg-sub" style="margin-top:14px">Type what you need. Every result is a background-checked coach with a real open slot — the same catalogue the search, the map, and the assistant all read from.</p>
       </div>
       <div class="pg-demo wide" aria-hidden="true">
-        <span class="demonote">The listings below are sample data that show how Sporv works. Real verified coaches are onboarding now.</span>
+        <span class="demonote">The listings below are demo records that show how Sporv works. Real verified coaches are onboarding now.</span>
         <div class="dq">soccer coach · U12 · within 10 mi of Chicago</div>
         <div class="drow"><div><div class="dname">Coral Reef FC — U12 Development</div>
             <div class="dmeta"><span class="dchk">Background-checked</span> · Intermediate · ages 9–12</div></div>
@@ -13531,7 +13500,7 @@ if(id==="search"){
         <p class="pg-sub" style="margin-top:14px">Set the sport, age, and level; Sporv returns background-checked basketball coaches with open slots. Save the search and it runs again whenever a new coach lists near you.</p>
       </div>
       <div class="pg-demo wide" aria-hidden="true">
-        <span class="demonote">The listings below are sample data that show how Sporv works. Real verified coaches are onboarding now.</span>
+        <span class="demonote">The listings below are demo records that show how Sporv works. Real verified coaches are onboarding now.</span>
         <div class="drow"><div><div class="dname">West Loop Hoops — U12 Skills</div>
             <div class="dmeta"><span class="dchk">Background-checked</span> · Intermediate · ages 9–12</div></div>
           <span class="dprice">$40</span></div>
@@ -13579,7 +13548,7 @@ if(id==="map-search"){
         <p class="pg-sub" style="margin-top:14px">Every pin is a background-checked cycling coach with a real open slot, sorted by how close the ride starts to you. See who is a short drive away before you narrow by age or level.</p>
       </div>
       <div class="pg-demo wide" aria-hidden="true">
-        <span class="demonote">The listings below are sample data that show how Sporv works. Real verified coaches are onboarding now.</span>
+        <span class="demonote">The listings below are demo records that show how Sporv works. Real verified coaches are onboarding now.</span>
         <div class="drow"><div><div class="dname">Flatirons Junior Cycling — Skills Ride</div>
             <div class="dmeta"><span class="dchk">Background-checked</span> · 1.2 mi · ages 10–14</div></div>
           <span class="dprice">$32</span></div>
@@ -13673,7 +13642,7 @@ if(id==="messaging"){
         <p class="pg-sub" style="margin-top:14px">Message any background-checked volleyball coach for free and the replies land here. Book, and this exact thread attaches to the booking — so nothing said before the first serve gets lost.</p>
       </div>
       <div class="pg-demo wide" aria-hidden="true">
-        <span class="demonote">The listings below are sample data that show how Sporv works. Real verified coaches are onboarding now.</span>
+        <span class="demonote">The listings below are demo records that show how Sporv works. Real verified coaches are onboarding now.</span>
         <div class="drow"><div><div class="dname">Barton Springs Volleyball</div>
             <div class="dmeta"><span class="dchk">Coach reply</span> · U13 setting has room Tuesdays — want a tryout first?</div></div>
           <span class="dprice">2m</span></div>
@@ -13773,7 +13742,7 @@ if(id==="messaging"){
         <p class="pg-sub" style="margin-top:14px">Goals, session notes, and personal bests stack up in order on the athlete's timeline. Any coach they train with reads the same track record — nothing resets when the coach changes.</p>
       </div>
       <div class="pg-demo wide" aria-hidden="true">
-        <span class="demonote">The listings below are sample data that show how Sporv works. Real verified coaches are onboarding now.</span>
+        <span class="demonote">The listings below are demo records that show how Sporv works. Real verified coaches are onboarding now.</span>
         <div class="drow"><div><div class="dname">Baseline 100m</div>
             <div class="dmeta">Apr 18 · time trial logged</div></div>
           <span class="dprice">14.4s</span></div>
@@ -13829,7 +13798,7 @@ if(id==="messaging"){
         <p class="pg-sub" style="margin-top:14px">Only the tennis slots you open are ever bookable. The moment a family takes one it leaves the grid — no double-booked court, no callback to chase.</p>
       </div>
       <div class="pg-demo wide" aria-hidden="true">
-        <span class="demonote">The listings below are sample data that show how Sporv works. Real verified coaches are onboarding now.</span>
+        <span class="demonote">The listings below are demo records that show how Sporv works. Real verified coaches are onboarding now.</span>
         <div class="drow"><div><div class="dname">Tuesday · 4:00pm</div>
             <div class="dmeta">Private tennis lesson · 60 min · <span class="dchk">Bookable</span></div></div>
           <span class="dprice">$60</span></div>
@@ -13926,7 +13895,7 @@ if(id==="messaging"){
         <p class="pg-sub" style="margin-top:14px">Import the hockey families you already train and let new bookings join on their own. Notes, sessions, and payouts all attach to the same athlete.</p>
       </div>
       <div class="pg-demo wide" aria-hidden="true">
-        <span class="demonote">The listings below are sample data that show how Sporv works. Real verified coaches are onboarding now.</span>
+        <span class="demonote">The listings below are demo records that show how Sporv works. Real verified coaches are onboarding now.</span>
         <div class="drow"><div><div class="dname">The Okafor family — Devin, 11</div>
             <div class="dmeta">Hockey · Tuesdays · <span class="dchk">Imported</span></div></div>
           <span class="dprice">$45</span></div>
@@ -14074,7 +14043,7 @@ if(id==="messaging"){
         <p class="pg-sub" style="margin-top:14px">Bookings, earnings after fees, and returning rowers — each one tracked over time from your real sessions. No spreadsheet to keep; the numbers add themselves up.</p>
       </div>
       <div class="pg-demo wide" aria-hidden="true">
-        <span class="demonote">The listings below are sample data that show how Sporv works. Real verified coaches are onboarding now.</span>
+        <span class="demonote">The listings below are demo records that show how Sporv works. Real verified coaches are onboarding now.</span>
         <div class="drow"><div><div class="dname">Bookings this month</div>
             <div class="dmeta"><span class="dchk">up 18%</span> vs last month · rowing</div></div>
           <span class="dprice">42</span></div>
@@ -14131,7 +14100,7 @@ if(id==="messaging"){
         <p class="pg-sub" style="margin-top:14px">The assistant only surfaces listings that actually exist on Sporv — never invented names. And whoever it surfaces, no one can take a booking until their own background check has cleared. That rule lives in the database, not in the assistant's good intentions.</p>
       </div>
       <div class="pg-demo wide" aria-hidden="true">
-        <span class="demonote">The listings below are sample data that show how Sporv works. Real verified coaches are onboarding now.</span>
+        <span class="demonote">The listings below are demo records that show how Sporv works. Real verified coaches are onboarding now.</span>
         <div class="drow"><div><div class="dname">Sensei Marisol Vega — Karate</div>
             <div class="dmeta">Martial Arts · ages 6–12 · <span class="dchk">Background-checked</span></div></div>
           <span class="dprice">$40</span></div>
@@ -14288,12 +14257,8 @@ function render(){
      A restored/legacy start route now renders the landing. */
   else if(r.name==="start"||r.name==="home") body=landingHTML();
   /* PART 1/3 — the two new nav destinations */
-  else if(r.name==="coachinfo") body=coachLandingHTML();
   else if(r.name==="pricing") body=pricingHTML();
   else if(r.name==="product") body=productHTML();
-  else if(r.name==="page") body=pageHTML(r.arg);
-  else if(r.name==="detail") body=detailHTML(r.arg);
-  else if(r.name==="bookings") body=bookingsHTML();
   else if(r.name==="messages") body=messagesHTML();
   else if(r.name==="profile") body=profileHTML();
   else if(r.name==="schedule") body=scheduleHTML();
@@ -14304,7 +14269,7 @@ function render(){
   /* MARKETPLACE ROUTES KILLED (spec 01, 2026-08-31): explore, map, saved and
      assistant were parent-side discovery — rosters fill by invitation, not
      browsing. Stale links and persisted routes land on the landing page. */
-  else if(r.name==="explore"||r.name==="map"||r.name==="saved"||r.name==="assistant"||r.name==="companies"){
+  else if(["explore","map","saved","assistant","companies","bookings","coachinfo","detail","page"].indexOf(r.name)>=0){
     S.route={name:"home",arg:null}; body=landingHTML(); }
   /* An unknown route used to render Explore, which hid exactly the class of
      bug where a nav entry points at a surface that does not exist. */

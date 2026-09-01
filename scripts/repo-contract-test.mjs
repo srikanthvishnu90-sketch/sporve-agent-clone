@@ -99,13 +99,6 @@ check(rabbit.includes('- "tools/**"'), "CodeRabbit must review operator tooling"
 check(rabbit.includes('- "!package-lock.json"'),
   "CodeRabbit must exclude the generated dependency lock from prose review");
 
-const productPages = read("src/mod-productpages.js");
-for (const retired of ["published intensity", "varsity-intensity",
-  "Pending supply stays outside bookable search and map results",
-  "personal-check and live-availability rules that protect ordinary search",
-  "demo listings in the seeded catalogue"]) {
-  check(!productPages.includes(retired),
-    `product-page copy still contains an unsupported claim: ${retired}`);
-}
+/* mod-productpages deleted (spec-01 completion, 2026-08-31). */
 
 console.log(`repo contract: ${assertions} assertions passed`);
