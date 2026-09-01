@@ -213,6 +213,27 @@
       }).then(apply);
     },
 
+    /* Magic link (spec 04): passwordless sign-in for directors mid-onboarding.
+       magicLink() emails BOTH a click-through link (the fragment tokens land in
+       completeOAuth() below — same adoption path as OAuth) and a 6-digit code;
+       verifyMagicCode() exchanges the code for a session for anyone whose mail
+       client mangles links. Resolves identically for unknown addresses — same
+       anti-enumeration stance as recover(). */
+    magicLink: function (email, redirectTo) {
+      return post("/auth/v1/otp", {
+        email: String(email || "").trim(),
+        create_user: true,
+        options: { email_redirect_to: redirectTo || window.location.origin },
+      }).then(function () { return true; }).catch(function () { return true; });
+    },
+
+    verifyMagicCode: function (email, token) {
+      var body = { email: String(email || "").trim(), token: String(token || "").trim() };
+      return post("/auth/v1/verify", Object.assign({ type: "email" }, body))
+        .catch(function () { return post("/auth/v1/verify", Object.assign({ type: "magiclink" }, body)); })
+        .then(apply);
+    },
+
     /* Sign up. Because mailer_autoconfirm is FALSE, a successful signup returns
        a user WITHOUT tokens. Callers must handle {needsConfirmation:true} — the
        family cannot proceed until they click the emailed link.

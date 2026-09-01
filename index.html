@@ -21,7 +21,7 @@
 <meta name="twitter:description" content="Find coaches, trainers, camps and teams across 20+ sports in Chicagoland.">
 <meta name="twitter:image" content="https://sporv.vercel.app/og.png">
 <link rel="icon" href="data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%2032%2032'%3E%3Crect%20width='32'%20height='32'%20rx='7'%20fill='%2309090B'/%3E%3Ccircle%20cx='16'%20cy='16'%20r='6'%20fill='white'/%3E%3C/svg%3E">
-<meta name="sporve-build" content="306a9a7c4b8d55fc">
+<meta name="sporve-build" content="cab4628138c17178">
 </head>
 <body>
 <noscript><h1>Sporv — Every sport. One app.</h1><p>Sporv connects families and athletes with coaches, trainers, camps, and teams across more than 20 sports. Please enable JavaScript to use the app.</p></noscript>
@@ -11705,6 +11705,7 @@ function coachBody(t){
         <span style="display:flex;gap:8px">
           ${(S.importBatches||[]).some(x=>!x.undone)
             ?`<button class="btn ghost sm" data-imp-undo="${esc(((S.importBatches||[]).filter(x=>!x.undone).slice(-1)[0]||{}).id||"")}">Undo last import</button>`:""}
+          <button class="btn ghost sm" data-setupclub="1">Set up your club</button>
           <button class="btn ghost sm" data-import="1">Import clients</button>
           <button class="btn ghost sm" data-addathlete="1">+ Add athlete</button></span></div>
       <p style="color:var(--muted);font-size:var(--text-base)">${esc(SEED.teams[0].sport)} · ${teamRoster().length} athlete${teamRoster().length===1?"":"s"}</p>
@@ -12151,6 +12152,7 @@ function modalHTML(){
       <button class="btn wide" type="submit">Log in</button>
       <button class="btn ghost wide" type="button" data-onboard="1" style="margin-top:9px">Create an account</button>
       <button type="button" data-modal="forgot" style="width:100%;text-align:center;margin-top:14px;font-size:var(--text-sm);font-weight:600;color:var(--slate-ink)">Forgot your password?</button>
+      <button type="button" data-modal="magiclink" style="width:100%;text-align:center;margin-top:8px;font-size:var(--text-sm);font-weight:600;color:var(--slate-ink)">Email me a sign-in link instead</button>
     </form>`);
 
   /* Signup does NOT sign you in on this project: mailer_autoconfirm is FALSE,
@@ -12548,6 +12550,26 @@ function modalHTML(){
       <button class="btn ghost wide" type="button" data-modal="login" style="margin-top:9px">Back to log in</button>
     </form>`);
 
+  /* Magic link (spec 04): passwordless sign-in — the onboarding auth path for
+     directors. The emailed LINK signs you in on click (fragment adoption in
+     completeOAuth); the CODE below is the fallback for mangled links. */
+  if(m.type==="magiclink") return wrap("Email me a sign-in link",`
+    <form id="magicForm">
+      ${S.magicSent?`
+        <p style="color:var(--muted);margin-bottom:18px">
+          We emailed <b style="color:var(--ink)">${esc(S.magicEmail||"you")}</b> a sign-in link —
+          clicking it signs you straight in. If the link won't open, enter the code from the same email.</p>
+        <div class="field"><label>Sign-in code</label><input name="token" placeholder="6-digit code from the email" required></div>
+        <div id="magicErr" class="err hide" style="margin:8px 0"></div>
+        <button class="btn wide" type="submit">Sign in with code</button>`
+      :`<p style="color:var(--muted);margin-bottom:18px">
+          No password needed — we'll email you a link that signs you in.</p>
+        <div class="field"><label>Email address</label><input name="email" type="email" value="${esc((S.authIdentifier||"").includes("@")?S.authIdentifier:"")}" placeholder="alex@example.com" required></div>
+        <div id="magicErr" class="err hide" style="margin:8px 0"></div>
+        <button class="btn wide" type="submit">Send sign-in link</button>`}
+      <button class="btn ghost wide" type="button" data-modal="login" style="margin-top:9px">Back to log in</button>
+    </form>`);
+
   if(m.type==="onboard"){
     const step=S.onboardStep;
     const sports=Object.keys(SPORT_COLOR).sort();
@@ -12584,6 +12606,114 @@ function modalHTML(){
         <button class="btn wide" type="submit" style="margin-top:12px">Create account →</button>
         <button class="btn ghost wide" type="button" data-onbback="1" style="margin-top:9px">Back</button>
       </form>`);
+  }
+
+  if(m.type==="setupwiz"){
+    /* Spec 04 — the five-step club setup: URL -> confirm drafts -> roster ->
+       Stripe -> first billing run. Target: under 20 minutes. The agent DRAFTS
+       at steps 1 and 5; a human confirms both times. Nothing extracted from a
+       website is written without confirmation; the billing run charges no one
+       and emails no one — it creates fee schedules families pay on their own
+       checkout links. State lives in S.setupWiz so re-renders survive. */
+    const w=S.setupWiz||(S.setupWiz={step:1});
+    const pv=S.coachProvider;
+    const dots=`<div style="display:flex;gap:6px;margin-bottom:14px">${[1,2,3,4,5].map(n=>
+      `<span style="width:26px;height:4px;border-radius:2px;background:${n<=w.step?"var(--slate-ink)":"var(--line)"}"></span>`).join("")}</div>`;
+    const wrapS=(t,body)=>wrap(t,dots+body);
+    if(w.step===1) return wrapS("Set up your club",`
+      <p class="imp-sub">Paste your club's public website and the agent reads it —
+        sport, teams, season, published fees. It only drafts: you confirm every
+        line on the next screen before anything is saved.</p>
+      <form id="suwUrlForm">
+        <div class="field" style="margin-top:12px"><label>Club website</label>
+          <input name="url" placeholder="www.yourclub.org" value="${esc(w.url||"")}" ${w.busy?"disabled":""} required></div>
+        <div id="suwErr" class="err ${w.err?"":"hide"}" style="margin:8px 0">${esc(w.err||"")}</div>
+        <div class="imp-actions" style="margin-top:12px">
+          <button class="btn" type="submit" ${w.busy?"disabled":""}>${w.busy?"Reading your site…":"Read my site"}</button>
+          <button class="btn ghost sm" type="button" data-suw-skip="1">I'll enter it by hand</button></div>
+      </form>`);
+    if(w.step===2){
+      const d=w.draft||{teams:[],season:{}};
+      const rows=(d.teams&&d.teams.length?d.teams:[{name:"",age_group:"",fee_cents:null}]);
+      return wrapS("Confirm what we found",`
+        <p class="imp-sub">${w.extracted
+          ?`Drafted from <b style="color:var(--ink)">${esc(w.url||"your site")}</b>${d.confidence?` · confidence: ${esc(d.confidence)}`:""}. Edit anything — nothing is saved until you confirm.`
+          :"Enter your club's structure. Nothing is saved until you confirm."}</p>
+        <form id="suwConfirmForm">
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:10px">
+          <div class="field"><label>Club name</label><input name="club" value="${esc(d.club_name||(pv&&pv.business_name)||"")}" required></div>
+          <div class="field"><label>Sport</label><input name="sport" value="${esc(d.sport||"")}" required></div>
+        </div>
+        <div style="display:grid;grid-template-columns:1.2fr 1fr 1fr;gap:12px">
+          <div class="field"><label>Season name</label><input name="season" value="${esc((d.season&&d.season.name)||"")}" placeholder="Fall 2026" required></div>
+          <div class="field"><label>Starts</label><input name="start" type="date" value="${esc((d.season&&d.season.start_date)||"")}" required></div>
+          <div class="field"><label>Ends</label><input name="end" type="date" value="${esc((d.season&&d.season.end_date)||"")}" required></div>
+        </div>
+        <div class="tblwrap" style="margin-top:6px"><table class="tbl">
+          <thead><tr><th>Team</th><th>Age group</th><th>Season fee ($)</th><th></th></tr></thead>
+          <tbody id="suwTeams">${rows.map((t,i)=>`<tr>
+            <td><input name="tname${i}" value="${esc(t.name||"")}" style="width:100%"></td>
+            <td><input name="tage${i}" value="${esc(t.age_group||"")}" style="width:100%"></td>
+            <td><input name="tfee${i}" type="number" min="0" step="1" value="${t.fee_cents!=null?Math.round(t.fee_cents/100):""}" style="width:100%"></td>
+            <td><button type="button" class="lnk" data-suw-delteam="${i}">✕</button></td></tr>`).join("")}
+          </tbody></table></div>
+        <button type="button" class="btn ghost sm" data-suw-addteam="1" style="margin-top:8px">+ Add a team</button>
+        <div id="suwErr" class="err ${w.err?"":"hide"}" style="margin:8px 0">${esc(w.err||"")}</div>
+        <div class="imp-actions" style="margin-top:12px">
+          <button class="btn ghost sm" type="button" data-suw-back="1">Back</button>
+          <button class="btn" type="submit" ${w.busy?"disabled":""}>${w.busy?"Saving…":"Confirm & create"}</button></div>
+        </form>`);
+    }
+    if(w.step===3) return wrapS("Bring your roster",`
+      <p class="imp-sub">Import your members from a CSV export (SportsEngine, TeamSnap,
+        LeagueApps, a sheet) — with a guardian email per member so dues have somewhere
+        to go. Import sends <b style="color:var(--ink)">zero emails</b> and charges no one,
+        and any batch can be undone for 24 hours.</p>
+      <div class="imp-actions" style="margin-top:14px">
+        <button class="btn" data-suw-import="1">Open the import wizard</button>
+        <button class="btn ghost sm" data-suw-next="4">${(S.importBatches||[]).some(x=>!x.undone)?"Continue":"Skip for now"}</button></div>`);
+    if(w.step===4){
+      const on=!!(pv&&pv.stripe_charges_enabled);
+      return wrapS("Connect payouts",`
+      <p class="imp-sub">${on
+        ?"Stripe is connected and charges are enabled — dues go straight to your club's own Stripe account."
+        :"Dues are paid into your club's own Stripe account — Sporv never holds your money. Stripe hosts the form; we never see a bank detail."}</p>
+      <div class="imp-actions" style="margin-top:14px">
+        ${on?"":`<button class="btn" data-connectpayouts="1" ${S.connectBusy?"disabled":""}>${S.connectBusy?"Opening Stripe…":"Connect with Stripe"}</button>`}
+        <button class="btn ${on?"":"ghost sm"}" data-suw-next="5">${on?"Continue":"Skip for now"}</button></div>
+      ${S.connectError?`<div class="err" style="margin-top:8px">${esc(S.connectError)}</div>`:""}`);
+    }
+    /* step 5 — the first billing run, drafted */
+    const mem=w.members||[]; const teams=(w.confirmed&&w.confirmed.teams)||[];
+    if(w.done) return wrapS("You're set up",`
+      <p class="imp-sub">${w.done.count} fee schedule${w.done.count===1?"":"s"} created —
+        ${w.done.installments} installment${w.done.installments===1?"":"s"} drafted, due from
+        ${esc(w.done.firstDue||"the season start")}. <b style="color:var(--ink)">No one was
+        charged and no email went out.</b> Families pay from their own checkout links;
+        the agent watches what lands and drafts follow-ups for you to approve.</p>
+      <div class="imp-actions" style="margin-top:14px">
+        <button class="btn" data-suw-close="1">Done</button></div>`);
+    return wrapS("Draft the first billing run",`
+      <p class="imp-sub">${teams.length&&mem.length
+        ?`One plan per member: the team's season fee split into installments. This DRAFTS the schedules — no charge, no email.`
+        :teams.length?"No imported members yet — go back a step to bring your roster in, or finish now and bill later from Dues."
+        :"No confirmed teams with fees yet — go back to step 2, or finish now and bill later from Dues."}</p>
+      ${teams.length&&mem.length?`<form id="suwBillForm">
+        <div style="display:grid;grid-template-columns:1.4fr 1fr 1fr;gap:12px;margin-top:10px">
+          <div class="field"><label>Bill everyone as</label><select name="team">${teams.map((t,i)=>
+            `<option value="${i}">${esc(t.name)} — $${Math.round((t.fee_cents||0)/100)}</option>`).join("")}</select></div>
+          <div class="field"><label>Installments</label><input name="count" type="number" min="1" max="12" value="3"></div>
+          <div class="field"><label>First due</label><input name="due" type="date" value="${esc(w.seasonStart||"")}"></div>
+        </div>
+        <p style="color:var(--muted);font-size:var(--text-sm)">${mem.length} member${mem.length===1?"":"s"} from your import will get a schedule.</p>
+        <div id="suwErr" class="err ${w.err?"":"hide"}" style="margin:8px 0">${esc(w.err||"")}</div>
+        <div class="imp-actions" style="margin-top:12px">
+          <button class="btn ghost sm" type="button" data-suw-next="3">Back</button>
+          <button class="btn" type="submit" ${w.busy?"disabled":""}>${w.busy?"Drafting…":"Draft "+mem.length+" schedule"+(mem.length===1?"":"s")}</button></div>
+        </form>`
+      :`<div class="imp-actions" style="margin-top:12px">
+          <button class="btn ghost sm" data-suw-next="${teams.length?"3":"2"}">Back</button>
+          <button class="btn" data-suw-close="1">Finish setup</button></div>`}`);
   }
 
   if(m.type==="importclients"){
@@ -15166,16 +15296,57 @@ document.querySelectorAll('.sig-ai-coach').forEach(sigAiCoachWire);
       guardian:"",contact:c.email||"",dob:c.dob||null,externalRef:c.externalRef||"",batchId:batch}));
     teamRoster().push(...created);   // one synchronous append = all-or-nothing
     S.importBatches=[...(S.importBatches||[]),{id:batch,at:Date.now(),count:created.length,file:w.fileName||"pasted CSV"}];
-    /* SERVER commit (2026-08-31): a signed-in coach with a provider row writes
-       the DURABLE batch record to import_batches (000100) — batch metadata
-       only, NO child PII, by COPPA design: athlete rows stay family-owned and
-       consent-gated, so the linkage fills in as families join. The undo spine
-       is now real; the shadow roster above stays the working demo view. */
+    /* SERVER commit (spec 04, 2026-08-31): a signed-in owner writes the REAL
+       roster — one team_athletes member row per created entry (org-entered
+       identity, athlete link fills when a family claims), one guardian per
+       distinct email, one payer guardian_link each — all stamped with a
+       durable import_batches row keyed by content hash so re-uploading the
+       identical file is a DB-enforced no-op. IMPORT SENDS ZERO EMAILS AND
+       CREATES ZERO CHARGES. Undo (24h) deletes exactly this batch's rows. */
     const pv=S.coachProvider;
     if(pv&&pv.id&&window.SporveAPI&&window.SporveAPI.isSignedIn&&window.SporveAPI.isSignedIn()){
-      try{window.SporveAPI.from("import_batches","",{method:"POST",body:{
-        provider_id:pv.id,source_filename:w.fileName||"pasted CSV",
-        row_count:created.length}});}catch(_){/* demo view already committed */}
+      (async()=>{try{
+        const raw=(w.rawText||w.fileName||"")+"|"+created.map(c=>c.name+","+(c.contact||"")+","+(c.dob||"")).join(";");
+        const hb=await crypto.subtle.digest("SHA-256",new TextEncoder().encode(raw));
+        const hash=Array.from(new Uint8Array(hb)).map(b=>b.toString(16).padStart(2,"0")).join("");
+        const b=await window.SporveAPI.from("import_batches","",{method:"POST",
+          headers:{Prefer:"return=representation"},
+          body:{provider_id:pv.id,source_filename:w.fileName||"pasted CSV",
+                row_count:created.length,content_hash:hash}}).catch(e=>{
+          if(/duplicate|conflict|23505/i.test(String(e&&e.message)))return null;throw e;});
+        if(!b||!b[0]){toast("This exact file was already imported — nothing was created twice.");return;}
+        const batchId=b[0].id; w.serverBatchId=batchId; w.serverBatchAt=Date.now();
+        S.importBatches=(S.importBatches||[]).map(x=>x.id===batch?{...x,serverId:batchId,serverAt:Date.now()}:x);
+        const members=[];
+        for(const c of created){
+          const parts=String(c.name||"").trim().split(/\s+/);
+          members.push({provider_id:pv.id,team_id:null,athlete_id:null,
+            first_name:parts[0]||c.name,last_name:parts.slice(1).join(" ")||null,
+            dob:c.dob||null,external_ref:c.externalRef||null,
+            jersey_number:c.jersey&&c.jersey!=="—"?c.jersey:null,
+            import_batch_id:batchId});
+        }
+        const mrows=await window.SporveAPI.from("team_athletes","",{method:"POST",
+          headers:{Prefer:"return=representation,resolution=ignore-duplicates"},body:members})
+          .catch(()=>[]);
+        /* guardians: one per distinct email, payer link per member */
+        const byEmail={};
+        (mrows||[]).forEach((m,i)=>{const em=(created[i]&&created[i].contact||"").toLowerCase();
+          if(em){(byEmail[em]=byEmail[em]||[]).push(m.id);}});
+        for(const em of Object.keys(byEmail)){
+          let g=await window.SporveAPI.from("guardians",
+            "select=id&provider_id=eq."+pv.id+"&email=eq."+encodeURIComponent(em)).catch(()=>[]);
+          if(!g||!g[0]){g=await window.SporveAPI.from("guardians","",{method:"POST",
+            headers:{Prefer:"return=representation"},
+            body:{provider_id:pv.id,first_name:em.split("@")[0],email:em}}).catch(()=>[]);}
+          if(g&&g[0]) for(const mid of byEmail[em]){
+            await window.SporveAPI.from("guardian_links","",{method:"POST",
+              headers:{Prefer:"resolution=ignore-duplicates"},
+              body:{guardian_id:g[0].id,member_id:mid,is_payer:true,relationship:"parent"}}).catch(()=>{});
+          }
+        }
+        render();
+      }catch(_){/* demo view already committed; server sync surfaced next load */}})();
     }
     w.step="done"; w.committed={batch,created};
     render();
@@ -15184,7 +15355,18 @@ document.querySelectorAll('.sig-ai-coach').forEach(sigAiCoachWire);
   $("[data-imp-undo]").forEach(b=>b.onclick=()=>{
     const id=b.dataset.impUndo; if(!id) return;
     S.teamRoster=teamRoster().filter(r=>r.batchId!==id);
+    const rec=(S.importBatches||[]).find(x=>x.id===id);
     S.importBatches=(S.importBatches||[]).map(x=>x.id===id?{...x,undone:true}:x);
+    /* server undo (spec 04): delete exactly this batch's member rows, then the
+       batch record itself — inside 24h; RLS confines it to the owner's org. */
+    if(rec&&rec.serverId&&window.SporveAPI&&window.SporveAPI.isSignedIn&&window.SporveAPI.isSignedIn()
+       &&Date.now()-(rec.serverAt||0)<24*3600*1000){
+      (async()=>{try{
+        await window.SporveAPI.from("team_athletes","import_batch_id=eq."+rec.serverId,{method:"DELETE"});
+        await window.SporveAPI.from("import_batches","id=eq."+rec.serverId,{method:"DELETE"}).catch(()=>
+          window.SporveAPI.from("import_batches","id=eq."+rec.serverId,{method:"PATCH",body:{undone_at:new Date().toISOString()}}));
+      }catch(_){/* client roster already restored */}})();
+    }
     if(S.importWiz&&S.importWiz.step==="done"){S.modal=null;S.importWiz=null;}
     render(); toast("Import undone — the roster is back to its previous state.");
   });
@@ -15194,6 +15376,136 @@ document.querySelectorAll('.sig-ai-coach').forEach(sigAiCoachWire);
     w.step=2; render();
   });
   $("[data-imp-close]").forEach(b=>b.onclick=()=>{S.modal=null;S.importWiz=null;render();});
+
+  /* ── Spec 04 setup wizard handlers ─────────────────────────────────────── */
+  $("[data-setupclub]").forEach(b=>b.onclick=()=>{
+    S.setupWiz=S.setupWiz&&S.setupWiz.step?S.setupWiz:{step:1};
+    S.modal={type:"setupwiz"};render();});
+  $("[data-suw-close]").forEach(b=>b.onclick=()=>{S.modal=null;render();});
+  $("[data-suw-back]").forEach(b=>b.onclick=()=>{const w=S.setupWiz;if(w){w.step=1;w.err=null;}render();});
+  $("[data-suw-next]").forEach(b=>b.onclick=()=>{
+    const w=S.setupWiz;if(!w)return;w.step=+b.dataset.suwNext;w.err=null;
+    if(w.step===5) suwLoadMembers(w);
+    render();});
+  $("[data-suw-skip]").forEach(b=>b.onclick=()=>{
+    const w=S.setupWiz;if(!w)return;w.step=2;w.extracted=false;w.draft={teams:[],season:{}};render();});
+  $("[data-suw-import]").forEach(b=>b.onclick=()=>{
+    /* hand off to the existing import wizard; the setup wizard resumes at
+       step 3 from the same entry button (state survives in S.setupWiz) */
+    if(S.setupWiz)S.setupWiz.step=3;
+    S.importWiz={step:1,people:[]};S.modal={type:"importclients"};render();});
+  $("[data-suw-addteam]").forEach(b=>b.onclick=()=>{
+    const w=S.setupWiz;if(!w)return;suwReadForm(w);
+    (w.draft.teams=w.draft.teams||[]).push({name:"",age_group:"",fee_cents:null});render();});
+  $("[data-suw-delteam]").forEach(b=>b.onclick=()=>{
+    const w=S.setupWiz;if(!w)return;suwReadForm(w);
+    w.draft.teams.splice(+b.dataset.suwDelteam,1);render();});
+
+  const suwU=document.getElementById("suwUrlForm");
+  if(suwU) suwU.onsubmit=e=>{
+    e.preventDefault();
+    const w=S.setupWiz;if(!w||w.busy)return;
+    const url=String(new FormData(suwU).get("url")||"").trim();
+    if(!url){w.err="Enter your club's website.";render();return;}
+    if(!(window.SporveAPI&&window.SporveAPI.isSignedIn&&window.SporveAPI.isSignedIn())){
+      w.err="Sign in first — the agent reads your site on your account.";render();return;}
+    w.url=url;w.busy=true;w.err=null;render();
+    window.SporveAPI.fn("club-site-extract",{url}).then(r=>{
+      w.busy=false;
+      const d=(r&&r.draft)||{};
+      w.draft={club_name:d.club_name||null,sport:d.sport||null,
+        teams:Array.isArray(d.teams)?d.teams:[],season:d.season||{},
+        confidence:d.confidence||null};
+      w.extracted=true;w.step=2;render();
+      const n=(w.draft.teams||[]).length;
+      toast(n?("Drafted "+n+" team"+(n===1?"":"s")+" — confirm or edit each line."):
+             "That page listed no team structure — enter it by hand below.");
+    }).catch(er=>{w.busy=false;w.err=(er&&er.message)||"Could not read that site.";render();});
+  };
+
+  function suwReadForm(w){
+    const f=document.getElementById("suwConfirmForm");if(!f)return;
+    const d=Object.fromEntries(new FormData(f));
+    w.draft=w.draft||{};w.draft.club_name=d.club;w.draft.sport=d.sport;
+    w.draft.season={name:d.season,start_date:d.start,end_date:d.end};
+    w.draft.teams=(w.draft.teams&&w.draft.teams.length?w.draft.teams:[{}]).map((t,i)=>({
+      name:d["tname"+i]!==undefined?d["tname"+i]:t.name,
+      age_group:d["tage"+i]!==undefined?d["tage"+i]:t.age_group,
+      fee_cents:d["tfee"+i]!==undefined&&d["tfee"+i]!==""?Math.round(+d["tfee"+i]*100):t.fee_cents}));
+  }
+
+  const suwC=document.getElementById("suwConfirmForm");
+  if(suwC) suwC.onsubmit=e=>{
+    e.preventDefault();
+    const w=S.setupWiz;if(!w||w.busy)return;
+    suwReadForm(w);
+    const d=w.draft, pv=S.coachProvider;
+    const teams=(d.teams||[]).filter(t=>t.name&&String(t.name).trim());
+    if(!d.club_name||!d.sport){w.err="Club name and sport are required.";render();return;}
+    if(!d.season.name||!d.season.start_date||!d.season.end_date){w.err="Season name and dates are required.";render();return;}
+    if(!teams.length){w.err="Add at least one team.";render();return;}
+    if(!(pv&&pv.id&&window.SporveAPI&&window.SporveAPI.isSignedIn&&window.SporveAPI.isSignedIn())){
+      w.err="Finish coach onboarding first — your org record is what everything attaches to.";render();return;}
+    w.busy=true;w.err=null;render();
+    (async()=>{try{
+      const sRows=await window.SporveAPI.from("seasons","",{method:"POST",
+        headers:{Prefer:"return=representation"},
+        body:{provider_id:pv.id,name:d.season.name,start_date:d.season.start_date,end_date:d.season.end_date}});
+      const seasonId=sRows[0].id;
+      const out=[];
+      for(const t of teams){
+        const tr=await window.SporveAPI.from("teams","",{method:"POST",
+          headers:{Prefer:"return=representation"},
+          body:{provider_id:pv.id,name:t.name,sport:d.sport,season_id:seasonId}});
+        /* one team = one 'team'-shaped program; its price is the season fee
+           the billing run splits into installments (spec 03 shapes) */
+        let programId=null;
+        if(t.fee_cents!=null&&t.fee_cents>0){
+          const prow=await window.SporveAPI.from("programs","",{method:"POST",
+            headers:{Prefer:"return=representation"},
+            body:{provider_id:pv.id,title:t.name+" — "+d.season.name,sport_type:d.sport,
+                  offering_type:"team",price:t.fee_cents/100,age_group:t.age_group||null}}).catch(()=>null);
+          programId=prow&&prow[0]&&prow[0].id;
+        }
+        out.push({team_id:tr[0].id,program_id:programId,name:t.name,fee_cents:t.fee_cents||0});
+      }
+      w.confirmed={season_id:seasonId,teams:out.filter(t=>t.program_id)};
+      w.seasonStart=d.season.start_date;
+      w.busy=false;w.step=3;render();
+      toast("Season, "+out.length+" team"+(out.length===1?"":"s")+" created — nothing billed yet.");
+    }catch(er){w.busy=false;w.err=(er&&er.message)||"Could not save — try again.";render();}})();
+  };
+
+  function suwLoadMembers(w){
+    const pv=S.coachProvider;
+    if(!(pv&&pv.id&&window.SporveAPI&&window.SporveAPI.isSignedIn&&window.SporveAPI.isSignedIn()))return;
+    window.SporveAPI.from("team_athletes",
+      "select=id,first_name,last_name&provider_id=eq."+pv.id+"&first_name=not.is.null&status=eq.active")
+      .then(rows=>{w.members=rows||[];render();}).catch(()=>{});
+  }
+
+  const suwB=document.getElementById("suwBillForm");
+  if(suwB) suwB.onsubmit=e=>{
+    e.preventDefault();
+    const w=S.setupWiz;if(!w||w.busy)return;
+    const d=Object.fromEntries(new FormData(suwB));
+    const t=(w.confirmed&&w.confirmed.teams||[])[+d.team];
+    const pv=S.coachProvider;
+    if(!t||!pv){w.err="Pick a team with a fee.";render();return;}
+    const count=Math.max(1,Math.min(12,+d.count||3));
+    w.busy=true;w.err=null;render();
+    (async()=>{try{
+      let n=0;
+      for(const m of (w.members||[])){
+        await window.SporveAPI.rpc("create_member_fee_schedule",{
+          p_provider_id:pv.id,p_program_id:t.program_id,p_member_id:m.id,
+          p_season_id:w.confirmed.season_id,p_total_cents:t.fee_cents,
+          p_installment_count:count,p_first_due:d.due||null});
+        n++;
+      }
+      w.busy=false;w.done={count:n,installments:n*count,firstDue:d.due};render();
+    }catch(er){w.busy=false;w.err=(er&&er.message)||"Could not draft the schedules.";render();}})();
+  };
 
   /* Review-queue (obligations) handlers — draft -> approved -> done, undoable.
      Demo store S.obligations; real drafts arrive from the ingest/agent backend.
@@ -16046,6 +16358,44 @@ document.querySelectorAll('.sig-ai-coach').forEach(sigAiCoachWire);
         const b2=ff.querySelector('button[type="submit"]');
         if(b2){b2.disabled=false;b2.textContent="Reset password";}
       });
+    }
+  };
+
+  const mgf=document.getElementById("magicForm");
+  if(mgf) mgf.onsubmit=e=>{
+    e.preventDefault();
+    const d=Object.fromEntries(new FormData(mgf));
+    const err=document.getElementById("magicErr");
+    const show=m=>{err.textContent=m;err.classList.remove("hide");};
+    const A=window.SporveAuth;
+    if(!A||!A.magicLink) return show("Sign-in links are unavailable right now.");
+    if(!S.magicSent){
+      if(!/^[\w.+-]+@[\w-]+\.[\w.-]+$/.test(d.email||"")) return show("Please enter a valid email address.");
+      A.magicLink(d.email, window.location.origin).then(()=>{
+        S.magicEmail=d.email;S.magicSent=true;render();
+        /* same anti-enumeration copy stance as recover() */
+        toast("If that address can sign in, a link is on its way");
+      });
+    }else{
+      if(!d.token||!d.token.trim()) return show("Please enter the code from your email.");
+      const btn=mgf.querySelector('button[type="submit"]');
+      if(btn){btn.disabled=true;btn.textContent="Signing in…";}
+      A.verifyMagicCode(S.magicEmail, d.token)
+        .then(()=>A.loadProfile())
+        .then(p=>{
+          S.magicSent=false;
+          completeAuth({id:p&&p.id,firstName:(p&&p.first_name)||"",lastName:(p&&p.last_name)||"",
+            email:(p&&p.email)||S.magicEmail,phone:(p&&p.phone_number)||"",
+            role:(p&&p.role)||"searcher",preferredSports:[],img:phAvatar()});
+          if(p&&p.role==="provider") S.portal="coach";
+          toast("Signed in");
+        })
+        .catch(er=>{
+          const e2=document.getElementById("magicErr");
+          if(e2){e2.textContent=(er&&er.message)||"That code was not accepted. Request a new one.";e2.classList.remove("hide");}
+          const b2=mgf.querySelector('button[type="submit"]');
+          if(b2){b2.disabled=false;b2.textContent="Sign in with code";}
+        });
     }
   };
 
@@ -18010,6 +18360,27 @@ window.MOD_COACHUI = { css:CSS, wire:wire };
         email: String(email || "").trim(),
         password: String(password || ""),
       }).then(apply);
+    },
+
+    /* Magic link (spec 04): passwordless sign-in for directors mid-onboarding.
+       magicLink() emails BOTH a click-through link (the fragment tokens land in
+       completeOAuth() below — same adoption path as OAuth) and a 6-digit code;
+       verifyMagicCode() exchanges the code for a session for anyone whose mail
+       client mangles links. Resolves identically for unknown addresses — same
+       anti-enumeration stance as recover(). */
+    magicLink: function (email, redirectTo) {
+      return post("/auth/v1/otp", {
+        email: String(email || "").trim(),
+        create_user: true,
+        options: { email_redirect_to: redirectTo || window.location.origin },
+      }).then(function () { return true; }).catch(function () { return true; });
+    },
+
+    verifyMagicCode: function (email, token) {
+      var body = { email: String(email || "").trim(), token: String(token || "").trim() };
+      return post("/auth/v1/verify", Object.assign({ type: "email" }, body))
+        .catch(function () { return post("/auth/v1/verify", Object.assign({ type: "magiclink" }, body)); })
+        .then(apply);
     },
 
     /* Sign up. Because mailer_autoconfirm is FALSE, a successful signup returns
