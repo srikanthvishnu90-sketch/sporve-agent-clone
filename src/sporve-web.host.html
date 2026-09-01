@@ -11435,6 +11435,17 @@ function obligationQueue(){
    (000400) — instead of the guest demo seeds. Real rows replace the demo
    wholesale: for a real club an empty queue is the truth, not a reason to
    show fiction. Guests/preview keep the demo. */
+function loadLiveFindings(){
+  const pv=S.coachProvider;
+  if(S.findLoading||S.findLoaded) return;
+  if(!(pv&&pv.id&&window.SporveAPI&&window.SporveAPI.isSignedIn&&window.SporveAPI.isSignedIn())) return;
+  S.findLoading=true;
+  window.SporveAPI.from("agent_findings",
+    "select=id,kind,code,severity,title,detail,amount_cents&provider_id=eq."+pv.id+
+    "&status=eq.open&order=severity.desc,created_at.desc&limit=50")
+    .then(rows=>{if(Array.isArray(rows)){S.findings=rows;S.findLoaded=true;render();}})
+    .catch(()=>{}).finally(()=>{S.findLoading=false;});
+}
 function loadLiveObligations(){
   const pv=S.coachProvider;
   if(S.obligLoading||S.obligLive) return;
@@ -11487,8 +11498,8 @@ function parseObligations(text){
    and adapted to tokens). EVERY control on this page round-trips to a real
    row: profiles, providers, lifecycle_message_prefs, provider_settings,
    waiver_documents. Anything in the mock with no backend is CUT, not stubbed —
-   we never fake-toast "Saved". Auto consent: flipping a job to Auto is a real
-   pref row whose updated_by becomes approved_by on every auto-sent message. */
+   we never fake-toast "Saved". Doc 11: the agent has NO send path — master
+   mode is Off/Observe/Draft, per-draft-type is Off/On, and there is no Auto. */
 const SET_JOBS=[
   ["logistics","Logistics","Low risk — a wrong message is an inconvenience.",[
     ["agent_c1","Practice & game reminders","C1 · to families",true],
@@ -11558,41 +11569,30 @@ function coachSettingsPage(){
     <div class="stcard">${row("Edit your public profile","",`<button class="btn ghost sm" data-ctab="profile">Open business profile →</button>`)}</div>`;
   }
   if(tab==="automation"){
-    const master=setJobMode("agent_autodraft");
-    const cap=(setKVget("auto_money_cap",{})||{}).level||"friendly";
+    const mode=(setKVget("agent_mode",{})||{}).mode||"draft";
     const win=setKVget("send_window",{})||{};
     const blocked=win.blocked_days||[];
-    const excl=setKVget("auto_exclude_guardians",[])||[];
-    const gmap={};(S.setGuardians||[]).forEach(g=>gmap[g.id]=g);
-    const anyMoneyAuto=["agent_a1","agent_a2"].some(k=>setJobMode(k)==="auto");
-    body=`<div class="sthead"><h2>Automation</h2><p>How much the agent does on its own. Draft means it prepares the work and you approve it. Auto means it sends, inside the rules below.</p></div>
+    body=`<div class="sthead"><h2>Automation</h2><p>The agent observes everything and drafts everything. It never sends — you do, with one click in the review queue.</p></div>
     <div class="stcard">
-      ${row("Agent","Off stops the nightly drafting for this club. Run agent now always works.",
-        `<span class="stseg" data-stjob="agent_autodraft"><button data-v="off" class="${master==="off"?"on":""}">Off</button><button data-v="draft" class="${master!=="off"?"on":""}">Draft</button></span>`)}
+      ${row("Agent","Off: nothing runs. Observe: it watches and flags findings, no drafts. Draft: it also writes drafts ready for your one-click send.",
+        `<span class="stseg" data-agentmode="1">${[["off","Off"],["observe","Observe"],["draft","Draft"]].map(([v,l])=>`<button data-v="${v}" class="${mode===v?"on":""}">${l}</button>`).join("")}</span>`)}
     </div>
-    <div class="sthead" style="margin-top:22px"><h2>Per-job control</h2><p>Grouped by what a wrong message would cost. Every message the agent writes is a fixed template filled from your records — never model-invented prose.</p></div>
+    <div class="sthead" style="margin-top:22px"><h2>Draft types</h2><p>Silence any draft type you don't want. Off means the agent stops writing that draft; it still observes and flags it as a finding. Every message the agent writes is a fixed template filled from your records — never model-invented prose, and never sent on its own.</p></div>
     ${SET_JOBS.map(([gk,gl,gd,jobs])=>`<div class="stcard">
       <div class="stghead"><span>${gl}</span><em>${gd}</em></div>
-      ${jobs.map(([k,l,sm,allowAuto])=>row(l,sm,seg(k,allowAuto))).join("")}
+      ${jobs.map(([k,l,sm])=>{const on=setJobMode(k)!=="off";return row(l,sm,
+        `<span class="stseg" data-stjob="${k}"><button data-v="off" class="${on?"":"on"}">Off</button><button data-v="draft" class="${on?"on":""}">On</button></span>`);}).join("")}
     </div>`).join("")}
-    ${anyMoneyAuto?`<div class="sthead" style="margin-top:22px"><h2>Money guardrails</h2><p>Shown because a money job is set to Auto.</p></div>
-    <div class="stcard">
-      ${row("Auto-send dues follow-ups up to","Anything firmer than this stays a draft for you.",
-        `<span class="stchips" id="stCap">${[["friendly","Friendly"],["firm","Firm"],["final","Final notice"]].map(([v,l])=>`<button data-cap="${v}" class="stchip ${cap===v?"on":""}">${l}</button>`).join("")}</span>`)}
-      ${row("Never auto-send about money to","These families always receive drafts. Checked at send time.",
-        `<span class="stchips" id="stExcl">${excl.map(id=>`<span class="stchip on">${esc((gmap[id]&&(gmap[id].first_name||gmap[id].email))||"guardian")} <button data-exdel="${id}">×</button></span>`).join("")}
-         <select class="stin" id="stExAdd" style="width:180px"><option value="">+ Add family…</option>${(S.setGuardians||[]).filter(g=>!excl.includes(g.id)).map(g=>`<option value="${g.id}">${esc(g.first_name||g.email)}</option>`).join("")}</select></span>`,true)}
-    </div>`:""}
-    <div class="sthead" style="margin-top:22px"><h2>Sending window</h2><p>Applies to every auto-sent message. Drafts approved outside the window queue until it opens.</p></div>
+    <div class="sthead" style="margin-top:22px"><h2>Sending window</h2><p>When your one-click sends actually go out. A message you approve outside these hours waits until the window opens — nothing sends at 2am.</p></div>
     <div class="stcard">
       ${row("Send messages between","Org timezone · "+esc((setKVget("org_tz",{})||{}).tz||"America/Chicago"),
         `<input type="time" class="stin" id="stWinA" value="${esc(win.start||"08:00")}" style="width:110px"> <span class="stmut">to</span> <input type="time" class="stin" id="stWinB" value="${esc(win.end||"20:00")}" style="width:110px">`)}
       ${row("Never send on","",`<span class="stdays" id="stDays">${["Sun","Mon","Tue","Wed","Thu","Fri","Sat"].map((d,i)=>`<button data-day="${i}" class="${blocked.includes(String(i))||blocked.includes(i)?"on":""}">${d}</button>`).join("")}</span>`)}
-      ${row("Pause all sending until","For an off-season or holiday break. Drafts still generate.",
+      ${row("Pause all sending until","For an off-season or holiday break. The agent still observes and drafts.",
         `<input type="date" class="stin" id="stPause" value="${esc(win.pause_until||"")}" style="width:150px">`)}
       ${row("","",`<button class="btn sm" data-stsave="window">Save window</button>`)}
     </div>
-    <div class="stnote"><b>Auto never applies backwards.</b> Switching a job to Auto does not send drafts already in your queue — those still need approval. Only drafts created after the switch can auto-send, and every one records who turned Auto on as its approver.</div>
+    <div class="stnote"><b>There is no auto-send.</b> The agent has no path to send — not a setting, not an override. Every message leaves only when you click Send in the review queue, and your name is recorded on it.</div>
     <div class="sthead" style="margin-top:22px"><h2>Recent setting changes</h2></div>
     <div class="stcard">${live?((S.setAudit||[]).slice(0,6).map(a=>
       row(esc(a.key)+" · "+esc(typeof a.new_value==="string"?a.new_value:JSON.stringify(a.new_value)).slice(0,40),"",
@@ -11684,8 +11684,21 @@ function coachQueuePage(){
       <p style="color:var(--muted);margin-top:5px;font-size:var(--text-base)">The work Sporv already did for you — review and approve. Nothing is sent or charged until you say so.</p>
     </div>${liveOrg?`<span style="display:flex;gap:8px;align-items:center">
       ${bulkN>3?`<button class="btn ghost sm" data-oblig-approveall="1"${S.bulkApproving?" disabled":""}>${S.bulkApproving?"Approving…":"Approve all "+bulkN}</button>`:""}
-      <button class="btn ghost sm" data-agent-toggle="1" title="When on, the agent drafts overnight. Off stops the nightly run for your club only — Run now still works.">Auto-draft: ${S.agentAutodraft===false?"off":"on"}</button>
+      <button class="btn ghost sm" data-agent-read="1"${S.readRunning?" disabled":""}>${S.readRunning?"Scanning…":"Scan now"}</button>
       <button class="btn sm" data-agent-run="1"${S.agentRunning?" disabled":""}>${S.agentRunning?"Running…":"Run agent now"}</button></span>`:""}</div>
+    ${(S.findings&&S.findings.length)?`<div class="panel" style="margin-top:14px">
+      <div class="sec-head" style="margin:0 0 8px"><h3>What the agent noticed</h3>
+        <span style="color:var(--faint);font-size:var(--text-sm)">${S.findings.length} finding${S.findings.length===1?"":"s"} · nothing here sends</span></div>
+      <div style="display:flex;flex-direction:column;gap:8px">
+        ${S.findings.map(f=>`<div class="obcard" style="border-left:3px solid ${f.severity==="urgent"?"var(--danger,#C4685E)":f.severity==="warn"?"var(--warn,#B87800)":"var(--line)"}">
+          <div class="obtop"><span class="pill ${f.severity==="urgent"?"bad":f.severity==="warn"?"warn":""}">${esc(f.kind)}</span>
+            <span class="obsrc">${esc(f.severity)}</span></div>
+          <b class="obtitle">${esc(f.title)}</b>
+          ${f.detail?`<p class="obdetail">${esc(f.detail)}</p>`:""}
+          <div class="obacts"><button class="btn ghost sm" data-find-dismiss="${esc(f.id)}">Dismiss</button></div>
+        </div>`).join("")}
+      </div></div>`:(S.findLoaded?`<div class="panel" style="margin-top:14px"><h3>What the agent noticed</h3>
+      <p style="color:var(--muted);font-size:var(--text-sm);margin-top:4px">Nothing flagged — dues, documents, credentials and rosters are all current.</p></div>`:"")}
     <div class="panel">
       <h3>Forward something to turn it into work</h3>
       <p style="color:var(--muted);font-size:var(--text-sm);margin-top:4px">Paste a tournament email, a gym's schedule text, a registration deadline — Sporv drafts the fee, deadline, waiver check or message. (Demo parse; the real per-file read runs on the ingest backend.)</p>
@@ -12785,18 +12798,6 @@ function modalHTML(){
       </form>`);
   }
 
-  if(m.type==="stautoconfirm"){
-    const cap=((S.setKV&&S.setKV.auto_money_cap&&S.setKV.auto_money_cap.value)||{}).level||"friendly";
-    return wrap("Confirmation required",`
-      <p style="color:var(--warn);font-size:12px;font-weight:600;margin:0 0 8px">The agent will send these without you seeing them first.</p>
-      <p style="color:var(--muted);font-size:var(--text-sm)">It will send <b style="color:var(--ink)">${esc(m.label||"these messages")}</b> on its own, up to the
-        <b style="color:var(--ink)">${esc(cap)}</b> tone — anything firmer still comes to you as a draft. Your name goes on every
-        auto-sent message as the approver, and each one is in your audit log.</p>
-      <p style="color:var(--muted);font-size:var(--text-sm)">You can turn this off at any time. Nothing already in your queue is sent by this switch.</p>
-      <div class="imp-actions" style="margin-top:14px">
-        <button class="btn" data-stauto-keep="1">Keep as Draft</button>
-        <button class="btn ghost sm" data-stauto-go="1">Turn on Auto</button></div>`);
-  }
   if(m.type==="setupwiz"){
     /* Spec 04 — the five-step club setup: URL -> confirm drafts -> roster ->
        Stripe -> first billing run. Target: under 20 minutes. The agent DRAFTS
@@ -15579,24 +15580,6 @@ document.querySelectorAll('.sig-ai-coach').forEach(sigAiCoachWire);
   $("[data-imp-close]").forEach(b=>b.onclick=()=>{S.modal=null;S.importWiz=null;render();});
 
   /* ── Spec 04 setup wizard handlers ─────────────────────────────────────── */
-  $("[data-stauto-keep]").forEach(b=>b.onclick=()=>{S.modal=null;render();toast("Kept as Draft.");});
-  $("[data-stauto-go]").forEach(b=>b.onclick=()=>{
-    const job=S.modal&&S.modal.job;S.modal=null;render();
-    if(!job)return;
-    const pv=S.coachProvider;if(!pv||!window.SporveAPI)return;
-    /* server-side gate (001018): the pref write is REFUSED unless this consent
-       row, stamped by the same signed-in admin, landed in the last 2 minutes.
-       A bare PATCH from anywhere else cannot turn money-auto on. */
-    window.SporveAPI.from("provider_settings","on_conflict=provider_id,key",{
-      method:"POST",headers:{Prefer:"resolution=merge-duplicates"},
-      body:{provider_id:pv.id,key:"money_auto_consent",value:{job,at:new Date().toISOString()}}})
-      .then(()=>window.SporveAPI.from("lifecycle_message_prefs","on_conflict=provider_id,event_type",{
-        method:"POST",headers:{Prefer:"resolution=merge-duplicates"},
-        body:{provider_id:pv.id,event_type:job,mode:"auto"}}))
-      .then(()=>{S.setPrefs[job]={mode:"auto",at:new Date().toISOString()};
-        toast("Auto is on for this money job — capped, windowed, and audited under your name.");render();})
-      .catch(e=>toast("Could not save: "+((e&&e.message)||"")));
-  });
   $("[data-setupclub]").forEach(b=>b.onclick=()=>{
     S.setupWiz=S.setupWiz&&S.setupWiz.step?S.setupWiz:{step:1};
     S.modal={type:"setupwiz"};render();});
@@ -15749,6 +15732,7 @@ document.querySelectorAll('.sig-ai-coach').forEach(sigAiCoachWire);
      Approving/finishing sends or charges nothing here — it advances the row. */
   if(S.portal==="coach"&&S.coachTab==="queue"){
     loadLiveObligations();
+    loadLiveFindings();
     /* the queue is current when you look at it: refresh on focus and on a 20s
        tick while this tab is open. Approvals stay idempotent server-side, so a
        stale row approved twice is a no-op, never a double-send. */
@@ -15815,7 +15799,21 @@ document.querySelectorAll('.sig-ai-coach').forEach(sigAiCoachWire);
   });
   /* auto-draft toggle: one row in lifecycle_message_prefs; 'off' stops the
      nightly cron for THIS org only (the generators check it per row). */
-  $("[data-agent-toggle]").forEach(b=>b.onclick=()=>{
+  $("[data-find-dismiss]").forEach(b=>b.onclick=()=>{
+    const id=b.dataset.findDismiss;
+    S.findings=(S.findings||[]).filter(f=>f.id!==id);render();
+    if(window.SporveAPI) window.SporveAPI.from("agent_findings","id=eq."+id,{method:"PATCH",body:{status:"dismissed"}}).catch(()=>{});
+    toast("Dismissed — it'll resurface if the underlying issue is still true tomorrow.");
+  });
+  $("[data-agent-read]").forEach(b=>b.onclick=()=>{
+    const pv=S.coachProvider;if(!pv||!window.SporveAPI||S.readRunning)return;
+    S.readRunning=true;render();
+    window.SporveAPI.rpc("run_agent_read",{p_provider:pv.id})
+      .then(n=>{S.readRunning=false;S.findLoaded=false;loadLiveFindings();
+        toast(n?("The agent scanned your records — "+n+" finding"+(n===1?"":"s")+" below."):"Scanned — nothing to flag.");render();})
+      .catch(e=>{S.readRunning=false;render();toast((e&&e.message)||"Scan failed.");});
+  });
+  $("[data-agent-toggle-DEAD]").forEach(b=>b.onclick=()=>{
     const pv=S.coachProvider; if(!pv||!window.SporveAPI) return;
     const next=S.agentAutodraft===false?"draft":"off";
     S.agentAutodraft=next!=="off";render();
@@ -15843,15 +15841,20 @@ document.querySelectorAll('.sig-ai-coach').forEach(sigAiCoachWire);
       .then(()=>{S.setPrefs[k]={mode,at:new Date().toISOString()};toast(msg||("Saved — "+k+" is now "+mode+"."));render();})
       .catch(e=>toast("Could not save: "+((e&&e.message)||"")));
   };
+  /* master agent mode Off/Observe/Draft -> provider_settings.agent_mode */
+  $("[data-agentmode] button").forEach(btn=>btn.onclick=()=>{
+    const v=btn.dataset.v;
+    kvSave("agent_mode",{mode:v},
+      v==="off"?"Agent off — nothing runs.":
+      v==="observe"?"Observe on — the agent watches and flags findings. It writes no drafts.":
+      "Draft on — the agent watches, flags findings, and writes drafts for your one-click send.");
+  });
+  /* per-draft-type Off/On (draft) — no Auto anywhere */
   $(".stseg[data-stjob] button").forEach(btn=>btn.onclick=()=>{
     const seg=btn.closest(".stseg"),k=seg.dataset.stjob,v=btn.dataset.v;
-    if(setJobMode(k)===v)return;
-    const isMoney=k==="agent_a1"||k==="agent_a2";
-    if(v==="auto"&&isMoney){
-      const label=seg.closest(".strow").querySelector(".stlab b").textContent;
-      S.modal={type:"stautoconfirm",job:k,label};render();return;
-    }
-    prefSave(k,v, v==="auto"?"Auto is on — new drafts inside your window and rules will send on their own. Nothing already queued is touched.":undefined);
+    if(setJobMode(k)===(v==="off"?"off":"draft"))return;
+    prefSave(k, v==="off"?"off":"draft",
+      v==="off"?"Off — the agent stops writing this draft (still flags it as a finding).":"On — the agent drafts this again.");
   });
   $("#stCap button").forEach(c=>c.onclick=()=>kvSave("auto_money_cap",{level:c.dataset.cap},"Escalation cap saved — auto stops at "+c.textContent+"."));
   $("[data-exdel]").forEach(b=>b.onclick=()=>{
