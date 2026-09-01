@@ -220,3 +220,9 @@ begin
       $job$ select public.generate_agent_findings(); $job$);
   exception when others then raise notice 'pg_cron unavailable (%)', sqlerrm; end;
 end $$;
+
+-- Applied 2026-09-01 after UI probe: drop the dead 001018 money-auto consent
+-- trigger so the honest lifecycle_prefs_agent_off_draft constraint is the
+-- refusal (doc 11: no consent path exists).
+drop trigger if exists trg_money_auto_consent on public.lifecycle_message_prefs;
+drop function if exists public.enforce_money_auto_consent();
