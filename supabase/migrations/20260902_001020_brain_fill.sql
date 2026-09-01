@@ -1,0 +1,39 @@
+-- ============================================================================
+-- DOC 11 BRAIN FILL (2026-09-02) — applied to prod as brain_fill_schema_and_
+-- findings + brain_fill_drafts_proposals + the treasurer coalesce fix and the
+-- run_agent_drafts/cron wiring (execute_sql). This file records the applied
+-- bodies' summary; the applied migrations are authoritative.
+--
+-- READ: agent_findings + subject_type/subject_id/evidence/dismissed_at,
+-- severity gains 'attention'; teams.target_size; 13 new derived finding kinds
+-- (reconciliation_drift, refund_exposure, staffing_gap, booking_unconfirmed,
+-- schedule_conflict, roster_gap, missing_data, waiver_drift, idle_capacity,
+-- waitlist_match, camp_to_program, collection_trend, org_structure) beside the
+-- 5 shipped = 18, + treasurer_summary record = 19 kinds total.
+-- REFUSED (schema cannot pay): card_expiry (no saved-card store — Stripe API,
+-- not 'none'), attendance_pattern + referral_moment + session_note/
+-- progress_summary (no attendance table), never_converted (no inquiries table).
+-- The single unlock for the biggest parked bloc is an attendance table —
+-- owner decision.
+--
+-- WRITE: obligations.why_finding_id + draft_type; agent_vocab() helper;
+-- generate_missing_info_requests (ONE consolidated draft per guardian,
+-- vocab-aware), generate_idle_capacity_offers (existing families first, cites
+-- its finding); outbound event types +info_request/capacity_offer/weekly_digest.
+--
+-- PROPOSALS: agent_proposals table (pending|applied|dismissed, proposed jsonb
+-- = the exact diff, owner RLS); generate_agent_proposals (staff_assignment,
+-- payment_plan); apply_agent_proposal executor — staff_assignment and
+-- schedule_adjustment apply (owner-gated, writes only the proposed rows);
+-- payment_plan Apply RAISES (money path stays human, per doc 11).
+--
+-- Crons: sporv-missing-info 03:40, sporv-treasurer Mon 03:45,
+-- sporv-proposals 03:50. run_agent_read also runs treasurer+proposals;
+-- run_agent_drafts fires all 7 draft generators.
+--
+-- ACCEPTANCE (fixture org e31eb2e6, 2026-09-01): 14 distinct kinds open after
+-- one run (booking_unconfirmed, collection_trend, credential_expiry,
+-- idle_capacity, lapsed_members, missing_data, missing_email, org_structure,
+-- overdue_summary, roster_gap, schedule_conflict, staffing_gap,
+-- treasurer_summary, waivers_unsigned); re-run created zero duplicates
+-- (uq_finding_ref); no generator writes approved_by/sent_at (grep zero).
