@@ -21,7 +21,7 @@
 <meta name="twitter:description" content="Find coaches, trainers, camps and teams across 20+ sports in Chicagoland.">
 <meta name="twitter:image" content="https://sporv.vercel.app/og.png">
 <link rel="icon" href="data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%2032%2032'%3E%3Crect%20width='32'%20height='32'%20rx='7'%20fill='%2309090B'/%3E%3Ccircle%20cx='16'%20cy='16'%20r='6'%20fill='white'/%3E%3C/svg%3E">
-<meta name="sporve-build" content="3c9b42f2a940f92e">
+<meta name="sporve-build" content="e4217c7b310c0ac0">
 </head>
 <body>
 <noscript><h1>Sporv — Every sport. One app.</h1><p>Sporv connects families and athletes with coaches, trainers, camps, and teams across more than 20 sports. Please enable JavaScript to use the app.</p></noscript>
@@ -1385,6 +1385,42 @@ img{max-width:100%;display:block}
 .kindtab:hover{border-color:var(--ink-2);color:var(--ink)}
 .kindtab:focus-visible{outline:none;box-shadow:0 0 0 3px var(--slate-ring)}
 .kindtab.on{background:var(--ink);border-color:var(--ink);color:#fff}
+/* settings (coachdark) — mock adapted to house tokens */
+.stshell{display:grid;grid-template-columns:200px 1fr;gap:22px;margin-top:8px}
+.strail{display:flex;flex-direction:column;gap:2px;position:sticky;top:80px;align-self:start}
+.strail .stsec{font-size:11px;font-weight:600;letter-spacing:.04em;text-transform:uppercase;color:var(--faint);padding:12px 10px 5px}
+.strail button{display:block;text-align:left;height:32px;line-height:32px;padding:0 10px;border-radius:6px;color:var(--muted);font-size:var(--text-sm);font-weight:450}
+.strail button:hover{background:var(--raise);color:var(--ink)}
+.strail button.on{background:var(--raise);color:var(--ink);font-weight:600}
+.strail .stfoot{margin-top:14px;border-top:1px solid var(--line);padding:10px;font-size:12px;color:var(--faint)}
+.sthead h2{margin:0 0 3px}.sthead p{margin:0 0 10px;color:var(--muted);font-size:var(--text-sm);max-width:66ch}
+.stcard{background:var(--panel,var(--raise));border:1px solid var(--line);border-radius:10px;overflow:hidden}
+.stcard+.stcard{margin-top:10px}
+.strow{display:flex;align-items:center;gap:16px;padding:12px 14px;border-bottom:1px solid var(--line)}
+.strow:last-child{border-bottom:0}.strow.sttop{align-items:flex-start}
+.stlab{flex:1;min-width:0}.stlab b{display:block;font-weight:600;font-size:var(--text-sm)}
+.stlab small{display:block;color:var(--faint);font-size:12.5px;margin-top:2px;line-height:1.45}
+.stctl{flex:none;display:flex;align-items:center;gap:8px;flex-wrap:wrap;max-width:60%}
+.stghead{display:flex;align-items:baseline;gap:10px;padding:9px 14px;background:var(--raise);border-bottom:1px solid var(--line);font-size:12.5px}
+.stghead span{font-weight:700}.stghead em{font-style:normal;color:var(--faint);font-size:12px;margin-left:auto}
+.stseg{display:inline-flex;border:1px solid var(--line);border-radius:7px;overflow:hidden}
+.stseg button{font-size:13px;font-weight:500;height:30px;padding:0 12px;color:var(--faint);border-right:1px solid var(--line)}
+.stseg button:last-child{border-right:0}
+.stseg button.on{background:var(--ink);color:var(--paper)}
+.stseg button.on[data-v="auto"]{background:var(--accent-on-dark,#94A3B8);color:#0B0D0F}
+.stchips{display:flex;gap:6px;flex-wrap:wrap;align-items:center}
+.stchip{height:28px;padding:0 11px;border:1px solid var(--line);border-radius:999px;font-size:12.5px;color:var(--muted);display:inline-flex;align-items:center;gap:6px}
+.stchip.on{background:var(--ink);color:var(--paper);border-color:var(--ink);font-weight:500}
+.stdays{display:flex;gap:5px}
+.stdays button{width:38px;height:30px;border:1px solid var(--line);border-radius:7px;font-size:12.5px;color:var(--faint)}
+.stdays button.on{background:var(--ink);color:var(--paper);border-color:var(--ink);font-weight:600}
+.stin{background:transparent;border:1px solid var(--line);border-radius:7px;padding:0 10px;font-size:var(--text-sm);height:32px;color:var(--ink)}
+.stro{color:var(--faint);font-size:var(--text-sm)}.stmut{color:var(--faint);font-size:12.5px}
+.stradios{display:flex;flex-direction:column;gap:8px}
+.stradios label{display:flex;align-items:center;gap:8px;font-size:var(--text-sm);cursor:pointer}
+.stnote{border-left:2px solid var(--accent-on-dark,#94A3B8);background:var(--raise);border-radius:0 7px 7px 0;padding:11px 14px;color:var(--muted);font-size:var(--text-sm);margin-top:12px}
+.stnote b{color:var(--ink)}
+@media(max-width:900px){.stshell{grid-template-columns:1fr}.strail{position:static;flex-direction:row;flex-wrap:wrap}.strail .stsec{width:100%}.stctl{max-width:100%}}
 .mapstrip-in{display:flex;justify-content:space-between;align-items:center;gap:24px;flex-wrap:wrap}
 /* Boot-surface light bands ride the DARKER shipped slate (#E9EEF4, the same
    ground as .pgband.slate), not the near-white --raise (#F7F8FA). Cards stay
@@ -10385,6 +10421,7 @@ function coachHTML(){
   return `<div class="coachtop"><div class="shell coachtop-in">
       <button class="navlink" data-import="1">⇄ Import clients</button>
       <button class="navlink" data-info="help">? Support</button>
+      <button class="navlink" data-ctab="settings" aria-label="Settings">⚙ Settings</button>
       
     </div></div>
     <main class="shell dash">
@@ -10412,7 +10449,7 @@ function coachHTML(){
            settings / switch-org once orgs have more than one coach. */""}
       ${S.railMenu?`<div class="railmenu" role="menu">
         
-        <button role="menuitem" data-ctab="profile">Settings</button>
+        <button role="menuitem" data-ctab="settings">Settings</button>
         <button role="menuitem" data-signout="1">Sign out</button>
       </div>`:""}
       <div class="raildiv"></div>
@@ -10430,7 +10467,7 @@ function coachHTML(){
         <span class="num">${gs.done} of ${gs.total}</span>
       </button>
       <div class="raildiv"></div>
-      <button class="${t==="profile"?"on":""}" data-ctab="profile">${rIcon("profile")}<span>Settings</span></button>
+      <button class="${t==="settings"?"on":""}" data-ctab="settings">${rIcon("profile")}<span>Settings</span></button>
     </nav>
     <div>${isCoachGuest()?`<div class="previewbar" role="status">
       <span><b>Preview.</b> This is a sample coach workspace with example data — sign in to set up your own.</span>
@@ -11488,6 +11525,166 @@ function parseObligations(text){
     detail:"No fee, waiver, schedule change or deadline detected — drafted a message you can edit and send."});
   return out;
 }
+/* ── SETTINGS (owner mock, 2026-09-01) ─────────────────────────────────────
+   Rail + panes in the house coachdark register (Archivo heads, Inter body,
+   slate accents — the mock's Google-Fonts/#0E0E0F palette is CSP-dead here
+   and adapted to tokens). EVERY control on this page round-trips to a real
+   row: profiles, providers, lifecycle_message_prefs, provider_settings,
+   waiver_documents. Anything in the mock with no backend is CUT, not stubbed —
+   we never fake-toast "Saved". Auto consent: flipping a job to Auto is a real
+   pref row whose updated_by becomes approved_by on every auto-sent message. */
+const SET_JOBS=[
+  ["logistics","Logistics","Low risk — a wrong message is an inconvenience.",[
+    ["agent_c1","Practice & game reminders","C1 · to families",true],
+    ["agent_c2","Schedule change notices","C2 · to families",true],
+    ["agent_b2","Thursday eligibility report","B2 · to you, not to families",true]]],
+  ["documents","Documents","Medium risk — goes to families.",[
+    ["agent_b1","Unsigned waiver follow-ups","B1",true]]],
+  ["money","Money","Highest risk — a wrong message damages the relationship.",[
+    ["agent_a1","Overdue dues follow-ups","A1 · escalation cap applies",true],
+    ["agent_a2","Failed payment recovery","A2 · sends the recovery message only",true]]],
+  ["clients","Clients","Medium risk — outbound to people who may not expect it.",[
+    ["agent_d1","Reactivation of lapsed members","D1",true]]]];
+function loadOrgSettings(){
+  const pv=S.coachProvider;
+  if(S.setLoading||S.setLoaded) return;
+  if(!(pv&&pv.id&&window.SporveAPI&&window.SporveAPI.isSignedIn&&window.SporveAPI.isSignedIn())) return;
+  S.setLoading=true;
+  Promise.all([
+    window.SporveAPI.from("lifecycle_message_prefs","select=event_type,mode,updated_at&provider_id=eq."+pv.id).catch(()=>[]),
+    window.SporveAPI.from("provider_settings","select=key,value,updated_at&provider_id=eq."+pv.id).catch(()=>[]),
+    window.SporveAPI.from("waiver_documents","select=id,title,version,created_at&provider_id=eq."+pv.id+"&order=title,version.desc").catch(()=>[]),
+    window.SporveAPI.from("guardians","select=id,first_name,email&provider_id=eq."+pv.id+"&order=first_name").catch(()=>[]),
+    window.SporveAuth.loadProfile?window.SporveAuth.loadProfile().catch(()=>null):Promise.resolve(null),
+  ]).then(([prefs,kv,docs,gs,prof])=>{
+    S.setPrefs={};(prefs||[]).forEach(p=>{S.setPrefs[p.event_type]={mode:p.mode,at:p.updated_at};});
+    S.setKV={};(kv||[]).forEach(r=>{S.setKV[r.key]={value:r.value,at:r.updated_at};});
+    S.setDocs=docs||[];S.setGuardians=gs||[];S.setProfile=prof||null;
+    S.setLoaded=true;render();
+  }).finally(()=>{S.setLoading=false;});
+}
+function setKVget(k,d){return (S.setKV&&S.setKV[k]&&S.setKV[k].value)!==undefined&&S.setKV[k]?S.setKV[k].value:d;}
+function setJobMode(k){return (S.setPrefs&&S.setPrefs[k]&&S.setPrefs[k].mode)||"draft";}
+function coachSettingsPage(){
+  loadOrgSettings();
+  const pv=S.coachProvider||{};
+  const tab=S.setTab||"automation";
+  const live=!!S.setLoaded;
+  const rail=[["Account",[["profile","Profile"]]],
+    ["Organization",[["automation","Automation"],["money","Money"],["documents","Documents"],["org","Organization"],["plan","Plan & billing"]]]];
+  const seg=(k,allowAuto)=>{const m=setJobMode(k);
+    return `<span class="stseg" data-stjob="${k}">
+      ${["off","draft"].concat(allowAuto?["auto"]:[]).map(v=>
+        `<button data-v="${v}" class="${m===v?"on":""}">${v[0].toUpperCase()+v.slice(1)}</button>`).join("")}</span>`;};
+  const row=(b,small,ctl,top)=>`<div class="strow${top?" sttop":""}"><div class="stlab"><b>${b}</b>${small?`<small>${small}</small>`:""}</div><div class="stctl">${ctl}</div></div>`;
+  let body="";
+  if(tab==="profile"){
+    const p=S.setProfile||{};
+    body=`<div class="sthead"><h2>Profile</h2><p>Your own account.</p></div>
+    <div class="stcard">
+      ${row("Name","",`<input class="stin" id="stFirst" value="${esc(p.first_name||"")}" placeholder="First"><input class="stin" id="stLast" value="${esc(p.last_name||"")}" placeholder="Last">`)}
+      ${row("Email","Used to sign in. Changing it requires confirming from the new address.",`<span class="stro">${esc(p.email||"")}</span>`)}
+      ${row("Phone","",`<input class="stin" id="stPhone" value="${esc(p.phone_number||"")}" placeholder="+1 (555) 000-0000">`)}
+      ${row("Role in this organization","Only the owner role exists today.",`<span class="stro">Owner</span>`)}
+      ${row("","",`<button class="btn sm" data-stsave="profile">Save profile</button>`)}
+    </div>
+    <div class="sthead" style="margin-top:22px"><h2>Business profile</h2><p>Public name, bio, sports and media live on their own page.</p></div>
+    <div class="stcard">${row("Edit your public profile","",`<button class="btn ghost sm" data-ctab="profile">Open business profile →</button>`)}</div>`;
+  }
+  if(tab==="automation"){
+    const master=setJobMode("agent_autodraft");
+    const cap=(setKVget("auto_money_cap",{})||{}).level||"friendly";
+    const win=setKVget("send_window",{})||{};
+    const blocked=win.blocked_days||[];
+    const excl=setKVget("auto_exclude_guardians",[])||[];
+    const gmap={};(S.setGuardians||[]).forEach(g=>gmap[g.id]=g);
+    const anyMoneyAuto=["agent_a1","agent_a2"].some(k=>setJobMode(k)==="auto");
+    body=`<div class="sthead"><h2>Automation</h2><p>How much the agent does on its own. Draft means it prepares the work and you approve it. Auto means it sends, inside the rules below.</p></div>
+    <div class="stcard">
+      ${row("Agent","Off stops the nightly drafting for this club. Run agent now always works.",
+        `<span class="stseg" data-stjob="agent_autodraft"><button data-v="off" class="${master==="off"?"on":""}">Off</button><button data-v="draft" class="${master!=="off"?"on":""}">Draft</button></span>`)}
+    </div>
+    <div class="sthead" style="margin-top:22px"><h2>Per-job control</h2><p>Grouped by what a wrong message would cost. Every message the agent writes is a fixed template filled from your records — never model-invented prose.</p></div>
+    ${SET_JOBS.map(([gk,gl,gd,jobs])=>`<div class="stcard">
+      <div class="stghead"><span>${gl}</span><em>${gd}</em></div>
+      ${jobs.map(([k,l,sm,allowAuto])=>row(l,sm,seg(k,allowAuto))).join("")}
+    </div>`).join("")}
+    ${anyMoneyAuto?`<div class="sthead" style="margin-top:22px"><h2>Money guardrails</h2><p>Shown because a money job is set to Auto.</p></div>
+    <div class="stcard">
+      ${row("Auto-send dues follow-ups up to","Anything firmer than this stays a draft for you.",
+        `<span class="stchips" id="stCap">${[["friendly","Friendly"],["firm","Firm"],["final","Final notice"]].map(([v,l])=>`<button data-cap="${v}" class="stchip ${cap===v?"on":""}">${l}</button>`).join("")}</span>`)}
+      ${row("Never auto-send about money to","These families always receive drafts. Checked at send time.",
+        `<span class="stchips" id="stExcl">${excl.map(id=>`<span class="stchip on">${esc((gmap[id]&&(gmap[id].first_name||gmap[id].email))||"guardian")} <button data-exdel="${id}">×</button></span>`).join("")}
+         <select class="stin" id="stExAdd" style="width:180px"><option value="">+ Add family…</option>${(S.setGuardians||[]).filter(g=>!excl.includes(g.id)).map(g=>`<option value="${g.id}">${esc(g.first_name||g.email)}</option>`).join("")}</select></span>`,true)}
+    </div>`:""}
+    <div class="sthead" style="margin-top:22px"><h2>Sending window</h2><p>Applies to every auto-sent message. Drafts approved outside the window queue until it opens.</p></div>
+    <div class="stcard">
+      ${row("Send messages between","Org timezone · "+esc((setKVget("org_tz",{})||{}).tz||"America/Chicago"),
+        `<input type="time" class="stin" id="stWinA" value="${esc(win.start||"08:00")}" style="width:110px"> <span class="stmut">to</span> <input type="time" class="stin" id="stWinB" value="${esc(win.end||"20:00")}" style="width:110px">`)}
+      ${row("Never send on","",`<span class="stdays" id="stDays">${["Sun","Mon","Tue","Wed","Thu","Fri","Sat"].map((d,i)=>`<button data-day="${i}" class="${blocked.includes(String(i))||blocked.includes(i)?"on":""}">${d}</button>`).join("")}</span>`)}
+      ${row("Pause all sending until","For an off-season or holiday break. Drafts still generate.",
+        `<input type="date" class="stin" id="stPause" value="${esc(win.pause_until||"")}" style="width:150px">`)}
+      ${row("","",`<button class="btn sm" data-stsave="window">Save window</button>`)}
+    </div>
+    <div class="stnote"><b>Auto never applies backwards.</b> Switching a job to Auto does not send drafts already in your queue — those still need approval. Only drafts created after the switch can auto-send, and every one records who turned Auto on as its approver.</div>
+    <div class="sthead" style="margin-top:22px"><h2>Recent setting changes</h2></div>
+    <div class="stcard">${live?Object.keys(S.setPrefs||{}).sort((a,b)=>(S.setPrefs[b].at||"").localeCompare(S.setPrefs[a].at||"")).slice(0,5).map(k=>
+      row(esc(k)+" · "+esc(S.setPrefs[k].mode),"",`<span class="stmut num">${esc((S.setPrefs[k].at||"").slice(0,10))}</span>`)).join("")||row("No changes yet","","" ):row("Loading…","","")}</div>`;
+  }
+  if(tab==="money"){
+    const pol=pv.refund_policy||"prorate_weeks";
+    body=`<div class="sthead"><h2>Money</h2><p>Terms new enrollments are created under. Nothing on this page issues a refund, changes a fee, or triggers a charge.</p></div>
+    <div class="stcard">
+      ${row("Refund policy","Snapshotted onto each fee schedule at creation. Changing it affects future enrollments only.",
+        `<span class="stradios">${[["none_after_start","No refund after season start"],["prorate_weeks","Prorate by weeks remaining"],["minus_deposit","Refund minus deposit"]].map(([v,l])=>
+          `<label><input type="radio" name="stRefund" value="${v}" ${pol===v?"checked":""}> ${l}</label>`).join("")}</span>`,true)}
+      ${row("Deposit held back on refunds","Used by the minus-deposit policy.",`<span class="num">$</span><input type="number" class="stin" id="stDep" value="${Math.round((pv.refund_deposit_cents||0)/100)}" style="width:90px">`)}
+      ${row("","",`<button class="btn sm" data-stsave="money">Save money settings</button>`)}
+    </div>
+    <div class="sthead" style="margin-top:22px"><h2>Payouts</h2></div>
+    <div class="stcard">
+      ${row("Stripe","Dues are paid into your club's own Stripe account — Sporv never holds your money.",
+        pv.stripe_charges_enabled?`<span class="pill good">Connected</span> <a class="btn ghost sm" href="https://dashboard.stripe.com" target="_blank" rel="noopener">Manage in Stripe</a>`
+        :(pv.stripe_onboarding_started?`<span class="pill">Started</span> <button class="btn sm" data-connectpayouts="1">Finish setup</button>`
+        :`<button class="btn sm" data-connectpayouts="1">Connect with Stripe</button>`))}
+      ${row("Payout schedule & tax documents","Managed in your own Stripe dashboard — Sporv cannot see your bank details.",`<span class="stro">dashboard.stripe.com</span>`)}
+      ${row("Retry failed payments","Shown for transparency. Not configurable.",`<span class="stro num">Day 1 · Day 3 · Day 7 · then stop</span>`)}
+    </div>`;
+  }
+  if(tab==="documents"){
+    body=`<div class="sthead"><h2>Documents</h2><p>What families must sign. Editing creates a new version; collected signatures stay bound to the version that was signed.</p></div>
+    <div class="stcard">
+      ${live?((S.setDocs||[]).filter((d,i,a)=>a.findIndex(x=>x.title===d.title)===i).map(d=>
+        row(esc(d.title)+` <span class="num stmut">v${d.version}</span>`,"",
+          `<button class="btn ghost sm" data-stnewver="${d.id}">New version</button>`)).join("")||row("No documents yet","Add a waiver from the Waivers page.","")):row("Loading…","","")}
+    </div>
+    <div class="stnote"><b>Who may sign is not configurable.</b> Guardian of record only — signatures are hash-pinned to the exact text signed.</div>`;
+  }
+  if(tab==="org"){
+    body=`<div class="sthead"><h2>Organization</h2><p>Identity and season structure.</p></div>
+    <div class="stcard">
+      ${row("Name","Appears on messages and receipts.",`<input class="stin" id="stOrgName" value="${esc(pv.business_name||"")}">`)}
+      ${row("Timezone","Drives the sending window.",`<select class="stin" id="stTz">${["America/Chicago","America/New_York","America/Denver","America/Los_Angeles"].map(z=>`<option ${((setKVget("org_tz",{})||{}).tz||"America/Chicago")===z?"selected":""}>${z}</option>`).join("")}</select>`)}
+      ${row("","",`<button class="btn sm" data-stsave="org">Save organization</button>`)}
+    </div>`;
+  }
+  if(tab==="plan"){
+    body=`<div class="sthead"><h2>Plan & billing</h2><p>What your club pays Sporv. Separate from what families pay you.</p></div>
+    <div class="stcard">
+      ${row("Plan",pv.plan?"":"No subscription on record.",`<span class="stro">${esc(pv.plan||"—")}${pv.plan_status?" · "+esc(pv.plan_status):""}</span>`)}
+      ${row("Card processing","Runs on your club's own Stripe account.",`<span class="stro num">2.9% + 30¢ per card transaction</span>`)}
+      ${row("Sporv platform fee","",`<span class="stro num">$0 per booking — flat subscription model</span>`)}
+    </div>`;
+  }
+  return `<div class="sec-head" style="margin-top:18px"><h1>Settings</h1></div>
+  <div class="stshell">
+    <nav class="strail">${rail.map(([g,items])=>`<div class="stsec">${g}</div>`+
+      items.map(([k,l])=>`<button class="${tab===k?"on":""}" data-sttab="${k}">${l}</button>`).join("")).join("")}
+      <div class="stfoot">Every change writes to your club's record — there is no local-only setting on this page.</div>
+    </nav>
+    <div class="stmain">${body}</div>
+  </div>`;
+}
 function coachQueuePage(){
   const q=obligationQueue();
   const drafts=q.filter(o=>o.status==="draft");
@@ -11536,6 +11733,7 @@ function coachBody(t){
   const mine=coachListings();
   const pp=SEED.providerProfile;
   if(t==="queue") return coachQueuePage();
+  if(t==="settings") return coachSettingsPage();
   if(t==="dashboard") return coachHomePage();
   if(t==="roster") return coachClientsPage();
   if(t==="schedule") return coachSchedulePage();
@@ -12617,6 +12815,18 @@ function modalHTML(){
       </form>`);
   }
 
+  if(m.type==="stautoconfirm"){
+    const cap=((S.setKV&&S.setKV.auto_money_cap&&S.setKV.auto_money_cap.value)||{}).level||"friendly";
+    return wrap("Confirmation required",`
+      <p style="color:var(--warn);font-size:12px;font-weight:600;margin:0 0 8px">The agent will send these without you seeing them first.</p>
+      <p style="color:var(--muted);font-size:var(--text-sm)">It will send <b style="color:var(--ink)">${esc(m.label||"these messages")}</b> on its own, up to the
+        <b style="color:var(--ink)">${esc(cap)}</b> tone — anything firmer still comes to you as a draft. Your name goes on every
+        auto-sent message as the approver, and each one is in your audit log.</p>
+      <p style="color:var(--muted);font-size:var(--text-sm)">You can turn this off at any time. Nothing already in your queue is sent by this switch.</p>
+      <div class="imp-actions" style="margin-top:14px">
+        <button class="btn" data-stauto-keep="1">Keep as Draft</button>
+        <button class="btn ghost sm" data-stauto-go="1">Turn on Auto</button></div>`);
+  }
   if(m.type==="setupwiz"){
     /* Spec 04 — the five-step club setup: URL -> confirm drafts -> roster ->
        Stripe -> first billing run. Target: under 20 minutes. The agent DRAFTS
@@ -15380,6 +15590,18 @@ document.querySelectorAll('.sig-ai-coach').forEach(sigAiCoachWire);
   $("[data-imp-close]").forEach(b=>b.onclick=()=>{S.modal=null;S.importWiz=null;render();});
 
   /* ── Spec 04 setup wizard handlers ─────────────────────────────────────── */
+  $("[data-stauto-keep]").forEach(b=>b.onclick=()=>{S.modal=null;render();toast("Kept as Draft.");});
+  $("[data-stauto-go]").forEach(b=>b.onclick=()=>{
+    const job=S.modal&&S.modal.job;S.modal=null;render();
+    if(!job)return;
+    const pv=S.coachProvider;if(!pv||!window.SporveAPI)return;
+    window.SporveAPI.from("lifecycle_message_prefs","on_conflict=provider_id,event_type",{
+      method:"POST",headers:{Prefer:"resolution=merge-duplicates"},
+      body:{provider_id:pv.id,event_type:job,mode:"auto"}})
+      .then(()=>{S.setPrefs[job]={mode:"auto",at:new Date().toISOString()};
+        toast("Auto is on for this money job — capped, windowed, and audited under your name.");render();})
+      .catch(e=>toast("Could not save: "+((e&&e.message)||"")));
+  });
   $("[data-setupclub]").forEach(b=>b.onclick=()=>{
     S.setupWiz=S.setupWiz&&S.setupWiz.step?S.setupWiz:{step:1};
     S.modal={type:"setupwiz"};render();});
@@ -15581,6 +15803,96 @@ document.querySelectorAll('.sig-ai-coach').forEach(sigAiCoachWire);
       body:{provider_id:pv.id,event_type:"agent_autodraft",mode:next}})
       .then(()=>toast(next==="off"?"Nightly auto-draft is off for your club — Run agent now still works.":"Auto-draft is back on — the agent drafts overnight."))
       .catch(e=>{S.agentAutodraft=next==="off";render();toast("Could not save the setting: "+((e&&e.message)||""));});
+  });
+  /* ── settings handlers ─────────────────────────────────────────────── */
+  $("[data-sttab]").forEach(b=>b.onclick=()=>{S.setTab=b.dataset.sttab;render();});
+  const kvSave=(key,value,msg)=>{
+    const pv=S.coachProvider;if(!pv||!window.SporveAPI)return Promise.resolve();
+    return window.SporveAPI.from("provider_settings","on_conflict=provider_id,key",{
+      method:"POST",headers:{Prefer:"resolution=merge-duplicates"},
+      body:{provider_id:pv.id,key,value}})
+      .then(()=>{S.setKV[key]={value,at:new Date().toISOString()};if(msg)toast(msg);render();})
+      .catch(e=>toast("Could not save: "+((e&&e.message)||"")));
+  };
+  const prefSave=(k,mode,msg)=>{
+    const pv=S.coachProvider;if(!pv||!window.SporveAPI)return;
+    window.SporveAPI.from("lifecycle_message_prefs","on_conflict=provider_id,event_type",{
+      method:"POST",headers:{Prefer:"resolution=merge-duplicates"},
+      body:{provider_id:pv.id,event_type:k,mode}})
+      .then(()=>{S.setPrefs[k]={mode,at:new Date().toISOString()};toast(msg||("Saved — "+k+" is now "+mode+"."));render();})
+      .catch(e=>toast("Could not save: "+((e&&e.message)||"")));
+  };
+  $(".stseg[data-stjob] button").forEach(btn=>btn.onclick=()=>{
+    const seg=btn.closest(".stseg"),k=seg.dataset.stjob,v=btn.dataset.v;
+    if(setJobMode(k)===v)return;
+    const isMoney=k==="agent_a1"||k==="agent_a2";
+    if(v==="auto"&&isMoney){
+      const label=seg.closest(".strow").querySelector(".stlab b").textContent;
+      S.modal={type:"stautoconfirm",job:k,label};render();return;
+    }
+    prefSave(k,v, v==="auto"?"Auto is on — new drafts inside your window and rules will send on their own. Nothing already queued is touched.":undefined);
+  });
+  $("#stCap button").forEach(c=>c.onclick=()=>kvSave("auto_money_cap",{level:c.dataset.cap},"Escalation cap saved — auto stops at "+c.textContent+"."));
+  $("[data-exdel]").forEach(b=>b.onclick=()=>{
+    const cur=(setKVget("auto_exclude_guardians",[])||[]).filter(x=>x!==b.dataset.exdel);
+    kvSave("auto_exclude_guardians",cur,"Exclusion removed.");
+  });
+  const stEx=document.getElementById("stExAdd");
+  if(stEx) stEx.onchange=()=>{if(!stEx.value)return;
+    const cur=(setKVget("auto_exclude_guardians",[])||[]).concat([stEx.value]);
+    kvSave("auto_exclude_guardians",cur,"This family will always get drafts, never auto-sends.");};
+  $("#stDays button").forEach(d=>d.onclick=()=>{
+    const win=Object.assign({},setKVget("send_window",{})||{});
+    const cur=(win.blocked_days||[]).map(String);const i=String(d.dataset.day);
+    win.blocked_days=cur.includes(i)?cur.filter(x=>x!==i):cur.concat([i]);
+    kvSave("send_window",win,d.textContent+(win.blocked_days.includes(i)?" blocked.":" unblocked."));});
+  $("[data-stsave]").forEach(b=>b.onclick=()=>{
+    const which=b.dataset.stsave,pv=S.coachProvider;
+    if(which==="window"){
+      const win=Object.assign({},setKVget("send_window",{})||{});
+      win.start=document.getElementById("stWinA").value||"08:00";
+      win.end=document.getElementById("stWinB").value||"20:00";
+      win.pause_until=document.getElementById("stPause").value||"";
+      kvSave("send_window",win,"Sending window saved.");return;
+    }
+    if(which==="profile"){
+      const body={first_name:document.getElementById("stFirst").value.trim(),
+        last_name:document.getElementById("stLast").value.trim(),
+        phone_number:document.getElementById("stPhone").value.trim()||null};
+      window.SporveAPI.from("profiles","id=eq."+window.SporveAuth.userId(),{method:"PATCH",body})
+        .then(()=>{S.setProfile=Object.assign({},S.setProfile,body);toast("Profile saved.");render();})
+        .catch(e=>toast("Could not save: "+((e&&e.message)||"")));return;
+    }
+    if(which==="money"&&pv){
+      const pol=(document.querySelector("input[name=stRefund]:checked")||{}).value;
+      const dep=Math.max(0,Math.round(+(document.getElementById("stDep").value||0)*100));
+      window.SporveAPI.from("providers","id=eq."+pv.id,{method:"PATCH",
+        body:{refund_policy:pol,refund_deposit_cents:dep}})
+        .then(()=>{pv.refund_policy=pol;pv.refund_deposit_cents=dep;
+          toast("Saved — future enrollments use this policy; existing plans keep the one they signed.");render();})
+        .catch(e=>toast("Could not save: "+((e&&e.message)||"")));return;
+    }
+    if(which==="org"&&pv){
+      const name=document.getElementById("stOrgName").value.trim();
+      const tz=document.getElementById("stTz").value;
+      Promise.all([
+        name&&name!==pv.business_name?window.SporveAPI.from("providers","id=eq."+pv.id,{method:"PATCH",body:{business_name:name}}):Promise.resolve(),
+        kvSave("org_tz",{tz}),
+      ]).then(()=>{if(name)pv.business_name=name;toast("Organization saved.");render();})
+       .catch(e=>toast("Could not save: "+((e&&e.message)||"")));return;
+    }
+  });
+  $("[data-stnewver]").forEach(b=>b.onclick=()=>{
+    const d=(S.setDocs||[]).find(x=>x.id===b.dataset.stnewver);const pv=S.coachProvider;
+    if(!d||!pv)return;
+    window.SporveAPI.from("waiver_documents","select=title,body_md,version&id=eq."+d.id)
+      .then(r=>{const cur=r&&r[0];if(!cur)throw new Error("not found");
+        return window.SporveAPI.from("waiver_documents","",{method:"POST",
+          headers:{Prefer:"return=representation"},
+          body:{provider_id:pv.id,title:cur.title,body_md:cur.body_md,version:cur.version+1,
+                content_hash:"pending-edit-"+Date.now()}});})
+      .then(()=>{S.setLoaded=false;loadOrgSettings();toast("New version created — existing signatures stay bound to the version they signed.");})
+      .catch(e=>toast("Could not create a version: "+((e&&e.message)||"")));
   });
   $("[data-agent-run]").forEach(b=>b.onclick=()=>{
     const pv=S.coachProvider; if(!pv||!window.SporveAPI||S.agentRunning) return;
