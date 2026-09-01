@@ -36,8 +36,8 @@ for (let index = 0; index < expected.length; index += 1) {
   for (const field of ["time", "owner", "description", "unlocks", "why", "requirements", "process", "completeWhen", "evidence", "limit"]){
     assert.match(step, new RegExp(`\\b${field}:`), `${id} must explain ${field}`);
   }
-  const requirements = step.match(/requirements:\[(.*?)\],\n\s+process:/s)?.[1] || "";
-  const process = step.match(/process:\[(.*?)\],\n\s+completeWhen:/s)?.[1] || "";
+  const requirements = step.match(/requirements:\[(.*?)\],\r?\n\s+process:/s)?.[1] || "";
+  const process = step.match(/process:\[(.*?)\],\r?\n\s+completeWhen:/s)?.[1] || "";
   assert.ok((requirements.match(/"/g) || []).length >= 6, `${id} needs at least three explicit requirements`);
   assert.ok((process.match(/"/g) || []).length >= 8, `${id} needs at least four ordered process actions`);
 }

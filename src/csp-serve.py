@@ -17,6 +17,8 @@ import os
 import sys
 
 ROOT = sys.argv[1]
+if sys.platform == "win32" and ROOT.startswith("/") and len(ROOT) > 2 and ROOT[2] == "/":
+    ROOT = ROOT[1] + ":" + ROOT[2:]
 PORT = int(sys.argv[2])
 
 with open(os.path.join(ROOT, "vercel.json"), encoding="utf-8") as fh:

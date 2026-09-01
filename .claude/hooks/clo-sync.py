@@ -8,8 +8,11 @@ import os
 import subprocess
 import sys
 import tempfile
-import fcntl
 import hashlib
+try:
+    import fcntl
+except ImportError:
+    fcntl = None
 from datetime import datetime, timezone
 from pathlib import Path
 
@@ -72,7 +75,8 @@ def append_event(actor: str, action: str, detail: str, files: list[str]) -> None
         "## Recent activity\n\n"
     )
     with (SYNC_DIR / ".lock").open("w") as lock:
-        fcntl.flock(lock, fcntl.LOCK_EX)
+        if fcntl:
+            fcntl.flock(lock, fcntl.LOCK_EX)
         existing: list[str] = []
         if LEDGER.exists():
             existing = [line for line in LEDGER.read_text().splitlines() if line.startswith("- ")]

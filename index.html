@@ -21,7 +21,7 @@
 <meta name="twitter:description" content="Find coaches, trainers, camps and teams across 20+ sports in Chicagoland.">
 <meta name="twitter:image" content="https://sporv.vercel.app/og.png">
 <link rel="icon" href="data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%2032%2032'%3E%3Crect%20width='32'%20height='32'%20rx='7'%20fill='%2309090B'/%3E%3Ccircle%20cx='16'%20cy='16'%20r='6'%20fill='white'/%3E%3C/svg%3E">
-<meta name="sporve-build" content="ab4b2e5770d17001">
+<meta name="sporve-build" content="506ef7eab3fb251c">
 </head>
 <body>
 <noscript><h1>Sporv — Every sport. One app.</h1><p>Sporv connects families and athletes with coaches, trainers, camps, and teams across more than 20 sports. Please enable JavaScript to use the app.</p></noscript>
@@ -5041,6 +5041,153 @@ body.reg-coach .rail button.on{font-weight:600}
   .pg-row{grid-template-columns:1fr;gap:9px;padding:24px 0}
   .pg-rnum{padding-top:0}
 }
+
+/* ===== CHAPTER-SHAPE SYSTEM (Item 1) ===== */
+.pg-side-grid{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.2fr);gap:clamp(32px,5vw,64px);align-items:start}
+.pg-side-left{display:flex;flex-direction:column;gap:16px}
+.pg-side-right{display:flex;flex-direction:column;gap:20px}
+.pg-body-prose p{margin-bottom:16px;max-width:68ch;line-height:1.58;font-size:var(--text-base)}
+.pg-body-prose p:last-child{margin-bottom:0}
+
+.pg-band-inner{display:flex;flex-direction:column;gap:clamp(28px,4vw,40px)}
+.pg-band-top{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:clamp(24px,4vw,48px);align-items:baseline}
+.pg-band-top-aside{display:flex;flex-direction:column;gap:16px}
+.pg-band-bottom{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:clamp(24px,4vw,48px)}
+.pg-band-bottom .pg-col p{margin-bottom:16px;max-width:68ch;line-height:1.58;font-size:var(--text-base)}
+.pg-band-bottom .pg-col p:last-child{margin-bottom:0}
+
+.pg-stick-grid{display:grid;grid-template-columns:minmax(0,380px) minmax(0,1fr);gap:clamp(32px,5vw,64px);align-items:start}
+.pg-stick-sticky{position:sticky;top:96px;display:flex;flex-direction:column;gap:18px}
+.pg-stick-right{display:flex;flex-direction:column;gap:20px}
+
+.pg-three-head{margin-bottom:32px;display:flex;flex-direction:column;gap:12px}
+.pg-three-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:clamp(20px,3vw,36px)}
+.pg-three-col{display:flex;flex-direction:column;gap:12px;padding:24px;border:1px solid var(--rule);border-radius:12px;background:var(--raise)}
+.pgband.white .pg-three-col{background:#F8FAFC;border-color:#E3E7EC}
+.pgband.slate .pg-three-col{background:#FFFFFF;border-color:#CBD5E1}
+.pgband.dark .pg-three-col{background:#111318;border-color:#1C222B}
+.pg-three-col p{font-size:var(--text-sm);line-height:1.55;color:var(--muted);margin:0}
+
+.pg-flip-head{margin-bottom:36px;display:flex;flex-direction:column;gap:12px}
+.pg-flip-items{display:flex;flex-direction:column;gap:clamp(32px,5vw,52px)}
+.pg-flip-row{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:clamp(28px,4vw,48px);align-items:center}
+.pg-flip-row.rev{direction:rtl}
+.pg-flip-row.rev>*{direction:ltr}
+.pg-flip-text h3{margin-bottom:12px}
+.pg-flip-text p{line-height:1.58;margin-bottom:14px}
+
+.pg-margin-grid{display:grid;grid-template-columns:220px minmax(0,1fr);gap:clamp(32px,4vw,56px);align-items:start}
+.pg-margin-gutter{display:flex;flex-direction:column;gap:16px;position:sticky;top:96px}
+.pg-margin-columns p{margin-bottom:16px;max-width:68ch;line-height:1.58}
+
+.pg-stack-wrap{display:flex;justify-content:center}
+.pg-stack-inner{max-width:720px;width:100%;display:flex;flex-direction:column;gap:20px;text-align:left}
+
+.pg-quote-grid{display:grid;grid-template-columns:minmax(0,1.2fr) minmax(0,1fr);gap:clamp(32px,5vw,64px);align-items:center}
+.pg-quote-pin{margin:0;padding:24px 28px;border-left:4px solid var(--page-accent,#000);background:rgba(255,255,255,0.03);border-radius:0 12px 12px 0}
+.pg-quote-text{font-size:clamp(18px,2.2vw,24px);line-height:1.35;font-weight:600;font-style:italic;margin-top:12px;color:var(--page-accent)}
+
+@media(max-width:860px){
+  .pg-side-grid,.pg-band-top,.pg-band-bottom,.pg-stick-grid,.pg-three-grid,.pg-flip-row,.pg-margin-grid,.pg-quote-grid{
+    grid-template-columns:1fr!important;direction:ltr!important;
+  }
+  .pg-stick-sticky,.pg-margin-gutter{position:static!important}
+  .pg-flip-row.rev{direction:ltr}
+}
+
+/* ===== AUTH MODAL REDESIGN (Item 2) ===== */
+.modal.auth-card-modal{
+  max-width:420px;width:100%;margin:0 auto;background:#0B0B0C!important;color:#FFFFFF!important;
+  border-radius:12px;border:1px solid #1C222B;padding:0;overflow:hidden;
+}
+.auth-card-modal .modal-head{
+  background:#0B0B0C;border-bottom:1px solid #1C222B;color:#FFFFFF;padding:16px 20px;
+}
+.auth-card-modal .modal-head b{color:#FFFFFF;font-family:var(--roboto-cond);font-size:16px;text-transform:uppercase;letter-spacing:.04em}
+.auth-card-modal .modal-head .x{color:#8B97A5}
+.auth-card-modal .modal-body{background:#0B0B0C;padding:24px;color:#AEB8C4}
+
+.auth-entry-grid{display:flex;flex-direction:column;gap:14px;margin-top:18px}
+.auth-role-card{
+  background:#14171D;border:1px solid #232934;border-radius:10px;padding:18px;
+  text-align:left;cursor:pointer;transition:border-color .15s,background .15s;display:block;width:100%;
+}
+.auth-role-card:hover{border-color:#4B5565;background:#1A1E26}
+.auth-role-title{
+  display:block;font-family:var(--roboto-cond);font-size:18px;font-weight:700;
+  text-transform:uppercase;color:#FFFFFF;margin-bottom:6px;letter-spacing:.02em;
+}
+.auth-role-desc{display:block;font-size:13.5px;color:#94A3B8;line-height:1.45}
+
+.auth-stepper-head{margin-bottom:20px}
+.auth-step-progress{
+  font-family:var(--mono);font-size:12.5px;color:#8B97A5;letter-spacing:.04em;
+  display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;
+}
+.auth-progress-bar{height:3px;background:#1C222B;border-radius:2px;overflow:hidden;width:100%}
+.auth-progress-fill{height:100%;background:#FFFFFF;transition:width .2s ease}
+
+.auth-step-title{
+  font-family:var(--roboto-cond);font-size:20px;font-weight:700;text-transform:uppercase;
+  color:#FFFFFF;margin:12px 0 6px;letter-spacing:.02em;line-height:1.2;
+}
+.auth-step-desc{font-size:14px;color:#94A3B8;line-height:1.45;margin-bottom:18px}
+
+.auth-card-modal .field label{color:#AEB8C4;font-size:13px;font-weight:600;margin-bottom:6px;display:block}
+.auth-card-modal input, .auth-card-modal select, .auth-card-modal textarea{
+  font-size:16px!important;height:44px;background:#14171D!important;color:#FFFFFF!important;
+  border:1px solid #232934!important;border-radius:8px!important;padding:0 12px!important;width:100%!important;
+  box-sizing:border-box;
+}
+.auth-card-modal input:focus, .auth-card-modal select:focus, .auth-card-modal textarea:focus{
+  border-color:#FFFFFF!important;outline:none!important;
+}
+.auth-btn-primary{
+  background:#FFFFFF!important;color:#0B0B0C!important;font-family:var(--roboto-cond)!important;
+  font-weight:700!important;text-transform:uppercase!important;font-size:15px!important;
+  height:44px!important;letter-spacing:.05em!important;width:100%!important;border-radius:8px!important;
+  display:inline-flex;align-items:center;justify-content:center;cursor:pointer;border:none;margin-top:14px;
+}
+.auth-btn-primary:hover{background:#E9EEF4!important}
+.auth-inline-err{color:#F87171;font-size:13px;margin-top:8px;line-height:1.4}
+.auth-foot-link{
+  background:none;border:none;color:#8B97A5;font-size:13px;cursor:pointer;text-align:center;
+  width:100%;margin-top:16px;padding:4px;display:block;
+}
+.auth-foot-link:hover{color:#FFFFFF;text-decoration:underline}
+
+/* ===== LISTING DETAIL HEADER TREATMENTS (Item 3) ===== */
+.detail-head-solo{
+  display:flex;gap:24px;align-items:center;margin:18px 0 28px;flex-wrap:wrap;
+}
+.detail-solo-avatar{
+  width:120px;height:160px;aspect-ratio:3/4;border-radius:12px;overflow:hidden;flex:0 0 120px;
+  background:#F1F5F9;border:1px solid var(--rule);display:flex;align-items:center;justify-content:center;
+}
+.detail-solo-avatar img{width:100%;height:100%;object-fit:cover}
+.detail-solo-init{font-size:32px;font-weight:800;font-family:var(--roboto-cond);text-transform:uppercase}
+.detail-solo-info{min-width:0;flex:1}
+
+.detail-head-banner-wrap{margin:18px 0 28px}
+.detail-banner-img{
+  width:100%;aspect-ratio:3/1;object-fit:cover;border-radius:12px;overflow:hidden;
+  background:#14171D;border:1px solid var(--rule);display:block;
+}
+.detail-banner-placeholder{
+  width:100%;aspect-ratio:3/1;border-radius:12px;background:#F1F5F9;border:1px solid var(--rule);
+  display:flex;align-items:center;justify-content:center;
+}
+.detail-banner-tile{
+  width:64px;height:64px;background:#FFFFFF;border:1px solid var(--rule);border-radius:10px;
+  margin-top:-32px;margin-left:24px;position:relative;z-index:2;box-shadow:0 4px 12px rgba(0,0,0,0.08);
+  display:flex;align-items:center;justify-content:center;font-weight:800;font-size:22px;
+  font-family:var(--roboto-cond);text-transform:uppercase;color:#0B0B0C;
+}
+.detail-banner-meta{margin-top:14px}
+.detail-thumb-strip{display:flex;gap:10px;margin-top:14px;overflow-x:auto;padding-bottom:4px}
+.detail-thumb{width:80px;height:60px;border-radius:6px;object-fit:cover;border:1px solid var(--rule);flex:0 0 auto}
+.detail-camp-date{font-family:var(--mono);font-size:14px;font-weight:600;letter-spacing:.04em;color:var(--slate-ink);margin-top:6px}
+.detail-camp-scarcity{font-family:var(--mono);font-size:13px;font-weight:700;text-transform:uppercase;letter-spacing:.06em}
 /* The S2 sport-name marquee (.pg-tickrow / @keyframes pgtick) was removed with
    its markup in the text-first rebuild — no page renders it. CSS deleted so it
    does not dead-ship. */
@@ -5634,7 +5781,7 @@ body.reg-coach .rail button.on{font-weight:600}
 
 /* 01 — What is Sporv: dark manifesto / six-cell field / dark claim / ledger. */
 .pg-what-is .pg-hero-inner{grid-template-columns:minmax(280px,.78fr) minmax(0,1.22fr);align-items:center}
-.pg-what-is .pg-h1{font-size:clamp(38px,4.8vw,58px);max-width:10ch}
+.pg-what-is .pg-h1{font-size:clamp(36px,4.2vw,52px);max-width:11ch}
 .pg-what-is .pg-hero-copy{padding-left:clamp(0px,3vw,46px);border-left:1px solid #2A3038}
 .pg-capability-grid{display:grid;grid-template-columns:repeat(3,1fr);border-top:1px solid var(--rule);
   border-left:1px solid var(--rule)}
@@ -9250,6 +9397,101 @@ function seasonScheduleHTML(id,p){
   else { body=`<table class="bk-sessions"><thead><tr><th>Date</th><th>Type</th><th>Details</th></tr></thead><tbody>${f.map(x=>`<tr><td class="d">${fmtDate(String(x.starts_at).slice(0,10))}</td><td>${esc(cap(x.kind))}</td><td>${esc([x.opponent&&("vs "+x.opponent),x.location,x.home_away].filter(Boolean).join(" · ")||"—")}</td></tr>`).join("")}</tbody></table>`; }
   return `<section class="bk-sec"><h2>Season schedule</h2>${body}${form}</section>`;
 }
+
+function detailImageHeader(p, kind, typeLabel, col, fav){
+  const verified=showsVerified(p);
+  const rated=showsRating(p);
+  const hood=String(p.address||"").split(",")[0].trim();
+  const meta=rated
+    ? `<span class="rt">${ICON.star} ${p.rating}</span> (${p.reviews})${hood?" · "+esc(hood):""}`
+    : `New${hood?" · "+esc(hood):""}`;
+  const vBadge=verified
+    ? `<span class="pill gold">${ICON.shield} Background-checked</span>`
+    : `<span class="pill warn">${ICON.shield} Verification in progress</span>`;
+
+  if(kind==="solo"){
+    /* Private Training (person): Portrait-first 3:4 rounded card on left + name/rating/neighborhood beside it.
+       If no photo: flat sport-tinted block with initials (never stock photo). */
+    const photo=isPhotoImg(p.img)?`<img src="${p.img}" alt="${esc(p.biz)}" loading="lazy">`
+      :`<div style="width:100%;height:100%;background:${sportColor(p.sport)}1A;border:1px solid ${sportColor(p.sport)}33;display:flex;align-items:center;justify-content:center"><span style="font-family:var(--roboto-cond);font-size:36px;font-weight:800;color:${sportInk(p.sport)}">${esc(bizInitials(p.biz))}</span></div>`;
+
+    return `
+      <div class="bk-eyebrow" style="color:${col}">${esc(p.sport)} · ${esc(typeLabel)}</div>
+      <div class="detail-head-solo">
+        <div class="detail-solo-avatar">${photo}</div>
+        <div class="detail-solo-info">
+          <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:12px;flex-wrap:wrap">
+            <div>
+              <h1 class="bk-h1" style="margin:0 0 6px">${esc(p.title)}</h1>
+              <div style="font-size:15px;font-weight:700;color:var(--ink);margin-bottom:6px">${esc(p.biz)}</div>
+              <div class="cardmeta" style="margin-bottom:10px">${meta}</div>
+              <div class="bk-chips">${vBadge}</div>
+            </div>
+            <button class="btn ghost sm" data-fav="${p.id}">${ICON.heart(fav)} ${fav?"Saved":"Save"}</button>
+          </div>
+        </div>
+      </div>`;
+  }
+
+  if(kind==="camp"){
+    /* Camps: 3:1 full-width banner, org logo in white 64px tile overlapping bottom-left, date-range line in JetBrains Mono, scarcity state in header row. */
+    const banner=isPhotoImg(p.img)?`<img class="detail-banner-img" src="${p.img}" alt="${esc(p.biz)}" loading="lazy">`
+      :`<div class="detail-banner-placeholder" style="background:${sportColor(p.sport)}15;border-color:${sportColor(p.sport)}33"><span style="font-family:var(--roboto-cond);font-size:32px;font-weight:800;color:${sportInk(p.sport)}">${esc(p.sport)} Camp</span></div>`;
+    const slots=slotsFor(p.id);
+    const dateRange=slots.length>1?`${fmtDate(slots[0].date)} – ${fmtDate(slots[slots.length-1].date)}`
+      :slots.length===1?`${fmtDate(slots[0].date)}`:"SEASON REGISTRATION OPEN";
+    const spots=(Number(p.cap)||0)-(Number(p.enrolled)||0);
+    const scarcity=spots<=0?"WAITLIST":spots<=3?`${spots} SPOTS LEFT`:"OPEN ENROLLMENT";
+
+    return `
+      <div class="bk-eyebrow" style="color:${col};display:flex;justify-content:space-between;align-items:center">
+        <span>${esc(p.sport)} · ${esc(typeLabel)}</span>
+        <span class="detail-camp-scarcity" style="color:${spots<=3?'var(--warn)':'var(--ps-ink)'}">${scarcity}</span>
+      </div>
+      <div class="detail-head-banner-wrap">
+        <div style="position:relative">
+          ${banner}
+          <div class="detail-banner-tile" style="color:${sportInk(p.sport)}">${esc(bizInitials(p.biz))}</div>
+        </div>
+        <div class="detail-banner-meta" style="display:flex;justify-content:space-between;align-items:flex-start;gap:16px;flex-wrap:wrap">
+          <div>
+            <h1 class="bk-h1" style="margin:8px 0 4px">${esc(p.title)}</h1>
+            <div style="font-size:15px;font-weight:700;color:var(--ink)">${esc(p.biz)}</div>
+            <div class="detail-camp-date">DATES: ${esc(dateRange)}</div>
+            <div class="bk-chips" style="margin-top:8px">${vBadge}</div>
+          </div>
+          <button class="btn ghost sm" data-fav="${p.id}">${ICON.heart(fav)} ${fav?"Saved":"Save"}</button>
+        </div>
+      </div>`;
+  }
+
+  /* Team / Org (company): 3:1 full-width banner, org logo in white 64px tile overlapping bottom-left, org name + "Verified organization" below, thumbnail strip under banner. */
+  const banner=isPhotoImg(p.img)?`<img class="detail-banner-img" src="${p.img}" alt="${esc(p.biz)}" loading="lazy">`
+    :`<div class="detail-banner-placeholder" style="background:${sportColor(p.sport)}15;border-color:${sportColor(p.sport)}33"><span style="font-family:var(--roboto-cond);font-size:32px;font-weight:800;color:${sportInk(p.sport)}">${esc(p.biz)}</span></div>`;
+  const thumbs=(p.rosterPhotos||[p.img]).filter(Boolean).slice(0,4);
+
+  return `
+    <div class="bk-eyebrow" style="color:${col}">${esc(p.sport)} · ${esc(typeLabel)}</div>
+    <div class="detail-head-banner-wrap">
+      <div style="position:relative">
+        ${banner}
+        <div class="detail-banner-tile" style="color:${sportInk(p.sport)}">${esc(bizInitials(p.biz))}</div>
+      </div>
+      <div class="detail-banner-meta" style="display:flex;justify-content:space-between;align-items:flex-start;gap:16px;flex-wrap:wrap">
+        <div>
+          <h1 class="bk-h1" style="margin:8px 0 4px">${esc(p.title)}</h1>
+          <div style="font-size:15px;font-weight:700;color:var(--ink);display:flex;align-items:center;gap:8px">
+            <span>${esc(p.biz)}</span>
+            <span class="pill gold" style="font-size:11px">${ICON.shield} Verified organization</span>
+          </div>
+          <div class="cardmeta" style="margin-top:6px">${meta}</div>
+        </div>
+        <button class="btn ghost sm" data-fav="${p.id}">${ICON.heart(fav)} ${fav?"Saved":"Save"}</button>
+      </div>
+      ${thumbs.length>1?`<div class="detail-thumb-strip">${thumbs.map(t=>`<img class="detail-thumb" src="${t}" alt="Venue photo" loading="lazy">`).join("")}</div>`:""}
+    </div>`;
+}
+
 function detailHTML(id){
   /* A slot id from a DIFFERENT listing must not survive into this one — it
      would either vanish from the select or, worse, book someone else's
@@ -9285,18 +9527,7 @@ function detailHTML(id){
   return `<main class="shell detail">
     <div>
       <button class="btn ghost sm" data-nav="explore" style="margin:14px 0 18px">← All programs</button>
-      <div class="bk-eyebrow" style="color:${col}">${esc(p.sport)} · ${esc(typeLabel)}</div>
-      <div style="display:flex;justify-content:space-between;gap:16px;align-items:flex-start;flex-wrap:wrap">
-        <div>
-          <h1 class="bk-h1">${esc(p.title)}</h1>
-          <div class="bk-club">
-            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
-            <span>${esc(p.biz)}</span>
-            <span class="bk-chips">${showsVerified(p)?`<span class="pill gold">${ICON.shield} Background-checked</span>`:`<span class="pill warn">${ICON.shield} Verification in progress</span>`}</span>
-          </div>
-        </div>
-        <button class="btn ghost sm" data-fav="${p.id}">${ICON.heart(fav)} ${fav?"Saved":"Save"}</button>
-      </div>
+      ${detailImageHeader(p, kind, typeLabel, col, fav)}
 
       <div class="bk-facts">
         ${facts.map(f=>`<div class="bk-fact"><span class="bk-fact-ic">${f[0]}</span><div class="bk-fact-l">${esc(f[1])}</div><div class="bk-fact-v">${esc(String(f[2]))}</div></div>`).join("")}
@@ -12329,65 +12560,238 @@ function modalHTML(){
      pending intent, so closing it returns you to browsing rather than to a
      half-finished action. Copy is role-aware because the same sheet now greets
      a coach landing on the provider side. */
-  if(m.type==="authsheet") return wrap("Log in or sign up",`
-    <div class="au-head">
-      <span class="au-logo"><img src="data:image/png;base64,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" alt="Sporv" width="99" height="24"></span>
-      <h2>Log in or sign up</h2>
-      <p>${S.portal==="coach"
-        ? "Publish listings, take bookings, and get paid through Sporv."
-        : "Book sessions, message coaches, and manage your athletes."}</p>
-    </div>
-    <form id="authIdForm" class="au-form">
-      <div class="field" style="margin-bottom:12px">
-        <label for="authId">Phone number or email</label>
-        <input id="authId" name="identifier" autocomplete="username"
-               placeholder="you@example.com" required>
+  /* AUTH MODAL REDESIGN (Item 2)
+     Split auth entry ("I'm a parent" vs "I'm a coach"), coach 4-step stepper,
+     parent 2-step flow, 420px centered black card, 16px inputs, inline errors. */
+  if(m.type==="authsheet"){
+    return `<div class="scrim" data-scrim="1"><div class="modal auth-card-modal" role="dialog" aria-modal="true" aria-label="Welcome to Sporv">
+      <div class="modal-head">
+        <b>Welcome to Sporv</b>
+        <button class="x" data-close="1" aria-label="Close">${ICON.x}</button>
       </div>
-      <button class="btn wide dark" type="submit">Continue</button>
-    </form>
-    <div class="au-or"><span></span><em>or</em><span></span></div>
-    <div class="au-rows">
-      <button class="au-row" data-google="1">${ICON.google}<span>Continue with Google</span></button>
-      <button class="au-row" data-soon="Apple sign-in">
-        <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M16.4 12.8c0-2.3 1.9-3.4 2-3.5-1.1-1.6-2.8-1.8-3.4-1.8-1.4-.1-2.8.8-3.5.8s-1.8-.8-3-.8c-1.5 0-2.9.9-3.7 2.3-1.6 2.7-.4 6.8 1.1 9 .8 1.1 1.6 2.3 2.8 2.3 1.1 0 1.6-.7 2.9-.7s1.7.7 2.9.7 2-1.1 2.7-2.2c.9-1.2 1.2-2.4 1.2-2.5 0 0-2.3-.9-2.3-3.6zM14.2 5.9c.6-.8 1-1.8.9-2.9-.9 0-2 .6-2.7 1.4-.6.7-1.1 1.7-.9 2.7 1 .1 2-.5 2.7-1.2z"/></svg>
-        <span>Continue with Apple</span></button>
-    </div>
-    ${S.portal==="coach"?"":`<p class="au-foot">Here to coach?
-      <button class="au-link" data-becomecoach="1">Start on the coach page →</button></p>`}
-    ${/* An explicit way out. The X and the scrim already dismiss, but a guest
-         being asked to sign in for the second or third time should be able to
-         SEE that declining is allowed rather than having to guess it. */""}
-    <button class="au-guest" data-close="1">Continue as a guest</button>
-    <p class="au-fine">Browsing is free — an account is only needed to book, message, or publish.
-      <button class="au-link" data-demoacct="1">Use the demo account</button></p>`);
+      <div class="modal-body">
+        <p style="font-size:14px;color:#94A3B8;margin-bottom:18px;line-height:1.5">
+          Select how you want to use Sporv to get started with the right workspace.
+        </p>
+        
+        <div class="auth-entry-grid">
+          <button type="button" class="auth-role-card" data-authrole="parent">
+            <span class="auth-role-title">I'm a parent</span>
+            <span class="auth-role-desc">Find, book, and track private training and camps for your athletes.</span>
+          </button>
+          
+          <button type="button" class="auth-role-card" data-authrole="coach">
+            <span class="auth-role-title">I'm a coach</span>
+            <span class="auth-role-desc">Publish your schedule, manage clients, and get paid 100% of your listed rate.</span>
+          </button>
+        </div>
 
-  if(m.type==="signup") return wrap("Create your account",`
-    <p class="eyebrow" style="margin-bottom:16px">${S.signupRole==="coach"?"Coach account · Final step":"Athlete &amp; family · Step 1 of 2"}</p>
-    <form id="signupForm">
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px">
-        <div class="field"><label>First name</label><input name="first" placeholder="Alex" required></div>
-        <div class="field"><label>Last name</label><input name="last" placeholder="Mercer" required></div>
+        <div class="au-or" style="margin:20px 0 16px"><span style="background:#232934"></span><em style="color:#64748B">or</em><span style="background:#232934"></span></div>
+
+        <div class="au-rows">
+          <button class="au-row" data-google="1" style="background:#14171D;border-color:#232934;color:#FFFFFF">${ICON.google}<span>Continue with Google</span></button>
+          <button class="au-row" data-soon="Apple sign-in" style="background:#14171D;border-color:#232934;color:#FFFFFF">
+            <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true" style="width:18px;height:18px"><path d="M16.4 12.8c0-2.3 1.9-3.4 2-3.5-1.1-1.6-2.8-1.8-3.4-1.8-1.4-.1-2.8.8-3.5.8s-1.8-.8-3-.8c-1.5 0-2.9.9-3.7 2.3-1.6 2.7-.4 6.8 1.1 9 .8 1.1 1.6 2.3 2.8 2.3 1.1 0 1.6-.7 2.9-.7s1.7.7 2.9.7 2-1.1 2.7-2.2c.9-1.2 1.2-2.4 1.2-2.5 0 0-2.3-.9-2.3-3.6zM14.2 5.9c.6-.8 1-1.8.9-2.9-.9 0-2 .6-2.7 1.4-.6.7-1.1 1.7-.9 2.7 1 .1 2-.5 2.7-1.2z"/></svg>
+            <span>Continue with Apple</span>
+          </button>
+        </div>
+
+        <button type="button" class="auth-foot-link" data-modal="login">Already have an account? Log in →</button>
+        <button type="button" class="auth-foot-link" data-close="1" style="color:#5A6578;margin-top:8px">Continue as a guest</button>
       </div>
-      <div class="field"><label>Email address</label><input name="email" type="email" value="${esc((S.authIdentifier||"").includes("@")?S.authIdentifier:"")}" placeholder="alex@example.com" required></div>
-      <div class="field"><label>Phone number</label><input name="phone" placeholder="+1 (555) 000-0000"></div>
-      ${pwField("Password",'<input name="password" type="password" autocomplete="new-password" placeholder="Min. 8 characters" required>')}
-      <label style="display:flex;gap:11px;align-items:flex-start;cursor:pointer;margin:6px 0 4px">
-        <input type="checkbox" name="privacy" required style="width:17px;height:17px;margin-top:2px;flex:0 0 auto;accent-color:var(--slate-ink)">
-        <span style="font-size:var(--text-sm);color:var(--muted)">I have read Sporv's <button type="button" class="lnk" data-foot="info:privacy" style="font-size:inherit;font-weight:700">Privacy Policy</button> and <button type="button" class="lnk" data-foot="info:terms" style="font-size:inherit;font-weight:700">Terms of Service</button>.</span></label>
-      <div id="signupErr" class="err hide" style="margin:8px 0"></div>
-      <button class="btn wide" type="submit" style="margin-top:12px">Continue →</button>
-    </form>`);
+    </div></div>`;
+  }
 
-  if(m.type==="login") return wrap("Log in",`
-    <form id="loginForm">
-      <div class="field"><label>Email address</label><input name="email" type="email" value="${esc(S.authIdentifier||"")}" autocomplete="username" required></div>
-      ${pwField("Password",'<input name="password" type="password" autocomplete="current-password" placeholder="Min. 8 characters" required>')}
-      <div id="loginErr" class="err hide" style="margin:8px 0"></div>
-      <button class="btn wide" type="submit">Log in</button>
-      <button class="btn ghost wide" type="button" data-onboard="1" style="margin-top:9px">Create an account</button>
-      <button type="button" data-modal="forgot" style="width:100%;text-align:center;margin-top:14px;font-size:var(--text-sm);font-weight:600;color:var(--slate-ink)">Forgot your password?</button>
-      <button type="button" data-modal="magiclink" style="width:100%;text-align:center;margin-top:8px;font-size:var(--text-sm);font-weight:600;color:var(--slate-ink)">Email me a sign-in link instead</button>
-    </form>`);
+  if(m.type==="authstepper"||m.type==="signup"){
+    S.authDraft=S.authDraft||{};
+    const isCoach=S.signupRole==="coach";
+    const totalSteps=isCoach?4:2;
+    const step=Math.max(1,Math.min(totalSteps,Number(S.authStep)||1));
+    const draft=S.authDraft;
+    const pct=Math.round((step/totalSteps)*100);
+
+    let stepContent="";
+    if(isCoach){
+      if(step===1){
+        stepContent=`
+          <div class="auth-step-title">Create your coach account</div>
+          <div class="auth-step-desc">We need your account details to secure your coaching workspace and deliver booking notices.</div>
+          <form id="stepperForm" data-step="1">
+            <div class="field" style="margin-bottom:14px">
+              <label>Email address (Required)</label>
+              <input name="email" type="email" value="${esc(draft.email||S.authIdentifier||"")}" placeholder="coach@example.com" required>
+            </div>
+            ${pwField("Password (Required)",`<input name="password" type="password" value="${esc(draft.password||"")}" autocomplete="new-password" placeholder="Min. 8 characters" required>`)}
+            <label style="display:flex;gap:10px;align-items:flex-start;cursor:pointer;margin:12px 0 6px">
+              <input type="checkbox" name="privacy" ${draft.privacy?"checked":""} required style="width:18px;height:18px;margin-top:2px;flex:0 0 auto;accent-color:#FFFFFF">
+              <span style="font-size:12.5px;color:#94A3B8">I agree to Sporv's <button type="button" class="lnk" data-foot="info:privacy" style="font-size:inherit;font-weight:700;color:#FFFFFF">Privacy Policy</button> and <button type="button" class="lnk" data-foot="info:terms" style="font-size:inherit;font-weight:700;color:#FFFFFF">Terms of Service</button>.</span>
+            </label>
+            <div id="stepperErr" class="auth-inline-err hide"></div>
+            <button class="auth-btn-primary" type="submit">Continue →</button>
+            <button type="button" class="auth-foot-link" data-authback="role">← Back to role selection</button>
+          </form>`;
+      } else if(step===2){
+        stepContent=`
+          <div class="auth-step-title">Your coaching profile</div>
+          <div class="auth-step-desc">Families search by sport and city to find trusted instruction for their athletes.</div>
+          <form id="stepperForm" data-step="2">
+            <div class="field" style="margin-bottom:14px">
+              <label>Full name (Required)</label>
+              <input name="name" value="${esc(draft.name||"")}" placeholder="e.g. Coach Marcus Reyes" required>
+            </div>
+            <div class="field" style="margin-bottom:14px">
+              <label>Primary sport(s) (Required)</label>
+              <input name="sports" value="${esc(draft.sports||"")}" placeholder="e.g. Basketball, Soccer" required>
+            </div>
+            <div class="field" style="margin-bottom:14px">
+              <label>City &amp; Neighborhood (Required)</label>
+              <input name="location" value="${esc(draft.location||"")}" placeholder="e.g. Austin, TX (Downtown)" required>
+            </div>
+            <div class="field" style="margin-bottom:14px">
+              <label>Phone number (Optional)</label>
+              <input name="phone" value="${esc(draft.phone||"")}" placeholder="+1 (555) 000-0000">
+            </div>
+            <div id="stepperErr" class="auth-inline-err hide"></div>
+            <button class="auth-btn-primary" type="submit">Continue →</button>
+            <button type="button" class="auth-foot-link" data-authback="1">← Back to previous step</button>
+          </form>`;
+      } else if(step===3){
+        stepContent=`
+          <div class="auth-step-title">Background check consent</div>
+          <div class="auth-step-desc">Listings go live only after your individual background check clears. Read our <button type="button" class="lnk" data-nav="trust" style="font-size:inherit;font-weight:700;color:#FFFFFF">Trust &amp; Safety standards</button>.</div>
+          <form id="stepperForm" data-step="3">
+            <div style="background:#14171D;border:1px solid #232934;border-radius:8px;padding:16px;margin-bottom:16px;font-size:13.5px;color:#CBD5E1;line-height:1.55">
+              <p style="margin:0 0 10px">Sporv partners with an independent, accredited consumer reporting agency to verify identity, national criminal indices, and sex offender registries.</p>
+              <p style="margin:0;font-weight:600;color:#FFFFFF">Your schedule will be saved, but public booking remains withheld until your clearance is verified.</p>
+            </div>
+            <label style="display:flex;gap:10px;align-items:flex-start;cursor:pointer;margin-bottom:14px">
+              <input type="checkbox" name="bgConsent" ${draft.bgConsent?"checked":""} required style="width:18px;height:18px;margin-top:2px;flex:0 0 auto;accent-color:#FFFFFF">
+              <span style="font-size:13px;color:#FFFFFF;font-weight:600">I consent to Sporv initiating a per-person background screening before taking bookings.</span>
+            </label>
+            <div id="stepperErr" class="auth-inline-err hide"></div>
+            <button class="auth-btn-primary" type="submit">Submit &amp; Finish →</button>
+            <button type="button" class="auth-foot-link" data-authback="2">← Back to profile</button>
+          </form>`;
+      } else if(step===4){
+        stepContent=`
+          <div class="auth-step-title">You're all set</div>
+          <div class="auth-step-desc">Your coach workspace is ready. Head over to your dashboard to complete your schedule and publish your first listing.</div>
+          <div style="background:#14171D;border:1px solid #232934;border-radius:8px;padding:20px;margin-bottom:20px">
+            <div style="font-family:var(--mono);font-size:12px;color:#8B97A5;text-transform:uppercase;margin-bottom:6px">Next steps</div>
+            <ul style="margin:0;padding-left:18px;font-size:13.5px;color:#E2E8F0;line-height:1.6">
+              <li>Set your weekly session availability</li>
+              <li>Confirm your rate (you keep 100% of single bookings)</li>
+              <li>Verification badge activates once check clears</li>
+            </ul>
+          </div>
+          <button class="auth-btn-primary" type="button" data-coachdone="1">Go to Dashboard →</button>`;
+      }
+    } else {
+      /* Parent 2-step flow */
+      if(step===1){
+        stepContent=`
+          <div class="auth-step-title">Create your account</div>
+          <div class="auth-step-desc">Enter your email and password to book sessions and manage your athletes.</div>
+          <form id="stepperForm" data-step="1">
+            <div class="field" style="margin-bottom:14px">
+              <label>Email address (Required)</label>
+              <input name="email" type="email" value="${esc(draft.email||S.authIdentifier||"")}" placeholder="parent@example.com" required>
+            </div>
+            ${pwField("Password (Required)",`<input name="password" type="password" value="${esc(draft.password||"")}" autocomplete="new-password" placeholder="Min. 8 characters" required>`)}
+            <label style="display:flex;gap:10px;align-items:flex-start;cursor:pointer;margin:12px 0 6px">
+              <input type="checkbox" name="privacy" ${draft.privacy?"checked":""} required style="width:18px;height:18px;margin-top:2px;flex:0 0 auto;accent-color:#FFFFFF">
+              <span style="font-size:12.5px;color:#94A3B8">I agree to Sporv's <button type="button" class="lnk" data-foot="info:privacy" style="font-size:inherit;font-weight:700;color:#FFFFFF">Privacy Policy</button> and <button type="button" class="lnk" data-foot="info:terms" style="font-size:inherit;font-weight:700;color:#FFFFFF">Terms of Service</button>.</span>
+            </label>
+            <div id="stepperErr" class="auth-inline-err hide"></div>
+            <button class="auth-btn-primary" type="submit">Continue →</button>
+            <button type="button" class="auth-foot-link" data-authback="role">← Back to role selection</button>
+          </form>`;
+      } else if(step===2){
+        const Y=new Date().getFullYear();
+        const yearOptions=Array.from({length:19-MIN_ATHLETE_AGE},(_,i)=>Y-MIN_ATHLETE_AGE-i)
+          .map(y=>`<option value="${y}"${String(draft.year)===String(y)?" selected":""}>${y} (Age ${Y-y})</option>`).join("");
+        stepContent=`
+          <div class="auth-step-title">Athlete details</div>
+          <div class="auth-step-desc">We ask for age to match age-appropriate drills and comply with COPPA parental consent standards.</div>
+          <form id="stepperForm" data-step="2">
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:14px">
+              <div class="field">
+                <label>First name (Required)</label>
+                <input name="athleteFirst" value="${esc(draft.athleteFirst||"")}" placeholder="Jordan" required>
+              </div>
+              <div class="field">
+                <label>Last name (Optional)</label>
+                <input name="athleteLast" value="${esc(draft.athleteLast||"")}" placeholder="Mercer">
+              </div>
+            </div>
+            <div class="field" style="margin-bottom:14px">
+              <label>Birth year / Age (Required)</label>
+              <select name="year" required>${yearOptions}</select>
+            </div>
+            <div class="field" style="margin-bottom:14px">
+              <label>Skill level (Optional)</label>
+              <select name="skill">
+                <option value="">Not sure yet</option>
+                <option value="beginner"${draft.skill==="beginner"?" selected":""}>Beginner</option>
+                <option value="developing"${draft.skill==="developing"?" selected":""}>Developing</option>
+                <option value="intermediate"${draft.skill==="intermediate"?" selected":""}>Intermediate</option>
+                <option value="advanced"${draft.skill==="advanced"?" selected":""}>Advanced</option>
+              </select>
+            </div>
+            <label style="display:flex;gap:10px;align-items:flex-start;cursor:pointer;margin-bottom:14px">
+              <input type="checkbox" name="consent" ${draft.consent?"checked":""} required style="width:18px;height:18px;margin-top:2px;flex:0 0 auto;accent-color:#FFFFFF">
+              <span style="font-size:12.5px;color:#FFFFFF;font-weight:600">I confirm I am this athlete's parent or legal guardian and consent to Sporv storing these details.</span>
+            </label>
+            <div id="stepperErr" class="auth-inline-err hide"></div>
+            <button class="auth-btn-primary" type="submit">Complete Signup →</button>
+            <button type="button" class="auth-foot-link" data-authback="1">← Back to previous step</button>
+          </form>`;
+      }
+    }
+
+    return `<div class="scrim" data-scrim="1"><div class="modal auth-card-modal" role="dialog" aria-modal="true" aria-label="${isCoach?"Coach Signup":"Parent Signup"}">
+      <div class="modal-head">
+        <b>${isCoach?"Coach Registration":"Family Registration"}</b>
+        <button class="x" data-close="1" aria-label="Close">${ICON.x}</button>
+      </div>
+      <div class="modal-body">
+        <div class="auth-stepper-head">
+          <div class="auth-step-progress">
+            <span>Step ${step} of ${totalSteps}</span>
+            <span>${pct}% complete</span>
+          </div>
+          <div class="auth-progress-bar">
+            <div class="auth-progress-fill" style="width:${pct}%"></div>
+          </div>
+        </div>
+        ${stepContent}
+      </div>
+    </div></div>`;
+  }
+
+  if(m.type==="login"){
+    return `<div class="scrim" data-scrim="1"><div class="modal auth-card-modal" role="dialog" aria-modal="true" aria-label="Log in">
+      <div class="modal-head">
+        <b>Log In</b>
+        <button class="x" data-close="1" aria-label="Close">${ICON.x}</button>
+      </div>
+      <div class="modal-body">
+        <div class="auth-step-title">Welcome back</div>
+        <div class="auth-step-desc">Access your bookings, schedule, or coaching workspace.</div>
+        <form id="loginForm">
+          <div class="field" style="margin-bottom:14px">
+            <label>Email address (Required)</label>
+            <input name="email" type="email" value="${esc(S.authIdentifier||"")}" autocomplete="username" placeholder="you@example.com" required>
+          </div>
+          ${pwField("Password (Required)",'<input name="password" type="password" autocomplete="current-password" placeholder="Min. 8 characters" required>')}
+          <div id="loginErr" class="auth-inline-err hide" style="margin:8px 0"></div>
+          <button class="auth-btn-primary" type="submit">Log in</button>
+          <button type="button" class="auth-foot-link" data-modal="authsheet">Don't have an account? Sign up</button>
+          <button type="button" class="auth-foot-link" data-modal="forgot" style="margin-top:6px;color:#5A6578">Forgot your password?</button>
+        </form>
+      </div>
+    </div></div>`;
+  }
 
   /* Signup does NOT sign you in on this project: mailer_autoconfirm is FALSE,
      so Supabase emails a confirmation link and returns no session. Without this
@@ -13695,7 +14099,7 @@ function sig_insights(){ return `<div class="sig-insights" aria-label="Business 
     <label class="si-toggle"><input type="checkbox" checked aria-label="Show demo data"><span class="si-track"><span class="si-knob"></span></span><span class="si-tlabel">Demo</span></label>
   </div>
   <div class="si-grid">
-    <div class="si-tile"><div class="si-k">Bookings</div><div class="si-v"><span class="si-zero">—</span><span class="si-real">38 <i class="si-up">↑</i></span></div></div>
+    <div class="si-tile"><div class="si-k">Sessions</div><div class="si-v"><span class="si-zero">—</span><span class="si-real">38 <i class="si-up">↑</i></span></div></div>
     <div class="si-tile"><div class="si-k">Earnings</div><div class="si-v"><span class="si-zero">—</span><span class="si-real">$2,090</span></div></div>
     <div class="si-tile"><div class="si-k">Return rate</div><div class="si-v"><span class="si-zero">—</span><span class="si-real">74%</span></div></div>
     <div class="si-tile si-demo"><span class="demotext">No data yet</span><div class="si-k">New this month</div><div class="si-v">9 <i class="si-up">↑</i></div></div>
@@ -14496,7 +14900,7 @@ if(id==="messaging"){
       <div class="pg-demo wide" aria-hidden="true">
         <span class="demonote">The listings below are demo records that show how Sporv works. Real verified coaches are onboarding now.</span>
         <div class="drow"><div><div class="dname">Bookings this month</div>
-            <div class="dmeta"><span class="dchk">up 18%</span> vs last month · rowing</div></div>
+            <div class="dmeta"><span class="dchk">up 8</span> vs last month · rowing</div></div>
           <span class="dprice">42</span></div>
         <div class="drow"><div><div class="dname">Earnings</div>
             <div class="dmeta">paid out after platform fees</div></div>
@@ -16480,6 +16884,104 @@ document.querySelectorAll('.sig-ai-coach').forEach(sigAiCoachWire);
   const rs=document.getElementById("resSort");
   if(rs) rs.onchange=e=>{S.sortBy=e.target.value;render();};
 
+  $("[data-authrole]").forEach(b=>b.onclick=()=>{
+    const role=b.dataset.authrole;
+    S.signupRole=role;
+    S.authStep=1;
+    S.modal={type:"authstepper"};
+    render();
+  });
+  $("[data-authback]").forEach(b=>b.onclick=()=>{
+    const target=b.dataset.authback;
+    if(target==="role"){
+      S.modal={type:"authsheet"};
+    } else {
+      S.authStep=Number(target)||1;
+    }
+    render();
+  });
+  $("[data-coachdone]").forEach(b=>b.onclick=()=>{
+    S.portal="coach";
+    S.modal=null;
+    go("coach");
+  });
+
+  const stf=document.getElementById("stepperForm");
+  if(stf) stf.onsubmit=e=>{
+    e.preventDefault();
+    const step=Number(stf.dataset.step)||1;
+    const d=Object.fromEntries(new FormData(stf));
+    S.authDraft=Object.assign(S.authDraft||{}, d);
+    const err=document.getElementById("stepperErr");
+    const show=m=>{if(err){err.textContent=m;err.classList.remove("hide");}};
+    
+    if(S.signupRole==="coach"){
+      if(step===1){
+        if(!d.email||!d.password) return show("Please enter both email and password.");
+        if(!/^[\w.+-]+@[\w-]+\.[\w.-]+$/.test(d.email)) return show("Please enter a valid email address.");
+        if(d.password.length<8) return show("Password must be at least 8 characters.");
+        if(!d.privacy) return show("Please acknowledge Sporv's Privacy Policy to continue.");
+        if(err) err.classList.add("hide");
+        S.authStep=2; render();
+      } else if(step===2){
+        if(!d.name||!d.name.trim()) return show("Please enter your full name.");
+        if(!d.sports||!d.sports.trim()) return show("Please enter the sports you coach.");
+        if(!d.location||!d.location.trim()) return show("Please enter your city and neighborhood.");
+        if(err) err.classList.add("hide");
+        S.authStep=3; render();
+      } else if(step===3){
+        if(!d.bgConsent) return show("Background screening consent is required to complete registration.");
+        if(err) err.classList.add("hide");
+        const btn=stf.querySelector('button[type="submit"]');
+        if(btn){btn.disabled=true;btn.textContent="Creating coach account…";}
+        const draft=S.authDraft;
+        doSignUp(draft.email, draft.password, {name:draft.name, phone:draft.phone||"", role:"provider"})
+          .then(()=>{
+            S.authStep=4; render();
+          }).catch(e=>{
+            if(btn){btn.disabled=false;btn.textContent="Submit & Finish →";}
+            show((e&&e.message)||"Could not create coach account.");
+          });
+      }
+    } else {
+      /* Parent flow */
+      if(step===1){
+        if(!d.email||!d.password) return show("Please enter both email and password.");
+        if(!/^[\w.+-]+@[\w-]+\.[\w.-]+$/.test(d.email)) return show("Please enter a valid email address.");
+        if(d.password.length<8) return show("Password must be at least 8 characters.");
+        if(!d.privacy) return show("Please acknowledge Sporv's Privacy Policy to continue.");
+        if(err) err.classList.add("hide");
+        S.authStep=2; render();
+      } else if(step===2){
+        if(!d.athleteFirst||!d.athleteFirst.trim()) return show("Please enter the athlete's first name.");
+        if(!d.consent) return show("Parental consent is required before saving athlete details (COPPA).");
+        if(err) err.classList.add("hide");
+        const btn=stf.querySelector('button[type="submit"]');
+        if(btn){btn.disabled=true;btn.textContent="Creating account…";}
+        const draft=S.authDraft;
+        const localAthlete={
+          id:"athlete_"+Date.now(),
+          firstName:draft.athleteFirst.trim(),
+          lastName:(draft.athleteLast||"").trim(),
+          dob:`${draft.year||2012}-01-01`,
+          preferredSports:[],
+          skillLevel:draft.skill||null,
+          parentConsent:true,
+          consentAt:new Date().toISOString(),
+          consentVersion:"v1"
+        };
+        S.athletes=[...S.athletes, localAthlete];
+        doSignUp(draft.email, draft.password, {name:(draft.athleteFirst+" Guardian").trim(), role:"searcher"})
+          .then(()=>{
+            // doSignUp displays confirmemail modal or signs in
+          }).catch(e=>{
+            if(btn){btn.disabled=false;btn.textContent="Complete Signup →";}
+            show((e&&e.message)||"Could not create family account.");
+          });
+      }
+    }
+  };
+
   const sf=document.getElementById("signupForm");
   if(sf) sf.onsubmit=e=>{
     e.preventDefault();
@@ -16490,13 +16992,6 @@ document.querySelectorAll('.sig-ai-coach').forEach(sigAiCoachWire);
     if(!/^[\w.+-]+@[\w-]+\.[\w.-]+$/.test(d.email)) return show("Please enter a valid email address.");
     if(d.password.length<8) return show("Password must be at least 8 characters.");
     if(!d.privacy) return show("Please acknowledge Sporv's Privacy Policy to continue.");
-    /* Real signup. mailer_autoconfirm is FALSE on this project, so this does
-       NOT sign anyone in — Supabase emails a confirmation link. The old code
-       toasted "Account created" and flipped to verified, which with a real
-       backend would have stranded every new family in a signed-in-looking UI
-       whose every request was anonymous. doSignUp raises the confirmemail
-       modal instead. Role is NOT sent from here beyond the searcher default;
-       profiles.role is the authority. */
     err.classList.add("hide");
     const btn=sf.querySelector('button[type="submit"]');
     if(btn){btn.disabled=true;btn.textContent="Creating account…";}
@@ -20484,122 +20979,151 @@ window.MOD_COACHUI = { css:CSS, wire:wire };
            <tbody>${rows}</tbody></table></div>`
       : `<p class="sf-none">${esc(empty)}</p>`;
 
-    /* Five full-width bands: slate → white → black → slate → white.
-       The page is the same content, in the same order of importance, re-ground
-       so the eye can tell the claim from the record while scrolling. Two rules
-       specific to this page:
-
-       · The serious register paints #app with --raise, so a bare `.band` is
-         TRANSPARENT and would resolve slate, not white — `.band.alt` and
-         `.band` would be one ground and the rhythm would not exist. `.sf-w`
-         re-asserts --paper on the white bands. Token, not a new colour, and
-         the same declaration `.band.alt` already makes for its own ground.
-       · The black band carries WHITE CARDS, not text on black — the two badge
-         states are exactly what a card is for, and the host's
-         `.band.dark .prodcard` rules already invert their type correctly. */
+    /* QUIET READING PRESET (Item 4)
+       Narrow 860px column, pure white background, hairline rules between sections,
+       17px small-caps section headings, no chapter numbers, one large heading "TRUST".
+       5 sections in exact order:
+       1. Background checks
+       2. Verification badge
+       3. Payments
+       4. Data
+       5. Reporting
+    */
     return `${sub}
-    <div class="lay-c sf-lay">
-    <section class="band alt sf-hero">
-      <div class="shell" data-rev>
-        <p class="eyebrow">Trust &amp; safety</p>
-        <h1>Every coach must clear their own check.</h1>
-        <p class="lede">A check belongs to a person, not a logo.</p>
+    <main class="trust-reading-page" style="background:#FFFFFF;min-height:100vh;padding:clamp(48px,6vw,80px) 24px;color:#0B0B0C">
+      <div class="trust-reading-column" style="max-width:860px;margin:0 auto;font-family:var(--sans)">
+        
+        <header class="trust-header" style="border-bottom:1px solid #E9EDF3;padding-bottom:36px;margin-bottom:40px">
+          <p class="pg-eyebrow" style="font-family:var(--roboto-cond);font-size:12px;letter-spacing:.14em;text-transform:uppercase;color:#5A6578;margin-bottom:8px">OPERATING STANDARDS &amp; SAFETY</p>
+          <h1 style="font-family:var(--roboto-cond);font-size:clamp(36px,5vw,56px);text-transform:uppercase;font-weight:700;line-height:1.05;letter-spacing:-.01em;margin:0 0 16px;color:#0B0B0C">TRUST</h1>
+          <p style="font-size:var(--text-lg);line-height:1.55;color:#3E4753;max-width:68ch;margin:0 0 24px">
+            Sporv is built on clear, verifiable records between families and coaches. Every claim on this page describes live product behavior or is explicitly labeled planned.
+          </p>
+          <div style="display:flex;gap:12px;flex-wrap:wrap;align-items:center">
+            <button class="btn sm" data-sf-open="report">Report a concern</button>
+            <button class="btn ghost sm" data-sf-open="refund">Request a refund</button>
+            <button class="btn ghost sm" data-sf-open="privacy">Data request</button>
+            <span style="font-family:var(--mono);font-size:13px;color:#5A6578;margin-left:auto">${left} of ${REPORT_DAILY_QUOTA} reports remaining today</span>
+          </div>
+        </header>
 
-        <div class="sf-actions">
-          <button class="btn" data-sf-open="report">Report a safety concern</button>
-          <button class="btn ghost" data-sf-open="refund">Request a refund</button>
-          <button class="btn ghost" data-sf-open="privacy">Make a privacy request</button>
-          <span class="sf-meta num sf-push">${left} of ${REPORT_DAILY_QUOTA} safety reports left today</span>
-        </div>
+        <!-- SECTION 1: BACKGROUND CHECKS -->
+        <section class="trust-section" style="border-bottom:1px solid #E9EDF3;padding:36px 0">
+          <h2 style="font-size:17px;font-variant:small-caps;text-transform:uppercase;letter-spacing:.05em;font-weight:700;color:#0B0B0C;margin:0 0 14px;font-family:var(--sans)">Background checks</h2>
+          <div style="max-width:68ch;font-size:var(--text-base);line-height:1.6;color:#2B313B">
+            <p style="margin-bottom:14px">
+              Every person who can accept a booking on Sporv must clear their own background check. An organization or academy cannot lend its standing to unverified staff. Checks are performed by an independent, accredited consumer reporting agency.
+            </p>
+            <p style="margin-bottom:14px">
+              The screening reviews identity records, national criminal databases, sex offender registries, and relevant county court indices. Clearances are scheduled for annual re-screening with continuous monitoring where supported.
+            </p>
+            <p style="margin:0;font-weight:600;color:#0B0B0C">
+              Hard rule: If a check is pending, incomplete, or expired, the server refuses booking writes for that provider. No listing takes a booking before clearance is confirmed.
+            </p>
+          </div>
+        </section>
 
-        <div class="sf-note sf-note-warn sf-emergency" role="note">
-          <h3>If anyone is in danger, call emergency services first</h3>
-          <p>Report here afterwards. During beta this opens an email to safety@sporve.com — send it so there is a record we can act on.</p>
-        </div>
+        <!-- SECTION 2: VERIFICATION BADGE -->
+        <section class="trust-section" style="border-bottom:1px solid #E9EDF3;padding:36px 0">
+          <h2 style="font-size:17px;font-variant:small-caps;text-transform:uppercase;letter-spacing:.05em;font-weight:700;color:#0B0B0C;margin:0 0 14px;font-family:var(--sans)">Verification badge</h2>
+          <div style="max-width:68ch;font-size:var(--text-base);line-height:1.6;color:#2B313B">
+            <p style="margin-bottom:14px">
+              The verification badge indicates that a named coach has an active, dated background clearance stored in the database. It cannot be self-attested, purchased, or toggled by an administrator.
+            </p>
+            <p style="margin:0">
+              The badge renders strictly from server state. If clearance expires or changes, the badge disappears from the public listing immediately, and marketplace filters remove the coach from verified-only search results.
+            </p>
+          </div>
+        </section>
+
+        <!-- SECTION 3: PAYMENTS -->
+        <section class="trust-section" style="border-bottom:1px solid #E9EDF3;padding:36px 0">
+          <h2 style="font-size:17px;font-variant:small-caps;text-transform:uppercase;letter-spacing:.05em;font-weight:700;color:#0B0B0C;margin:0 0 14px;font-family:var(--sans)">Payments</h2>
+          <div style="max-width:68ch;font-size:var(--text-base);line-height:1.6;color:#2B313B">
+            <p style="margin-bottom:14px">
+              Families pay the coach's published price. Sporv adds zero hidden family booking fees at checkout. The platform fee is itemized as its own transparent line ($0.00 on individual bookings), and coaches keep 100% of their booking revenue.
+            </p>
+            <p style="margin:0">
+              Refunds are governed by the exact cancellation policy snapshot stored on the booking at checkout. Listing updates made after a booking cannot alter the terms of an existing session record.
+            </p>
+          </div>
+        </section>
+
+        <!-- SECTION 4: DATA -->
+        <section class="trust-section" style="border-bottom:1px solid #E9EDF3;padding:36px 0">
+          <h2 style="font-size:17px;font-variant:small-caps;text-transform:uppercase;letter-spacing:.05em;font-weight:700;color:#0B0B0C;margin:0 0 14px;font-family:var(--sans)">Data</h2>
+          <div style="max-width:68ch;font-size:var(--text-base);line-height:1.6;color:#2B313B">
+            <p style="margin-bottom:14px">
+              Sporv stores only the operational details needed to match and deliver training: the athlete's first name, age band, parent consent record, and session notes. We never sell family data or use athlete profiles for public targeting.
+            </p>
+            <p style="margin:0">
+              Athlete records belong to the family account. Only the parent and the actively booked coach have access to session history. Parents may request a complete data export or case-reviewed deletion at any time.
+            </p>
+          </div>
+        </section>
+
+        <!-- SECTION 5: REPORTING -->
+        <section class="trust-section" style="border-bottom:1px solid #E9EDF3;padding:36px 0">
+          <h2 style="font-size:17px;font-variant:small-caps;text-transform:uppercase;letter-spacing:.05em;font-weight:700;color:#0B0B0C;margin:0 0 14px;font-family:var(--sans)">Reporting</h2>
+          <div style="max-width:68ch;font-size:var(--text-base);line-height:1.6;color:#2B313B">
+            <p style="margin-bottom:14px">
+              If anyone is in immediate physical danger, contact local emergency services (911) first.
+            </p>
+            <p style="margin-bottom:14px">
+              To report conduct, safety, or credential concerns, use the "Report a concern" action above or on any listing. Reports are routed directly to Sporv's safety team.
+            </p>
+            <p style="margin:0">
+              Safety reports receive initial review within 24 hours. Pending cases are tracked under your account records below, and actions taken against listing privileges remain permanent on the provider record.
+            </p>
+          </div>
+        </section>
+
+        <!-- ACCOUNT ACTIVITY & LEDGER -->
+        <section class="trust-records" style="padding-top:40px">
+          <h2 style="font-size:17px;font-variant:small-caps;text-transform:uppercase;letter-spacing:.05em;font-weight:700;color:#0B0B0C;margin:0 0 20px;font-family:var(--sans)">Your tracked requests</h2>
+
+          <div class="sf-block" style="margin-bottom:28px">
+            <div class="sf-sec" style="display:flex;justify-content:space-between;margin-bottom:10px">
+              <h3 style="font-size:15px;font-weight:700;margin:0">Safety reports</h3>
+              <span class="sf-meta num" style="font-family:var(--mono);font-size:13px;color:#5A6578">${s.reports.length} filed</span>
+            </div>
+            ${table(["Reference", "Filed", "Category", "About", "Priority", "Status"], reportRows, "No reports filed.", "Your safety reports")}
+          </div>
+
+          <div class="sf-block" style="margin-bottom:28px">
+            <div class="sf-sec" style="display:flex;justify-content:space-between;margin-bottom:10px">
+              <h3 style="font-size:15px;font-weight:700;margin:0">Refund requests</h3>
+              <span class="sf-meta num" style="font-family:var(--mono);font-size:13px;color:#5A6578">${s.refunds.length} filed</span>
+            </div>
+            ${table(["Reference", "Filed", "Booking", "Paid", "Status"], refundRows, "No refund requests.", "Your refund requests")}
+            ${paid.length ? `<div class="sf-mini" style="margin-top:14px">
+              <p class="eyebrow" style="font-size:11px;margin-bottom:8px">Eligible bookings</p>
+              ${paid.map(b => {
+                const open = openRefundFor(b.id);
+                return `<div class="sf-row" style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-top:1px solid #E9EDF3">
+                  <div class="sf-row-in">
+                    <b>${esc(b.program)}</b>
+                    <span class="sf-meta num" style="font-family:var(--mono);font-size:12px;color:#5A6578;display:block">${esc(b.athlete)} · ${esc(fmtDate(b.date))} · ${money(b.price)}</span>
+                  </div>
+                  ${open
+                    ? `<span class="sf-meta num" style="font-family:var(--mono);font-size:12px">Request ${esc(open.ref)} open</span>${statusPill(open.status)}`
+                    : `<button class="btn ghost sm" data-sf-open="refund" data-sf-booking="${esc(b.id)}">Request a refund</button>`}
+                </div>`;
+              }).join("")}
+            </div>` : ""}
+          </div>
+
+          <div class="sf-block">
+            <div class="sf-sec" style="display:flex;justify-content:space-between;margin-bottom:10px">
+              <h3 style="font-size:15px;font-weight:700;margin:0">Privacy &amp; data requests</h3>
+              <span class="sf-meta num" style="font-family:var(--mono);font-size:13px;color:#5A6578">${s.privacy.length} filed</span>
+            </div>
+            ${table(["Reference", "Filed", "Type", "Status"], privacyRows, "No privacy requests.", "Your privacy requests")}
+          </div>
+        </section>
+
       </div>
-    </section>
-
-    <section class="band sf-w">
-      <div class="shell">
-        <div class="prodsec" data-rev>
-          <h2>The check is per person.</h2>
-          <p class="sub">Approving a business says nothing about who coaches your child.</p>
-        </div>
-        <div class="sf-rules" data-rev>
-          ${POLICY.map(([t, d]) => `<div class="sf-rule"><b>${esc(t)}</b><p>${esc(d)}</p></div>`).join("")}
-        </div>
-      </div>
-    </section>
-
-    <section class="band dark">
-      <div class="shell">
-        <div class="prodsec" data-rev>
-          <p class="eyebrow">The badge</p>
-          <h2>Withheld, never implied.</h2>
-        </div>
-        ${/* The two pills are the PRODUCT'S REAL UI — the one place an icon is
-             earned, because it encodes state. What goes is the card chrome
-             around them: flat hairline rows on the dark panel, badge left,
-             clause right, same document grammar as the rest of the page. */""}
-        <div class="sf-badges" data-rev>
-          <div class="sf-badge"><span class="pill gold">${ICON.shield} Background-checked</span>
-            <p>Check passed, and re-run on schedule.</p></div>
-          <div class="sf-badge"><span class="pill warn">${ICON.shield} Verification pending</span>
-            <p>The badge waits for that person's check.</p></div>
-        </div>
-      </div>
-    </section>
-
-    <section class="band alt">
-      <div class="shell" data-rev>
-        <div class="prodsec"><h2>Every request is tracked.</h2></div>
-        <div class="sf-rules">
-          ${RULES.map(([t, d]) => `<div class="sf-rule"><b>${esc(t)}</b><p>${esc(d)}</p></div>`).join("")}
-        </div>
-      </div>
-    </section>
-
-    <section class="band sf-w sf-records">
-      <div class="shell" data-rev>
-        <div class="prodsec"><h2>Your requests.</h2></div>
-
-        <div class="sf-block">
-          <div class="sf-sec"><h3>Safety reports</h3>
-            <span class="sf-meta num">${s.reports.length} filed</span></div>
-          ${table(["Reference", "Filed", "Category", "About", "Priority", "Status"], reportRows,
-                  "No reports filed. Good.", "Your safety reports")}
-        </div>
-
-        <div class="sf-block">
-          <div class="sf-sec"><h3>Refund requests</h3>
-            <span class="sf-meta num">${s.refunds.length} filed</span></div>
-          ${table(["Reference", "Filed", "Booking", "Paid", "Status"], refundRows,
-                  "No refund requests.", "Your refund requests")}
-          ${paid.length ? `<div class="sf-mini">
-            <p class="eyebrow">Eligible bookings</p>
-            ${paid.map(b => {
-              const open = openRefundFor(b.id);
-              return `<div class="sf-row">
-                <div class="sf-row-in">
-                  <b>${esc(b.program)}</b>
-                  <span class="sf-meta num">${esc(b.athlete)} · ${esc(fmtDate(b.date))} · ${money(b.price)} · ${esc(b.paymentStatus)}</span>
-                </div>
-                ${open
-                  ? `<span class="sf-meta num">Request ${esc(open.ref)} open</span>${statusPill(open.status)}`
-                  : `<button class="btn ghost sm" data-sf-open="refund" data-sf-booking="${esc(b.id)}">Request a refund</button>`}
-              </div>`;
-            }).join("")}
-          </div>` : ""}
-        </div>
-
-        <div class="sf-block">
-          <div class="sf-sec"><h3>Privacy requests</h3>
-            <span class="sf-meta num">${s.privacy.length} filed</span></div>
-          ${table(["Reference", "Filed", "Type", "Status"], privacyRows,
-                  "No privacy requests.", "Your privacy requests")}
-        </div>
-      </div>
-    </section></div>`;
+    </main>`;
   }
 
   /* ═══════════════════ WIRING ═══════════════════ */

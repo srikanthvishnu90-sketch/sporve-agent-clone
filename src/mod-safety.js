@@ -405,122 +405,151 @@
            <tbody>${rows}</tbody></table></div>`
       : `<p class="sf-none">${esc(empty)}</p>`;
 
-    /* Five full-width bands: slate → white → black → slate → white.
-       The page is the same content, in the same order of importance, re-ground
-       so the eye can tell the claim from the record while scrolling. Two rules
-       specific to this page:
-
-       · The serious register paints #app with --raise, so a bare `.band` is
-         TRANSPARENT and would resolve slate, not white — `.band.alt` and
-         `.band` would be one ground and the rhythm would not exist. `.sf-w`
-         re-asserts --paper on the white bands. Token, not a new colour, and
-         the same declaration `.band.alt` already makes for its own ground.
-       · The black band carries WHITE CARDS, not text on black — the two badge
-         states are exactly what a card is for, and the host's
-         `.band.dark .prodcard` rules already invert their type correctly. */
+    /* QUIET READING PRESET (Item 4)
+       Narrow 860px column, pure white background, hairline rules between sections,
+       17px small-caps section headings, no chapter numbers, one large heading "TRUST".
+       5 sections in exact order:
+       1. Background checks
+       2. Verification badge
+       3. Payments
+       4. Data
+       5. Reporting
+    */
     return `${sub}
-    <div class="lay-c sf-lay">
-    <section class="band alt sf-hero">
-      <div class="shell" data-rev>
-        <p class="eyebrow">Trust &amp; safety</p>
-        <h1>Every coach must clear their own check.</h1>
-        <p class="lede">A check belongs to a person, not a logo.</p>
+    <main class="trust-reading-page" style="background:#FFFFFF;min-height:100vh;padding:clamp(48px,6vw,80px) 24px;color:#0B0B0C">
+      <div class="trust-reading-column" style="max-width:860px;margin:0 auto;font-family:var(--sans)">
+        
+        <header class="trust-header" style="border-bottom:1px solid #E9EDF3;padding-bottom:36px;margin-bottom:40px">
+          <p class="pg-eyebrow" style="font-family:var(--roboto-cond);font-size:12px;letter-spacing:.14em;text-transform:uppercase;color:#5A6578;margin-bottom:8px">OPERATING STANDARDS &amp; SAFETY</p>
+          <h1 style="font-family:var(--roboto-cond);font-size:clamp(36px,5vw,56px);text-transform:uppercase;font-weight:700;line-height:1.05;letter-spacing:-.01em;margin:0 0 16px;color:#0B0B0C">TRUST</h1>
+          <p style="font-size:var(--text-lg);line-height:1.55;color:#3E4753;max-width:68ch;margin:0 0 24px">
+            Sporv is built on clear, verifiable records between families and coaches. Every claim on this page describes live product behavior or is explicitly labeled planned.
+          </p>
+          <div style="display:flex;gap:12px;flex-wrap:wrap;align-items:center">
+            <button class="btn sm" data-sf-open="report">Report a concern</button>
+            <button class="btn ghost sm" data-sf-open="refund">Request a refund</button>
+            <button class="btn ghost sm" data-sf-open="privacy">Data request</button>
+            <span style="font-family:var(--mono);font-size:13px;color:#5A6578;margin-left:auto">${left} of ${REPORT_DAILY_QUOTA} reports remaining today</span>
+          </div>
+        </header>
 
-        <div class="sf-actions">
-          <button class="btn" data-sf-open="report">Report a safety concern</button>
-          <button class="btn ghost" data-sf-open="refund">Request a refund</button>
-          <button class="btn ghost" data-sf-open="privacy">Make a privacy request</button>
-          <span class="sf-meta num sf-push">${left} of ${REPORT_DAILY_QUOTA} safety reports left today</span>
-        </div>
+        <!-- SECTION 1: BACKGROUND CHECKS -->
+        <section class="trust-section" style="border-bottom:1px solid #E9EDF3;padding:36px 0">
+          <h2 style="font-size:17px;font-variant:small-caps;text-transform:uppercase;letter-spacing:.05em;font-weight:700;color:#0B0B0C;margin:0 0 14px;font-family:var(--sans)">Background checks</h2>
+          <div style="max-width:68ch;font-size:var(--text-base);line-height:1.6;color:#2B313B">
+            <p style="margin-bottom:14px">
+              Every person who can accept a booking on Sporv must clear their own background check. An organization or academy cannot lend its standing to unverified staff. Checks are performed by an independent, accredited consumer reporting agency.
+            </p>
+            <p style="margin-bottom:14px">
+              The screening reviews identity records, national criminal databases, sex offender registries, and relevant county court indices. Clearances are scheduled for annual re-screening with continuous monitoring where supported.
+            </p>
+            <p style="margin:0;font-weight:600;color:#0B0B0C">
+              Hard rule: If a check is pending, incomplete, or expired, the server refuses booking writes for that provider. No listing takes a booking before clearance is confirmed.
+            </p>
+          </div>
+        </section>
 
-        <div class="sf-note sf-note-warn sf-emergency" role="note">
-          <h3>If anyone is in danger, call emergency services first</h3>
-          <p>Report here afterwards. During beta this opens an email to safety@sporve.com — send it so there is a record we can act on.</p>
-        </div>
+        <!-- SECTION 2: VERIFICATION BADGE -->
+        <section class="trust-section" style="border-bottom:1px solid #E9EDF3;padding:36px 0">
+          <h2 style="font-size:17px;font-variant:small-caps;text-transform:uppercase;letter-spacing:.05em;font-weight:700;color:#0B0B0C;margin:0 0 14px;font-family:var(--sans)">Verification badge</h2>
+          <div style="max-width:68ch;font-size:var(--text-base);line-height:1.6;color:#2B313B">
+            <p style="margin-bottom:14px">
+              The verification badge indicates that a named coach has an active, dated background clearance stored in the database. It cannot be self-attested, purchased, or toggled by an administrator.
+            </p>
+            <p style="margin:0">
+              The badge renders strictly from server state. If clearance expires or changes, the badge disappears from the public listing immediately, and marketplace filters remove the coach from verified-only search results.
+            </p>
+          </div>
+        </section>
+
+        <!-- SECTION 3: PAYMENTS -->
+        <section class="trust-section" style="border-bottom:1px solid #E9EDF3;padding:36px 0">
+          <h2 style="font-size:17px;font-variant:small-caps;text-transform:uppercase;letter-spacing:.05em;font-weight:700;color:#0B0B0C;margin:0 0 14px;font-family:var(--sans)">Payments</h2>
+          <div style="max-width:68ch;font-size:var(--text-base);line-height:1.6;color:#2B313B">
+            <p style="margin-bottom:14px">
+              Families pay the coach's published price. Sporv adds zero hidden family booking fees at checkout. The platform fee is itemized as its own transparent line ($0.00 on individual bookings), and coaches keep 100% of their booking revenue.
+            </p>
+            <p style="margin:0">
+              Refunds are governed by the exact cancellation policy snapshot stored on the booking at checkout. Listing updates made after a booking cannot alter the terms of an existing session record.
+            </p>
+          </div>
+        </section>
+
+        <!-- SECTION 4: DATA -->
+        <section class="trust-section" style="border-bottom:1px solid #E9EDF3;padding:36px 0">
+          <h2 style="font-size:17px;font-variant:small-caps;text-transform:uppercase;letter-spacing:.05em;font-weight:700;color:#0B0B0C;margin:0 0 14px;font-family:var(--sans)">Data</h2>
+          <div style="max-width:68ch;font-size:var(--text-base);line-height:1.6;color:#2B313B">
+            <p style="margin-bottom:14px">
+              Sporv stores only the operational details needed to match and deliver training: the athlete's first name, age band, parent consent record, and session notes. We never sell family data or use athlete profiles for public targeting.
+            </p>
+            <p style="margin:0">
+              Athlete records belong to the family account. Only the parent and the actively booked coach have access to session history. Parents may request a complete data export or case-reviewed deletion at any time.
+            </p>
+          </div>
+        </section>
+
+        <!-- SECTION 5: REPORTING -->
+        <section class="trust-section" style="border-bottom:1px solid #E9EDF3;padding:36px 0">
+          <h2 style="font-size:17px;font-variant:small-caps;text-transform:uppercase;letter-spacing:.05em;font-weight:700;color:#0B0B0C;margin:0 0 14px;font-family:var(--sans)">Reporting</h2>
+          <div style="max-width:68ch;font-size:var(--text-base);line-height:1.6;color:#2B313B">
+            <p style="margin-bottom:14px">
+              If anyone is in immediate physical danger, contact local emergency services (911) first.
+            </p>
+            <p style="margin-bottom:14px">
+              To report conduct, safety, or credential concerns, use the "Report a concern" action above or on any listing. Reports are routed directly to Sporv's safety team.
+            </p>
+            <p style="margin:0">
+              Safety reports receive initial review within 24 hours. Pending cases are tracked under your account records below, and actions taken against listing privileges remain permanent on the provider record.
+            </p>
+          </div>
+        </section>
+
+        <!-- ACCOUNT ACTIVITY & LEDGER -->
+        <section class="trust-records" style="padding-top:40px">
+          <h2 style="font-size:17px;font-variant:small-caps;text-transform:uppercase;letter-spacing:.05em;font-weight:700;color:#0B0B0C;margin:0 0 20px;font-family:var(--sans)">Your tracked requests</h2>
+
+          <div class="sf-block" style="margin-bottom:28px">
+            <div class="sf-sec" style="display:flex;justify-content:space-between;margin-bottom:10px">
+              <h3 style="font-size:15px;font-weight:700;margin:0">Safety reports</h3>
+              <span class="sf-meta num" style="font-family:var(--mono);font-size:13px;color:#5A6578">${s.reports.length} filed</span>
+            </div>
+            ${table(["Reference", "Filed", "Category", "About", "Priority", "Status"], reportRows, "No reports filed.", "Your safety reports")}
+          </div>
+
+          <div class="sf-block" style="margin-bottom:28px">
+            <div class="sf-sec" style="display:flex;justify-content:space-between;margin-bottom:10px">
+              <h3 style="font-size:15px;font-weight:700;margin:0">Refund requests</h3>
+              <span class="sf-meta num" style="font-family:var(--mono);font-size:13px;color:#5A6578">${s.refunds.length} filed</span>
+            </div>
+            ${table(["Reference", "Filed", "Booking", "Paid", "Status"], refundRows, "No refund requests.", "Your refund requests")}
+            ${paid.length ? `<div class="sf-mini" style="margin-top:14px">
+              <p class="eyebrow" style="font-size:11px;margin-bottom:8px">Eligible bookings</p>
+              ${paid.map(b => {
+                const open = openRefundFor(b.id);
+                return `<div class="sf-row" style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-top:1px solid #E9EDF3">
+                  <div class="sf-row-in">
+                    <b>${esc(b.program)}</b>
+                    <span class="sf-meta num" style="font-family:var(--mono);font-size:12px;color:#5A6578;display:block">${esc(b.athlete)} · ${esc(fmtDate(b.date))} · ${money(b.price)}</span>
+                  </div>
+                  ${open
+                    ? `<span class="sf-meta num" style="font-family:var(--mono);font-size:12px">Request ${esc(open.ref)} open</span>${statusPill(open.status)}`
+                    : `<button class="btn ghost sm" data-sf-open="refund" data-sf-booking="${esc(b.id)}">Request a refund</button>`}
+                </div>`;
+              }).join("")}
+            </div>` : ""}
+          </div>
+
+          <div class="sf-block">
+            <div class="sf-sec" style="display:flex;justify-content:space-between;margin-bottom:10px">
+              <h3 style="font-size:15px;font-weight:700;margin:0">Privacy &amp; data requests</h3>
+              <span class="sf-meta num" style="font-family:var(--mono);font-size:13px;color:#5A6578">${s.privacy.length} filed</span>
+            </div>
+            ${table(["Reference", "Filed", "Type", "Status"], privacyRows, "No privacy requests.", "Your privacy requests")}
+          </div>
+        </section>
+
       </div>
-    </section>
-
-    <section class="band sf-w">
-      <div class="shell">
-        <div class="prodsec" data-rev>
-          <h2>The check is per person.</h2>
-          <p class="sub">Approving a business says nothing about who coaches your child.</p>
-        </div>
-        <div class="sf-rules" data-rev>
-          ${POLICY.map(([t, d]) => `<div class="sf-rule"><b>${esc(t)}</b><p>${esc(d)}</p></div>`).join("")}
-        </div>
-      </div>
-    </section>
-
-    <section class="band dark">
-      <div class="shell">
-        <div class="prodsec" data-rev>
-          <p class="eyebrow">The badge</p>
-          <h2>Withheld, never implied.</h2>
-        </div>
-        ${/* The two pills are the PRODUCT'S REAL UI — the one place an icon is
-             earned, because it encodes state. What goes is the card chrome
-             around them: flat hairline rows on the dark panel, badge left,
-             clause right, same document grammar as the rest of the page. */""}
-        <div class="sf-badges" data-rev>
-          <div class="sf-badge"><span class="pill gold">${ICON.shield} Background-checked</span>
-            <p>Check passed, and re-run on schedule.</p></div>
-          <div class="sf-badge"><span class="pill warn">${ICON.shield} Verification pending</span>
-            <p>The badge waits for that person's check.</p></div>
-        </div>
-      </div>
-    </section>
-
-    <section class="band alt">
-      <div class="shell" data-rev>
-        <div class="prodsec"><h2>Every request is tracked.</h2></div>
-        <div class="sf-rules">
-          ${RULES.map(([t, d]) => `<div class="sf-rule"><b>${esc(t)}</b><p>${esc(d)}</p></div>`).join("")}
-        </div>
-      </div>
-    </section>
-
-    <section class="band sf-w sf-records">
-      <div class="shell" data-rev>
-        <div class="prodsec"><h2>Your requests.</h2></div>
-
-        <div class="sf-block">
-          <div class="sf-sec"><h3>Safety reports</h3>
-            <span class="sf-meta num">${s.reports.length} filed</span></div>
-          ${table(["Reference", "Filed", "Category", "About", "Priority", "Status"], reportRows,
-                  "No reports filed. Good.", "Your safety reports")}
-        </div>
-
-        <div class="sf-block">
-          <div class="sf-sec"><h3>Refund requests</h3>
-            <span class="sf-meta num">${s.refunds.length} filed</span></div>
-          ${table(["Reference", "Filed", "Booking", "Paid", "Status"], refundRows,
-                  "No refund requests.", "Your refund requests")}
-          ${paid.length ? `<div class="sf-mini">
-            <p class="eyebrow">Eligible bookings</p>
-            ${paid.map(b => {
-              const open = openRefundFor(b.id);
-              return `<div class="sf-row">
-                <div class="sf-row-in">
-                  <b>${esc(b.program)}</b>
-                  <span class="sf-meta num">${esc(b.athlete)} · ${esc(fmtDate(b.date))} · ${money(b.price)} · ${esc(b.paymentStatus)}</span>
-                </div>
-                ${open
-                  ? `<span class="sf-meta num">Request ${esc(open.ref)} open</span>${statusPill(open.status)}`
-                  : `<button class="btn ghost sm" data-sf-open="refund" data-sf-booking="${esc(b.id)}">Request a refund</button>`}
-              </div>`;
-            }).join("")}
-          </div>` : ""}
-        </div>
-
-        <div class="sf-block">
-          <div class="sf-sec"><h3>Privacy requests</h3>
-            <span class="sf-meta num">${s.privacy.length} filed</span></div>
-          ${table(["Reference", "Filed", "Type", "Status"], privacyRows,
-                  "No privacy requests.", "Your privacy requests")}
-        </div>
-      </div>
-    </section></div>`;
+    </main>`;
   }
 
   /* ═══════════════════ WIRING ═══════════════════ */

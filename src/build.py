@@ -40,7 +40,7 @@ ORDER = [
     "mod-media.js", "mod-notes.js", "mod-insights.js",
 ]
 
-host = open(HOST, encoding="utf-8").read()
+host = open(HOST, encoding="utf-8", newline="").read()
 require_once(host, MARKER, MARKER + " marker in host")
 require_once(host, "/*__FONTFACE__*/", "font-face token in host")
 require_once(host, "/*__SPORTVARS__*/", "sport-variable token in host")
@@ -52,7 +52,7 @@ names = [n for n in ORDER if n in found] + sorted(n for n in found if n not in O
 
 blocks, report = [], []
 for n in names:
-    src = open(found[n], encoding="utf-8").read()
+    src = open(found[n], encoding="utf-8", newline="").read()
     # A literal </script> inside a JS string would close the tag early.
     src = src.replace("</script>", "<\\/script>")
     blocks.append("<script>\n/* ---- %s ---- */\n%s\n</script>" % (n, src))
@@ -306,7 +306,7 @@ require_once(STANDALONE, "__SPORVE_BODY__", "standalone body token")
 # that changes without changing length. A stamp lets any check ask the live
 # site "which build are you serving?" and get an exact answer, which is what
 # post-deploy verification and rollback both need.
-_page = STANDALONE.replace("__SPORVE_BODY__", built)
+_page = STANDALONE.replace("__SPORVE_BODY__", built).replace("\r\n", "\n").replace("\r", "\n")
 for _token in (MARKER, "/*__FONTFACE__*/", "/*__SPORTVARS__*/", "__SPORVE_BODY__"):
     if _token in _page:
         sys.exit("FATAL: unresolved build token in output: %s" % _token)
@@ -337,7 +337,7 @@ _page = _page.replace(
 # Failure mode to respect: a stale hash blocks EVERY script and serves a blank
 # page. That is why this is generated on every build and asserted in smoke,
 # rather than hand-maintained.
-_scripts = re.findall(r"<script>(.*?)</script>", _page, re.S)
+_scripts = [s.replace("\r\n", "\n").replace("\r", "\n") for s in re.findall(r"<script>(.*?)</script>", _page, re.S)]
 _hashes = [
     "'sha256-" + base64.b64encode(hashlib.sha256(s.encode("utf-8")).digest()).decode() + "'"
     for s in _scripts
@@ -347,7 +347,7 @@ if not _hashes:
     sys.exit("FATAL: no inline scripts found; refusing to emit an unhashed build")
 if not os.path.exists(_vercel):
     sys.exit("FATAL: vercel.json missing; cannot publish CSP hashes")
-with open(_vercel, encoding="utf-8") as f:
+with open(_vercel, encoding="utf-8", newline="") as f:
     _cfg = json.load(f)
 _csp_headers = [
     h for rule in _cfg.get("headers", []) for h in rule.get("headers", [])
@@ -364,7 +364,7 @@ if _replaced != 1:
 _changed = _new_csp != _current_csp
 _csp_headers[0]["value"] = _new_csp
 if _changed:
-    with open(_vercel, "w", encoding="utf-8") as f:
+    with open(_vercel, "w", encoding="utf-8", newline="\n") as f:
         json.dump(_cfg, f, indent=2, ensure_ascii=False)
         f.write("\n")
 print("csp: %d inline script hash(es) %s"
@@ -374,7 +374,7 @@ print("csp: %d inline script hash(es) %s"
 # validated. A failed build must not leave a fresh index beside stale CSP hashes.
 for t in TARGETS:
     os.makedirs(os.path.dirname(t), exist_ok=True)
-    with open(t, "w", encoding="utf-8") as f:
+    with open(t, "w", encoding="utf-8", newline="\n") as f:
         f.write(_page)
 
 print("inlined %d module(s):" % len(names))

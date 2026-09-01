@@ -70,7 +70,11 @@ async function serve() {
       try {
         const { op, arg } = JSON.parse(raw || "{}");
         if (op === "goto") {
-          await page.goto(arg, { waitUntil: "load" });
+          let url = arg;
+          if (process.platform === "win32") {
+            url = url.replace(/^file:\/\/\/?([a-zA-Z])\//, "file:///$1:/");
+          }
+          await page.goto(url, { waitUntil: "load" });
           /* The built page embeds its fonts as data: URIs and loads each face
              LAZILY on first use. The per-page accent faces (Archivo, Syne,
              Hanken Grotesk) are first used only after smoke's js snippets call
@@ -101,7 +105,8 @@ async function serve() {
           const v = await page.evaluate((c) => eval(c), arg);
           out = typeof v === "string" ? v : JSON.stringify(v);
         } else if (op === "eval") {
-          const src = fs.readFileSync(arg, "utf8");
+          const filePath = path.resolve(process.cwd(), arg);
+          const src = fs.readFileSync(filePath, "utf8");
           const v = await page.evaluate(src);
           out = typeof v === "string" ? v : JSON.stringify(v);
         } else if (op === "errors") {

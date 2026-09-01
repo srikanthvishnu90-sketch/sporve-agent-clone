@@ -248,7 +248,7 @@ fi
 # a merge for.
 csp=$(python3 - <<'PY'
 import base64, hashlib, json, re, sys
-page = open("index.html", encoding="utf-8").read()
+page = open("index.html", encoding="utf-8", newline="").read()
 cfg = json.load(open("vercel.json", encoding="utf-8"))
 policy = ""
 for rule in cfg.get("headers", []):
