@@ -1409,7 +1409,7 @@ function guideSnapshot(){
       requirements:["A signed-in provider account","The information Stripe requests for this account and country","A supported payout destination"],
       process:["Open Earnings and choose Turn on payouts or Finish payout setup.","Sporv calls stripe-connect-onboarding with an allowlisted return URL.","Complete the fields on Stripe's hosted page; Sporv does not collect the bank details.","On return, Sporv reloads the provider row. The step remains incomplete until Stripe reports charges enabled."],
       completeWhen:"providers.stripe_charges_enabled is true; an account id by itself is not enough.",
-      evidence:payoutsDone ? "Stripe readiness is reflected as charges enabled on the provider row." : real && pv && pv.stripe_account_id ? "Stripe onboarding started, but charges are not enabled yet." : real ? "No completed Stripe Connect state is present." : "The sample workspace never counts as a connected Stripe account.",
+      evidence:payoutsDone ? "Stripe readiness is reflected as charges enabled on the provider row." : real && pv && (pv.stripe_onboarding_started||pv.stripe_account_id) ? "Stripe onboarding started, but charges are not enabled yet." : real ? "No completed Stripe Connect state is present." : "The sample workspace never counts as a connected Stripe account.",
       limit:"Payout timing, review requirements, and requested fields vary by Stripe account state. This guide does not promise a two-day payout or infer readiness from a redirect.",
     },
     {

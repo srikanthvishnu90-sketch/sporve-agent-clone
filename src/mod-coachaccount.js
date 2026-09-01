@@ -202,7 +202,7 @@
       return API.from("providers",
         "select=id,business_name,bio,sports,location,provider_type,status," +
         "verification_status,background_check_status,background_check_completed_at," +
-        "onboarding_completed,stripe_account_id,stripe_charges_enabled," +
+        "onboarding_completed,stripe_onboarding_started,stripe_charges_enabled," +
         "plan,plan_status,plan_period_end," +
         "coach_years_coaching,coach_years_played,credentials,avatar_url,logo_url" +
         "&owner_id=eq." + encodeURIComponent(uid()) + "&limit=1"
