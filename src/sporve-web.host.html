@@ -15270,7 +15270,11 @@ document.querySelectorAll('.sig-ai-coach').forEach(sigAiCoachWire);
           body:{provider_id:pv.id,source_filename:w.fileName||"pasted CSV",
                 row_count:created.length,content_hash:hash}}).catch(e=>{
           if(/duplicate|conflict|23505/i.test(String(e&&e.message)))return null;throw e;});
-        if(!b||!b[0]){toast("This exact file was already imported — nothing was created twice.");return;}
+        if(!b||!b[0]){
+          S.teamRoster=teamRoster().filter(r=>r.batchId!==batch);
+          S.importBatches=(S.importBatches||[]).filter(x=>x.id!==batch);
+          render();
+          toast("This exact file was already imported — nothing was created twice.");return;}
         const batchId=b[0].id; w.serverBatchId=batchId; w.serverBatchAt=Date.now();
         S.importBatches=(S.importBatches||[]).map(x=>x.id===batch?{...x,serverId:batchId,serverAt:Date.now()}:x);
         const members=[];
@@ -15404,10 +15408,15 @@ document.querySelectorAll('.sig-ai-coach').forEach(sigAiCoachWire);
       w.err="Finish coach onboarding first — your org record is what everything attaches to.";render();return;}
     w.busy=true;w.err=null;render();
     (async()=>{try{
-      const sRows=await window.SporveAPI.from("seasons","",{method:"POST",
-        headers:{Prefer:"return=representation"},
-        body:{provider_id:pv.id,name:d.season.name,start_date:d.season.start_date,end_date:d.season.end_date}});
-      const seasonId=sRows[0].id;
+      /* idempotent on retry: a failure after the season insert must not mint
+         a second season when the director resubmits */
+      let seasonId=w.seasonId;
+      if(!seasonId){
+        const sRows=await window.SporveAPI.from("seasons","",{method:"POST",
+          headers:{Prefer:"return=representation"},
+          body:{provider_id:pv.id,name:d.season.name,start_date:d.season.start_date,end_date:d.season.end_date}});
+        seasonId=w.seasonId=sRows[0].id;
+      }
       const out=[];
       for(const t of teams){
         const tr=await window.SporveAPI.from("teams","",{method:"POST",
