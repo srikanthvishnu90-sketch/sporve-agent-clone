@@ -51,13 +51,23 @@ Deno.serve(async (req) => {
   });
   const { data: row } = await admin.from("outbound_messages")
     .select("id, content").eq("provider_message_id", emailId).maybeSingle();
-  if (!row) return new Response(JSON.stringify({ ok: true, unmatched: emailId }), { status: 200 });
-  await admin.from("outbound_messages").update({
-    delivery_error: evt.type === "email.bounced" ? "hard bounce" : "complaint",
-  }).eq("id", row.id);
-  const gid = (row.content as { guardian_id?: string } | null)?.guardian_id;
+  const gid = row ? (row.content as { guardian_id?: string } | null)?.guardian_id : null;
+  // audit intake row FIRST — even for unmatched messages we keep the event
+  await admin.from("delivery_events").insert([{
+    guardian_id: gid ?? null, message_id: row?.id ?? null,
+    type: evt.type, raw: evt as unknown as Record<string, unknown>,
+  }]);
+  if (row) {
+    await admin.from("outbound_messages").update({
+      delivery_error: evt.type === "email.bounced" ? "hard bounce" : "complaint",
+      last_error: evt.type === "email.bounced" ? "hard bounce" : "complaint",
+    }).eq("id", row.id);
+  }
   if (gid) {
-    await admin.from("guardians").update({ email_bounced_at: new Date().toISOString() }).eq("id", gid);
+    await admin.from("guardians").update({
+      email_status: evt.type === "email.bounced" ? "bounced" : "complained",
+      email_bounced_at: new Date().toISOString(),
+    }).eq("id", gid);
   }
   return new Response(JSON.stringify({ ok: true }), { status: 200, headers: { "Content-Type": "application/json" } });
 });

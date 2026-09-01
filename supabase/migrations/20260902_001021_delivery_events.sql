@@ -1,0 +1,40 @@
+-- ============================================================================
+-- DOC 08 DELIVERY (2026-09-02) — applied to prod as delivery_events (+ the
+-- capacity-offer lateral fix via execute_sql; applied bodies authoritative).
+--
+-- outbound_messages: +send_after, +attempt_count, +last_error, +provider;
+-- status check widened with needs_review|failed.
+-- guardians: +email_status ok|bounced|complained (default ok; backfilled from
+-- email_bounced_at). delivery_events table (guardian_id, message_id, type,
+-- raw, created_at) with owner-read RLS — the bounce/complaint audit intake.
+--
+-- EVERY draft generator's payer-guardian lateral now requires
+-- g.email_status='ok' (A1 dues, B1 waivers, C1 practice, C2 change-trigger,
+-- D1 reactivation, idle-capacity offers): a bounced address is never drafted
+-- to until the director fixes it.
+--
+-- lifecycle-process (deployed from this repo): sends ONLY rows with
+-- approved_by NOT NULL and sent_at NULL and send_after due; send window
+-- (default 08:00-20:00 org tz + blocked days + pause) parks rows via
+-- send_after; email_status<>'ok' -> needs_review; Resend POST carries
+-- from "{org} via Sporv <{slug}@mail.sporv.com>", reply_to from settings,
+-- X-Sporv-Message-Id; 2xx stamps sent_at+provider_message_id guarded by
+-- "AND sent_at IS NULL" (never sends twice); failure bumps attempt_count,
+-- 3 strikes -> status='failed'. resend-webhook (svix-verified, fail-closed)
+-- inserts delivery_events + sets guardians.email_status.
+--
+-- INVARIANTS PROVEN ON PROD (2026-09-02):
+--  · approved_by-NULL row inserted, tick invoked: status stayed 'approved',
+--    sent_at null, provider_message_id null — never sent.
+--  · grep of every generator migration for approved_by/sent_at writes: zero
+--    (the only writers are owner-gated approve fns + the delivery worker).
+--  · 000200 draft-first trigger untouched.
+--
+-- REMAINING (owner, ~10 min): Resend account -> verify mail.sporv.com
+-- (SPF+DKIM rows Resend prints) -> `supabase secrets set RESEND_API_KEY=...
+-- MAIL_DOMAIN=mail.sporv.com` -> webhook endpoint
+-- https://tseszaprvtvqrkfpditu.supabase.co/functions/v1/resend-webhook
+-- (email.bounced + email.complained) -> `supabase secrets set
+-- RESEND_WEBHOOK_SECRET=whsec_...`. Fixture staged: guardian Sana (overdue
+-- $300 dues, unclaimed) now points at the owner's real inbox, so step-6's
+-- "email arrives" completes on the first tick after the key lands.

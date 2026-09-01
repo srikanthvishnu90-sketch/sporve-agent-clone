@@ -185,102 +185,130 @@ Deno.serve(async (req) => {
       return json({ error: "Forbidden (service role or cron secret only)." }, 403);
     }
 
-    // ── EMAIL DELIVERY PASS (doc 08) ────────────────────────────────────
-    // Rows a director explicitly approved (approved_by stamped by
-    // lifecycle-approve — draft-first survives: nothing here can send an
-    // unapproved row) whose recipient is an org guardian with an email.
-    // Idempotent by the same atomic claim: approved -> processing on the row
-    // id wins exactly once; sent rows never match again. Skips gracefully
-    // when RESEND_API_KEY is unset, like the vault-secret pattern.
-    const emailSummary = { emailed: 0, emailSkipped: 0, emailFailed: 0, inApp: 0 };
+    // ── EMAIL DELIVERY PASS (doc 08, spec rev 2026-09-02) ───────────────
+    // Sends ONLY rows a human approved (approved_by NOT NULL — the Send click).
+    // Window -> send_after; bad address -> needs_review; 3 failures -> failed.
+    // Idempotency: the sent_at-null guard on the final UPDATE means a row can
+    // never be delivered twice even across overlapping ticks.
+    const emailSummary = { emailed: 0, emailSkipped: 0, emailFailed: 0, inApp: 0, windowDeferred: 0, needsReview: 0 };
     {
+      const nowIso = new Date().toISOString();
       const { data: eRows } = await admin.from("outbound_messages")
-        .select("id, provider_id, content, approved_by")
-        .eq("status", "approved").is("sent_at", null)
+        .select("id, provider_id, content, approved_by, attempt_count, send_after")
         .not("approved_by", "is", null)
-        .order("approved_at", { ascending: true })
-        .limit(BATCH);
+        .is("sent_at", null)
+        .in("status", ["approved"])
+        .or(`send_after.is.null,send_after.lte.${nowIso}`)
+        .order("created_at", { ascending: true })
+        .limit(50);
       for (const er of eRows ?? []) {
         const c = er.content as { body?: string; subject?: string; to_email?: string; guardian_id?: string } | null;
         if (!c?.body || (!c?.to_email && !c?.guardian_id)) continue;
-        // CLAIMED guardian -> in-app delivery works today, key or no key.
-        let claimedUser: string | null = null;
+
+        // send window from settings (default 8am-8pm org tz, blocked days)
+        const { data: winRow } = await admin.from("provider_settings")
+          .select("value").eq("provider_id", er.provider_id).eq("key", "send_window").maybeSingle();
+        const { data: tzRow } = await admin.from("provider_settings")
+          .select("value").eq("provider_id", er.provider_id).eq("key", "org_tz").maybeSingle();
+        const win = (winRow?.value ?? {}) as { start?: string; end?: string; blocked_days?: (string|number)[]; pause_until?: string };
+        const tz = ((tzRow?.value ?? {}) as { tz?: string }).tz ?? "America/Chicago";
+        const orgNow = new Date(new Date().toLocaleString("en-US", { timeZone: tz }));
+        const hm = orgNow.getHours() * 60 + orgNow.getMinutes();
+        const [ws, we] = [win.start ?? "08:00", win.end ?? "20:00"].map(t => { const [h, m] = t.split(":").map(Number); return h * 60 + (m || 0); });
+        const blocked = (win.blocked_days ?? []).map(String).includes(String(orgNow.getDay()));
+        const paused = win.pause_until && new Date(win.pause_until) >= new Date(new Date().toDateString());
+        if (hm < ws || hm > we || blocked || paused) {
+          // outside the window: park it until the next opening, skip.
+          const next = new Date(orgNow);
+          if (hm > we || blocked || paused) next.setDate(next.getDate() + 1);
+          next.setHours(Math.floor(ws / 60), ws % 60, 0, 0);
+          await admin.from("outbound_messages").update({ send_after: next.toISOString() }).eq("id", er.id);
+          emailSummary.windowDeferred++; continue;
+        }
+
+        // resolve the guardian: claimed -> in-app now; else email path.
+        let claimedUser: string | null = null; let gEmail: string | null = c.to_email ?? null; let gStatus = "ok";
         if (c.guardian_id) {
           const { data: gg } = await admin.from("guardians")
-            .select("user_id, email_bounced_at").eq("id", c.guardian_id).maybeSingle();
-          claimedUser = (gg as { user_id?: string } | null)?.user_id ?? null;
-          if (!claimedUser && (gg as { email_bounced_at?: string } | null)?.email_bounced_at) {
-            const { data: bClaim } = await admin.from("outbound_messages")
-              .update({ status: "processing" })
-              .eq("id", er.id).eq("status", "approved").select("id").maybeSingle();
-            if (bClaim) {
-              await admin.from("outbound_messages").update({
-                status: "skipped", delivery_error: "address bounced before send",
-              }).eq("id", er.id);
-              emailSummary.emailSkipped++;
-            }
-            continue;
-          }
+            .select("user_id, email, email_status").eq("id", c.guardian_id).maybeSingle();
+          const gr = gg as { user_id?: string; email?: string; email_status?: string } | null;
+          claimedUser = gr?.user_id ?? null;
+          gEmail = gr?.email ?? gEmail;
+          gStatus = gr?.email_status ?? "ok";
         }
+
         if (claimedUser) {
           const { data: iClaim } = await admin.from("outbound_messages")
-            .update({ status: "processing" })
-            .eq("id", er.id).eq("status", "approved").select("id").maybeSingle();
+            .update({ status: "processing" }).eq("id", er.id).eq("status", "approved").select("id").maybeSingle();
           if (!iClaim) continue;
           const { error: nErr } = await admin.from("notifications")
             .insert([{ user_id: claimedUser, title: c.subject || "Message from your club", message: c.body.slice(0, 280) }]);
           if (nErr) {
-            await admin.from("outbound_messages").update({
-              status: "approved", delivery_error: `in-app delivery failed: ${nErr.message}`.slice(0, 300),
-            }).eq("id", er.id);
+            await admin.from("outbound_messages").update({ status: "approved", last_error: nErr.message.slice(0, 300) }).eq("id", er.id);
             emailSummary.emailFailed++;
           } else {
             await deliverPush(admin, claimedUser, c.subject || "Message from your club", c.body.slice(0, 280));
             await admin.from("outbound_messages").update({
-              status: "sent", sent_at: new Date().toISOString(), delivery_error: null,
-            }).eq("id", er.id);
+              status: "sent", sent_at: new Date().toISOString(), provider: "in-app", last_error: null,
+            }).eq("id", er.id).is("sent_at", null);
             emailSummary.inApp++;
           }
           continue;
         }
-        // UNCLAIMED -> email; leave the row for a future tick when no key yet.
-        if (!RESEND_API_KEY || !c.to_email) continue;
+
+        // email path — bad address never sends; director fixes it in the roster.
+        if (gStatus !== "ok") {
+          await admin.from("outbound_messages").update({
+            status: "needs_review", last_error: `guardian email_status=${gStatus}`,
+          }).eq("id", er.id).eq("status", "approved");
+          emailSummary.needsReview++; continue;
+        }
+        if (!RESEND_API_KEY || !gEmail) continue;   // key unset: leave for a future tick
+
         const { data: eClaimed } = await admin.from("outbound_messages")
-          .update({ status: "processing" })
-          .eq("id", er.id).eq("status", "approved")
-          .select("id").maybeSingle();
+          .update({ status: "processing" }).eq("id", er.id).eq("status", "approved").select("id").maybeSingle();
         if (!eClaimed) continue;
         const { data: prov } = await admin.from("providers")
           .select("business_name").eq("id", er.provider_id).maybeSingle();
         const orgName = (prov as { business_name?: string } | null)?.business_name ?? "Your club";
-        const localPart = orgName.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "").slice(0, 40) || "club";
+        const slug = orgName.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "").slice(0, 40) || "club";
+        const { data: replyRow } = await admin.from("provider_settings")
+          .select("value").eq("provider_id", er.provider_id).eq("key", "reply_to").maybeSingle();
+        const replyTo = ((replyRow?.value ?? {}) as { email?: string }).email;
         try {
           const resp = await fetch("https://api.resend.com/emails", {
             method: "POST",
             headers: { "Authorization": `Bearer ${RESEND_API_KEY}`, "Content-Type": "application/json" },
             body: JSON.stringify({
-              from: `${orgName} <${localPart}@${MAIL_DOMAIN}>`,
-              to: [c.to_email],
+              from: `${orgName} via Sporv <${slug}@${MAIL_DOMAIN}>`,
+              ...(replyTo ? { reply_to: replyTo } : {}),
+              to: [gEmail],
               subject: c.subject || `A message from ${orgName}`,
               text: c.body,
+              headers: { "X-Sporv-Message-Id": er.id },
             }),
           });
           const rj = await resp.json().catch(() => ({}));
           if (resp.ok && rj?.id) {
             await admin.from("outbound_messages").update({
               status: "sent", sent_at: new Date().toISOString(),
-              provider_message_id: String(rj.id), delivery_error: null,
-            }).eq("id", er.id);
+              provider: "resend", provider_message_id: String(rj.id), last_error: null,
+            }).eq("id", er.id).is("sent_at", null);
             emailSummary.emailed++;
           } else {
+            const attempts = (er.attempt_count ?? 0) + 1;
             await admin.from("outbound_messages").update({
-              status: "approved", delivery_error: String(rj?.message ?? `resend ${resp.status}`).slice(0, 300),
+              status: attempts >= 3 ? "failed" : "approved",
+              attempt_count: attempts,
+              last_error: String(rj?.message ?? `resend ${resp.status}`).slice(0, 300),
             }).eq("id", er.id);
             emailSummary.emailFailed++;
           }
         } catch (sendErr) {
+          const attempts = (er.attempt_count ?? 0) + 1;
           await admin.from("outbound_messages").update({
-            status: "approved", delivery_error: String(sendErr).slice(0, 300),
+            status: attempts >= 3 ? "failed" : "approved",
+            attempt_count: attempts, last_error: String(sendErr).slice(0, 300),
           }).eq("id", er.id);
           emailSummary.emailFailed++;
         }
