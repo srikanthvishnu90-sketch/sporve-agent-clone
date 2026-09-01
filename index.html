@@ -21,7 +21,7 @@
 <meta name="twitter:description" content="Find coaches, trainers, camps and teams across 20+ sports in Chicagoland.">
 <meta name="twitter:image" content="https://sporv.vercel.app/og.png">
 <link rel="icon" href="data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%2032%2032'%3E%3Crect%20width='32'%20height='32'%20rx='7'%20fill='%2309090B'/%3E%3Ccircle%20cx='16'%20cy='16'%20r='6'%20fill='white'/%3E%3C/svg%3E">
-<meta name="sporve-build" content="cab4628138c17178">
+<meta name="sporve-build" content="47f7b3b32c28faba">
 </head>
 <body>
 <noscript><h1>Sporv — Every sport. One app.</h1><p>Sporv connects families and athletes with coaches, trainers, camps, and teams across more than 20 sports. Please enable JavaScript to use the app.</p></noscript>
@@ -10515,7 +10515,7 @@ function coachState(){
     verified:pv.background_check_status==="verified"&&!!pv.background_check_completed_at,
     approved:pv.status==="approved",
     payouts:!!pv.stripe_charges_enabled,
-    connectStarted:!!pv.stripe_account_id,
+    connectStarted:!!(pv.stripe_onboarding_started||pv.stripe_account_id),
     listed:pv.status==="approved"&&pv.background_check_status==="verified"&&!!pv.background_check_completed_at,
   };
   return {
@@ -10539,7 +10539,7 @@ function coachState(){
 function payoutsPanelHTML(){
   const pv=S.coachProvider;
   const live=!!(pv&&pv.stripe_charges_enabled);
-  const started=!!(pv&&pv.stripe_account_id);
+  const started=!!(pv&&(pv.stripe_onboarding_started||pv.stripe_account_id));
   const busy=!!S.connectBusy;
   /* Three HONEST states from the two booleans the row carries (stripe_account_id,
      stripe_charges_enabled). Stripe's own "in review" vs "restricted (needs
@@ -18687,7 +18687,7 @@ window.MOD_COACHUI = { css:CSS, wire:wire };
       return API.from("providers",
         "select=id,business_name,bio,sports,location,provider_type,status," +
         "verification_status,background_check_status,background_check_completed_at," +
-        "onboarding_completed,stripe_account_id,stripe_charges_enabled," +
+        "onboarding_completed,stripe_onboarding_started,stripe_charges_enabled," +
         "plan,plan_status,plan_period_end," +
         "coach_years_coaching,coach_years_played,credentials,avatar_url,logo_url" +
         "&owner_id=eq." + encodeURIComponent(uid()) + "&limit=1"
@@ -24631,7 +24631,7 @@ function guideSnapshot(){
       requirements:["A signed-in provider account","The information Stripe requests for this account and country","A supported payout destination"],
       process:["Open Earnings and choose Turn on payouts or Finish payout setup.","Sporv calls stripe-connect-onboarding with an allowlisted return URL.","Complete the fields on Stripe's hosted page; Sporv does not collect the bank details.","On return, Sporv reloads the provider row. The step remains incomplete until Stripe reports charges enabled."],
       completeWhen:"providers.stripe_charges_enabled is true; an account id by itself is not enough.",
-      evidence:payoutsDone ? "Stripe readiness is reflected as charges enabled on the provider row." : real && pv && pv.stripe_account_id ? "Stripe onboarding started, but charges are not enabled yet." : real ? "No completed Stripe Connect state is present." : "The sample workspace never counts as a connected Stripe account.",
+      evidence:payoutsDone ? "Stripe readiness is reflected as charges enabled on the provider row." : real && pv && (pv.stripe_onboarding_started||pv.stripe_account_id) ? "Stripe onboarding started, but charges are not enabled yet." : real ? "No completed Stripe Connect state is present." : "The sample workspace never counts as a connected Stripe account.",
       limit:"Payout timing, review requirements, and requested fields vary by Stripe account state. This guide does not promise a two-day payout or infer readiness from a redirect.",
     },
     {

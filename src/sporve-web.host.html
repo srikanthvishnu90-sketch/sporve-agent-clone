@@ -10471,7 +10471,7 @@ function coachState(){
     verified:pv.background_check_status==="verified"&&!!pv.background_check_completed_at,
     approved:pv.status==="approved",
     payouts:!!pv.stripe_charges_enabled,
-    connectStarted:!!pv.stripe_account_id,
+    connectStarted:!!(pv.stripe_onboarding_started||pv.stripe_account_id),
     listed:pv.status==="approved"&&pv.background_check_status==="verified"&&!!pv.background_check_completed_at,
   };
   return {
@@ -10495,7 +10495,7 @@ function coachState(){
 function payoutsPanelHTML(){
   const pv=S.coachProvider;
   const live=!!(pv&&pv.stripe_charges_enabled);
-  const started=!!(pv&&pv.stripe_account_id);
+  const started=!!(pv&&(pv.stripe_onboarding_started||pv.stripe_account_id));
   const busy=!!S.connectBusy;
   /* Three HONEST states from the two booleans the row carries (stripe_account_id,
      stripe_charges_enabled). Stripe's own "in review" vs "restricted (needs
