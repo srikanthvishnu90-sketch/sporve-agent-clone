@@ -11512,12 +11512,22 @@ function loadOrgSettings(){
     window.SporveAPI.from("waiver_documents","select=id,title,version,created_at&provider_id=eq."+pv.id+"&order=title,version.desc").catch(()=>[]),
     window.SporveAPI.from("guardians","select=id,first_name,email&provider_id=eq."+pv.id+"&order=first_name").catch(()=>[]),
     window.SporveAuth.loadProfile?window.SporveAuth.loadProfile().catch(()=>null):Promise.resolve(null),
-  ]).then(([prefs,kv,docs,gs,prof])=>{
+    window.SporveAPI.from("settings_audit","select=key,new_value,changed_at&provider_id=eq."+pv.id+"&order=changed_at.desc&limit=12").catch(()=>[]),
+  ]).then(([prefs,kv,docs,gs,prof,audit])=>{
+    S.setAudit=audit||[];
     S.setPrefs={};(prefs||[]).forEach(p=>{S.setPrefs[p.event_type]={mode:p.mode,at:p.updated_at};});
     S.setKV={};(kv||[]).forEach(r=>{S.setKV[r.key]={value:r.value,at:r.updated_at};});
     S.setDocs=docs||[];S.setGuardians=gs||[];S.setProfile=prof||null;
     S.setLoaded=true;render();
   }).finally(()=>{S.setLoading=false;});
+}
+/* org vocabulary ({group} etc., 3-day brief): stored in provider_settings
+   'vocab'; falls back to the sport-club defaults everywhere it is unset. */
+function vocab(k){
+  const v=(S.setKV&&S.setKV.vocab&&S.setKV.vocab.value)||{};
+  const d={group:"Team",groups:"Teams",member:"Member",members:"Members",
+           session:"Practice",event:"Game"};
+  return (v[k]&&String(v[k]).trim())||d[k]||k;
 }
 function setKVget(k,d){return (S.setKV&&S.setKV[k]&&S.setKV[k].value)!==undefined&&S.setKV[k]?S.setKV[k].value:d;}
 function setJobMode(k){return (S.setPrefs&&S.setPrefs[k]&&S.setPrefs[k].mode)||"draft";}
@@ -11584,8 +11594,9 @@ function coachSettingsPage(){
     </div>
     <div class="stnote"><b>Auto never applies backwards.</b> Switching a job to Auto does not send drafts already in your queue — those still need approval. Only drafts created after the switch can auto-send, and every one records who turned Auto on as its approver.</div>
     <div class="sthead" style="margin-top:22px"><h2>Recent setting changes</h2></div>
-    <div class="stcard">${live?Object.keys(S.setPrefs||{}).sort((a,b)=>(S.setPrefs[b].at||"").localeCompare(S.setPrefs[a].at||"")).slice(0,5).map(k=>
-      row(esc(k)+" · "+esc(S.setPrefs[k].mode),"",`<span class="stmut num">${esc((S.setPrefs[k].at||"").slice(0,10))}</span>`)).join("")||row("No changes yet","","" ):row("Loading…","","")}</div>`;
+    <div class="stcard">${live?((S.setAudit||[]).slice(0,6).map(a=>
+      row(esc(a.key)+" · "+esc(typeof a.new_value==="string"?a.new_value:JSON.stringify(a.new_value)).slice(0,40),"",
+        `<span class="stmut num">${esc((a.changed_at||"").slice(0,10))}</span>`)).join("")||row("No changes yet","","")):row("Loading…","","")}</div>`;
   }
   if(tab==="money"){
     const pol=pv.refund_policy||"prorate_weeks";
@@ -11621,6 +11632,9 @@ function coachSettingsPage(){
     <div class="stcard">
       ${row("Name","Appears on messages and receipts.",`<input class="stin" id="stOrgName" value="${esc(pv.business_name||"")}">`)}
       ${row("Timezone","Drives the sending window.",`<select class="stin" id="stTz">${["America/Chicago","America/New_York","America/Denver","America/Los_Angeles"].map(z=>`<option ${((setKVget("org_tz",{})||{}).tz||"America/Chicago")===z?"selected":""}>${z}</option>`).join("")}</select>`)}
+      ${row("What do you call a group?","Used across the app — Team, Squad, Class, Cohort…",`<input class="stin" id="stVocabGroup" value="${esc(((setKVget("vocab",{})||{}).group)||"Team")}" style="width:140px">`)}
+      ${row("Calendar shape","Seasonal orgs roll over by season; continuous orgs bill and check credentials on a rolling 12 months.",
+        `<span class="stchips">${[["seasonal","Seasonal"],["continuous","Continuous"]].map(([v,l])=>`<button class="stchip ${((setKVget("calendar_shape",{})||{}).shape||"seasonal")===v?"on":""}" data-stcal="${v}">${l}</button>`).join("")}</span>`)}
       ${row("","",`<button class="btn sm" data-stsave="org">Save organization</button>`)}
     </div>`;
   }
@@ -12790,11 +12804,30 @@ function modalHTML(){
        website is written without confirmation; the billing run charges no one
        and emails no one — it creates fee schedules families pay on their own
        checkout links. State lives in S.setupWiz so re-renders survive. */
-    const w=S.setupWiz||(S.setupWiz={step:1});
+    const w=S.setupWiz||(S.setupWiz={step:0});
     const pv=S.coachProvider;
-    const dots=`<div style="display:flex;gap:6px;margin-bottom:14px">${[1,2,3,4,5].map(n=>
+    const dots=`<div style="display:flex;gap:6px;margin-bottom:14px">${[0,1,2,3,4,5].map(n=>
       `<span style="width:26px;height:4px;border-radius:2px;background:${n<=w.step?"var(--slate-ink)":"var(--line)"}"></span>`).join("")}</div>`;
     const wrapS=(t,body)=>wrap(t,dots+body);
+    if(w.step===0){
+      const shape=w.calShape||"seasonal", noun=w.groupNoun||"Team", bill=w.billShape||"team";
+      return wrapS("Three quick questions",`
+      <p class="imp-sub">These shape everything else — you can change any of them later in Settings.</p>
+      <div class="field" style="margin-top:12px"><label>How does your year run?</label>
+        <div style="display:flex;gap:8px;margin-top:6px">
+          ${[["seasonal","Seasons — fall, spring, summer"],["continuous","Continuous — year-round, rolling"]].map(([v,l])=>
+            `<button type="button" class="btn ${shape===v?"":"ghost "}sm" data-suw0="calShape:${v}">${l}</button>`).join("")}</div></div>
+      <div class="field"><label>What do you call a group of athletes?</label>
+        <div style="display:flex;gap:8px;margin-top:6px">
+          ${["Team","Squad","Class","Cohort"].map(n=>
+            `<button type="button" class="btn ${noun===n?"":"ghost "}sm" data-suw0="groupNoun:${n}">${n}</button>`).join("")}</div></div>
+      <div class="field"><label>How do families usually pay?</label>
+        <div style="display:flex;gap:8px;margin-top:6px;flex-wrap:wrap">
+          ${[["team","Season fee in installments"],["camp","One charge at signup"],["private","Per session"]].map(([v,l])=>
+            `<button type="button" class="btn ${bill===v?"":"ghost "}sm" data-suw0="billShape:${v}">${l}</button>`).join("")}</div></div>
+      <div class="imp-actions" style="margin-top:14px">
+        <button class="btn" data-suw-next="1">Continue</button></div>`);
+    }
     if(w.step===1) return wrapS("Set up your club",`
       <p class="imp-sub">Paste your club's public website and the agent reads it —
         sport, teams, season, published fees. It only drafts: you confirm every
@@ -12825,14 +12858,14 @@ function modalHTML(){
           <div class="field"><label>Ends</label><input name="end" type="date" value="${esc((d.season&&d.season.end_date)||"")}" required></div>
         </div>
         <div class="tblwrap" style="margin-top:6px"><table class="tbl">
-          <thead><tr><th>Team</th><th>Age group</th><th>Season fee ($)</th><th></th></tr></thead>
+          <thead><tr><th>${esc(vocab("group"))}</th><th>Age group</th><th>Season fee ($)</th><th></th></tr></thead>
           <tbody id="suwTeams">${rows.map((t,i)=>`<tr>
             <td><input name="tname${i}" value="${esc(t.name||"")}" style="width:100%"></td>
             <td><input name="tage${i}" value="${esc(t.age_group||"")}" style="width:100%"></td>
             <td><input name="tfee${i}" type="number" min="0" step="1" value="${t.fee_cents!=null?Math.round(t.fee_cents/100):""}" style="width:100%"></td>
             <td><button type="button" class="lnk" data-suw-delteam="${i}">✕</button></td></tr>`).join("")}
           </tbody></table></div>
-        <button type="button" class="btn ghost sm" data-suw-addteam="1" style="margin-top:8px">+ Add a team</button>
+        <button type="button" class="btn ghost sm" data-suw-addteam="1" style="margin-top:8px">+ Add a ${esc(vocab("group").toLowerCase())}</button>
         <div id="suwErr" class="err ${w.err?"":"hide"}" style="margin:8px 0">${esc(w.err||"")}</div>
         <div class="imp-actions" style="margin-top:12px">
           <button class="btn ghost sm" type="button" data-suw-back="1">Back</button>
@@ -15551,9 +15584,15 @@ document.querySelectorAll('.sig-ai-coach').forEach(sigAiCoachWire);
     const job=S.modal&&S.modal.job;S.modal=null;render();
     if(!job)return;
     const pv=S.coachProvider;if(!pv||!window.SporveAPI)return;
-    window.SporveAPI.from("lifecycle_message_prefs","on_conflict=provider_id,event_type",{
+    /* server-side gate (001018): the pref write is REFUSED unless this consent
+       row, stamped by the same signed-in admin, landed in the last 2 minutes.
+       A bare PATCH from anywhere else cannot turn money-auto on. */
+    window.SporveAPI.from("provider_settings","on_conflict=provider_id,key",{
       method:"POST",headers:{Prefer:"resolution=merge-duplicates"},
-      body:{provider_id:pv.id,event_type:job,mode:"auto"}})
+      body:{provider_id:pv.id,key:"money_auto_consent",value:{job,at:new Date().toISOString()}}})
+      .then(()=>window.SporveAPI.from("lifecycle_message_prefs","on_conflict=provider_id,event_type",{
+        method:"POST",headers:{Prefer:"resolution=merge-duplicates"},
+        body:{provider_id:pv.id,event_type:job,mode:"auto"}}))
       .then(()=>{S.setPrefs[job]={mode:"auto",at:new Date().toISOString()};
         toast("Auto is on for this money job — capped, windowed, and audited under your name.");render();})
       .catch(e=>toast("Could not save: "+((e&&e.message)||"")));
@@ -15563,8 +15602,21 @@ document.querySelectorAll('.sig-ai-coach').forEach(sigAiCoachWire);
     S.modal={type:"setupwiz"};render();});
   $("[data-suw-close]").forEach(b=>b.onclick=()=>{S.modal=null;render();});
   $("[data-suw-back]").forEach(b=>b.onclick=()=>{const w=S.setupWiz;if(w){w.step=1;w.err=null;}render();});
+  $("[data-suw0]").forEach(b=>b.onclick=()=>{
+    const w=S.setupWiz;if(!w)return;
+    const [k,v]=b.dataset.suw0.split(":");w[k]=v;render();});
   $("[data-suw-next]").forEach(b=>b.onclick=()=>{
-    const w=S.setupWiz;if(!w)return;w.step=+b.dataset.suwNext;w.err=null;
+    const w=S.setupWiz;if(!w)return;
+    if(w.step===0&&window.SporveAPI&&S.coachProvider&&S.coachProvider.id){
+      const pv=S.coachProvider,noun=w.groupNoun||"Team";
+      const save=(key,value)=>window.SporveAPI.from("provider_settings","on_conflict=provider_id,key",{
+        method:"POST",headers:{Prefer:"resolution=merge-duplicates"},
+        body:{provider_id:pv.id,key,value}}).catch(()=>{});
+      save("calendar_shape",{shape:w.calShape||"seasonal"});
+      save("vocab",{group:noun,groups:noun.endsWith("s")?noun:noun+"s"});
+      save("default_billing_shape",{shape:w.billShape||"team"});
+    }
+    w.step=+b.dataset.suwNext;w.err=null;
     if(w.step===5) suwLoadMembers(w);
     render();});
   $("[data-suw-skip]").forEach(b=>b.onclick=()=>{
@@ -15695,7 +15747,20 @@ document.querySelectorAll('.sig-ai-coach').forEach(sigAiCoachWire);
   /* Review-queue (obligations) handlers — draft -> approved -> done, undoable.
      Demo store S.obligations; real drafts arrive from the ingest/agent backend.
      Approving/finishing sends or charges nothing here — it advances the row. */
-  if(S.portal==="coach"&&S.coachTab==="queue") loadLiveObligations();
+  if(S.portal==="coach"&&S.coachTab==="queue"){
+    loadLiveObligations();
+    /* the queue is current when you look at it: refresh on focus and on a 20s
+       tick while this tab is open. Approvals stay idempotent server-side, so a
+       stale row approved twice is a no-op, never a double-send. */
+    if(!S._queuePoll){
+      S._queuePoll=setInterval(()=>{
+        if(S.portal==="coach"&&S.coachTab==="queue"&&!document.hidden){
+          S.obligLive=false;loadLiveObligations();
+        }},20000);
+      window.addEventListener("focus",()=>{
+        if(S.portal==="coach"&&S.coachTab==="queue"){S.obligLive=false;loadLiveObligations();}});
+    }
+  }
   const obligBy=id=>obligationQueue().find(o=>o.id===id);
   /* Live rows PATCH the obligations table; the 000200 lifecycle trigger is the
      authority (draft→approved→done, void from any non-done). The local update
@@ -15797,6 +15862,8 @@ document.querySelectorAll('.sig-ai-coach').forEach(sigAiCoachWire);
   if(stEx) stEx.onchange=()=>{if(!stEx.value)return;
     const cur=(setKVget("auto_exclude_guardians",[])||[]).concat([stEx.value]);
     kvSave("auto_exclude_guardians",cur,"This family will always get drafts, never auto-sends.");};
+  $("[data-stcal]").forEach(c=>c.onclick=()=>kvSave("calendar_shape",{shape:c.dataset.stcal},
+    c.dataset.stcal==="continuous"?"Continuous — rolling 12-month credential checks and billing.":"Seasonal — rollover and expiry follow your seasons."));
   $("#stDays button").forEach(d=>d.onclick=()=>{
     const win=Object.assign({},setKVget("send_window",{})||{});
     const cur=(win.blocked_days||[]).map(String);const i=String(d.dataset.day);
@@ -15831,9 +15898,13 @@ document.querySelectorAll('.sig-ai-coach').forEach(sigAiCoachWire);
     if(which==="org"&&pv){
       const name=document.getElementById("stOrgName").value.trim();
       const tz=document.getElementById("stTz").value;
+      const gnoun=(document.getElementById("stVocabGroup")||{}).value||"Team";
+      const curVocab=Object.assign({},setKVget("vocab",{})||{});
+      curVocab.group=gnoun.trim()||"Team";curVocab.groups=curVocab.group.endsWith("s")?curVocab.group:curVocab.group+"s";
       Promise.all([
         name&&name!==pv.business_name?window.SporveAPI.from("providers","id=eq."+pv.id,{method:"PATCH",body:{business_name:name}}):Promise.resolve(),
         kvSave("org_tz",{tz}),
+        kvSave("vocab",curVocab),
       ]).then(()=>{if(name)pv.business_name=name;toast("Organization saved.");render();})
        .catch(e=>toast("Could not save: "+((e&&e.message)||"")));return;
     }
