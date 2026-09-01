@@ -11407,13 +11407,13 @@ function loadLiveObligations(){
   if(!(pv&&pv.id&&window.SporveAPI&&window.SporveAPI.isSignedIn&&window.SporveAPI.isSignedIn())) return;
   S.obligLoading=true;
   window.SporveAPI.from("obligations",
-    "select=id,kind,status,title,detail,amount_cents,source_kind,source_ref,due_at,guardian_id"+
-    "&provider_id=eq."+pv.id+"&status=neq.void&order=created_at.desc&limit=50")
+    "select=id,kind,status,title,detail,amount_cents,source_kind,source_ref,due_at,guardian_id,run_id"+
+    "&provider_id=eq."+pv.id+"&status=neq.void&order=created_at.desc&limit=200")
     .then(rows=>{
       if(!Array.isArray(rows)) return;
       S.obligations=rows.map(r=>({id:r.id,kind:r.kind,status:r.status,
         title:r.title,detail:r.detail||"",sourceKind:r.source_kind,
-        sourceRef:r.source_ref||"",guardianId:r.guardian_id||null,live:true}));
+        sourceRef:r.source_ref||"",guardianId:r.guardian_id||null,runId:r.run_id||null,live:true}));
       S.obligLive=true;render();
     })
     .catch(()=>{/* table not applied yet or offline: demo stands, honestly labelled */})
@@ -11459,7 +11459,7 @@ function coachQueuePage(){
         <span class="obsrc">from ${esc(OBLIG_SRC[o.sourceKind]||o.sourceKind||"")}${o.sourceRef?` · ${esc(o.sourceRef)}`:""}</span>
       </div>
       <b class="obtitle">${esc(o.title)}</b>
-      ${o.detail?`<p class="obdetail">${esc(o.detail)}</p>`:""}
+      ${o.detail?`<p class="obdetail" style="white-space:pre-line">${esc(o.detail)}</p>`:""}
       <div class="obacts">
         ${o.status==="draft"?`<button class="btn sm" data-oblig-approve="${esc(o.id)}">Approve</button>
           <button class="btn ghost sm" data-oblig-dismiss="${esc(o.id)}">Dismiss</button>`:""}
@@ -11470,10 +11470,12 @@ function coachQueuePage(){
       </div>
     </div>`;};
   const liveOrg=!!(S.obligLive&&S.coachProvider&&S.coachProvider.id);
+  const bulkN=drafts.filter(o=>o.live&&o.sourceKind==="agent").length;
   return `<div class="sec-head" style="margin-top:18px"><div>
       <h1>Queue</h1>
       <p style="color:var(--muted);margin-top:5px;font-size:var(--text-base)">The work Sporv already did for you — review and approve. Nothing is sent or charged until you say so.</p>
     </div>${liveOrg?`<span style="display:flex;gap:8px;align-items:center">
+      ${bulkN>3?`<button class="btn ghost sm" data-oblig-approveall="1"${S.bulkApproving?" disabled":""}>${S.bulkApproving?"Approving…":"Approve all "+bulkN}</button>`:""}
       <button class="btn ghost sm" data-agent-toggle="1" title="When on, the agent drafts overnight. Off stops the nightly run for your club only — Run now still works.">Auto-draft: ${S.agentAutodraft===false?"off":"on"}</button>
       <button class="btn sm" data-agent-run="1"${S.agentRunning?" disabled":""}>${S.agentRunning?"Running…":"Run agent now"}</button></span>`:""}</div>
     <div class="panel">
@@ -15499,11 +15501,13 @@ document.querySelectorAll('.sig-ai-coach').forEach(sigAiCoachWire);
        (the only sender, claim-guardrailed) then delivers it — or refuses
        honestly when the guardian hasn't joined yet. Rows with no recipient
        keep the plain status walk. */
-    if(o.live&&o.guardianId&&window.SporveAPI){
+    if(o.live&&(o.guardianId||o.sourceKind==="agent")&&window.SporveAPI){
       o.status="approved";render();
       window.SporveAPI.rpc("approve_obligation_and_queue",{p_obligation_id:o.id})
         .then(msgId=>{
-          if(!msgId){toast("Approved — no recipient on this one, nothing to send.");return;}
+          if(!msgId){toast(/^eligibility:/.test(o.sourceRef)
+            ?"Approved — this report is for you; nothing goes to families."
+            :"Approved — no recipient on this one, nothing to send.");return;}
           return window.SporveAPI.fn("lifecycle-approve",{id:msgId})
             .then(()=>toast("Approved and sent to the family."))
             .catch(e=>toast(/hasn't joined/.test(e&&e.message||"")
@@ -15514,6 +15518,25 @@ document.querySelectorAll('.sig-ai-coach').forEach(sigAiCoachWire);
       return;
     }
     o.status="approved";obligPatch(o,"approved");render();toast("Approved. It moves out of your queue — nothing was sent or charged.");});
+  $("[data-oblig-approveall]").forEach(b=>b.onclick=async()=>{
+    if(S.bulkApproving) return;
+    const rows=obligationQueue().filter(o=>o.status==="draft"&&o.live&&o.sourceKind==="agent");
+    if(!rows.length) return;
+    S.bulkApproving=true;render();
+    let sent=0,held=0,failed=0;
+    for(const o of rows){
+      try{
+        o.status="approved";
+        const msgId=await window.SporveAPI.rpc("approve_obligation_and_queue",{p_obligation_id:o.id});
+        if(msgId){
+          try{await window.SporveAPI.fn("lifecycle-approve",{id:msgId});sent++;}
+          catch(e){if(/hasn't joined/.test(e&&e.message||""))held++;else failed++;}
+        }
+      }catch(_){o.status="draft";failed++;}
+    }
+    S.bulkApproving=false;render();
+    toast("Approved "+rows.length+" — "+sent+" sent"+(held?", "+held+" waiting on invites":"")+(failed?", "+failed+" failed":"")+".");
+  });
   /* auto-draft toggle: one row in lifecycle_message_prefs; 'off' stops the
      nightly cron for THIS org only (the generators check it per row). */
   $("[data-agent-toggle]").forEach(b=>b.onclick=()=>{
@@ -15531,8 +15554,8 @@ document.querySelectorAll('.sig-ai-coach').forEach(sigAiCoachWire);
     S.agentRunning=true;render();
     window.SporveAPI.rpc("run_agent_drafts",{p_provider:pv.id})
       .then(r=>{S.agentRunning=false;S.obligLive=false;loadLiveObligations();
-        const n=(r&&(r.dues+r.waivers+r.practice))||0;
-        toast(n?("The agent drafted "+n+" item"+(n===1?"":"s")+" — review below. Nothing was sent."):"Nothing to draft — dues, waivers and practices are all current.");render();})
+        const n=(r&&r.total)||0;
+        toast(n?("The agent drafted "+n+" item"+(n===1?"":"s")+" — dues "+r.dues+", waivers "+r.waivers+", practice "+r.practice+", win-back "+r.reactivation+", eligibility "+r.eligibility+". Nothing was sent."):"Nothing to draft — dues, waivers, schedule and roster are all current.");render();})
       .catch(e=>{S.agentRunning=false;render();toast((e&&e.message)||"The agent run failed.");});
   });
   $("[data-oblig-dismiss]").forEach(b=>b.onclick=()=>{
