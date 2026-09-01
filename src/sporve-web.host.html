@@ -8019,10 +8019,8 @@ function pricingHTML(){
          single constant checkout charges; it is never retyped as prose. */""}
     <div class="pr-head">
       <p class="eyebrow">Pricing</p>
-      <h1 class="display">2.9% + 30¢. No monthly fee.</h1>
-      <p class="lede">That's card processing on your club's own Stripe account — the club is the
-        merchant of record, and Sporv adds ${FEE_PCT}% on top.<br>If a season doesn't get
-        billed, you don't pay anything.</p>
+      <h1 class="display">Pick the plan that fits your stage.</h1>
+      <p class="lede">A flat subscription for the software and the agent — Sporv takes ${FEE_PCT}% of dues.<br>Card processing (2.9% + 30¢) runs on your club's own Stripe account.</p>
     </div>
     ${/* OLD DESIGN RESTORED (owner 2026-08-23) — the motion.dev serif-card grid
          (PR #211), re-expanded from three cards to FOUR plan types at the owner's
@@ -8033,6 +8031,40 @@ function pricingHTML(){
          marker (honesty law). Prices are the shipped monthly config constants;
          the fifth shipped tier ("Max", $249.99) is folded into Enterprise here to
          hit the requested four — its data still lives in the plans config. */""}
+    ${(()=>{
+      const CK=`<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6L9 17l-5-5"/></svg>`;
+      const CARDS=[
+        {id:"free",name:"Free",price:"$0",per:"",
+         desc:"For a coach just getting started.",
+         feats:["Browse checked coaches, free","List your services, no fee","Verified badge — one-time add-on to reach parents · planned","3 AI actions a month","0% taken from bookings"],
+         cta:"Start free"},
+        {id:"pro",name:"Pro",price:"$34.99",per:"/mo",rec:true,
+         desc:"For a private trainer or solo coach.",
+         feats:["Verified badge — background check included · planned","Unlimited AI actions — drafts, recaps & parent updates","Roster, schedule, session notes & messaging","Automatic payouts","Up to 3 seats","0% taken from bookings"],
+         cta:"Start coaching"},
+        {id:"grow",name:"Grow",price:"$99.99",per:"/mo",
+         desc:"For a growing training business.",
+         feats:["5× AI usage — recaps, progress reports & campaigns","Up to 10 staff seats with roles","Group sessions, camps & clinic pages · planned","Retention & revenue analytics · planned","0% taken from bookings"],
+         cta:"Talk to us"},
+        {id:"enterprise",name:"Enterprise",price:"Custom",per:"",dev:true,
+         desc:"For a club, AAU team, or academy.",
+         feats:["Unlimited coach & staff seats","Roles & granular permissions","Per-staff background-check gating","Compliance dashboard — certs & waivers","Consolidated org billing · planned"],
+         cta:"Talk to team"},
+      ];
+      const feat=f=>{const i=f.indexOf(" · planned");return i<0?esc(f):esc(f.slice(0,i))+`<em class="pt-planned"> · planned</em>`;};
+      return `<section class="pp-plans" aria-label="Plans">${CARDS.map(t=>{
+        const rec=!!t.rec;
+        return `<div class="pp-card${rec?" pp-rec":""}">
+          ${rec?`<span class="pp-badge">Recommended</span>`:""}
+          <h3 class="pp-name">${esc(t.name)}</h3>
+          <div class="pp-price"><b>${esc(t.price)}</b>${t.per?`<span>${esc(t.per)}</span>`:""}</div>
+          <p class="pp-desc">${esc(t.desc)}</p>
+          <ul class="pp-feats">${t.feats.map(f=>`<li>${CK}<span>${feat(f)}</span></li>`).join("")}</ul>
+          <button class="${rec?"btn pp-cta":"pp-cta pp-cta-alt"}" data-planbuy="${t.id}">${esc(t.cta)}</button>
+          ${t.dev?`<p class="pp-dev">In development — early access only</p>`:""}
+        </div>`;
+      }).join("")}</section>`;
+    })()}
     <div class="pr-stats" role="list">
       <div role="listitem"><b class="num">2.9% + 30¢</b><span>per card transaction — standard processing on your club's own Stripe account</span></div>
       <div role="listitem"><b class="num">${FEE_PCT}%</b><span>added by Sporv — coaches and clubs keep 100% of what families pay</span></div>
@@ -13010,8 +13042,11 @@ const PAGE_META={
   "saved":{t:"Saved coaches",d:"Shortlist coaches and compare before you book.",sport:"Boxing",cta:"saved",ctaL:"Open saved"},
   "athlete-progress":{t:"Athlete progress",d:"A timeline of sessions and notes, one athlete at a time.",sport:"Track & Field",cta:"timeline",ctaL:"See progress"},
   "scheduling":{t:"Scheduling & availability",d:"Your calendar and open slots — capacity enforced at the database.",sport:"Tennis",cta:"coachtab:slots",ctaL:"Open scheduling"},
-  "payments":{t:"Payments & payouts",d:"Checkout in-app; the full booking amount reaches the coach.",sport:"Golf",cta:"coachtab:finances",ctaL:"See payouts"},
-  "roster":{t:"Client roster",d:"Every family you coach — bookings, notes, and consent in one place.",sport:"Hockey",cta:"coachtab:roster",ctaL:"Open the roster"},
+  "payments":{t:"Dues & installments",d:"A season total split into dated pieces per member — card or bank, 0% taken by Sporv.",sport:"Golf",cta:"coachtab:finances",ctaL:"See billing"},
+  "waivers":{t:"Waivers & eligibility",d:"Versioned documents, pinned signatures, and staff checks recorded from real evidence.",sport:"Swimming",cta:"coachtab:operations",ctaL:"Open compliance"},
+  "agent":{t:"The agent",d:"Work drafted before you log in — approve, dismiss, done. Nothing sends without you.",sport:"Basketball",cta:"coachtab:queue",ctaL:"Open the queue"},
+  "payouts":{t:"Payouts",d:"Five numbers for the treasurer, and the overdue list the agent chases.",sport:"Baseball",cta:"coachtab:finances",ctaL:"See payouts"},
+  "roster":{t:"Roster & import",d:"Bring the roster in from a CSV or a link in the group chat — batch-stamped, undoable, no emails sent.",sport:"Hockey",cta:"coachtab:roster",ctaL:"Open the roster"},
   "session-notes":{t:"Session notes",d:"Notes tied to the athlete and the session, shared with the parent.",sport:"Fencing",cta:"coachtab:notes",ctaL:"See session notes"},
   "media-consent":{t:"Media & consent",d:"Photos shared only with recorded consent, per child.",sport:"Gymnastics",cta:"coachtab:media",ctaL:"See media & consent"},
   "insights":{t:"Insights",d:"Demand, price position, and retention — derived from real records.",sport:"Rowing",cta:"coachtab:insights",ctaL:"Open insights"},
@@ -14269,7 +14304,8 @@ function render(){
   /* MARKETPLACE ROUTES KILLED (spec 01, 2026-08-31): explore, map, saved and
      assistant were parent-side discovery — rosters fill by invitation, not
      browsing. Stale links and persisted routes land on the landing page. */
-  else if(["explore","map","saved","assistant","companies","bookings","coachinfo","detail","page"].indexOf(r.name)>=0){
+  else if(r.name==="page") body=pageHTML(r.arg);
+  else if(["explore","map","saved","assistant","companies","bookings","coachinfo","detail"].indexOf(r.name)>=0){
     S.route={name:"home",arg:null}; body=landingHTML(); }
   /* An unknown route used to render Explore, which hid exactly the class of
      bug where a nav entry points at a surface that does not exist. */
