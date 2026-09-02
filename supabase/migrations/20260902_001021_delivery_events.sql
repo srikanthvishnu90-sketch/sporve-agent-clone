@@ -17,7 +17,7 @@
 -- approved_by NOT NULL and sent_at NULL and send_after due; send window
 -- (default 08:00-20:00 org tz + blocked days + pause) parks rows via
 -- send_after; email_status<>'ok' -> needs_review; Resend POST carries
--- from "{org} via Sporv <{slug}@mail.sporv.com>", reply_to from settings,
+-- from "{org} via Sporv <{slug}@mail.sporv.ai>", reply_to from settings,
 -- X-Sporv-Message-Id; 2xx stamps sent_at+provider_message_id guarded by
 -- "AND sent_at IS NULL" (never sends twice); failure bumps attempt_count,
 -- 3 strikes -> status='failed'. resend-webhook (svix-verified, fail-closed)
@@ -30,9 +30,9 @@
 --    (the only writers are owner-gated approve fns + the delivery worker).
 --  · 000200 draft-first trigger untouched.
 --
--- REMAINING (owner, ~10 min): Resend account -> verify mail.sporv.com
+-- REMAINING (owner, ~10 min): Resend account -> verify mail.sporv.ai
 -- (SPF+DKIM rows Resend prints) -> `supabase secrets set RESEND_API_KEY=...
--- MAIL_DOMAIN=mail.sporv.com` -> webhook endpoint
+-- MAIL_DOMAIN=mail.sporv.ai` -> webhook endpoint
 -- https://tseszaprvtvqrkfpditu.supabase.co/functions/v1/resend-webhook
 -- (email.bounced + email.complained) -> `supabase secrets set
 -- RESEND_WEBHOOK_SECRET=whsec_...`. Fixture staged: guardian Sana (overdue

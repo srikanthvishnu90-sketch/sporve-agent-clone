@@ -47,7 +47,7 @@ const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 const GATEWAY_FN = Deno.env.get("GATEWAY_FUNCTION_NAME") ?? "ai-gateway";
 const RESEND_API_KEY = Deno.env.get("RESEND_API_KEY") ?? "";
-const MAIL_DOMAIN = Deno.env.get("MAIL_DOMAIN") ?? "mail.sporv.com";
+const MAIL_DOMAIN = Deno.env.get("MAIL_DOMAIN") ?? "mail.sporv.ai";
 const BATCH = Number(Deno.env.get("LIFECYCLE_BATCH") ?? 25);
 
 const EVENT_GUIDANCE: Record<string, string> = {
@@ -276,9 +276,9 @@ Deno.serve(async (req) => {
           .select("value").eq("provider_id", er.provider_id).eq("key", "reply_to").maybeSingle();
         // Org-level override wins; the platform default is Sporv support so a
         // parent's reply always lands somewhere staffed (owner 2026-09-01:
-        // support@sporv.com is the support address once sporv.com is owned).
+        // support@sporv.ai is the support address once sporv.ai is owned).
         const replyTo = ((replyRow?.value ?? {}) as { email?: string }).email
-          ?? Deno.env.get("SUPPORT_EMAIL") ?? "support@sporv.com";
+          ?? Deno.env.get("SUPPORT_EMAIL") ?? "support@sporv.ai";
         try {
           const resp = await fetch("https://api.resend.com/emails", {
             method: "POST",

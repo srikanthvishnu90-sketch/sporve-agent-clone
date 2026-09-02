@@ -8015,7 +8015,7 @@ function primaryNavHTML(){
   return `<nav class="tnav-row" aria-label="Primary">
     <button class="tnav ${S.route.name==="product"?"on":""}" data-nav="product">Product</button>
     <button class="tnav ${S.route.name==="pricing"?"on":""}" data-nav="pricing">Pricing</button>
-    <a class="tnav" href="mailto:support@sporv.com?subject=Sporv%20setup%20call">Book a call</a>
+    <a class="tnav" href="mailto:support@sporv.ai?subject=Sporv%20setup%20call">Book a call</a>
   </nav>`;
 }
 
@@ -8118,7 +8118,7 @@ function pricingHTML(){
       club's own account — Sporv adds ${FEE_PCT}% and takes no seat, team, or
       monthly fee.</p>
     <div class="cmp-ctas">
-      <a class="btn" href="mailto:support@sporv.com?subject=Sporv%20setup%20call">Book a 15-minute setup call</a>
+      <a class="btn" href="mailto:support@sporv.ai?subject=Sporv%20setup%20call">Book a 15-minute setup call</a>
       <button class="btn ghost" data-becomecoach="1">Get started</button>
     </div>
   </main>`;
@@ -8517,7 +8517,7 @@ function landingHTML(){
     <div class="wrap">
       <h2 data-rev>Fifteen minutes, your real roster.</h2>
       <p data-rev data-rev-d="1">Bring last season's export. We import it on the call and show you what the queue would have caught. If it isn't obviously better than what you do now, that's the end of it.</p>
-      <div data-rev data-rev-d="2"><a class="btn pri" href="mailto:support@sporv.com?subject=Sporv%20setup%20call">Book a 15-minute setup call</a></div>
+      <div data-rev data-rev-d="2"><a class="btn pri" href="mailto:support@sporv.ai?subject=Sporv%20setup%20call">Book a 15-minute setup call</a></div>
     </div>
     ${/* Real footer (spec 01 acceptance: legal reachable, distinct links,
          support address, contractor disclosure). Every destination is a KEPT
@@ -8531,7 +8531,7 @@ function landingHTML(){
            ["info:terms","Terms"],["info:refund","Refunds"],["info:legal","Legal"]]
           .map(function(p){return '<button class="foot-link" data-foot="'+p[0]+'">'+p[1]+'</button>'}).join("")}
       </nav>
-      <p class="foot-line"><a class="foot-mail" href="mailto:support@sporv.com">support@sporv.com</a> · Chicagoland ·
+      <p class="foot-line"><a class="foot-mail" href="mailto:support@sporv.ai">support@sporv.ai</a> · Chicagoland ·
         Coaches and clubs on Sporv are independent professionals, not Sporv employees.</p>
     </div></div>
   </section>
@@ -13186,13 +13186,13 @@ const INFO={
     {h:"2. How we use information",b:"We use information to provide and secure the Services; create and authenticate accounts; operate the waitlist; match families with providers; support listings, bookings, messages, notifications, payments, and customer support; verify providers and investigate safety concerns; improve performance and usability; prevent fraud and abuse; and comply with legal obligations. We also use information to provide the optional AI features described below. AI output can be inaccurate and should be checked against the provider listing, booking record, or other source before anyone relies on it."},
     {h:"3. AI features and automated processing",b:"Sporv currently uses Anthropic’s API for language tasks such as interpreting a coach search, generating constrained explanations for authorized listing results, answering supported marketplace questions, and drafting provider messages or session summaries. Sporv uses OpenAI’s API to create numerical embeddings that help compare search text with provider listings. The separate provider-match ranking described below does not call a language model. Depending on the feature you choose, the information sent for processing may include a search query; sport, age, budget, approximate location, and marketplace preferences; provider profile and listing facts; booking-policy text; recent message excerpts and a provider’s writing samples; or a child’s first name and the session notes a provider asks Sporv to summarize. Do not enter medical details, government identifiers, emergency information, or other sensitive information into an AI prompt. Do not use Sporv AI for medical advice, emergency help, or as a substitute for a qualified coach. Sporv applies marketplace-eligibility rules before match ranking, restricts returned listings to the eligible set, and orders matches with a deterministic comparison of current rating evidence, distance, price fit, and availability. Names, biographies, credentials, and profile-writing style do not affect that score. Sporv requires a person to review substantive AI-generated drafts before sharing them. For customer-facing coach answers, Sporv reloads current listing facts from its database and allows AI to select only from authorized listing identifiers; price, rating, availability, and policy text are rendered from server-controlled sources. AI does not independently book a session, send a provider draft, determine provider verification, or make a medical or legal decision. The central AI audit log is designed to store request and response hashes, sizes, model, token usage, cost, and latency rather than raw prompt text. Product records needed to provide the feature—such as messages, notes, or generated drafts—may remain in Sporv’s systems under this policy. The search parser also caches normalized search text and location hints to avoid repeated processing; users should treat search text as stored account activity and keep sensitive information out of it. If you choose to send in-app AI feedback, Sporv stores the AI feature name, release version, feedback category, helpfulness choice, and any optional comment you type. The feedback tool does not attach your prompt, the AI response, message history, name, or email address. To limit abuse without placing an account identifier in the feedback record, Sporv converts the authenticated account ID into a private keyed hash. Keep names, contact details, medical information, private messages, and AI conversation text out of the optional comment. Our operational retention schedule clears optional comments after 90 days and deletes the remaining structured feedback after 180 days."},
     {h:"4. How we share information",b:"We may share information only as needed for the Services: • Service providers that support hosting, authentication and database services (including Supabase), email delivery, security, analytics, push notifications, payment processing, or optional AI features (including Anthropic and OpenAI). • Other marketplace users when a booking or conversation requires a family and provider to see relevant profile, scheduling, or message information. • Professional advisers or authorities when reasonably necessary to protect safety, enforce our terms, comply with law, or respond to a valid legal request. • A successor organization as part of a merger, financing, acquisition, or sale, subject to appropriate confidentiality protections. We do not sell personal information or share it for cross-context behavioral advertising. We do not use information about children for targeted advertising."},
-    {h:"5. Children’s privacy",b:"Sporv is designed for adults arranging youth-sports services; it is not intended for children to create accounts or submit information directly. Children under 13 may not use the Services on their own. During the current beta, adults must not submit personal information about a child under 13. Before enabling collection of personal information from a child under 13, Sporv will provide a parent or legal guardian with direct notice and use a method designed to obtain verifiable parental consent. A parent may request access to, correction of, or deletion of a child’s information, or refuse further collection, by emailing support@sporv.com . We will verify the requester’s identity and relationship to the child before acting. If we learn that we collected personal information from a child under 13 without the required consent, we will disable access to that information and delete it as required. Please contact us immediately if you believe this has occurred."},
+    {h:"5. Children’s privacy",b:"Sporv is designed for adults arranging youth-sports services; it is not intended for children to create accounts or submit information directly. Children under 13 may not use the Services on their own. During the current beta, adults must not submit personal information about a child under 13. Before enabling collection of personal information from a child under 13, Sporv will provide a parent or legal guardian with direct notice and use a method designed to obtain verifiable parental consent. A parent may request access to, correction of, or deletion of a child’s information, or refuse further collection, by emailing support@sporv.ai . We will verify the requester’s identity and relationship to the child before acting. If we learn that we collected personal information from a child under 13 without the required consent, we will disable access to that information and delete it as required. Please contact us immediately if you believe this has occurred."},
     {h:"6. Retention",b:"We keep information only for as long as reasonably necessary for the purpose collected, including providing an account, completing transactions, meeting safety and recordkeeping needs, resolving disputes, and complying with law. Waitlist information is kept until launch communications are complete or you ask us to remove it. When information is no longer needed, we delete or de-identify it using reasonable measures. Any future child information will be retained only for the specific service purpose and not indefinitely."},
-    {h:"7. Your choices and privacy rights",b:"You may ask to access, correct, or delete your personal information, receive a portable copy where applicable, withdraw consent, or opt out of marketing messages. You can also unsubscribe using a link in a marketing email. Account-related and safety messages may still be sent when necessary to provide the Services. To make a request, email support@sporv.com . We may need to verify your identity before responding. Depending on where you live, you may have additional rights and may appeal a decision by replying to our response. We will not discriminate against you for exercising a privacy right."},
+    {h:"7. Your choices and privacy rights",b:"You may ask to access, correct, or delete your personal information, receive a portable copy where applicable, withdraw consent, or opt out of marketing messages. You can also unsubscribe using a link in a marketing email. Account-related and safety messages may still be sent when necessary to provide the Services. To make a request, email support@sporv.ai . We may need to verify your identity before responding. Depending on where you live, you may have additional rights and may appeal a decision by replying to our response. We will not discriminate against you for exercising a privacy right."},
     {h:"8. Security",b:"We use administrative, technical, and organizational safeguards designed to protect information, including access controls and encrypted network connections. No system can guarantee absolute security. Use a unique password and contact us if you believe your account or information has been compromised."},
     {h:"9. Data locations and external services",b:"Sporv and its service providers may process information in the United States and other locations where they operate. External sites and services have their own privacy practices; this policy does not govern information you provide directly to them."},
     {h:"10. Changes to this policy",b:"We may update this policy as the Services change. We will post the revised version here and update the date above. If a change materially affects how we use information already collected, we will provide additional notice and request consent when required."},
-    {h:"11. Contact",b:"Sporv is the operator responsible for this privacy notice. For privacy questions, parental requests, or complaints, email support@sporv.com . You can also use the Contact page ."}
+    {h:"11. Contact",b:"Sporv is the operator responsible for this privacy notice. For privacy questions, parental requests, or complaints, email support@sporv.ai . You can also use the Contact page ."}
   ]},
   /* The ported terms.html turned out to be an ATTORNEY OUTLINE — every section
      read "This section must state that…  [PLACEHOLDER — attorney to complete]".
@@ -13201,7 +13201,7 @@ const INFO={
      the operative facts the product actually enforces, labelled as interim —
      which is true, verifiable, and not pretending to be counsel's work. */
   terms:{title:"Terms of Service (interim)",sections:[
-    {h:"These terms are being finalized",b:"Sporv's full Terms of Service are being completed with counsel. Until they are published, the statements below describe how the service actually operates today, and they are the terms we hold ourselves to. Questions: support@sporv.com."},
+    {h:"These terms are being finalized",b:"Sporv's full Terms of Service are being completed with counsel. Until they are published, the statements below describe how the service actually operates today, and they are the terms we hold ourselves to. Questions: support@sporv.ai."},
     {h:"Coaches are independent professionals",b:"Coaches, trainers, camps and teams on Sporv are independent professionals, not Sporv employees. Sporv is the marketplace that connects you and processes payment."},
     {h:"What Sporv charges",b:"Sporv takes 0% of bookings — coaches keep 100% of what families pay. Coaches run their business on a flat subscription (free to start; Pro is $34.99 a month). Families pay the coach's listed price; Sporv adds no booking fee for family payers. Bookings paid during the earlier 12% era keep their recorded fee on their receipts."},
     {h:"Background checks",b:"A coach can take a booking only after clearing an individual background check with a recorded completion date. The system refuses bookings for anyone without one — this is enforced in the booking path, not just stated here."},
@@ -13216,12 +13216,12 @@ const INFO={
     {h:"The window",b:"Listings on Sporv currently use the flexible policy: cancel 24 hours or more before the session starts and you are refunded in full to your card. Inside 24 hours, no refund is due. The policy shown at booking is saved onto your booking at that moment, so a later change by the coach cannot alter what you agreed to."},
     {h:"How the amount is decided",b:"When you request a refund, Sporv computes it from the policy saved on your booking, the time remaining before the session, what you actually paid, and anything already refunded. The amount is decided by the system, not typed in by anyone — including us."},
     {h:"How money comes back",b:"Refunds are issued through Stripe to the card you paid with. Your booking shows the refund once Stripe confirms it. If nothing is due, the request screen tells you why instead of leaving the request open."},
-    {h:"Disputes and mistakes",b:"If a session did not happen, a coach did not show, or something else went wrong, email support@sporv.com with the booking reference. A person reviews it. During beta that mailbox is the record — keep your copy."},
+    {h:"Disputes and mistakes",b:"If a session did not happen, a coach did not show, or something else went wrong, email support@sporv.ai with the booking reference. A person reviews it. During beta that mailbox is the record — keep your copy."},
   ]},
   help:{title:"Help & Support",sections:[
     {h:"How do I book?",b:"Open a listing, pick a session slot and your athlete, then confirm. Your sessions show on Home and the Schedule tab."},
     {h:"Refunds & cancellations",b:"Cancelling records the cancellation. Refund eligibility follows the policy copied onto your booking and is confirmed separately by the payment processor."},
-    {h:"Contact us",b:"Email support@sporv.com. Response times are not guaranteed."},
+    {h:"Contact us",b:"Email support@sporv.ai. Response times are not guaranteed."},
   ]},
   legal:{title:"Legal",sections:[
     {h:"Terms of Service",b:"By using Sporv you agree to book in good faith and follow each coach's policies. Sporv is a marketplace connecting families with independent coaches."},
@@ -13232,7 +13232,7 @@ const INFO={
     {h:"Our commitment",b:"Sporv is built to be usable by everyone, including people who rely on assistive technology. We aim to meet WCAG 2.1 Level AA across the site, and we treat accessibility as part of the work, not an afterthought."},
     {h:"What we do",b:"Text meets a 4.5:1 contrast minimum, checked programmatically against every background it sits on. Every interactive control is reachable and operable by keyboard, with a visible focus state. Motion is decorative only: it respects your reduced-motion setting, and the site is fully readable with animation and JavaScript turned off. Images carry text alternatives, and page structure uses real headings and landmarks."},
     {h:"Known limitations",b:"This is a pre-launch product and some flows are still being refined. A few seeded demo components are labelled as demo data rather than fully described to assistive technology yet. If you hit a barrier, it is a bug to us — please tell us and we will fix it."},
-    {h:"Report a problem",b:"If any part of Sporv is hard to use with a screen reader, keyboard, or other assistive technology, email support@sporv.com with the page and what happened. We read every message and prioritise access issues."},
+    {h:"Report a problem",b:"If any part of Sporv is hard to use with a screen reader, keyboard, or other assistive technology, email support@sporv.ai with the page and what happened. We read every message and prioritise access issues."},
   ]},
 };
 /* ── About & Support ───────────────────────────────────────────────
@@ -13249,7 +13249,7 @@ const ABOUT_GROUPS=[
   ["Trust",[["Background checks","nav:trust"],["Privacy & Security","info:privacy"],
             ["Legal","info:legal"],["Report a concern","nav:trust"]]],
   ["Support",[["Help Center","info:help"],["Contact us","info:help"],
-              ["Accessibility","info:accessibility"],["support@sporv.com","mail"]]],
+              ["Accessibility","info:accessibility"],["support@sporv.ai","mail"]]],
 ];
 function aboutHTML(){
   return `${subnavHTML()}<main class="shell" style="padding-bottom:70px">
@@ -13261,7 +13261,7 @@ function aboutHTML(){
         <summary class="abt-sum"><span>${esc(h)}</span><span class="abt-cue" aria-hidden="true"></span></summary>
         <div class="abt-links">
           ${links.map(([t,a])=>a==="mail"
-            ? `<a href="mailto:support@sporv.com">${esc(t)}</a>`
+            ? `<a href="mailto:support@sporv.ai">${esc(t)}</a>`
             : `<button data-foot="${a}">${esc(t)}</button>`).join("")}
         </div>
       </details>`).join("")}
@@ -13281,14 +13281,14 @@ function infoHTML(key){
       ${d.sections.map(s=>`<section>
         <h3>${esc(s.h)}</h3>
         <p style="color:var(--ink-2);margin-top:8px;line-height:1.62">${
-          esc(s.b).replace(/support@sporve\.com/,'<a href="mailto:support@sporv.com" style="color:var(--slate-ink);font-weight:700">support@sporv.com</a>')
+          esc(s.b).replace(/support@sporve\.com/,'<a href="mailto:support@sporv.ai" style="color:var(--slate-ink);font-weight:700">support@sporv.ai</a>')
         }</p></section>`).join("")}
     </div>
     <div class="panel" style="max-width:68ch;background:var(--raise);border:0">
       <div class="eyebrow">Contact</div>
       <div style="display:flex;flex-wrap:wrap;gap:22px;margin-top:11px">
         <div><div style="font-weight:700">Support</div>
-          <a href="mailto:support@sporv.com" style="color:var(--slate-ink);font-size:var(--text-base)">support@sporv.com</a></div>
+          <a href="mailto:support@sporv.ai" style="color:var(--slate-ink);font-size:var(--text-base)">support@sporv.ai</a></div>
         <div><div style="font-weight:700">Safety team</div>
           <a href="mailto:safety@sporve.com" style="color:var(--slate-ink);font-size:var(--text-base)">safety@sporve.com</a></div>
         <div><div style="font-weight:700">Location</div>
@@ -13392,7 +13392,7 @@ function closeZoneHTML(){
           <p class="foot-blurb">Every sport. One app. Find coaches, trainers,
             camps and teams — and no one takes a booking here until they have
             cleared a background check.</p>
-          <a class="foot-mail" href="mailto:support@sporv.com">support@sporv.com</a>
+          <a class="foot-mail" href="mailto:support@sporv.ai">support@sporv.ai</a>
         </div>
       </div>
       <div class="closer-base">
