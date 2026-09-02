@@ -678,7 +678,7 @@
       const B = window.SporveBooking;
       if (!B || !B.refund) {
         if (btn) { btn.disabled = false; btn.textContent = "Submit request"; }
-        return showErr("sfRefundErr", "Refunds are unavailable right now. Email support@sporv.com.");
+        return showErr("sfRefundErr", "Refunds are unavailable right now. Email support@sporv.ai.");
       }
 
       B.refund(b.id).then(res => {
