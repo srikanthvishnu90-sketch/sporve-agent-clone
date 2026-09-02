@@ -274,7 +274,11 @@ Deno.serve(async (req) => {
         const slug = orgName.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "").slice(0, 40) || "club";
         const { data: replyRow } = await admin.from("provider_settings")
           .select("value").eq("provider_id", er.provider_id).eq("key", "reply_to").maybeSingle();
-        const replyTo = ((replyRow?.value ?? {}) as { email?: string }).email;
+        // Org-level override wins; the platform default is Sporv support so a
+        // parent's reply always lands somewhere staffed (owner 2026-09-01:
+        // support@sporv.com is the support address once sporv.com is owned).
+        const replyTo = ((replyRow?.value ?? {}) as { email?: string }).email
+          ?? Deno.env.get("SUPPORT_EMAIL") ?? "support@sporv.com";
         try {
           const resp = await fetch("https://api.resend.com/emails", {
             method: "POST",

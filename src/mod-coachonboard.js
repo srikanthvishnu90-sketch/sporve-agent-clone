@@ -892,7 +892,7 @@ function onboardView(){
     <header class="cw-top">
       <span class="cg-wordmark" style="font-size:15px;font-weight:800">Sporv</span>
       <span class="cw-topright">
-        <a class="cw-help" href="mailto:support@sporve.com">Questions?</a>
+        <a class="cw-help" href="mailto:support@sporv.com">Questions?</a>
         <button class="cw-exit" type="button" data-cob-exit="1">Save &amp; exit</button>
       </span>
     </header>
@@ -1388,7 +1388,7 @@ function guideSnapshot(){
       completeWhen:"providers.background_check_status is verified and background_check_completed_at is present.",
       evidence:backgroundDone ? "Verified result and completion timestamp are present." : backgroundReview ? `Server status is ${bg}; the coach cannot accelerate or self-clear it here.` : real ? `Server status is ${bg || "none"}.` : "Sample mode never counts as a real background-check result.",
       limit:"This repository does not prove a named screening vendor, a fixed screening scope, a self-service launch URL, or a turnaround SLA. The guide therefore does not invent Checkr, record types, or a 1–3 day promise.",
-      href:"mailto:support@sporve.com?subject=Start%20my%20background%20check", actionLabel:"Contact Sporv",
+      href:"mailto:support@sporv.com?subject=Start%20my%20background%20check", actionLabel:"Contact Sporv",
     },
     {
       id:"availability", phase:2, n:5, title:"Open a real session", tab:"schedule", time:"4–8 min", owner:"You", done:availabilityDone,
