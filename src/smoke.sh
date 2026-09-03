@@ -152,6 +152,23 @@ done
 [ "$FAIL" -eq 0 ] && pass "no JS errors across $(echo $ROUTES | wc -w | tr -d ' ') routes"
 [ "$RESWARN" -gt 0 ] && printf "  \033[33mWARN\033[0m  %s\n" "$RESWARN external resource(s) failed — the single-file/CSP design says nothing should be fetched externally"
 
+# ── product toggle: EVERY page must render with a real body ─────────────
+# Owner standing rule (2026-09-02, stated repeatedly): the product toggle and
+# ALL its pages are a NECESSITY. Any PAGE_META id that renders thin (<600
+# visible chars) or throws fails the build — a dropped page can't ship green.
+PGRES=$($B js "var ids=Object.keys(PAGE_META||{});var bad=[];
+for(var i=0;i<ids.length;i++){try{S.auth={status:'guest'};S.portal='family';
+S.route={name:'page',arg:ids[i]};render();
+var len=document.getElementById('app').textContent.replace(/\s+/g,' ').length;
+if(len<600)bad.push(ids[i]+'(thin:'+len+')');}catch(e){bad.push(ids[i]+'(err)')}}
+S.route={name:'home'};render();ids.length+'|'+bad.join(',')" 2>/dev/null)
+PGN=${PGRES%%|*}; PGBAD=${PGRES#*|}
+if [ -n "$PGBAD" ] && [ "$PGBAD" != "$PGRES" ] && [ -n "$(echo "$PGBAD"|tr -d '[:space:]')" ]; then
+  fail "product pages broken: $PGBAD"
+else
+  pass "product toggle: all $PGN pages render with a body"
+fi
+
 # ── coach portal ────────────────────────────────────────────────────────
 # Every route above forces portal='family' and auth=guest, so until now the
 # entire coach dashboard — roughly half the product — was never rendered by
