@@ -1,8 +1,8 @@
 // ============================================================================
 // stripe-connect-onboarding  (Supabase Edge Function)
 // ============================================================================
-// REVIEW COPY — paste into the Supabase dashboard after review; deploying is
-// manual. Fixes the payout write-back bug: previously stripe_account_id was only
+// Canonical source: deploy this function from the repository with the Supabase CLI.
+// Fixes the payout write-back bug: previously stripe_account_id was only
 // written on first creation (or not at all) and stripe_charges_enabled was never
 // refreshed on the return trip, so the providers row stayed NULL/false.
 //
