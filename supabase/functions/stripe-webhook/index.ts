@@ -24,8 +24,10 @@
 
 import Stripe from "npm:stripe@14.21.0";
 import { createClient } from "npm:@supabase/supabase-js@2";
+import { assertStripeEventMode } from "../_shared/stripe_mode.ts";
 
-const stripe = new Stripe(Deno.env.get("STRIPE_SECRET_KEY")!, {
+const STRIPE_SECRET_KEY = Deno.env.get("STRIPE_SECRET_KEY") ?? "";
+const stripe = new Stripe(STRIPE_SECRET_KEY, {
   apiVersion: "2024-06-20",
   httpClient: Stripe.createFetchHttpClient(),
 });
@@ -50,16 +52,12 @@ function bookingIdFromSession(s: Stripe.Checkout.Session): string | null {
     (s.client_reference_id ?? null);
 }
 
-/* The application fee lives on the PAYMENT INTENT, not the checkout session:
-   stripe-create-checkout sets it via payment_intent_data.application_fee_amount
-   alongside a destination transfer. So the session object a webhook receives
-   does not carry it and it has to be retrieved.
+/* Direct-charge Checkout deliberately sets no application fee. Stripe does not
+   include PaymentIntent economics on the Checkout Session, so retrieve the PI
+   only to reconcile what Stripe actually recorded. A non-null fee is evidence
+   of external configuration drift; this webhook observes it but never sets it.
 
-   Returns null on any failure rather than throwing. A booking must still be
-   marked paid if this lookup fails — the RPC treats a null fee as "not recorded
-   yet", which is recoverable, whereas losing the payment confirmation is not.
-   Missing economics is a reconciliation job; a missed payment is a support
-   ticket from a parent who was charged. */
+   Returns null on lookup failure so payment confirmation is not lost. */
 async function feeFromPaymentIntent(
   connectedAccountId: string | null | undefined,
   stripe: Stripe,
@@ -250,12 +248,7 @@ Deno.serve(async (req) => {
   }
 
   try {
-    const expectedLivemode = (Deno.env.get("STRIPE_SECRET_KEY") ?? "").startsWith("sk_live_");
-    if (event.livemode !== expectedLivemode) {
-      throw new Error(
-        `Stripe event mode mismatch: expected ${expectedLivemode ? "live" : "test"} mode`,
-      );
-    }
+    assertStripeEventMode(event.livemode, STRIPE_SECRET_KEY);
 
     if (event.account) {
       const ownershipClient = createClient(
