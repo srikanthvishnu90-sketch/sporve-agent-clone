@@ -1414,7 +1414,8 @@ button.tnav.tnav-cta:hover{background:#FFFFFF;color:#0B0D0F;border-color:#FFFFFF
 .topbar{position:sticky;top:0;z-index:50}
 .productmenu .pmcol .eyebrow{margin-bottom:6px}
 .productmenu .pmrow2{display:block;width:100%;text-align:left;color:#C7D0DA;
-  font-size:var(--text-sm);padding:6px 0;font-family:var(--sans)}
+  font-size:var(--text-base);padding:5px 0;font-family:var(--sans);
+  font-weight:400;text-transform:none;letter-spacing:0;font-style:normal}
 .productmenu .pmrow2:hover{color:#FFFFFF}
 .mapstrip-in{display:flex;justify-content:space-between;align-items:center;gap:24px;flex-wrap:wrap}
 /* Boot-surface light bands ride the DARKER shipped slate (#E9EEF4, the same
@@ -8166,13 +8167,15 @@ function productMenuHTML(){
      never called; the 23 pages had NO entry point). The toggle now lists
      EVERY PAGE_META page, grouped, plus the overview. Built from PAGE_META so
      a new page appears here automatically (and the smoke gate keeps it real). */
-  const groups=[["Start here",["what-is","background-checks"]],
-    ["Run your club",["roster","scheduling","session-notes","waivers","agent","instant-booking","messaging"]],
-    ["Money",["payments","payouts","bookings-receipts","insights"]],
-    ["Families",["search","map-search","saved","athlete-progress","media-consent","ai-coach"]],
-    ["Enterprise",["enterprise","enterprise-roster","enterprise-finance","enterprise-compliance"]]];
+  /* TRIM 2026-09-03 (owner + screenshot): ~8 pages, NO marketplace surfaces
+     (search/map/saved/booking/messaging/assistant/media rows removed from the
+     MENU; the pages stay routable and the smoke gate still renders all of
+     them). Normal body font, compact rows. */
+  const groups=[["Run your club",["roster","scheduling","waivers","agent"]],
+    ["Money",["payments","payouts"]],
+    ["About",["what-is","background-checks"]]];
   const row=(id)=>{const m=PAGE_META[id];return m?`<button class="pmrow2" role="menuitem" data-pdest="page:${id}">${esc(m.t)}</button>`:"";};
-  return `<div class="productmenu on" role="menu" aria-label="Product pages"><div class="shell" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:8px 26px;padding:18px 24px 22px">
+  return `<div class="productmenu on" role="menu" aria-label="Product pages"><div class="shell" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:8px 26px;padding:16px 24px 18px">
     <div class="pmcol"><div class="eyebrow">Overview</div>
       <button class="pmrow2" role="menuitem" data-pdest="go:product">Everything Sporv does →</button></div>
     ${groups.map(([g,ids])=>`<div class="pmcol"><div class="eyebrow">${esc(g)}</div>${ids.map(row).join("")}</div>`).join("")}
