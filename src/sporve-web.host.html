@@ -1413,8 +1413,16 @@ button.tnav.tnav-cta:hover{background:#FFFFFF;color:#0B0D0F;border-color:#FFFFFF
 @media(max-width:900px){.productmenu.on{display:block}}
 .topbar{position:sticky;top:0;z-index:50}
 .productmenu .pmcol .eyebrow{margin-bottom:6px}
-.productmenu .pmrow2{display:block;width:100%;text-align:left;color:#C7D0DA;
-  font-size:var(--text-base);padding:5px 0;font-family:var(--sans);
+/* Amboras-style trigger (owner reference 2026-09-03): light rounded pill,
+   dark semibold label, caret flips when open. */
+.tnav.prodpill{background:#F4F5F7;color:#16181D;border-radius:12px;
+  padding:0 18px;height:40px;line-height:40px;font-weight:600;
+  font-size:16px;font-family:var(--sans);font-style:normal;display:inline-flex;
+  align-items:center;gap:8px}
+.tnav.prodpill:hover,.tnav.prodpill.open{background:#FFFFFF;color:#0B0D0F;font-style:normal}
+.tnav.prodpill .caret{font-size:14px;line-height:1;transform:translateY(-1px)}
+.productmenu .pmrow2{display:block;width:100%;text-align:left;color:#D7DEE7;
+  font-size:16px;padding:7px 0;font-family:var(--sans);
   font-weight:400;text-transform:none;letter-spacing:0;font-style:normal}
 .productmenu .pmrow2:hover{color:#FFFFFF}
 .mapstrip-in{display:flex;justify-content:space-between;align-items:center;gap:24px;flex-wrap:wrap}
@@ -8037,8 +8045,8 @@ function primaryNavHTML(){
   /* Spec 01 (2026-08-31): Product is ONE page, no dropdown; Book a call is the
      only CTA. The mega-menu (productMenuHTML) is retired. */
   return `<nav class="tnav-row" aria-label="Primary">
-    <button class="tnav ${S.route.name==="product"||S.prodMenu?"on":""}" data-prodtoggle="1"
-      aria-expanded="${!!S.prodMenu}" aria-haspopup="menu">Product ▾</button>
+    <button class="tnav prodpill ${S.prodMenu?"open":""}" data-prodtoggle="1"
+      aria-expanded="${!!S.prodMenu}" aria-haspopup="menu">Product <span class="caret">${S.prodMenu?"⌃":"⌄"}</span></button>
     <button class="tnav ${S.route.name==="pricing"?"on":""}" data-nav="pricing">Pricing</button>
     <a class="tnav" href="mailto:support@sporv.ai?subject=Sporv%20setup%20call">Book a call</a>
     <button class="tnav tnav-cta" data-becomecoach="1">Get Started</button>
