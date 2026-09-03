@@ -23,6 +23,7 @@
 
 import Stripe from "npm:stripe@14.21.0";
 import { createClient } from "npm:@supabase/supabase-js@2";
+import { stripeStatementDescriptorSuffix } from "../_shared/stripe_statement_descriptor.ts";
 
 const cors = {
   "Access-Control-Allow-Origin": "*",
@@ -45,10 +46,8 @@ const stripe = new Stripe(Deno.env.get("STRIPE_SECRET_KEY")!, {
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SERVICE_ROLE = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 const ANON_KEY = Deno.env.get("SUPABASE_ANON_KEY")!;
-// 0% platform fee (subscription-funded model, owner decision 2026-08-30). This
-// is a DIRECT charge on the club's connected account — Sporv takes nothing, so
-// there is no application fee to compute or validate here. A future take rate
-// would be applied as `application_fee_amount` on the connected charge.
+// 0% platform fee (subscription-funded model, owner decision 2026-08-30).
+// This is a direct charge on the club account; Sporv never receives the funds.
 const CHECKOUT_ORIGINS = (Deno.env.get("CHECKOUT_ORIGINS") ?? "")
   .split(",")
   .map((origin) => origin.trim())
@@ -108,7 +107,7 @@ Deno.serve(async (req) => {
       .from("bookings")
       .select(
         "id, searcher_id, status, final_price, currency, payment_status, selected_tier, stripe_checkout_session_id, " +
-          "programs(title, provider_id, providers(stripe_account_id, stripe_charges_enabled))",
+          "programs(title, provider_id, providers(business_name, stripe_account_id, stripe_charges_enabled))",
       )
       .eq("id", bookingId)
       .maybeSingle();
@@ -133,7 +132,7 @@ Deno.serve(async (req) => {
       | Record<string, unknown>
       | null;
     const provider = (program?.providers ?? null) as
-      | { stripe_account_id?: string | null; stripe_charges_enabled?: boolean }
+      | { business_name?: string | null; stripe_account_id?: string | null; stripe_charges_enabled?: boolean }
       | null;
     const destination = provider?.stripe_account_id ?? null;
 
@@ -184,11 +183,12 @@ Deno.serve(async (req) => {
         },
       ],
       payment_intent_data: {
-        // DIRECT charge on the connected (club) account: no application_fee_amount
-        // (0% subscription model) and no transfer_data — the funds start on the
-        // club account, which is the merchant of record. A future take rate would
-        // add application_fee_amount here on the connected charge.
+        // Direct charge on the connected club account. The suffix is card-only;
+        // non-card rails use the connected account's static descriptor.
         metadata: { booking_id: bookingId },
+        statement_descriptor_suffix: stripeStatementDescriptorSuffix(
+          provider?.business_name,
+        ),
       },
     }, {
       // Stripe returns the same result for retrying this booking, preventing

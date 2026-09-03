@@ -13,6 +13,7 @@
 
 import Stripe from "npm:stripe@14.21.0";
 import { createClient } from "npm:@supabase/supabase-js@2";
+import { stripeStatementDescriptorSuffix } from "../_shared/stripe_statement_descriptor.ts";
 
 const cors = {
   "Access-Control-Allow-Origin": "*",
@@ -109,9 +110,12 @@ Deno.serve(async (req) => {
         },
       }],
       payment_intent_data: {
-        // DIRECT charge, 0% application fee — the one function a take rate
-        // would later edit (spec 03 acceptance).
+        // Direct charge on the connected club account. The suffix is card-only;
+        // ACH uses the connected account's static statement descriptor.
         metadata: { installment_id: installmentId },
+        statement_descriptor_suffix: stripeStatementDescriptorSuffix(
+          fs.providers.business_name,
+        ),
       },
     }, {
       stripeAccount: acct,
