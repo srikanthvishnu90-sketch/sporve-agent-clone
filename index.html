@@ -21,7 +21,7 @@
 <meta name="twitter:description" content="Find coaches, trainers, camps and teams across 20+ sports in Chicagoland.">
 <meta name="twitter:image" content="https://sporv.vercel.app/og.png">
 <link rel="icon" href="data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%2032%2032'%3E%3Crect%20width='32'%20height='32'%20rx='7'%20fill='%2309090B'/%3E%3Ccircle%20cx='16'%20cy='16'%20r='6'%20fill='white'/%3E%3C/svg%3E">
-<meta name="sporve-build" content="6fb843d883209939">
+<meta name="sporve-build" content="6e6a6b1ec74ce2b1">
 </head>
 <body>
 <noscript><h1>Sporv — Every sport. One app.</h1><p>Sporv connects families and athletes with coaches, trainers, camps, and teams across more than 20 sports. Please enable JavaScript to use the app.</p></noscript>
@@ -743,7 +743,7 @@ img{max-width:100%;display:block}
   .nav-left .tnav-row{display:none}      /* tabs collapse into the sheet */
   /* the Get Started CTA survives the collapse: re-shown, pinned right */
   .nav-left .tnav-row{display:flex}
-  .nav-left .tnav-row .tnav:not(.tnav-cta){display:none}
+  .nav-left .tnav-row .tnav:not(.tnav-cta):not([data-prodtoggle]){display:none}
   .nav-left .tnav-row{gap:0}
   .navlogin,.getstarted,.acct-name{display:none}  /* auth cluster → sheet */
   .topbar.guest .acct{display:flex}      /* hamburger returns for guests */
@@ -1436,7 +1436,9 @@ button.tnav.tnav-cta:hover{background:#FFFFFF;color:#0B0D0F;border-color:#FFFFFF
 .topbar-in .tnav-row{flex:1 1 auto}
 .topbar-in .nav-left{flex:1 1 auto}
 .productmenu.on{position:absolute;left:0;right:0;top:100%;z-index:60;background:#0E1116;
-  border-bottom:1px solid #1C222B;box-shadow:0 24px 60px rgba(0,0,0,.5)}
+  border-bottom:1px solid #1C222B;box-shadow:0 24px 60px rgba(0,0,0,.5);
+  opacity:1;visibility:visible;transform:none;display:block;max-height:calc(100vh - 72px);overflow:auto}
+@media(max-width:900px){.productmenu.on{display:block}}
 .topbar{position:sticky;top:0;z-index:50}
 .productmenu .pmcol .eyebrow{margin-bottom:6px}
 .productmenu .pmrow2{display:block;width:100%;text-align:left;color:#C7D0DA;
@@ -8058,7 +8060,7 @@ function topbarHTML(){
         the panel dropped out of the header while the button that opened it
         sat several hundred pixels below. It now renders beside its trigger
         and needs no measured offset. */""}
-  </div></header>${S.prodMenu?productMenuHTML():""}`;
+  </div>${S.prodMenu?productMenuHTML():""}</header>`;
 }
 
 /* Product · Filters · Saved · Sport — the four things a searcher reaches for.
@@ -15373,7 +15375,12 @@ document.querySelectorAll('.sig-ai-coach').forEach(sigAiCoachWire);
     const i=+b.dataset.faq; S.faqOpen=S.faqOpen===i?null:i; render();});
   /* Become a coach opens the signup wizard directly — there is no marketing
      page in front of it any more. */
-  $("[data-becomecoach]").forEach(b=>b.onclick=()=>enterCoachPortal());
+  $("[data-becomecoach]").forEach(b=>b.onclick=()=>{
+    const signed=window.SporveAuth&&window.SporveAuth.isSignedIn&&window.SporveAuth.isSignedIn();
+    if(!signed){S.signupRole="coach";S.pendingIntent={kind:"coachOnboard"};
+      S.modal={type:"authsheet"};render();return;}
+    enterCoachPortal();
+  });
   /* ITEM 5 — nobody signs in until the form can actually succeed.
      -----------------------------------------------------------------------
      Continue rendered enabled with every field empty, so the first thing a
