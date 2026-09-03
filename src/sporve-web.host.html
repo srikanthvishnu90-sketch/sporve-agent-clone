@@ -15053,7 +15053,18 @@ document.querySelectorAll('.sig-ai-coach').forEach(sigAiCoachWire);
     S.fdraft=JSON.parse(JSON.stringify(S.filters||{}));
     S.fdOpen={format:true,commitment:true};
     S.modal={type:"filters"};render();});
-  $("[data-prodtoggle]").forEach(b=>b.onclick=e=>{e.stopPropagation();S.prodMenu=!S.prodMenu;render();});
+  $("[data-prodtoggle]").forEach(b=>{
+    b.onclick=e=>{e.stopPropagation();S.prodMenu=!S.prodMenu;render();};
+    /* hover-open (owner 2026-09-03): desktop mice get the menu on hover, with
+       a grace timer so the pointer can travel from the tab into the panel.
+       Click stays for touch/keyboard. */
+    b.onmouseenter=()=>{clearTimeout(S._pmT);if(!S.prodMenu){S.prodMenu=true;render();}};
+    b.onmouseleave=()=>{clearTimeout(S._pmT);S._pmT=setTimeout(()=>{if(S.prodMenu){S.prodMenu=false;render();}},260);};
+  });
+  $(".productmenu").forEach(m=>{
+    m.onmouseenter=()=>clearTimeout(S._pmT);
+    m.onmouseleave=()=>{clearTimeout(S._pmT);S._pmT=setTimeout(()=>{if(S.prodMenu){S.prodMenu=false;render();}},260);};
+  });
   if(S.prodMenu&&!S._prodMenuBound){S._prodMenuBound=true;
     document.addEventListener("click",e=>{if(S.prodMenu&&!e.target.closest(".productmenu,[data-prodtoggle]")){S.prodMenu=false;render();}});
     document.addEventListener("keydown",e=>{if(e.key==="Escape"&&S.prodMenu){S.prodMenu=false;render();}});}
