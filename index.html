@@ -21,7 +21,7 @@
 <meta name="twitter:description" content="Find coaches, trainers, camps and teams across 20+ sports in Chicagoland.">
 <meta name="twitter:image" content="https://sporv.vercel.app/og.png">
 <link rel="icon" href="data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%2032%2032'%3E%3Crect%20width='32'%20height='32'%20rx='7'%20fill='%2309090B'/%3E%3Ccircle%20cx='16'%20cy='16'%20r='6'%20fill='white'/%3E%3C/svg%3E">
-<meta name="sporve-build" content="6e6a6b1ec74ce2b1">
+<meta name="sporve-build" content="9241fe9f49b33c49">
 </head>
 <body>
 <noscript><h1>Sporv — Every sport. One app.</h1><p>Sporv connects families and athletes with coaches, trainers, camps, and teams across more than 20 sports. Please enable JavaScript to use the app.</p></noscript>
@@ -15097,7 +15097,18 @@ document.querySelectorAll('.sig-ai-coach').forEach(sigAiCoachWire);
     S.fdraft=JSON.parse(JSON.stringify(S.filters||{}));
     S.fdOpen={format:true,commitment:true};
     S.modal={type:"filters"};render();});
-  $("[data-prodtoggle]").forEach(b=>b.onclick=e=>{e.stopPropagation();S.prodMenu=!S.prodMenu;render();});
+  $("[data-prodtoggle]").forEach(b=>{
+    b.onclick=e=>{e.stopPropagation();S.prodMenu=!S.prodMenu;render();};
+    /* hover-open (owner 2026-09-03): desktop mice get the menu on hover, with
+       a grace timer so the pointer can travel from the tab into the panel.
+       Click stays for touch/keyboard. */
+    b.onmouseenter=()=>{clearTimeout(S._pmT);if(!S.prodMenu){S.prodMenu=true;render();}};
+    b.onmouseleave=()=>{clearTimeout(S._pmT);S._pmT=setTimeout(()=>{if(S.prodMenu){S.prodMenu=false;render();}},260);};
+  });
+  $(".productmenu").forEach(m=>{
+    m.onmouseenter=()=>clearTimeout(S._pmT);
+    m.onmouseleave=()=>{clearTimeout(S._pmT);S._pmT=setTimeout(()=>{if(S.prodMenu){S.prodMenu=false;render();}},260);};
+  });
   if(S.prodMenu&&!S._prodMenuBound){S._prodMenuBound=true;
     document.addEventListener("click",e=>{if(S.prodMenu&&!e.target.closest(".productmenu,[data-prodtoggle]")){S.prodMenu=false;render();}});
     document.addEventListener("keydown",e=>{if(e.key==="Escape"&&S.prodMenu){S.prodMenu=false;render();}});}
