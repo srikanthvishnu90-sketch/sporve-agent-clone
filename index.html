@@ -21,7 +21,7 @@
 <meta name="twitter:description" content="Find coaches, trainers, camps and teams across 20+ sports in Chicagoland.">
 <meta name="twitter:image" content="https://sporv.vercel.app/og.png">
 <link rel="icon" href="data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%2032%2032'%3E%3Crect%20width='32'%20height='32'%20rx='7'%20fill='%2309090B'/%3E%3Ccircle%20cx='16'%20cy='16'%20r='6'%20fill='white'/%3E%3C/svg%3E">
-<meta name="sporve-build" content="520b92a4b4f313a9">
+<meta name="sporve-build" content="6fb843d883209939">
 </head>
 <body>
 <noscript><h1>Sporv — Every sport. One app.</h1><p>Sporv connects families and athletes with coaches, trainers, camps, and teams across more than 20 sports. Please enable JavaScript to use the app.</p></noscript>
@@ -1435,6 +1435,13 @@ button.tnav.tnav-cta,.tnav.tnav-cta{margin-left:auto;background:#101318;color:#F
 button.tnav.tnav-cta:hover{background:#FFFFFF;color:#0B0D0F;border-color:#FFFFFF;font-style:normal}
 .topbar-in .tnav-row{flex:1 1 auto}
 .topbar-in .nav-left{flex:1 1 auto}
+.productmenu.on{position:absolute;left:0;right:0;top:100%;z-index:60;background:#0E1116;
+  border-bottom:1px solid #1C222B;box-shadow:0 24px 60px rgba(0,0,0,.5)}
+.topbar{position:sticky;top:0;z-index:50}
+.productmenu .pmcol .eyebrow{margin-bottom:6px}
+.productmenu .pmrow2{display:block;width:100%;text-align:left;color:#C7D0DA;
+  font-size:var(--text-sm);padding:6px 0;font-family:var(--sans)}
+.productmenu .pmrow2:hover{color:#FFFFFF}
 .mapstrip-in{display:flex;justify-content:space-between;align-items:center;gap:24px;flex-wrap:wrap}
 /* Boot-surface light bands ride the DARKER shipped slate (#E9EEF4, the same
    ground as .pgband.slate), not the near-white --raise (#F7F8FA). Cards stay
@@ -8051,7 +8058,7 @@ function topbarHTML(){
         the panel dropped out of the header while the button that opened it
         sat several hundred pixels below. It now renders beside its trigger
         and needs no measured offset. */""}
-  </div></header>`;
+  </div></header>${S.prodMenu?productMenuHTML():""}`;
 }
 
 /* Product · Filters · Saved · Sport — the four things a searcher reaches for.
@@ -8071,7 +8078,8 @@ function primaryNavHTML(){
   /* Spec 01 (2026-08-31): Product is ONE page, no dropdown; Book a call is the
      only CTA. The mega-menu (productMenuHTML) is retired. */
   return `<nav class="tnav-row" aria-label="Primary">
-    <button class="tnav ${S.route.name==="product"?"on":""}" data-nav="product">Product</button>
+    <button class="tnav ${S.route.name==="product"||S.prodMenu?"on":""}" data-prodtoggle="1"
+      aria-expanded="${!!S.prodMenu}" aria-haspopup="menu">Product ▾</button>
     <button class="tnav ${S.route.name==="pricing"?"on":""}" data-nav="pricing">Pricing</button>
     <a class="tnav" href="mailto:support@sporv.ai?subject=Sporv%20setup%20call">Book a call</a>
     <button class="tnav tnav-cta" data-becomecoach="1">Get Started</button>
@@ -8196,6 +8204,23 @@ function notFoundHTML(name){
 /* PART 2 — four-column Product menu. Every row resolves to a real route via
    the existing data-pdest contract; nothing falls through to Explore. */
 function productMenuHTML(){
+  /* REWRITE 2026-09-02 (owner: "i dont see the product pages" — this fn was
+     never called; the 23 pages had NO entry point). The toggle now lists
+     EVERY PAGE_META page, grouped, plus the overview. Built from PAGE_META so
+     a new page appears here automatically (and the smoke gate keeps it real). */
+  const groups=[["Start here",["what-is","background-checks"]],
+    ["Run your club",["roster","scheduling","session-notes","waivers","agent","instant-booking","messaging"]],
+    ["Money",["payments","payouts","bookings-receipts","insights"]],
+    ["Families",["search","map-search","saved","athlete-progress","media-consent","ai-coach"]],
+    ["Enterprise",["enterprise","enterprise-roster","enterprise-finance","enterprise-compliance"]]];
+  const row=(id)=>{const m=PAGE_META[id];return m?`<button class="pmrow2" role="menuitem" data-pdest="page:${id}">${esc(m.t)}</button>`:"";};
+  return `<div class="productmenu on" role="menu" aria-label="Product pages"><div class="shell" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:8px 26px;padding:18px 24px 22px">
+    <div class="pmcol"><div class="eyebrow">Overview</div>
+      <button class="pmrow2" role="menuitem" data-pdest="go:product">Everything Sporv does →</button></div>
+    ${groups.map(([g,ids])=>`<div class="pmcol"><div class="eyebrow">${esc(g)}</div>${ids.map(row).join("")}</div>`).join("")}
+  </div></div>`;
+}
+function productMenuHTML_legacy(){
   /* §9.1: every bold menu row lands on its OWN marketing page (page:<id>), not
      an app view — this is the only path by which the 17 pages are reachable. */
   /* Menu restructure (owner 2026-08-30, B2B pivot): the family column,
@@ -15070,6 +15095,10 @@ document.querySelectorAll('.sig-ai-coach').forEach(sigAiCoachWire);
     S.fdraft=JSON.parse(JSON.stringify(S.filters||{}));
     S.fdOpen={format:true,commitment:true};
     S.modal={type:"filters"};render();});
+  $("[data-prodtoggle]").forEach(b=>b.onclick=e=>{e.stopPropagation();S.prodMenu=!S.prodMenu;render();});
+  if(S.prodMenu&&!S._prodMenuBound){S._prodMenuBound=true;
+    document.addEventListener("click",e=>{if(S.prodMenu&&!e.target.closest(".productmenu,[data-prodtoggle]")){S.prodMenu=false;render();}});
+    document.addEventListener("keydown",e=>{if(e.key==="Escape"&&S.prodMenu){S.prodMenu=false;render();}});}
   $("[data-pdest]").forEach(b=>b.onclick=()=>{
     const [kind,arg]=b.dataset.pdest.split(":");
     if(kind==="filters"){if(modModal("filters")){S.modal={type:"filters"};render();}return;}
@@ -15100,7 +15129,8 @@ document.querySelectorAll('.sig-ai-coach').forEach(sigAiCoachWire);
     /* page:<id> → the marketing page, in the family portal. Without this the
        split's kind==="page" fell through to go("<id>"), which set an unknown
        route name and never rendered pageHTML — the 17 pages' one nav path. */
-    if(kind==="page"){S.portal="family";go("page",arg);return;}
+    if(kind==="page"){S.prodMenu=false;S.portal="family";go("page",arg);return;}
+    if(kind==="go"){S.prodMenu=false;S.portal="family";go(arg);return;}
     go(arg);
   });
   /* Toggle flips the view in place — same route, swapped scroll (spec Part 2). */
