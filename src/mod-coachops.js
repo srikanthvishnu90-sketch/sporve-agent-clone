@@ -68,14 +68,20 @@ const wdShort = n => (WD.find(w => w.n === n) || { s: "—" }).s;
    mod-catalog.js swaps PROGRAMS for live rows, every id this module holds —
    notes, media, roster entries — is a seeded "prog_N" that no live row
    matches, and a bare PROGRAMS.find() would start returning null everywhere. */
+/* Demo content is for the demo: a REAL Supabase session must never see the
+   seeded catalogue dressed up as its own business (2026-09-04 — the
+   "someone else's account" fix). The demo account and smoke both run without
+   a session, so both keep their seeded render. */
+const demoAllowed = () =>
+  !(window.SporveAuth && window.SporveAuth.isSignedIn && window.SporveAuth.isSignedIn());
 const prog = id => PROGRAMS.find(p => p.id === id) ||
-                   DEMO_CATALOGUE.find(p => p.id === id) || null;
+                   (demoAllowed() ? DEMO_CATALOGUE.find(p => p.id === id) : null) || null;
 /* The coach portal is still demo records (Phase E makes it live), so it owns
    seeded listings. Filtering the LIVE catalogue by S.listings returns nothing
    and the `|| PROGRAMS[0]` fallbacks below would then hand this demo coach a
    real provider's listing to manage — one operator shown another operator's
    business. DEMO_CATALOGUE keeps that boundary explicit. */
-const myListings = () => DEMO_CATALOGUE.filter(p => S.listings.includes(p.id));
+const myListings = () => demoAllowed() ? DEMO_CATALOGUE.filter(p => S.listings.includes(p.id)) : [];
 
 /* ═══════════════════ POLICY VOCABULARY ═══════════════════ */
 /* Exactly three cancellation policies; each carries its real consequence. */
@@ -184,6 +190,7 @@ function seedWaitlist(){
 }
 
 function seedSlots(){
+  if (!demoAllowed()) return [];   // a real account starts with an empty grid
   const mine = myListings();
   const at = i => (mine[i] || DEMO_CATALOGUE[i] || DEMO_CATALOGUE[0]).id;
   const capOf = i => (mine[i] || DEMO_CATALOGUE[i] || DEMO_CATALOGUE[0]).cap;
@@ -990,7 +997,7 @@ function wire(){
         return;
       }
     }
-    const base = myListings()[0] || DEMO_CATALOGUE[0];
+    const base = myListings()[0] || (demoAllowed() ? DEMO_CATALOGUE[0] : null);
     if (!base){ render(); return; }
     /* Holding availability writes to the coach's real schedule — a guest gets
        the sheet instead, and the drawn range is discarded rather than half-kept. */
@@ -1144,8 +1151,22 @@ window.MOD_COACHOPS = {
      Operations tab, waitlist under Listings, slots under Schedule. Views stay
      exported so those hosts can render them. */
   tabs: {},
-  views: { policies: policiesView, waitlist: waitlistView,
-           slots: slotsView, messages: messagesView },
+  /* Seeds are minted at script load, BEFORE the session restores (restore()
+     is async), so load-time guards can't protect a returning signed-in coach.
+     Scrub once at first render instead: a real session gets empty demo
+     collections, the demo account (no session) keeps its seeds. */
+  views: (function(){
+    function scrub(fn){ return function(){
+      if (!demoAllowed() && !state._demoScrubbed){
+        state._demoScrubbed = true;
+        state.waitlistEntries = [];
+        state.recurringSlots = [];
+      }
+      return fn.apply(null, arguments);
+    }; }
+    return { policies: scrub(policiesView), waitlist: scrub(waitlistView),
+             slots: scrub(slotsView), messages: scrub(messagesView) };
+  })(),
   modals: { editpolicy: editPolicyModal, addslot: addSlotModal, offerspot: offerSpotModal,
             nameslot: nameSlotModal },
   wire: wire,

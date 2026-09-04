@@ -89,13 +89,18 @@ const skillsFor = sport =>
   SKILLS[sport] || ["Technique", "Conditioning", "Game awareness", "Consistency", "Confidence"];
 
 /* ═══════════════════ ROSTER + SESSION LEDGER ═══════════════════ */
-/* Live catalogue first, seeded second — see the note in mod-coachops.js. */
+/* Live catalogue first, seeded second — see the note in mod-coachops.js.
+   Seeded fallbacks are demo-only: a real session gets nulls/empties, never
+   the demo org's content (2026-09-04). */
+const demoAllowed = () =>
+  !(window.SporveAuth && window.SporveAuth.isSignedIn && window.SporveAuth.isSignedIn());
 const prog = id => PROGRAMS.find(p => p.id === id) ||
-                   DEMO_CATALOGUE.find(p => p.id === id) || null;
+                   (demoAllowed() ? DEMO_CATALOGUE.find(p => p.id === id) : null) || null;
 const sportOf = id => { const p = prog(id); return p ? p.sport : ""; };
 
 /* DEMO_CATALOGUE, not PROGRAMS — see the note in mod-coachops.js. */
 function myListings(){
+  if (!demoAllowed()) return [];
   const ids = (S && S.listings) || [];
   const mine = DEMO_CATALOGUE.filter(p => ids.indexOf(p.id) >= 0);
   return mine.length ? mine : DEMO_CATALOGUE.slice(0, 5);
@@ -105,6 +110,7 @@ function myListings(){
    Julian Mercer is the app's seeded athlete (athlete_1) — the other three are
    demo families on the same published programs. */
 function roster(){
+  if (!demoAllowed()) return [];   // real accounts: live roster only, never the seeded families
   const m = myListings();
   const pid = i => (m[i] || m[m.length - 1] || DEMO_CATALOGUE[0]).id;
   return [
