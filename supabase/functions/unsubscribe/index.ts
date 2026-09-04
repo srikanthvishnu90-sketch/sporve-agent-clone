@@ -48,10 +48,15 @@ Deno.serve(async (req) => {
         return page("Link not recognized", "This unsubscribe link is invalid or expired. Email support@sporv.ai and we'll take care of it.", 400);
       }
       await admin.from("guardians").update({ email_status: "unsubscribed" }).eq("id", g);
+      // Per-email suppression too, so a re-added row stays unsubscribed.
+      const { data: gu } = await admin.from("guardians").select("email").eq("id", g).maybeSingle();
+      const em = (gu as { email?: string } | null)?.email?.toLowerCase();
+      if (em) await admin.from("email_suppressions").upsert({ email: em, reason: "unsubscribed" }, { onConflict: "email" });
       return page("You're unsubscribed", "You won't receive further messages from your club through Sporv. Account and safety notices may still be sent when required.");
     }
     if (email && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
       await admin.from("guardians").update({ email_status: "unsubscribed" }).eq("email", email);
+      await admin.from("email_suppressions").upsert({ email, reason: "unsubscribed" }, { onConflict: "email" });
       return page("You're unsubscribed", "You won't receive further messages through Sporv at this address. Account and safety notices may still be sent when required.");
     }
     return page("Unsubscribe", "Open the unsubscribe link from one of our emails, or write to support@sporv.ai and we'll remove you.", 400);

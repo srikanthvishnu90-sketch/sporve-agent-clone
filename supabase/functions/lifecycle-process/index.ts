@@ -282,6 +282,17 @@ Deno.serve(async (req) => {
           emailSummary.needsReview++; continue;
         }
         if (!RESEND_API_KEY || !gEmail) continue;   // key unset: leave for a future tick
+        // Per-email suppression list (red fix 2026-09-04): authoritative even
+        // when the guardian ROW was deleted and re-created — the address is
+        // what complained, so the address is what's suppressed.
+        const { data: supRow } = await admin.from("email_suppressions")
+          .select("reason").eq("email", gEmail.toLowerCase()).maybeSingle();
+        if (supRow) {
+          await admin.from("outbound_messages").update({
+            status: "needs_review", last_error: `address suppressed (${(supRow as { reason?: string }).reason})`,
+          }).eq("id", er.id).eq("status", "approved");
+          emailSummary.needsReview++; continue;
+        }
 
         const { data: eClaimed } = await admin.from("outbound_messages")
           .update({ status: "processing" }).eq("id", er.id).eq("status", "approved").select("id").maybeSingle();

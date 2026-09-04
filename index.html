@@ -25,7 +25,7 @@
 <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16.png">
 <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
 <link rel="manifest" href="/site.webmanifest">
-<meta name="sporve-build" content="137468e649d82dea">
+<meta name="sporve-build" content="ea278c5819e2e839">
 </head>
 <body>
 <noscript><h1>Sporv — Every sport. One app.</h1><p>Sporv connects families and athletes with coaches, trainers, camps, and teams across more than 20 sports. Please enable JavaScript to use the app.</p></noscript>
@@ -12552,7 +12552,7 @@ function modalHTML(){
         <div class="field"><label>First name</label><input name="first" placeholder="Alex" required></div>
         <div class="field"><label>Last name</label><input name="last" placeholder="Mercer" required></div>
       </div>
-      <div class="field"><label>Email address</label><input name="email" type="email" value="${esc((S.authIdentifier||"").includes("@")?S.authIdentifier:"")}" placeholder="alex@example.com" required></div>
+      <div class="field"><label>Email address</label><input name="email" type="email" value="${esc((S.authIdentifier||"").includes("@")?S.authIdentifier:"")}" placeholder="alex@example.com" autocomplete="off" required></div>
       <div class="field"><label>Phone number</label><input name="phone" placeholder="+1 (555) 000-0000"></div>
       ${pwField("Password",'<input name="password" type="password" autocomplete="new-password" placeholder="Min. 8 characters" required>')}
       <label style="display:flex;gap:11px;align-items:flex-start;cursor:pointer;margin:6px 0 4px">
@@ -12564,8 +12564,8 @@ function modalHTML(){
 
   if(m.type==="login") return wrap("Log in",`
     <form id="loginForm">
-      <div class="field"><label>Email address</label><input name="email" type="email" value="${esc(S.authIdentifier||"")}" autocomplete="username" required></div>
-      ${pwField("Password",'<input name="password" type="password" autocomplete="current-password" placeholder="Min. 8 characters" required>')}
+      <div class="field"><label>Email address</label><input name="email" type="email" value="${esc(S.authIdentifier||"")}" autocomplete="off" required></div>
+      ${pwField("Password",'<input name="password" type="password" autocomplete="off" placeholder="Min. 8 characters" required>')}
       <div id="loginErr" class="err hide" style="margin:8px 0"></div>
       <button class="btn wide" type="submit">Log in</button>
       <button class="btn ghost wide" type="button" data-onboard="1" style="margin-top:9px">Create an account</button>
@@ -12962,7 +12962,7 @@ function modalHTML(){
         <button class="btn wide" type="submit">Set new password</button>`
       :`<p style="color:var(--muted);margin-bottom:18px">
           Enter your email and we'll send a reset code.</p>
-        <div class="field"><label>Email address</label><input name="email" type="email" value="${esc((S.authIdentifier||"").includes("@")?S.authIdentifier:"")}" placeholder="alex@example.com" required></div>
+        <div class="field"><label>Email address</label><input name="email" type="email" value="${esc((S.authIdentifier||"").includes("@")?S.authIdentifier:"")}" placeholder="alex@example.com" autocomplete="off" required></div>
         <div id="forgotErr" class="err hide" style="margin:8px 0"></div>
         <button class="btn wide" type="submit">Send reset code</button>`}
       <button class="btn ghost wide" type="button" data-modal="login" style="margin-top:9px">Back to log in</button>
@@ -12982,7 +12982,7 @@ function modalHTML(){
         <button class="btn wide" type="submit">Sign in with code</button>`
       :`<p style="color:var(--muted);margin-bottom:18px">
           No password needed — we'll email you a link that signs you in.</p>
-        <div class="field"><label>Email address</label><input name="email" type="email" value="${esc((S.authIdentifier||"").includes("@")?S.authIdentifier:"")}" placeholder="alex@example.com" required></div>
+        <div class="field"><label>Email address</label><input name="email" type="email" value="${esc((S.authIdentifier||"").includes("@")?S.authIdentifier:"")}" placeholder="alex@example.com" autocomplete="off" required></div>
         <div id="magicErr" class="err hide" style="margin:8px 0"></div>
         <button class="btn wide" type="submit">Send sign-in link</button>`}
       <button class="btn ghost wide" type="button" data-modal="login" style="margin-top:9px">Back to log in</button>
@@ -13014,9 +13014,9 @@ function modalHTML(){
           <div class="field"><label>First name</label><input name="first" placeholder="Alex" required></div>
           <div class="field"><label>Last name</label><input name="last" placeholder="Mercer" required></div>
         </div>
-        <div class="field"><label>Email address</label><input name="email" type="email" value="${esc((S.authIdentifier||"").includes("@")?S.authIdentifier:"")}" placeholder="alex@example.com" required></div>
+        <div class="field"><label>Email address</label><input name="email" type="email" value="${esc((S.authIdentifier||"").includes("@")?S.authIdentifier:"")}" placeholder="alex@example.com" autocomplete="off" required></div>
         <div class="field"><label>Phone number</label><input name="phone" placeholder="+1 (555) 000-0000"></div>
-        ${pwField("Password",'<input name="password" type="password" autocomplete="current-password" placeholder="Min. 8 characters" required>')}
+        ${pwField("Password",'<input name="password" type="password" autocomplete="off" placeholder="Min. 8 characters" required>')}
         <label style="display:flex;gap:11px;align-items:flex-start;cursor:pointer;margin:6px 0 4px">
           <input type="checkbox" name="privacy" required style="width:17px;height:17px;margin-top:2px;flex:0 0 auto;accent-color:var(--slate-ink)">
           <span style="font-size:var(--text-sm);color:var(--muted)">I have read Sporv's <button type="button" class="lnk" data-foot="info:privacy" style="font-size:inherit;font-weight:700">Privacy Policy</button> and <button type="button" class="lnk" data-foot="info:terms" style="font-size:inherit;font-weight:700">Terms of Service</button>.</span></label>
@@ -15632,6 +15632,7 @@ document.querySelectorAll('.sig-ai-coach').forEach(sigAiCoachWire);
        to leave and the 250ms debounce would not have fired. */
     S.pendingIntent={kind:"coachOnboard"};
     try{ saveState(); }catch(e){}
+    try{ sessionStorage.setItem("sporv:oauth-intent","signup"); }catch(e){}
     if(window.SporveAuth) window.location.href=window.SporveAuth.oauthUrl("google", oauthReturnUrl());
   });
   $("[data-cg-apple]").forEach(b=>b.onclick=()=>toast("Apple sign-in isn't wired up yet"));
@@ -16696,6 +16697,10 @@ document.querySelectorAll('.sig-ai-coach').forEach(sigAiCoachWire);
   });
   $("[data-google]").forEach(b=>b.onclick=()=>{
     if(window.SporveAuth){ try{ saveState(); }catch(e){}
+      /* This is the SIGN-IN Google button: mark the intent so the OAuth
+         return can refuse a brand-new auto-provisioned account (owner
+         2026-09-04: sign-in never creates). */
+      try{ sessionStorage.setItem("sporv:oauth-intent","signin"); }catch(e){}
       window.location.href=window.SporveAuth.oauthUrl("google", oauthReturnUrl()); return; }
     completeAuth({...SEED.user,role:S.signupRole==="coach"?"provider":"searcher"});
     if(S.signupRole==="coach") S.portal="coach";
@@ -19184,8 +19189,12 @@ window.MOD_COACHUI = { css:CSS, wire:wire };
        in the URL FRAGMENT (never the query string, so they stay out of server
        logs and Referer headers). completeOAuth() picks them up. */
     oauthUrl: function (provider, redirectTo) {
+      /* prompt=select_account: Google must always show the chooser rather
+         than silently reusing whichever account the browser remembers
+         (owner 2026-09-04: nothing remembered on sign-in). */
       return API.url + "/auth/v1/authorize?provider=" + encodeURIComponent(provider || "google") +
-             "&redirect_to=" + encodeURIComponent(redirectTo || window.location.origin);
+             "&redirect_to=" + encodeURIComponent(redirectTo || window.location.origin) +
+             "&prompt=select_account";
     },
 
     /* Call on boot. If the URL fragment carries tokens from an OAuth return,
@@ -19194,6 +19203,7 @@ window.MOD_COACHUI = { css:CSS, wire:wire };
       var h = window.location.hash || "";
       if (h.indexOf("access_token=") === -1) return null;
       var p = new URLSearchParams(h.replace(/^#/, ""));
+      AUTH._fromOAuth = true;  // this boot IS an OAuth return (read by hydrateAuth)
       var s = apply({
         access_token: p.get("access_token"),
         refresh_token: p.get("refresh_token"),
@@ -19223,7 +19233,7 @@ window.MOD_COACHUI = { css:CSS, wire:wire };
        guess would be a privilege decision made by the browser. */
     loadProfile: function () {
       if (!session) return Promise.resolve(null);
-      return API.from("profiles", "select=id,role,first_name,last_name,email,phone_number&limit=1")
+      return API.from("profiles", "select=id,role,first_name,last_name,email,phone_number,created_at&limit=1")
         .then(function (rows) { return (rows && rows[0]) || null; });
     },
 
@@ -27658,6 +27668,10 @@ const EPHEMERAL = new Set([
      dashboard while its fetches went out anonymous. One store owns identity.
      S.auth is now a mirror, rehydrated at boot by hydrateAuth(). */
   "auth", "authBusy", "authError",
+  /* An email address typed into a sign-in form is never stored (owner
+     2026-09-04: no accounts/emails remembered whatsoever). It still carries
+     within one flow (sign-in -> signup sheet) but dies with the tab state. */
+  "authIdentifier",
 ]);
 
 function saveState(){
@@ -27765,6 +27779,22 @@ function hydrateAuth(){
     })
     .then(p=>{
       if(!p) return;
+      /* SIGN-IN NEVER CREATES (owner 2026-09-04). OAuth auto-provisions on
+         first sign-in; if this boot is an OAuth return from the SIGN-IN
+         button and the profile is brand-new, the account was minted by
+         mistake — undo it (self-scoped, 10-minute-bound RPC), sign out, and
+         point them at Get Started. Signup buttons mark "signup" and pass. */
+      let oauthIntent=null;
+      try{ oauthIntent=sessionStorage.getItem("sporv:oauth-intent"); sessionStorage.removeItem("sporv:oauth-intent"); }catch(e){}
+      const freshAccount=p.created_at && (Date.now()-Date.parse(p.created_at)) < 10*60*1000;
+      if(window.SporveAuth&&window.SporveAuth._fromOAuth&&oauthIntent==="signin"&&freshAccount){
+        window.SporveAPI.rpc("reject_unintended_signup",{}).catch(()=>{}).then(()=>{
+          doSignOut();
+          toast("No Sporv account exists for that Google account yet — press Get Started to create one.");
+          render();
+        });
+        return;
+      }
       /* Session restore in a tab whose snapshot was saved by a DIFFERENT
          account (shared machine, account switch mid-OAuth): discard the
          snapshot's contents before painting anything as this user's. */

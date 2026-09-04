@@ -256,8 +256,12 @@
        in the URL FRAGMENT (never the query string, so they stay out of server
        logs and Referer headers). completeOAuth() picks them up. */
     oauthUrl: function (provider, redirectTo) {
+      /* prompt=select_account: Google must always show the chooser rather
+         than silently reusing whichever account the browser remembers
+         (owner 2026-09-04: nothing remembered on sign-in). */
       return API.url + "/auth/v1/authorize?provider=" + encodeURIComponent(provider || "google") +
-             "&redirect_to=" + encodeURIComponent(redirectTo || window.location.origin);
+             "&redirect_to=" + encodeURIComponent(redirectTo || window.location.origin) +
+             "&prompt=select_account";
     },
 
     /* Call on boot. If the URL fragment carries tokens from an OAuth return,
@@ -266,6 +270,7 @@
       var h = window.location.hash || "";
       if (h.indexOf("access_token=") === -1) return null;
       var p = new URLSearchParams(h.replace(/^#/, ""));
+      AUTH._fromOAuth = true;  // this boot IS an OAuth return (read by hydrateAuth)
       var s = apply({
         access_token: p.get("access_token"),
         refresh_token: p.get("refresh_token"),
@@ -295,7 +300,7 @@
        guess would be a privilege decision made by the browser. */
     loadProfile: function () {
       if (!session) return Promise.resolve(null);
-      return API.from("profiles", "select=id,role,first_name,last_name,email,phone_number&limit=1")
+      return API.from("profiles", "select=id,role,first_name,last_name,email,phone_number,created_at&limit=1")
         .then(function (rows) { return (rows && rows[0]) || null; });
     },
 
