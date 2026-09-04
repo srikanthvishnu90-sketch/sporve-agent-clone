@@ -270,14 +270,22 @@ Deno.serve(async (req) => {
         if (!eClaimed) continue;
         const { data: prov } = await admin.from("providers")
           .select("business_name").eq("id", er.provider_id).maybeSingle();
-        const orgName = (prov as { business_name?: string } | null)?.business_name ?? "Your club";
+        // business_name is TENANT input headed into an RFC 5322 From header.
+        // Unsanitized it can smuggle a second angle-addr ("Chase <a@chase.com>")
+        // or impersonate the platform; strip header-significant characters and
+        // never let the display name claim to be Sporv itself.
+        const rawName = (prov as { business_name?: string } | null)?.business_name ?? "Your club";
+        let orgName = rawName.replace(/[<>@"\\,;:\r\n\x00-\x1f]/g, "").trim().slice(0, 64) || "Your club";
+        if (/^sporv\b/i.test(orgName)) orgName = "Your club";
         const slug = orgName.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "").slice(0, 40) || "club";
         const { data: replyRow } = await admin.from("provider_settings")
           .select("value").eq("provider_id", er.provider_id).eq("key", "reply_to").maybeSingle();
         // Org-level override wins; the platform default is Sporv support so a
         // parent's reply always lands somewhere staffed (owner 2026-09-01:
         // support@sporv.ai is the support address once sporv.ai is owned).
-        const replyTo = ((replyRow?.value ?? {}) as { email?: string }).email
+        // reply_to is tenant input too — accept only a bare, plausible email.
+        const rawReply = ((replyRow?.value ?? {}) as { email?: string }).email;
+        const replyTo = (rawReply && /^[^\s@<>,;:"\\]+@[^\s@<>,;:"\\]+\.[^\s@<>,;:"\\]+$/.test(rawReply) ? rawReply : null)
           ?? Deno.env.get("SUPPORT_EMAIL") ?? "support@sporv.ai";
         try {
           const resp = await fetch("https://api.resend.com/emails", {
