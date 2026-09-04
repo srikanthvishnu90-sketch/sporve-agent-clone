@@ -6999,9 +6999,17 @@ function requireAuth(fn){
    unconditionally; a real sign-in can fail, and closing the sheet leaves
    nowhere to show why. authFail() below is the other half. */
 function completeAuth(user){
+  /* Capture the intent FIRST: it belongs to the flow that just signed in
+     (e.g. Get Started -> coachOnboard), and the identity check below purges S
+     wholesale when this tab's snapshot belonged to a different account. */
+  const intent=S.pendingIntent;
+  adoptIdentity(user&&user.id);
+  /* Never trust a provider row fetched for a previous uid — ensure() refetches
+     for THIS session before any coach surface renders. */
+  S.coachProvider=null;
   S.auth={status:"verified",user};
   S.modal=null; S.authBusy=false; S.authError=null;
-  const intent=S.pendingIntent; S.pendingIntent=null;
+  S.pendingIntent=null;
   render();
   if(intent) setTimeout(()=>runIntent(intent),60);
   /* No parked intent = a plain sign-in. The product IS the agent workspace,
@@ -7069,6 +7077,45 @@ function doCoachSignUp(email, password, businessName){
   return doSignUp(email, password, { role:"provider", business_name: businessName||"" });
 }
 
+/* We could not load (or create) this coach's own org row. The old behaviour
+   fell through to the seeded dashboard — another operator's business — which
+   is the "someone else's account" bug. Honest error + retry instead. */
+function coachEnsureErrorHTML(){
+  return `<section class="band"><div class="in" style="max-width:520px;padding:72px 0;text-align:center">
+    <h1 style="margin-bottom:10px">We couldn't load your workspace</h1>
+    <p style="color:var(--muted);margin-bottom:18px">Your account is signed in, but your organization's
+      record didn't come back. This is usually a connection blip — nothing was lost.</p>
+    <button class="btn" data-coach-retry="1">Try again</button>
+  </div></section>`;
+}
+
+/* A REAL Supabase session — not the demo account's mock verified flag, not
+   smoke's status:'verified' with no transport. The setup gate and the demo
+   guards branch on this, so both the demo account and the smoke 16-tab loop
+   (neither has a session) keep rendering exactly as before. */
+function realSignedIn(){
+  return !!(window.SporveAuth&&window.SporveAuth.isSignedIn&&window.SporveAuth.isSignedIn());
+}
+/* The DOOR half (2026-09-04): a signed-in coach whose provider row says
+   onboarding_completed=false is gated into the setup wizard. Strictly ===false
+   — a null provider (fetch not landed, or failed) means UNKNOWN, and unknown
+   renders normally rather than trapping someone on a network blip. */
+function coachGateActive(){
+  const pv=S.coachProvider;
+  return realSignedIn() && !!pv && pv.onboarding_completed===false;
+}
+/* Resume the wizard where the DB says this org left off — sessionStorage only
+   survives the tab; provider_settings survives the device. */
+function suwResume(pv){
+  if(!(pv&&pv.id&&window.SporveAPI)) return;
+  window.SporveAPI.from("provider_settings",
+    "select=value&provider_id=eq."+pv.id+"&key=eq.onboarding")
+    .then(rows=>{
+      const st=rows&&rows[0]&&rows[0].value&&+rows[0].value.step;
+      if(st&&S.setupWiz&&st>S.setupWiz.step){S.setupWiz.step=Math.min(st,5);render();}
+    }).catch(()=>{});
+}
+
 /* Called once a coach has a real session. Creates their provider row if it is
    their first time, then opens the portal on THEIR business. */
 function enterCoachWorkspace(){
@@ -7078,12 +7125,23 @@ function enterCoachWorkspace(){
     .then(p=>{
       S.pendingBusinessName="";
       S.coachProvider = p || null;
-      /* A coach with an incomplete profile lands on the wizard; one who has
-         finished it lands on the dashboard. */
-      S.coachTab = (p && p.onboarding_completed) ? "dashboard" : (modView("onboard")?"onboard":"dashboard");
+      S.coachEnsureError = null;
+      S.coachTab="dashboard";
+      /* Not-yet-onboarded: the wizard is the only door (spec 04). The render
+         gate keeps it open; this just seeds it and asks the DB for the step. */
+      if(p && p.onboarding_completed===false){
+        S.setupWiz=S.setupWiz&&S.setupWiz.step?S.setupWiz:{step:0};
+        S.modal={type:"setupwiz"};
+        suwResume(p);
+      }
       go("dashboard");
     })
-    .catch(()=>{ S.coachTab="dashboard"; go("dashboard"); });
+    .catch(()=>{
+      /* ensure() failing means we do not know WHOSE workspace this is —
+         rendering the seeded dashboard here is how a new signup "saw someone
+         else's account". Error screen with retry instead, never dashboard. */
+      S.coachProvider=null; S.coachEnsureError=true; S.coachTab="dashboard"; go("dashboard");
+    });
 }
 
 function doSignOut(){
@@ -7107,6 +7165,12 @@ function doSignOut(){
      in GUEST_KEEP. That direction is the point: a field added by a future
      feature is cleared by default, so a leak now requires someone to explicitly
      name it guest-keepable rather than merely to forget it. */
+  resetPersonalState();
+}
+
+/* The one purge (factored 2026-09-04 so identity CHANGE reuses the identity
+   END path — sign-out, and now sign-in-as-someone-else, run the same code). */
+function resetPersonalState(){
   Object.keys(S).forEach(k=>{
     if(GUEST_KEEP.has(k)) return;
     if(!(k in S_BASELINE)) { // added after boot; no declared value to return to
@@ -7135,6 +7199,37 @@ function doSignOut(){
      blob already on disk carries the previous account, and a reload before the
      next save would restore it. */
   try{ sessionStorage.removeItem("sporve:state:v1"); }catch(e){}
+  try{ sessionStorage.removeItem("sporve:state:uid"); }catch(e){}
+}
+
+/* [CRITICAL-PATH: privacy] The persisted snapshot is browser-keyed; identity
+   is not. If the uid the snapshot was saved under is not the uid now signing
+   in (OAuth return as a different Google account, a second signup in the same
+   tab), the snapshot is the PREVIOUS person's session — discard it entirely
+   and let the DB hydrate the new person. "guest" residue is fine to keep:
+   favourites and browsing, not account data. */
+function adoptIdentity(newUid){
+  /* The demo account is a MOCK sign-in with no Supabase session — it exists
+     to show the seeded org, so identity bookkeeping (and the seed purge)
+     applies only to real sessions. */
+  if(!realSignedIn()) return;
+  let prev=null;
+  try{ prev=sessionStorage.getItem("sporve:state:uid"); }catch(e){}
+  if(prev && prev!=="guest" && newUid && prev!==newUid){
+    resetPersonalState();
+    /* The purge empties route/portal collections; re-assert a renderable
+       route so the frame between purge and the caller's navigation is sane. */
+    S.route={name:"home",arg:null};
+  } else if(newUid && prev!==newUid){
+    /* Guest -> first sign-in: keep the guest's own work (favourites, drafts)
+       but drop the SEED-derived demo collections — a real account must never
+       inherit "Julian Mercer" as its roster or the demo org's listings. Live
+       rows re-hydrate from the DB right after auth. */
+    ["athletes","bookings","messages","roster","listings","teams","parentUpdates"].forEach(k=>{
+      if(k in S) S[k]=Array.isArray(S[k])?[]:{};
+    });
+  }
+  try{ sessionStorage.setItem("sporve:state:uid", newUid||"guest"); }catch(e){}
 }
 /* guest save allowance: 3 free, un-saving always allowed */
 function toggleFav(id){
@@ -12894,14 +12989,17 @@ function modalHTML(){
     }
     if(w.step===1) return wrapS("Set up your club",`
       <p class="imp-sub">Paste your club's public website and the agent reads it —
-        sport, teams, season, published fees. It only drafts: you confirm every
+        sport, teams, season, published fees. No site? Paste any description —
+        a flyer, a welcome email, a paragraph. It only drafts: you confirm every
         line on the next screen before anything is saved.</p>
       <form id="suwUrlForm">
         <div class="field" style="margin-top:12px"><label>Club website</label>
-          <input name="url" placeholder="www.yourclub.org" value="${esc(w.url||"")}" ${w.busy?"disabled":""} required></div>
+          <input name="url" placeholder="www.yourclub.org" value="${esc(w.url||"")}" ${w.busy?"disabled":""}></div>
+        <div class="field"><label>…or paste a description</label>
+          <textarea name="pasted" rows="4" placeholder="e.g. Rivertown FC runs three teams — U10, U12, U14 — fall season Sept–Nov, $300 per player…" ${w.busy?"disabled":""}>${esc(w.pasted||"")}</textarea></div>
         <div id="suwErr" class="err ${w.err?"":"hide"}" style="margin:8px 0">${esc(w.err||"")}</div>
         <div class="imp-actions" style="margin-top:12px">
-          <button class="btn" type="submit" ${w.busy?"disabled":""}>${w.busy?"Reading your site…":"Read my site"}</button>
+          <button class="btn" type="submit" ${w.busy?"disabled":""}>${w.busy?"Reading…":"Draft my club"}</button>
           <button class="btn ghost sm" type="button" data-suw-skip="1">I'll enter it by hand</button></div>
       </form>`);
     if(w.step===2){
@@ -14713,12 +14811,26 @@ function render(){
         what the coach rail expects. */
   if(r.name==="coachgate"){body=coachGateHTML();}
   else if(S.portal==="coach"){
+    /* THE SETUP GATE (2026-09-04, router-level so no tab can forget it). A
+       signed-in, not-yet-onboarded org gets the setup wizard forced open on
+       EVERY render — closing the modal just re-opens it next frame, so no
+       coach tab (dashboard, roster, money, staff, settings) is reachable
+       until step 5 writes onboarding_completed=true. The import wizard and
+       Stripe-connect confirm are the wizard's own sub-flows, so they pass. */
+    if(coachGateActive()){
+      const pass=S.modal&&(S.modal.type==="setupwiz"||S.modal.type==="importclients"||S.modal.type==="confirm");
+      if(!pass){ S.setupWiz=S.setupWiz&&S.setupWiz.step!=null?S.setupWiz:{step:0}; S.modal={type:"setupwiz"}; }
+    }
     /* A guest now browses the provider side rather than being bounced to the
        marketing page — the auth sheet invites, it does not wall. Mutating
        actions inside are individually gated with requireAuth(); see the
        handlers. coachLandingHTML() is still reachable at the `coachinfo`
        route for anyone who wants the pitch. */
     if(r.name==="info") body=infoHTML(r.arg||"help");
+    else if(realSignedIn()&&!S.coachProvider&&S.coachEnsureError) body=coachEnsureErrorHTML();
+    /* Gated: the tabs REFUSE to render — not even dimmed behind the wizard
+       modal. A new org sees its own empty shell, never the seeded dashboard. */
+    else if(coachGateActive()) body=`<section class="band"><div class="in" style="min-height:70vh"></div></section>`;
     else body=coachHTML();
   }
   /* "start" retired as a surface (owner 2026-08-30): route/portal PERSIST in
@@ -15667,7 +15779,17 @@ document.querySelectorAll('.sig-ai-coach').forEach(sigAiCoachWire);
   $("[data-setupclub]").forEach(b=>b.onclick=()=>{
     S.setupWiz=S.setupWiz&&S.setupWiz.step?S.setupWiz:{step:1};
     S.modal={type:"setupwiz"};render();});
-  $("[data-suw-close]").forEach(b=>b.onclick=()=>{S.modal=null;render();});
+  $("[data-coach-retry]").forEach(b=>b.onclick=()=>{S.coachEnsureError=null;render();enterCoachWorkspace();});
+  $("[data-suw-close]").forEach(b=>b.onclick=()=>{
+    /* Close is only reachable on step 5 ("Done" / "Finish setup"), so closing
+       IS completing: write the lock. Optimistic local flip so the router gate
+       lifts this frame; the PATCH persists it (one-way, see completeOnboarding). */
+    const pv=S.coachProvider;
+    if(pv&&pv.id&&realSignedIn()&&pv.onboarding_completed===false&&window.SporveCoach&&window.SporveCoach.completeOnboarding){
+      pv.onboarding_completed=true;
+      window.SporveCoach.completeOnboarding().catch(()=>{});
+    }
+    S.modal=null;render();});
   $("[data-suw-back]").forEach(b=>b.onclick=()=>{const w=S.setupWiz;if(w){w.step=1;w.err=null;}render();});
   $("[data-suw0]").forEach(b=>b.onclick=()=>{
     const w=S.setupWiz;if(!w)return;
@@ -15684,6 +15806,13 @@ document.querySelectorAll('.sig-ai-coach').forEach(sigAiCoachWire);
       save("default_billing_shape",{shape:w.billShape||"team"});
     }
     w.step=+b.dataset.suwNext;w.err=null;
+    /* Cross-device resume: the DB remembers the step (provider_settings KV,
+       owner-scoped RLS) so a refresh — or another machine — reopens here. */
+    if(window.SporveAPI&&S.coachProvider&&S.coachProvider.id){
+      window.SporveAPI.from("provider_settings","on_conflict=provider_id,key",{
+        method:"POST",headers:{Prefer:"resolution=merge-duplicates"},
+        body:{provider_id:S.coachProvider.id,key:"onboarding",value:{step:w.step}}}).catch(()=>{});
+    }
     if(w.step===5) suwLoadMembers(w);
     render();});
   $("[data-suw-skip]").forEach(b=>b.onclick=()=>{
@@ -15704,12 +15833,15 @@ document.querySelectorAll('.sig-ai-coach').forEach(sigAiCoachWire);
   if(suwU) suwU.onsubmit=e=>{
     e.preventDefault();
     const w=S.setupWiz;if(!w||w.busy)return;
-    const url=String(new FormData(suwU).get("url")||"").trim();
-    if(!url){w.err="Enter your club's website.";render();return;}
+    const fd=new FormData(suwU);
+    const url=String(fd.get("url")||"").trim();
+    const pasted=String(fd.get("pasted")||"").trim();
+    if(!url&&!pasted){w.err="Enter your club's website, or paste a description.";render();return;}
     if(!(window.SporveAPI&&window.SporveAPI.isSignedIn&&window.SporveAPI.isSignedIn())){
       w.err="Sign in first — the agent reads your site on your account.";render();return;}
-    w.url=url;w.busy=true;w.err=null;render();
-    window.SporveAPI.fn("club-site-extract",{url}).then(r=>{
+    w.url=url;w.pasted=pasted;w.busy=true;w.err=null;render();
+    /* Pasted text wins when both are present — it is the more deliberate act. */
+    window.SporveAPI.fn("club-site-extract",pasted?{text:pasted}:{url}).then(r=>{
       w.busy=false;
       const d=(r&&r.draft)||{};
       w.draft={club_name:d.club_name||null,sport:d.sport||null,
@@ -18005,7 +18137,7 @@ const EPHEMERAL = new Set([
      as before — but a DESCRIPTOR ({kind:"book",…}) survives, which is what lets
      an intent live through a full-page OAuth redirect. The serialiser does the
      discrimination for us; no type check needed. */
-  "coachProvider", "cobFocusStep", "bookBusy", "connectBusy", "connectError", "segOpen", "lastBooking",
+  "coachProvider", "coachEnsureError", "cobFocusStep", "bookBusy", "connectBusy", "connectError", "segOpen", "lastBooking",
   "slotPick", "slotPickFor", "msgUndelivered", "railMenu", "coachQueue",
   "fdraft", "fdOpen",
   "cmdDraft", "cmdSending", "cmdError", "cmdPending", "cmdAction", "cmdModelOpen",
@@ -18047,6 +18179,10 @@ function saveState(){
     const out = {};
     for(const k of Object.keys(S)) if(!EPHEMERAL.has(k)) out[k] = S[k];
     sessionStorage.setItem(PERSIST_KEY, JSON.stringify(out));
+    /* Stamp WHOSE snapshot this is. adoptIdentity() compares this stamp on
+       sign-in / session-restore and discards a snapshot saved by another
+       account — the persisted-S half of the cross-account fix (2026-09-04). */
+    sessionStorage.setItem("sporve:state:uid",(S.auth&&S.auth.user&&S.auth.user.id)||"guest");
   }catch(e){ /* quota, private mode, or a cycle — persistence is optional */ }
 }
 
@@ -18143,6 +18279,10 @@ function hydrateAuth(){
     })
     .then(p=>{
       if(!p) return;
+      /* Session restore in a tab whose snapshot was saved by a DIFFERENT
+         account (shared machine, account switch mid-OAuth): discard the
+         snapshot's contents before painting anything as this user's. */
+      adoptIdentity(p.id);
       S.auth={status:"verified",user:{
         id:p.id, firstName:p.first_name||"", lastName:p.last_name||"",
         email:p.email||"", phone:p.phone_number||"",

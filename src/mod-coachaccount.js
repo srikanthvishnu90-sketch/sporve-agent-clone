@@ -244,7 +244,7 @@
         /* ?select= limits the RETURNING set to granted columns — a bare
            return=representation implies SELECT *, and the column-level
            lockdown (stripe ids, exact lat/lng) 401s the entire insert. */
-        return API.from("providers", "?select=id,business_name,status,stripe_onboarding_started,stripe_charges_enabled", {
+        return API.from("providers", "?select=id,business_name,status,onboarding_completed,stripe_onboarding_started,stripe_charges_enabled", {
           method: "POST",
           headers: { Prefer: "return=representation" },
           body: {
@@ -676,6 +676,22 @@
 
     current: function () { return provider; },
     clear: function () { provider = null; },
+
+    /* The LOCK half of the setup-wizard door (2026-09-04). onboarding_completed
+       is deliberately NOT in EDITABLE — a generic settings PATCH must never
+       flip it by accident — so completion is its own single-purpose write.
+       One direction only: this can set true, nothing client-side sets false. */
+    completeOnboarding: function () {
+      if (!uid()) return Promise.reject(new Error("not signed in"));
+      return API.from("providers", "?owner_id=eq." + encodeURIComponent(uid()), {
+        method: "PATCH",
+        headers: { Prefer: "return=minimal" },
+        body: { onboarding_completed: true },
+      }).then(function () {
+        if (provider) provider.onboarding_completed = true;
+        return provider;
+      });
+    },
 
     /* What the dashboard should call the business. Falls back to the profile
        name, then to a neutral string — never to the seeded "Apex Performance
