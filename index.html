@@ -25,7 +25,7 @@
 <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16.png">
 <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
 <link rel="manifest" href="/site.webmanifest">
-<meta name="sporve-build" content="ea278c5819e2e839">
+<meta name="sporve-build" content="70ecd264c1e4ec3f">
 </head>
 <body>
 <noscript><h1>Sporv — Every sport. One app.</h1><p>Sporv connects families and athletes with coaches, trainers, camps, and teams across more than 20 sports. Please enable JavaScript to use the app.</p></noscript>
@@ -1453,12 +1453,17 @@ button.tnav.tnav-cta:hover{background:#FFFFFF;color:#0B0D0F;border-color:#FFFFFF
 /* No font-size/weight of its own (owner 2026-09-03: "product text is larger
    than the others") — it inherits the same .tnav rules as Pricing/Book a call
    so the row reads as one family. */
-.tnav.prodpill{background:transparent;color:#FFFFFF;border-radius:12px;
-  padding:0 18px;height:40px;line-height:40px;
+/* Prototype conform (owner 2026-09-04): trigger + nav links are 15px/500,
+   38px tall, 9px radius, white-tint hover — sporve-nav-menu.html .nl. */
+.tnav.prodpill{background:transparent;color:#FFFFFF;border-radius:9px;
+  padding:0 13px;height:38px;line-height:38px;font-size:15px;font-weight:500;
   font-family:var(--sans);font-style:normal;display:inline-flex;
-  align-items:center;gap:8px}
-.tnav.prodpill:hover,.tnav.prodpill.open{background:rgba(255,255,255,.08);color:#FFFFFF;font-style:normal}
+  align-items:center;gap:7px}
+.tnav.prodpill:hover{background:rgba(255,255,255,.06);color:#FFFFFF;font-style:normal}
+.tnav.prodpill.open{background:rgba(255,255,255,.08);color:#FFFFFF;font-style:normal}
 .tnav.prodpill .caret{font-size:1em;line-height:1;transform:translateY(-1px)}
+.tnav-row .tnav:not(.tnav-cta){font-size:15px;font-weight:500;height:38px;border-radius:9px}
+.tnav-row .tnav:not(.tnav-cta):hover{background:rgba(255,255,255,.06)}
 .productmenu .pmrow2{display:block;width:100%;text-align:left;color:#D7DEE7;
   font-size:16px;padding:7px 0;font-family:var(--sans);
   font-weight:400;text-transform:none;letter-spacing:0;font-style:normal}
@@ -3917,30 +3922,61 @@ body.reg-coach .greet{font-size:24px}
 }
 @media(max-width:720px){.pmgrid4,.pmgrid5{grid-template-columns:1fr}}
 
-/* T1b — dark reskin of BOTH mega-menu panels on the #09090B ground. Scoped to
-   #app .productmenu so it overrides the light-ground defaults above (which stay
-   in force nowhere else) with equal-plus specificity and later source order.
-   All colours are literals per the colour law — never a token that resolves
-   dark. Inter is already the body family globally. */
-#app .productmenu .eyebrow{color:#8B97A5}
-#app .productmenu .pmdiv{background:#1C222B}
-#app .productmenu .pmrow2{color:#FFFFFF}
-#app .productmenu .pmrow2:hover{background:rgba(255,255,255,.06)}
-#app .productmenu .pmrow2:focus-visible{background:rgba(255,255,255,.06);box-shadow:0 0 0 2px var(--slate-ring)}
-#app .productmenu .cmrow b,#app .productmenu .pmfeat b{color:#FFFFFF}
-#app .productmenu .cmrow span,#app .productmenu .pmfeat span:last-child,
-#app .productmenu .cmtalk p{color:#AEB8C4}
-#app .productmenu .cmtalk h3{color:#FFFFFF;font-weight:500}
-#app .productmenu .cmrow:hover,#app .productmenu .cmrow:focus-visible{background:rgba(255,255,255,.06)}
-/* Promo/feature card: a raised near-black panel, not the light --raise. */
-#app .productmenu .pmfeat{background:#12151B}
-#app .productmenu .pmfeat:hover{background:#171B22}
-#app .productmenu .pmfeat-art{
-  background:linear-gradient(140deg,#1A212B,#12151B);color:#8FA3BC;
+/* MEGA-MENU 2026-09-04 — built to the owner's prototype
+   (docs/prototypes/sporve-nav-menu.html). Dark glass panel; the ONLY hover
+   affordance is one .hov pill per column that SLIDES between rows (JS sets
+   top/height on row mouseenter; opacity drops on column mouseleave without
+   resetting position, so the next entry slides from where it last was).
+   Rows themselves never change background or colour on hover. Exact
+   prototype type: mono 10.5px eyebrows, 15px titles, 12.5px sublines —
+   owner acceptance criteria, deliberately off the 8-step scale. Literals
+   only on this dark ground per the colour law. */
+#app .productmenu.glassmenu{background:rgba(16,19,23,.92);
+  -webkit-backdrop-filter:blur(14px);backdrop-filter:blur(14px);
+  border-bottom:1px solid rgba(174,186,199,.14);
+  animation:pmIn .22s cubic-bezier(.2,.7,.2,1)}
+@keyframes pmIn{from{opacity:0;transform:translateY(-6px) scale(.985)}to{opacity:1;transform:none}}
+#app .productmenu.glassmenu .pmglass{max-width:1180px;margin:0 auto;
+  display:grid;grid-template-columns:1.1fr 1.25fr 1fr 1fr;gap:40px;
+  padding:22px 26px 26px;align-items:start}
+#app .productmenu.glassmenu .pmcol{position:relative}
+/* !important: the site-wide `#app .eyebrow{font-family:var(--display)!important}`
+   (line ~4973) would otherwise force Roboto Condensed here; the prototype
+   says JetBrains Mono and an equal counter-weight is the only way past it. */
+#app .productmenu.glassmenu .eyebrow{font-family:var(--mono)!important;
+  font-size:10.5px;font-weight:500!important;letter-spacing:.16em;text-transform:uppercase;
+  color:#6B7480;margin-bottom:8px}
+/* The panel node MOUNTS open (render() inserts it), so the prototype's
+   class-toggle transitions become mount ANIMATIONS with the same values —
+   'backwards' fill holds each row hidden through its stagger delay. */
+#app .productmenu.glassmenu .pmrow2{position:relative;display:block;width:calc(100% + 22px);
+  text-align:left;padding:9px 11px;margin:0 -11px;border-radius:8px;
+  font-size:15px;font-weight:500;line-height:1.5;color:#EDEFF2;
+  background:transparent;
+  animation:pmRow .28s cubic-bezier(.2,.7,.2,1) backwards}
+@keyframes pmRow{from{opacity:0;transform:translateY(5px)}}
+#app .productmenu.glassmenu .pmrow2:nth-of-type(2){animation-delay:.03s}
+#app .productmenu.glassmenu .pmrow2:nth-of-type(3){animation-delay:.06s}
+#app .productmenu.glassmenu .pmrow2:nth-of-type(4){animation-delay:.09s}
+#app .productmenu.glassmenu .pmrow2:nth-of-type(5){animation-delay:.12s}
+#app .productmenu.glassmenu .pmrow2:hover{background:transparent;color:#EDEFF2}
+#app .productmenu.glassmenu .pmrow2:focus-visible{box-shadow:0 0 0 2px var(--slate-ring);background:transparent}
+#app .productmenu.glassmenu .pmrow2 small{display:block;font-size:12.5px;font-weight:400;
+  color:#6B7480;margin-top:1px;line-height:1.4}
+#app .productmenu.glassmenu .pmlead{color:#9DB0CB}
+#app .productmenu.glassmenu .pmlead:hover{color:#9DB0CB}
+#app .productmenu.glassmenu .pmlead::after{content:" →";opacity:.8;display:inline-block;
+  transition:margin-left .18s cubic-bezier(.2,.7,.2,1)}
+#app .productmenu.glassmenu .pmlead:hover::after{margin-left:4px}
+/* the sliding indicator — one per column, JS-positioned */
+#app .productmenu.glassmenu .hov{position:absolute;left:-11px;right:-11px;top:0;height:0;
+  border-radius:8px;background:rgba(255,255,255,.06);opacity:0;pointer-events:none;
+  transition:top .22s cubic-bezier(.2,.7,.2,1),height .22s cubic-bezier(.2,.7,.2,1),opacity .16s}
+@media(prefers-reduced-motion:reduce){
+  #app .productmenu.glassmenu,#app .productmenu.glassmenu .pmrow2{transition:opacity .12s linear!important;transform:none!important;animation:none!important}
+  #app .productmenu.glassmenu .hov{transition:opacity .12s linear!important}
 }
-/* The "Book a call" ghost button sits on the dark panel: light hairline + text. */
-#app .productmenu .btn.ghost{border-color:rgba(255,255,255,.42);color:#FFFFFF;background:transparent}
-#app .productmenu .btn.ghost:hover{border-color:#FFFFFF}
+@media(max-width:900px){#app .productmenu.glassmenu .pmglass{grid-template-columns:1fr 1fr;gap:22px}}
 
 .x svg,.x path{pointer-events:none}
 /* ── PART 7 · auth sheet ─────────────────────────────────────────── */
@@ -8332,18 +8368,32 @@ function productMenuHTML(){
      never called; the 23 pages had NO entry point). The toggle now lists
      EVERY PAGE_META page, grouped, plus the overview. Built from PAGE_META so
      a new page appears here automatically (and the smoke gate keeps it real). */
-  /* TRIM 2026-09-03 (owner + screenshot): ~8 pages, NO marketplace surfaces
-     (search/map/saved/booking/messaging/assistant/media rows removed from the
-     MENU; the pages stay routable and the smoke gate still renders all of
-     them). Normal body font, compact rows. */
+  /* TRIM 2026-09-03 (owner + screenshot): ~8 pages, NO marketplace surfaces;
+     pages stay routable, smoke renders all of them. */
+  /* REBUILT 2026-09-04 to match the owner's prototype VERBATIM
+     (docs/prototypes/sporve-nav-menu.html): dark glass panel, four columns
+     (Overview lead / Run your club / Money / About), JetBrains Mono eyebrows,
+     15px titles + 12.5px sublines (prototype copy — a link with no subline
+     is a bug), and ONE sliding hover pill per column (.hov, positioned by
+     JS; links carry no hover background of their own). */
+  const SUB={
+    "roster":"Bring families in from any export",
+    "scheduling":"Sessions, changes, and who's coming",
+    "waivers":"Who signed, who cleared, and when",
+    "agent":"Drafts the work, waits for your approval",
+    "payments":"One ledger under three billing shapes",
+    "payouts":"What you get and when",
+    "what-is":"Two minutes, no jargon",
+    "background-checks":"What's checked and what we never see",
+  };
   const groups=[["Run your club",["roster","scheduling","waivers","agent"]],
     ["Money",["payments","payouts"]],
     ["About",["what-is","background-checks"]]];
-  const row=(id)=>{const m=PAGE_META[id];return m?`<button class="pmrow2" role="menuitem" data-pdest="page:${id}">${esc(m.t)}</button>`:"";};
-  return `<div class="productmenu on" role="menu" aria-label="Product pages"><div class="shell" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:8px 26px;padding:16px 24px 18px">
-    <div class="pmcol"><div class="eyebrow">Overview</div>
-      <button class="pmrow2" role="menuitem" data-pdest="go:product">Everything Sporv does →</button></div>
-    ${groups.map(([g,ids])=>`<div class="pmcol"><div class="eyebrow">${esc(g)}</div>${ids.map(row).join("")}</div>`).join("")}
+  const row=(id)=>{const m=PAGE_META[id];return m?`<button class="pmrow2" role="menuitem" data-pdest="page:${id}">${esc(m.t)}<small>${esc(SUB[id]||"")}</small></button>`:"";};
+  return `<div class="productmenu on glassmenu" role="menu" aria-label="Product pages"><div class="shell pmglass">
+    <div class="pmcol"><div class="eyebrow">Overview</div><span class="hov" aria-hidden="true"></span>
+      <button class="pmrow2 pmlead" role="menuitem" data-pdest="go:product">Everything Sporv does<small>One page, the whole back office</small></button></div>
+    ${groups.map(([g,ids])=>`<div class="pmcol"><div class="eyebrow">${esc(g)}</div><span class="hov" aria-hidden="true"></span>${ids.map(row).join("")}</div>`).join("")}
   </div></div>`;
 }
 function productMenuHTML_legacy(){
@@ -15301,6 +15351,17 @@ document.querySelectorAll('.sig-ai-coach').forEach(sigAiCoachWire);
   $(".productmenu").forEach(m=>{
     m.onmouseenter=()=>clearTimeout(S._pmT);
     m.onmouseleave=()=>{clearTimeout(S._pmT);S._pmT=setTimeout(()=>{if(S.prodMenu){S.prodMenu=false;render();}},260);};
+    /* Sliding hover pill (owner prototype 2026-09-04): one .hov per column;
+       row mouseenter positions it, column mouseleave only fades it — top and
+       height are kept so the next entry SLIDES from the last position. The
+       menu node unmounts on close, which is the "reset on close" for free. */
+    m.querySelectorAll(".pmcol").forEach(col=>{
+      const hov=col.querySelector(".hov"); if(!hov) return;
+      col.querySelectorAll(".pmrow2").forEach(it=>{
+        it.onmouseenter=()=>{hov.style.top=it.offsetTop+"px";hov.style.height=it.offsetHeight+"px";hov.style.opacity=1;};
+      });
+      col.onmouseleave=()=>{hov.style.opacity=0;};
+    });
   });
   if(S.prodMenu&&!S._prodMenuBound){S._prodMenuBound=true;
     document.addEventListener("click",e=>{if(S.prodMenu&&!e.target.closest(".productmenu,[data-prodtoggle]")){S.prodMenu=false;render();}});
@@ -27004,7 +27065,7 @@ window.MOD_NOTES = {
       "<div><span>SAT 09:00</span><b>4 openings</b></div><div><span>SUN</span><b>closed</b></div></aside>";
     return wrap("scheduling", "R1", "calendar-head-to-split-walk", "D-L-L", hero(meta,
       "Publish the hours. Families take <em>the real openings.</em>", intro,
-      { tone: "dark", layout: "calendar", eyebrow: "COACH AVAILABILITY", aside: week }) +
+      { tone: "dark", layout: "calendar", eyebrow: "SCHEDULING & AVAILABILITY", aside: week }) +
       walkthroughSection(steps.slice(0, 2), { tone: "slate", layout: "walk-staggered" }) +
       walkthroughSection(steps.slice(2, 4), { tone: "white", layout: "walk-staggered", start: 2 }));
   }
@@ -27135,7 +27196,7 @@ window.MOD_NOTES = {
     return wrap("roster", "R4", "compact-head-to-split-roster", "D-L-L", hero(meta,
       "Every client becomes <em>one working record.</em>",
       "Bring the families you already coach, then let new bookings add themselves. The roster joins each athlete to sessions, notes, payment state, messages, and consent without making the coach rebuild those links in a spreadsheet. It is a private operations view: families keep their own accounts and permissions, while public visitors never see the names or histories a coach uses to run the week.",
-      { tone: "dark", layout: "roster-index", eyebrow: "PRIVATE COACH OPERATIONS" }) +
+      { tone: "dark", layout: "roster-index", eyebrow: "ROSTER & IMPORT" }) +
       "<section class='pgband slate pg-roster-product pg-split-copy' data-section='product-copy' data-layout='roster-copy'><div class='shell pg-roster-grid'><div class='pg-r4-copy'><h2>The book of business, without the duplicate books.</h2>" +
       copy.map(function (p) { return "<p data-prose>" + p + "</p>"; }).join("") +
       "</div></div></section>" +
@@ -27213,7 +27274,7 @@ window.MOD_NOTES = {
     return wrap("payments", "R3", "math-head-to-split-ledger", "D-L-L", hero(meta,
       "The whole booking is <em>the coach's payout.</em>",
       "The parent's charge and the coach's payout are two views of the same paid booking. Families pay the coach's listed price without an added booking fee, and Sporv takes zero percent of it — the software is a flat subscription instead. The coach sees the exact gross and net amounts, equal, as the transfer moves. Refunds keep their own trail. The adjacent calculation uses disclosed demo values.",
-      { tone: "dark", layout: "payout-math", eyebrow: "PAYMENTS AND PAYOUTS", aside: formula }) +
+      { tone: "dark", layout: "payout-math", eyebrow: "DUES & INSTALLMENTS", aside: formula }) +
       "<section class='pgband slate pg-payment-ledger' data-section='essay-stat' data-layout='rail-first-essay'><div class='shell'><div class='pg-essay'><h2>The arithmetic should fit on four lines.</h2>" +
       prose.map(function (p) { return "<p data-prose>" + p + "</p>"; }).join("") + worked +
       "</div></div></section>" +
@@ -27558,7 +27619,7 @@ window.MOD_NOTES = {
     return wrap("waivers", "C01", "spec-sheet-compliance", "L-L-L", hero(meta,
       "Who signed, who cleared, <em>and when.</em>",
       "Waivers are versioned documents with a content hash pinned at signing, so what a board reads later is exactly what a guardian signed. Staff checks are records with a source and an expiry, entered from real evidence like an AAU membership ID — never a client-side default. The unsigned list is derived from the roster, so a gap is visible on Tuesday rather than at the field on Saturday.",
-      { tone: "white", layout: "split", eyebrow: "RECORDED, NOT ASSERTED" }) +
+      { tone: "white", layout: "split", eyebrow: "WAIVERS & ELIGIBILITY" }) +
       walkthroughSection([
         ["Publish a version", "A waiver is a titled, versioned document. Publishing freezes the text and stamps a hash; a change is a new version, never an edit to what people already signed."],
         ["Guardians sign for their own members", "A signature row pins the document version, the member, the season, the signer and the time. It is immutable evidence — the database refuses edits."],
@@ -27570,7 +27631,7 @@ window.MOD_NOTES = {
     return wrap("agent", "B07", "queue-first-narrative", "D-L-D", hero(meta,
       "The work is done when <em>you open it.</em>",
       "Every night the agent reads the real ledger and drafts what needs doing: the overdue installment follow-ups, addressed to the right payer with the right amount, the waiver gaps, the schedule changes. You open a queue, not an inbox. Ten are ready, one needs you — and nothing sends, charges or changes a record until a person approves it.",
-      { tone: "dark", layout: "split", eyebrow: "DRAFTED OVERNIGHT · APPROVED BY YOU" }) +
+      { tone: "dark", layout: "split", eyebrow: "THE AGENT" }) +
       walkthroughSection([
         ["Drafted, with provenance", "Each item records what it was derived from — a ledger row, a forwarded email, a roster sweep — so a draft is traceable to its source."],
         ["One approval", "Approve sends it on its way; dismiss voids it on the record. The lifecycle is enforced in the database: a draft can never skip to done."],
@@ -27582,7 +27643,7 @@ window.MOD_NOTES = {
     return wrap("payouts", "C02", "treasurer-five-numbers", "L-L-L", hero(meta,
       "Five numbers, <em>to the penny.</em>",
       "Gross collected, processing fees, the Sporv line (currently $0.00 — shown anyway so the line exists), net to the club, and the next deposit. Beside them, outstanding AR: billed, collected, overdue, and the families behind — with days late and amounts. That overdue list is exactly what the agent reads, so the treasurer and the agent can never disagree about who owes what.",
-      { tone: "white", layout: "split", eyebrow: "ONE LEDGER, SUMMED" }) +
+      { tone: "white", layout: "split", eyebrow: "PAYOUTS" }) +
       walkthroughSection([
         ["Money lands on your account", "Direct charges on the club's own Stripe account: the club is the merchant of record, the club's name is on the statement, and deposits follow Stripe's schedule."],
         ["The ledger is append-only", "No row is ever edited or deleted; a correction is a new row that points at what it reverses. Balance is always a sum, never a stored number."],
