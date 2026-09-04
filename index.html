@@ -25,7 +25,7 @@
 <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16.png">
 <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
 <link rel="manifest" href="/site.webmanifest">
-<meta name="sporve-build" content="53225c53a4861fdc">
+<meta name="sporve-build" content="ebd1d66fa33a4fac">
 </head>
 <body>
 <noscript><h1>Sporv — Every sport. One app.</h1><p>Sporv connects families and athletes with coaches, trainers, camps, and teams across more than 20 sports. Please enable JavaScript to use the app.</p></noscript>
@@ -8690,9 +8690,22 @@ function landingHTML(){
        chips are DELETED (owner: "there shouldn't be a single searchbar…
        there is no marketplace"). heroMediaHTML() + the hero-media scrim are
        the same machinery the browse hero uses. */""}
-  ${/* FIRST SCREEN (owner 2026-09-04, screenshot #67): the review-queue
-       chapter now OPENS the page — the stadium hero and everything else are
-       untouched and follow directly below. Pure reorder, zero copy changes. */""}
+  <section class="hero herofull">
+    <div class="hero-panel">
+      ${heroMediaHTML()}
+      <div class="hero-in herofull-in">
+        ${/* The EXPLORE hero's exact look (owner screenshot 2026-08-30):
+             centred "Sporv, the AI for youth sports." + the sports ticker on
+             the stadium — WITHOUT the search bar (no marketplace). */""}
+        <h1 class="hero-ai">Sporv, the AI <span>for youth sports.</span></h1>
+        ${heroSportCycleHTML()}
+      </div>
+    </div>
+  </section>
+
+  ${/* ORDER corrected 2026-09-04 (owner: "the stadium image should still be
+       the first image seen"): hero FIRST, and the review-queue chapter
+       (owner screenshot #67) is the first section directly after it. */""}
   <div class="lp26">
   <section class="dark2 band" id="queue">
     <div class="wrap">
@@ -8717,19 +8730,6 @@ function landingHTML(){
     </div>
   </section>
   </div>
-
-  <section class="hero herofull">
-    <div class="hero-panel">
-      ${heroMediaHTML()}
-      <div class="hero-in herofull-in">
-        ${/* The EXPLORE hero's exact look (owner screenshot 2026-08-30):
-             centred "Sporv, the AI for youth sports." + the sports ticker on
-             the stadium — WITHOUT the search bar (no marketplace). */""}
-        <h1 class="hero-ai">Sporv, the AI <span>for youth sports.</span></h1>
-        ${heroSportCycleHTML()}
-      </div>
-    </div>
-  </section>
 
   ${/* Company/marketplace rail removed 2026-08-30 (owner: "remove the company
        marketplace features — make sure they are still saved"). peekRowHTML()
