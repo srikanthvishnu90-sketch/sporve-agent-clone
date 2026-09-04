@@ -25,7 +25,7 @@
 <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16.png">
 <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
 <link rel="manifest" href="/site.webmanifest">
-<meta name="sporve-build" content="5e85ed1b3a6e2adb">
+<meta name="sporve-build" content="00b913df021838be">
 </head>
 <body>
 <noscript><h1>Sporv — Every sport. One app.</h1><p>Sporv connects families and athletes with coaches, trainers, camps, and teams across more than 20 sports. Please enable JavaScript to use the app.</p></noscript>
@@ -7243,6 +7243,10 @@ function resetPersonalState(){
   /* auth is in the baseline as its declared value; re-assert the guest shape so
      this cannot depend on how S was originally written. */
   S.auth={status:"guest",user:null};
+  /* modal/toast sit in GUEST_KEEP (they're UI chrome), but a modal PAYLOAD can
+     carry the previous account's booking or email — never survive the purge
+     (pentest 2026-09-04 #9). */
+  S.modal=null; S.toast=null;
   /* Drop the persisted snapshot too. Resetting S in memory is not enough: the
      blob already on disk carries the previous account, and a reload before the
      next save would restore it. */
@@ -15885,7 +15889,14 @@ document.querySelectorAll('.sig-ai-coach').forEach(sigAiCoachWire);
     const pv=S.coachProvider;
     if(pv&&pv.id&&realSignedIn()&&pv.onboarding_completed===false&&window.SporveCoach&&window.SporveCoach.completeOnboarding){
       pv.onboarding_completed=true;
-      window.SporveCoach.completeOnboarding().catch(()=>{});
+      /* A silent failure here told the coach "you're set up" while the DB
+         still said false, and the gate re-trapped them on the next load
+         (pentest 2026-09-04 #3). Failure now reverts the flip and says so. */
+      window.SporveCoach.completeOnboarding().catch(()=>{
+        pv.onboarding_completed=false;
+        toast("Couldn't save your setup — check your connection and press Done again.");
+        render();
+      });
     }
     S.modal=null;render();});
   $("[data-suw-back]").forEach(b=>b.onclick=()=>{const w=S.setupWiz;if(w){w.step=1;w.err=null;}render();});
@@ -19473,7 +19484,10 @@ window.MOD_COACHUI = { css:CSS, wire:wire };
         /* ?select= limits the RETURNING set to granted columns — a bare
            return=representation implies SELECT *, and the column-level
            lockdown (stripe ids, exact lat/lng) 401s the entire insert. */
-        return API.from("providers", "?select=id,business_name,status,onboarding_completed,stripe_onboarding_started,stripe_charges_enabled", {
+        /* No leading "?": API.from prepends it, and "??select" reaches
+           PostgREST as a literal column named "?select" — a 400 that made
+           every first-time provider insert fail (pentest 2026-09-04 #2). */
+        return API.from("providers", "select=id,business_name,status,onboarding_completed,stripe_onboarding_started,stripe_charges_enabled", {
           method: "POST",
           headers: { Prefer: "return=representation" },
           body: {
@@ -19912,7 +19926,7 @@ window.MOD_COACHUI = { css:CSS, wire:wire };
        One direction only: this can set true, nothing client-side sets false. */
     completeOnboarding: function () {
       if (!uid()) return Promise.reject(new Error("not signed in"));
-      return API.from("providers", "?owner_id=eq." + encodeURIComponent(uid()), {
+      return API.from("providers", "owner_id=eq." + encodeURIComponent(uid()), {
         method: "PATCH",
         headers: { Prefer: "return=minimal" },
         body: { onboarding_completed: true },
