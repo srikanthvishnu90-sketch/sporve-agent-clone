@@ -106,6 +106,12 @@ const MAX_TOOL_CALLS = 4;
 // The tool surface (docs "Tools"). READS execute + return; WRITES are proposals.
 const READ_TOOLS = [
   "get_schedule", "get_bookings", "get_roster", "get_earnings", "get_waitlist", "whos_booked",
+  // Client discovery (owner directive 2026-09-04, engine = the search agent's
+  // harvest stage): searches the public web index for nearby orgs/leagues/
+  // programs and saves them as review-queue findings. READ-shaped: it writes
+  // only agent_findings rows under the coach's own RLS; outreach stays the
+  // human-approved draft rail. args: { query?: string }.
+  "find_clients",
 ] as const;
 const WRITE_TOOLS = [
   "set_profile_image", "set_gallery_image", "draft_bio", "set_policy", "create_service",
@@ -180,6 +186,7 @@ const SYSTEM = [
   "- NEVER state a price, time, day, or availability that is not in the CONTEXT block. If a needed fact is missing, ask the coach (intent='clarify') — never guess or invent.",
   "- AMBIGUOUS TARGET: if a name matches two or more people on the roster (e.g. two 'James'), DO NOT guess — ask which one (intent='clarify'). Only act on an unambiguous match.",
   "- Reference ONLY ids that appear in the CONTEXT block. Never invent, guess, or carry over an id. If you don't have the id, ask.",
+  "- find_clients: when the coach asks to find clients, prospects, leads, feeder programs, leagues or partner orgs nearby, call find_clients with args.query describing what they want (e.g. 'youth soccer leagues'). Results are discovered organizations saved to their review queue — present the list plainly and say they were saved as findings. Never promise outreach; messages are always drafted separately for approval.",
   "- Refuse anything out of scope (weather, jokes, coding, general questions, another coach's data) in ONE sentence (intent='refuse', no tool_calls).",
   "- Never reference a family beyond their FIRST NAME. Never touch or mention background-check / verification status.",
   "",
@@ -187,6 +194,56 @@ const SYSTEM = [
   "",
   "OUTPUT FORMAT: the coach reads your reply verbatim in a small phone-sized panel. Write PLAIN TEXT — no emoji, no markdown headings or tables, no bold/asterisks. Short, labeled lines; a simple '-' bullet list is fine when you must enumerate. Keep it scannable at a glance.",
 ].join("\n");
+
+/* ── find_clients — the search agent's harvest stage, in the chat ──────────
+   (owner directive 2026-09-04). Places Text Search only for now; the
+   Firecrawl web-search leg is staged until FIRECRAWL_API_KEY exists. Leads
+   are DATA saved as agent_findings under the coach's own RLS — discovery
+   never contacts anyone; outreach remains the human-approved draft rail. */
+type ProvCtx = { id?: string; business_name?: string; location?: string | null; sports?: string[] | null } | null;
+// deno-lint-ignore no-explicit-any
+async function findClients(q: string, prov: ProvCtx, userClient: any, orgId: string | null) {
+  const KEY = Deno.env.get("GOOGLE_PLACES_KEY");
+  if (!KEY) return { error: "Client discovery isn't configured yet." };
+  const sport = (Array.isArray(prov?.sports) && prov?.sports?.[0]) || "youth sports";
+  const area = (prov?.location || "").trim();
+  const textQuery = ((q && q.trim().length >= 3) ? q.trim() : `${sport} youth clubs and leagues`)
+    + (area ? ` near ${area}` : "");
+  const resp = await fetch("https://places.googleapis.com/v1/places:searchText", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json", "X-Goog-Api-Key": KEY,
+      "X-Goog-FieldMask": "places.id,places.displayName,places.formattedAddress,places.websiteUri,places.nationalPhoneNumber,places.rating,places.userRatingCount",
+    },
+    body: JSON.stringify({ textQuery, maxResultCount: 10 }),
+  });
+  if (!resp.ok) return { error: `Discovery search failed (${resp.status}).` };
+  const data = await resp.json().catch(() => ({}));
+  // deno-lint-ignore no-explicit-any
+  const leads = ((data?.places ?? []) as any[]).map((p) => ({
+    place_id: String(p.id ?? ""), name: String(p.displayName?.text ?? ""),
+    address: p.formattedAddress ?? null, website: p.websiteUri ?? null,
+    phone: p.nationalPhoneNumber ?? null, rating: p.rating ?? null, reviews: p.userRatingCount ?? null,
+  })).filter((l) => l.name && l.place_id).slice(0, 10);
+  let saved = 0;
+  if (orgId && leads.length) {
+    try {
+      const refs = leads.map((l) => "lead:" + l.place_id);
+      const { data: ex } = await userClient.from("agent_findings")
+        .select("source_ref").eq("provider_id", orgId).in("source_ref", refs);
+      // deno-lint-ignore no-explicit-any
+      const have = new Set(((ex ?? []) as any[]).map((r) => r.source_ref));
+      const fresh = leads.filter((l) => !have.has("lead:" + l.place_id)).map((l) => ({
+        provider_id: orgId, kind: "clients", code: "discovery_lead", severity: "info",
+        title: "Prospect: " + l.name.slice(0, 120),
+        detail: [l.address, l.website, l.phone].filter(Boolean).join(" · ") || "Discovered via search",
+        source_ref: "lead:" + l.place_id, evidence: l, subject_type: "lead",
+      }));
+      if (fresh.length) { await userClient.from("agent_findings").insert(fresh); saved = fresh.length; }
+    } catch (_e) { /* saving is best-effort; the chat still shows the list */ }
+  }
+  return { query: textQuery, leads, saved_as_findings: saved };
+}
 
 /** Coerce a Postgres time ("17:00:00") to "5:00 PM" for the context block. */
 function fmtTime(t: unknown): string {
@@ -236,7 +293,7 @@ Deno.serve(async (req) => {
     // deploying it verbatim would have produced an assistant with an empty world.
     const { data: prov } = await userClient
       .from("providers")
-      .select("id, business_name, cancellation_policy, what_to_bring, travel_radius, session_notes")
+      .select("id, business_name, location, sports, cancellation_policy, what_to_bring, travel_radius, session_notes")
       .eq("owner_id", uid)
       .maybeSingle();
     const orgId: string | null = (prov?.id as string) ?? null;
@@ -406,6 +463,7 @@ Deno.serve(async (req) => {
         else if (tool === "get_roster") result = { roster };
         else if (tool === "get_earnings") result = { note: "Earnings are a client-side projection from the fee schedule (L-021); dispatch to the finance repo." };
         else if (tool === "get_waitlist") result = { note: "Fetch via the existing WaitlistRepository on the client." };
+        else if (tool === "find_clients") result = await findClients(String((args as Record<string, unknown>)?.query ?? ""), prov as ProvCtx, userClient, orgId);
         cleaned.push({ tool, args, kind: "read", result });
       }
     }

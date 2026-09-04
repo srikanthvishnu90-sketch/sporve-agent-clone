@@ -25,7 +25,7 @@
 <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16.png">
 <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
 <link rel="manifest" href="/site.webmanifest">
-<meta name="sporve-build" content="00b913df021838be">
+<meta name="sporve-build" content="137468e649d82dea">
 </head>
 <body>
 <noscript><h1>Sporv — Every sport. One app.</h1><p>Sporv connects families and athletes with coaches, trainers, camps, and teams across more than 20 sports. Please enable JavaScript to use the app.</p></noscript>
@@ -9980,6 +9980,23 @@ function facilitiesCardHTML(list){
   </div>`;
 }
 
+/* Client-discovery shortlist (owner 2026-09-04). Renders the find_clients
+   read result — real orgs from the search agent's harvest leg, saved as
+   review-queue findings. Discovery only: outreach is always a separate
+   human-approved draft. */
+function leadsCardHTML(list,saved){
+  if(!Array.isArray(list)||!list.length) return "";
+  return `<div class="faccard">${list.slice(0,8).map(l=>`
+    <div class="facrow">
+      <span class="facmain"><b>${esc(l.name||"Organization")}</b>${
+        l.address?`<em>${esc(l.address)}</em>`:""}${
+        l.website?`<em>${esc(l.website)}</em>`:""}</span>
+      ${l.rating?`<span class="facrate num">★ ${esc(String(l.rating))}</span>`:""}
+    </div>`).join("")}
+    <p class="facfine">${saved?`Saved ${saved} new prospect${saved===1?"":"s"} to your review queue. `:""}Discovery only — nothing was sent; outreach is drafted separately for your approval.</p>
+  </div>`;
+}
+
 function propCardHTML(p,i){
   const meta=PROP_META[p.tool]||{label:p.tool.replace(/_/g," "),tab:"dashboard"};
   const isMsgFamily=["draft_message","draft_bulk_message","draft_recap","camp_broadcast","draft_waitlist_offer"].includes(p.tool);
@@ -10107,6 +10124,7 @@ function aiDockHTML(){
              ${m.nav?`<button class="btn ghost sm" data-coachtab="${esc(m.nav.tab)}" style="align-self:flex-start">${esc(m.nav.label)}</button>`:""}
              ${m.proposal?propCardHTML(m.proposal,i):""}
              ${m.facilities?facilitiesCardHTML(m.facilities):""}
+             ${m.leads?leadsCardHTML(m.leads,m.leadsSaved):""}
              ${(m.picks||[]).map(id=>{
                const p=PROGRAMS.find(x=>x.id===id);
                return p?`<button class="aidock-pick" data-open="${esc(p.id)}">
@@ -17797,8 +17815,14 @@ function askCoach(q){
          render it as a card, not just the model's prose. */
       const facRead=calls.find(c=>c&&c.kind==="read"&&c.tool==="find_facilities");
       const facilities=(facRead&&facRead.result&&Array.isArray(facRead.result.facilities))?facRead.result.facilities:null;
+      /* Client discovery (owner 2026-09-04): the find_clients READ executes
+         server-side AFTER the model's turn, so the model's prose can't list
+         the results — the card is the truth. */
+      const leadRead=calls.find(c=>c&&c.kind==="read"&&c.tool==="find_clients");
+      const leads=(leadRead&&leadRead.result&&Array.isArray(leadRead.result.leads))?leadRead.result.leads:null;
+      const leadsSaved=(leadRead&&leadRead.result&&+leadRead.result.saved_as_findings)||0;
       S.chatThinking=false;
-      S.chat=[...S.chat,{role:"coach",text:reply,tools,proposal,facilities}];
+      S.chat=[...S.chat,{role:"coach",text:reply,tools,proposal,facilities,leads,leadsSaved}];
       /* Reply landed while the dock was closed → badge the FAB so the coach
          sees there's something waiting; cleared when they reopen. */
       if(S.aiOpen===false) S.aiUnread=(S.aiUnread||0)+1;
