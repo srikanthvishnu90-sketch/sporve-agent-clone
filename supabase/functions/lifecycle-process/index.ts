@@ -305,6 +305,20 @@ Deno.serve(async (req) => {
         const rawReply = ((replyRow?.value ?? {}) as { email?: string }).email;
         const replyTo = (rawReply && /^[^\s@<>,;:"\\]+@[^\s@<>,;:"\\]+\.[^\s@<>,;:"\\]+$/.test(rawReply) ? rawReply : null)
           ?? Deno.env.get("SUPPORT_EMAIL") ?? "support@sporv.ai";
+        // CAN-SPAM opt-out (launch-audit blocker 8): a signed one-click
+        // unsubscribe link in the headers AND the body. Token = HMAC of the
+        // guardian id under the service key — no new secret, nothing stored.
+        let unsubUrl: string | null = null;
+        if (c.guardian_id) {
+          try {
+            const k = await crypto.subtle.importKey("raw",
+              new TextEncoder().encode(Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!),
+              { name: "HMAC", hash: "SHA-256" }, false, ["sign"]);
+            const sig = await crypto.subtle.sign("HMAC", k, new TextEncoder().encode(c.guardian_id));
+            const tok = [...new Uint8Array(sig)].map(b => b.toString(16).padStart(2, "0")).join("").slice(0, 32);
+            unsubUrl = `${Deno.env.get("SUPABASE_URL")}/functions/v1/unsubscribe?g=${c.guardian_id}&t=${tok}`;
+          } catch { /* a missing link must never block the send */ }
+        }
         try {
           const resp = await fetch("https://api.resend.com/emails", {
             method: "POST",
@@ -314,8 +328,14 @@ Deno.serve(async (req) => {
               ...(replyTo ? { reply_to: replyTo } : {}),
               to: [gEmail],
               subject: c.subject || `A message from ${orgName}`,
-              text: c.body,
-              headers: { "X-Sporv-Message-Id": er.id },
+              text: c.body + (unsubUrl ? `\n\n—\nUnsubscribe from these messages: ${unsubUrl}` : ""),
+              headers: {
+                "X-Sporv-Message-Id": er.id,
+                ...(unsubUrl ? {
+                  "List-Unsubscribe": `<${unsubUrl}>`,
+                  "List-Unsubscribe-Post": "List-Unsubscribe=One-Click",
+                } : {}),
+              },
             }),
           });
           const rj = await resp.json().catch(() => ({}));
