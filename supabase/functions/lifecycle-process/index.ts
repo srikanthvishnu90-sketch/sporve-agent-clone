@@ -202,6 +202,10 @@ Deno.serve(async (req) => {
         .order("created_at", { ascending: true })
         .limit(50);
       for (const er of eRows ?? []) {
+       // Per-row guard: one org's bad settings (or any single-row surprise)
+       // must never abort the tick for every other org. A row that keeps
+       // throwing is retried at most 3 times, like the email-failure path.
+       try {
         const c = er.content as { body?: string; subject?: string; to_email?: string; guardian_id?: string } | null;
         if (!c?.body || (!c?.to_email && !c?.guardian_id)) continue;
 
@@ -211,10 +215,18 @@ Deno.serve(async (req) => {
         const { data: tzRow } = await admin.from("provider_settings")
           .select("value").eq("provider_id", er.provider_id).eq("key", "org_tz").maybeSingle();
         const win = (winRow?.value ?? {}) as { start?: string; end?: string; blocked_days?: (string|number)[]; pause_until?: string };
-        const tz = ((tzRow?.value ?? {}) as { tz?: string }).tz ?? "America/Chicago";
+        // tz + window are tenant input (validated on write since 001022, but
+        // rows written before that may hold garbage): a bad tz falls back to
+        // the default instead of throwing, and a non-numeric window falls back
+        // to 8:00/20:00 instead of silently disabling the window (NaN
+        // comparisons are always false).
+        let tz = ((tzRow?.value ?? {}) as { tz?: string }).tz ?? "America/Chicago";
+        try { new Intl.DateTimeFormat("en-US", { timeZone: tz }); } catch { tz = "America/Chicago"; }
         const orgNow = new Date(new Date().toLocaleString("en-US", { timeZone: tz }));
         const hm = orgNow.getHours() * 60 + orgNow.getMinutes();
-        const [ws, we] = [win.start ?? "08:00", win.end ?? "20:00"].map(t => { const [h, m] = t.split(":").map(Number); return h * 60 + (m || 0); });
+        let [ws, we] = [win.start ?? "08:00", win.end ?? "20:00"].map(t => { const [h, m] = t.split(":").map(Number); return h * 60 + (m || 0); });
+        if (!Number.isFinite(ws)) ws = 8 * 60;
+        if (!Number.isFinite(we)) we = 20 * 60;
         const blocked = (win.blocked_days ?? []).map(String).includes(String(orgNow.getDay()));
         const paused = win.pause_until && new Date(win.pause_until) >= new Date(new Date().toDateString());
         if (hm < ws || hm > we || blocked || paused) {
@@ -244,7 +256,13 @@ Deno.serve(async (req) => {
           const { error: nErr } = await admin.from("notifications")
             .insert([{ user_id: claimedUser, title: c.subject || "Message from your club", message: c.body.slice(0, 280) }]);
           if (nErr) {
-            await admin.from("outbound_messages").update({ status: "approved", last_error: nErr.message.slice(0, 300) }).eq("id", er.id);
+            // bounded like the email path — a permanently failing insert
+            // (deleted user, constraint) must not retry every tick forever.
+            const nAttempts = (er.attempt_count ?? 0) + 1;
+            await admin.from("outbound_messages").update({
+              status: nAttempts >= 3 ? "failed" : "approved",
+              attempt_count: nAttempts, last_error: nErr.message.slice(0, 300),
+            }).eq("id", er.id);
             emailSummary.emailFailed++;
           } else {
             await deliverPush(admin, claimedUser, c.subject || "Message from your club", c.body.slice(0, 280));
@@ -324,6 +342,15 @@ Deno.serve(async (req) => {
           }).eq("id", er.id);
           emailSummary.emailFailed++;
         }
+       } catch (rowErr) {
+        // isolation net for anything above: record, bounded-retry, move on.
+        const attempts = (er.attempt_count ?? 0) + 1;
+        await admin.from("outbound_messages").update({
+          status: attempts >= 3 ? "failed" : "approved",
+          attempt_count: attempts, last_error: String(rowErr).slice(0, 300),
+        }).eq("id", er.id).is("sent_at", null).then(() => {}, () => {});
+        emailSummary.emailFailed++;
+       }
       }
     }
 

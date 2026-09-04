@@ -21,7 +21,7 @@
 <meta name="twitter:description" content="Find coaches, trainers, camps and teams across 20+ sports in Chicagoland.">
 <meta name="twitter:image" content="https://sporv.vercel.app/og.png">
 <link rel="icon" href="data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%2032%2032'%3E%3Crect%20width='32'%20height='32'%20rx='7'%20fill='%2309090B'/%3E%3Ccircle%20cx='16'%20cy='16'%20r='6'%20fill='white'/%3E%3C/svg%3E">
-<meta name="sporve-build" content="e8335a05c93d1b9f">
+<meta name="sporve-build" content="fe6387ca0ee49780">
 </head>
 <body>
 <noscript><h1>Sporv — Every sport. One app.</h1><p>Sporv connects families and athletes with coaches, trainers, camps, and teams across more than 20 sports. Please enable JavaScript to use the app.</p></noscript>
@@ -1446,12 +1446,15 @@ button.tnav.tnav-cta:hover{background:#FFFFFF;color:#0B0D0F;border-color:#FFFFFF
 /* Owner 2026-09-03: the pill blends INTO the black header — black ground,
    white label, same text/font/size. Hover/open get a faint white lift so the
    trigger still reads as interactive. White-on-black literals per colour law. */
+/* No font-size/weight of its own (owner 2026-09-03: "product text is larger
+   than the others") — it inherits the same .tnav rules as Pricing/Book a call
+   so the row reads as one family. */
 .tnav.prodpill{background:transparent;color:#FFFFFF;border-radius:12px;
-  padding:0 18px;height:40px;line-height:40px;font-weight:600;
-  font-size:16px;font-family:var(--sans);font-style:normal;display:inline-flex;
+  padding:0 18px;height:40px;line-height:40px;
+  font-family:var(--sans);font-style:normal;display:inline-flex;
   align-items:center;gap:8px}
 .tnav.prodpill:hover,.tnav.prodpill.open{background:rgba(255,255,255,.08);color:#FFFFFF;font-style:normal}
-.tnav.prodpill .caret{font-size:14px;line-height:1;transform:translateY(-1px)}
+.tnav.prodpill .caret{font-size:1em;line-height:1;transform:translateY(-1px)}
 .productmenu .pmrow2{display:block;width:100%;text-align:left;color:#D7DEE7;
   font-size:16px;padding:7px 0;font-family:var(--sans);
   font-weight:400;text-transform:none;letter-spacing:0;font-style:normal}

@@ -1,40 +1,33 @@
--- ============================================================================
--- DOC 08 DELIVERY (2026-09-02) — applied to prod as delivery_events (+ the
--- capacity-offer lateral fix via execute_sql; applied bodies authoritative).
+-- 20260902_001021 — DELIVERY (doc 08): bounce bookkeeping + send columns.
+-- Originally applied to prod via execute_sql on 2026-09-02 with only a
+-- comment file left in git. Backfilled 2026-09-03 (pentest finding 1) from
+-- prod's information_schema / pg_policies. Idempotent.
 --
--- outbound_messages: +send_after, +attempt_count, +last_error, +provider;
--- status check widened with needs_review|failed.
--- guardians: +email_status ok|bounced|complained (default ok; backfilled from
--- email_bounced_at). delivery_events table (guardian_id, message_id, type,
--- raw, created_at) with owner-read RLS — the bounce/complaint audit intake.
---
--- EVERY draft generator's payer-guardian lateral now requires
--- g.email_status='ok' (A1 dues, B1 waivers, C1 practice, C2 change-trigger,
--- D1 reactivation, idle-capacity offers): a bounced address is never drafted
--- to until the director fixes it.
---
--- lifecycle-process (deployed from this repo): sends ONLY rows with
--- approved_by NOT NULL and sent_at NULL and send_after due; send window
--- (default 08:00-20:00 org tz + blocked days + pause) parks rows via
--- send_after; email_status<>'ok' -> needs_review; Resend POST carries
--- from "{org} via Sporv <{slug}@mail.sporv.ai>", reply_to from settings,
--- X-Sporv-Message-Id; 2xx stamps sent_at+provider_message_id guarded by
--- "AND sent_at IS NULL" (never sends twice); failure bumps attempt_count,
--- 3 strikes -> status='failed'. resend-webhook (svix-verified, fail-closed)
--- inserts delivery_events + sets guardians.email_status.
---
--- INVARIANTS PROVEN ON PROD (2026-09-02):
---  · approved_by-NULL row inserted, tick invoked: status stayed 'approved',
---    sent_at null, provider_message_id null — never sent.
---  · grep of every generator migration for approved_by/sent_at writes: zero
---    (the only writers are owner-gated approve fns + the delivery worker).
---  · 000200 draft-first trigger untouched.
---
--- REMAINING (owner, ~10 min): Resend account -> verify mail.sporv.ai
--- (SPF+DKIM rows Resend prints) -> `supabase secrets set RESEND_API_KEY=...
--- MAIL_DOMAIN=mail.sporv.ai` -> webhook endpoint
--- https://tseszaprvtvqrkfpditu.supabase.co/functions/v1/resend-webhook
--- (email.bounced + email.complained) -> `supabase secrets set
--- RESEND_WEBHOOK_SECRET=whsec_...`. Fixture staged: guardian Sana (overdue
--- $300 dues, unclaimed) now points at the owner's real inbox, so step-6's
--- "email arrives" completes on the first tick after the key lands.
+-- delivery_events RLS: org owners may READ events for their own guardians;
+-- there is deliberately NO insert/update/delete policy for authenticated —
+-- only the service-role resend-webhook writes rows.
+
+create table if not exists public.delivery_events (
+  id uuid primary key default gen_random_uuid(),
+  type text not null,
+  message_id uuid references public.outbound_messages(id) on delete set null,
+  guardian_id uuid references public.guardians(id) on delete set null,
+  raw jsonb,
+  created_at timestamptz not null default now()
+);
+
+alter table public.delivery_events enable row level security;
+drop policy if exists delivery_events_owner_read on public.delivery_events;
+create policy delivery_events_owner_read on public.delivery_events
+  for select to authenticated
+  using (exists (select 1 from public.guardians g
+                 join public.providers p on p.id = g.provider_id
+                 where g.id = delivery_events.guardian_id and p.owner_id = auth.uid()));
+
+alter table public.outbound_messages add column if not exists send_after timestamptz;
+alter table public.outbound_messages add column if not exists attempt_count integer default 0;
+alter table public.outbound_messages add column if not exists last_error text;
+alter table public.outbound_messages add column if not exists provider text;
+
+alter table public.guardians add column if not exists email_status text default 'ok';
+alter table public.guardians add column if not exists email_bounced_at timestamptz;
