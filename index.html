@@ -21,7 +21,7 @@
 <meta name="twitter:description" content="Find coaches, trainers, camps and teams across 20+ sports in Chicagoland.">
 <meta name="twitter:image" content="https://sporv.vercel.app/og.png">
 <link rel="icon" href="data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%2032%2032'%3E%3Crect%20width='32'%20height='32'%20rx='7'%20fill='%2309090B'/%3E%3Ccircle%20cx='16'%20cy='16'%20r='6'%20fill='white'/%3E%3C/svg%3E">
-<meta name="sporve-build" content="e6da02d03f7946fa">
+<meta name="sporve-build" content="e8335a05c93d1b9f">
 </head>
 <body>
 <noscript><h1>Sporv — Every sport. One app.</h1><p>Sporv connects families and athletes with coaches, trainers, camps, and teams across more than 20 sports. Please enable JavaScript to use the app.</p></noscript>
@@ -1443,11 +1443,14 @@ button.tnav.tnav-cta:hover{background:#FFFFFF;color:#0B0D0F;border-color:#FFFFFF
 .productmenu .pmcol .eyebrow{margin-bottom:6px}
 /* Amboras-style trigger (owner reference 2026-09-03): light rounded pill,
    dark semibold label, caret flips when open. */
-.tnav.prodpill{background:#F4F5F7;color:#16181D;border-radius:12px;
+/* Owner 2026-09-03: the pill blends INTO the black header — black ground,
+   white label, same text/font/size. Hover/open get a faint white lift so the
+   trigger still reads as interactive. White-on-black literals per colour law. */
+.tnav.prodpill{background:transparent;color:#FFFFFF;border-radius:12px;
   padding:0 18px;height:40px;line-height:40px;font-weight:600;
   font-size:16px;font-family:var(--sans);font-style:normal;display:inline-flex;
   align-items:center;gap:8px}
-.tnav.prodpill:hover,.tnav.prodpill.open{background:#FFFFFF;color:#0B0D0F;font-style:normal}
+.tnav.prodpill:hover,.tnav.prodpill.open{background:rgba(255,255,255,.08);color:#FFFFFF;font-style:normal}
 .tnav.prodpill .caret{font-size:14px;line-height:1;transform:translateY(-1px)}
 .productmenu .pmrow2{display:block;width:100%;text-align:left;color:#D7DEE7;
   font-size:16px;padding:7px 0;font-family:var(--sans);
@@ -7042,6 +7045,10 @@ function completeAuth(user){
   const intent=S.pendingIntent; S.pendingIntent=null;
   render();
   if(intent) setTimeout(()=>runIntent(intent),60);
+  /* No parked intent = a plain sign-in. The product IS the agent workspace,
+     so a provider lands there, not back on the marketing page they happened
+     to sign in from. Families keep their in-place behaviour. */
+  else if(user&&user.role==="provider") setTimeout(()=>enterCoachWorkspace(),60);
 }
 function authFail(msg){
   S.authBusy=false;
@@ -27477,6 +27484,15 @@ function hydrateAuth(){
       /* Replay an intent parked before an OAuth redirect. It survived as DATA
          in sessionStorage; the closure it replaced could not have. */
       const parked=S.pendingIntent; S.pendingIntent=null;
+      /* A returning provider opening the site cold lands on the agent
+         dashboard, not the marketing home — the workspace is the product.
+         Guarded three ways: only providers, only when no parked intent is
+         about to navigate anyway, and only from the default home route so a
+         deep link (Stripe return, a shared page) is never hijacked. */
+      if(p.role==="provider" && !parked && S.route && S.route.name==="home"){
+        S.coachTab = S.coachTab || "dashboard";
+        S.route={name:"dashboard",arg:null};
+      }
       render();
       hydrateBookings();
       hydrateAthletes();
