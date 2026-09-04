@@ -25,7 +25,7 @@
 <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16.png">
 <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
 <link rel="manifest" href="/site.webmanifest">
-<meta name="sporve-build" content="70ecd264c1e4ec3f">
+<meta name="sporve-build" content="53225c53a4861fdc">
 </head>
 <body>
 <noscript><h1>Sporv — Every sport. One app.</h1><p>Sporv connects families and athletes with coaches, trainers, camps, and teams across more than 20 sports. Please enable JavaScript to use the app.</p></noscript>
@@ -1429,6 +1429,20 @@ img{max-width:100%;display:block}
 .stnote{border-left:2px solid var(--accent-on-dark,#94A3B8);background:var(--raise);border-radius:0 7px 7px 0;padding:11px 14px;color:var(--muted);font-size:var(--text-sm);margin-top:12px}
 .stnote b{color:var(--ink)}
 @media(max-width:900px){.stshell{grid-template-columns:1fr}.strail{position:static;flex-direction:row;flex-wrap:wrap}.strail .stsec{width:100%}.stctl{max-width:100%}}
+/* CTA pair (owner spec 2026-09-04, prototype .cta): identical shape, only
+   fills differ. Log in = near-black quiet; Get started = steel. Literals on
+   the dark bar per colour law; equal reserved width kills layout shift. */
+.cta-pair{margin-left:auto;display:inline-flex;gap:10px;justify-content:flex-end;min-width:216px}
+.tnav-row .cta{height:38px;padding:0 16px;border-radius:8px;border:1px solid transparent;
+  display:inline-flex;align-items:center;font-family:var(--nav-face);font-size:14px;
+  font-weight:600;font-style:normal;text-transform:none;letter-spacing:0;cursor:pointer;
+  transition:background .16s,border-color .16s,color .16s}
+.tnav-row .cta.login{background:#0B0D0F;color:#EDEFF2;border-color:rgba(174,186,199,.22)}
+.tnav-row .cta.login:hover{border-color:rgba(174,186,199,.42);background:#111418}
+.tnav-row .cta.start{background:#6B7F9E;color:#FFFFFF;border-color:#6B7F9E}
+.tnav-row .cta.start:hover{background:#7A8FAE;border-color:#7A8FAE}
+@media(max-width:900px){.tnav-row .cta.login{display:none}.cta-pair{min-width:0}}
+
 /* Get Started (owner reference image 2026-09-02): crisp SHARP rectangle,
    generous padding, "Get Started". Text white per explicit ask, so the fill
    goes near-black with a hairline to pop on the dark nav; hover inverts to
@@ -8242,7 +8256,13 @@ function primaryNavHTML(){
       aria-expanded="${!!S.prodMenu}" aria-haspopup="menu">Product <span class="caret">${S.prodMenu?"⌃":"⌄"}</span></button>
     <button class="tnav ${S.route.name==="pricing"?"on":""}" data-nav="pricing">Pricing</button>
     <a class="tnav" href="mailto:support@sporv.ai?subject=Sporv%20setup%20call">Book a call</a>
-    <button class="tnav tnav-cta" data-becomecoach="1">Get Started</button>
+    ${/* Right cluster (owner spec 2026-09-04, prototype .cta): signed out =
+         Log in + Get started pair; signed in = Coach dashboard, and "Log in"
+         must not render. State reads the REAL session (SporveAuth), never a
+         cached flag. Equal reserved width so the swap causes no shift. */""}
+    ${realSignedIn()
+      ?`<span class="cta-pair"><button class="cta start" data-dashbtn="1">Coach dashboard</button></span>`
+      :`<span class="cta-pair"><button class="cta login" data-loginbtn="1">Log in</button><button class="cta start" data-becomecoach="1">Get started</button></span>`}
   </nav>`;
 }
 
@@ -8670,6 +8690,34 @@ function landingHTML(){
        chips are DELETED (owner: "there shouldn't be a single searchbar…
        there is no marketplace"). heroMediaHTML() + the hero-media scrim are
        the same machinery the browse hero uses. */""}
+  ${/* FIRST SCREEN (owner 2026-09-04, screenshot #67): the review-queue
+       chapter now OPENS the page — the stadium hero and everything else are
+       untouched and follow directly below. Pure reorder, zero copy changes. */""}
+  <div class="lp26">
+  <section class="dark2 band" id="queue">
+    <div class="wrap">
+      <div class="head"><p class="k" data-rev>The review queue</p>
+        <h2 data-rev data-rev-d="1">You billed the season. You didn't collect all of it.</h2>
+        <p data-rev data-rev-d="2" style="margin-top:14px">Rosters, dues, and waivers for travel teams, camps, and private trainers. The follow-ups write themselves — you press send.</p></div>
+
+      <div class="queue" data-rev data-rev-d="2">
+        <div class="qh">
+          <span class="t">Review queue</span><span class="c">12 drafted · $4,290</span>
+          <span class="b"><span class="p">Approve all</span><span>Review each</span></span>
+        </div>
+      <div class="r"><span class="nm">Dana Reyes<small>Flight 14U</small></span><span class="msg">Hi Dana — installment 3 for Ava's season fee was due Sept 1…</span><span class="amt">$390</span><span class="st">Ready</span></div>
+      <div class="r"><span class="nm">Priya Thomas<small>Flight 14U</small></span><span class="msg">Hi Priya — quick note that installment 3 hasn't come through…</span><span class="amt">$390</span><span class="st">Ready</span></div>
+      <div class="r"><span class="nm">Sam Kowalski<small>Flight 16U</small></span><span class="msg">Hi Sam — Liam's third installment is outstanding as of today…</span><span class="amt">$425</span><span class="st">Ready</span></div>
+      <div class="r"><span class="nm">Ruth Delgado<small>Flight 12U</small></span><span class="msg">Hi Ruth — following up on the September installment…</span><span class="amt">$340</span><span class="st">Ready</span></div>
+      <div class="r"><span class="nm">Marcus Bell<small>Summer camp</small></span><span class="msg">Held — guardian disputed this charge on Aug 14</span><span class="amt">$260</span><span class="st hold">Needs you</span></div>
+      <div class="r"><span class="nm">Elena Novak<small>Flight 16U</small></span><span class="msg">Hi Elena — installment 3 for Mia's season is outstanding…</span><span class="amt">$425</span><span class="st">Ready</span></div>
+        <div class="qf">6 of 12 shown. Nothing here sends until someone approves it.</div>
+      </div>
+      <p data-rev data-rev-d="2" style="margin-top:14px;font-size:13px;color:var(--w-2)">Product preview. Names and amounts are illustrative.</p>
+    </div>
+  </section>
+  </div>
+
   <section class="hero herofull">
     <div class="hero-panel">
       ${heroMediaHTML()}
@@ -8697,29 +8745,6 @@ function landingHTML(){
        everything from the queue down is the paste verbatim. Reveals use the
        existing data-rev observer. */""}
   <div class="lp26">
-
-  <section class="dark2 band" id="queue">
-    <div class="wrap">
-      <div class="head"><p class="k" data-rev>The review queue</p>
-        <h2 data-rev data-rev-d="1">You billed the season. You didn't collect all of it.</h2>
-        <p data-rev data-rev-d="2" style="margin-top:14px">Rosters, dues, and waivers for travel teams, camps, and private trainers. The follow-ups write themselves — you press send.</p></div>
-
-      <div class="queue" data-rev data-rev-d="2">
-        <div class="qh">
-          <span class="t">Review queue</span><span class="c">12 drafted · $4,290</span>
-          <span class="b"><span class="p">Approve all</span><span>Review each</span></span>
-        </div>
-      <div class="r"><span class="nm">Dana Reyes<small>Flight 14U</small></span><span class="msg">Hi Dana — installment 3 for Ava's season fee was due Sept 1…</span><span class="amt">$390</span><span class="st">Ready</span></div>
-      <div class="r"><span class="nm">Priya Thomas<small>Flight 14U</small></span><span class="msg">Hi Priya — quick note that installment 3 hasn't come through…</span><span class="amt">$390</span><span class="st">Ready</span></div>
-      <div class="r"><span class="nm">Sam Kowalski<small>Flight 16U</small></span><span class="msg">Hi Sam — Liam's third installment is outstanding as of today…</span><span class="amt">$425</span><span class="st">Ready</span></div>
-      <div class="r"><span class="nm">Ruth Delgado<small>Flight 12U</small></span><span class="msg">Hi Ruth — following up on the September installment…</span><span class="amt">$340</span><span class="st">Ready</span></div>
-      <div class="r"><span class="nm">Marcus Bell<small>Summer camp</small></span><span class="msg">Held — guardian disputed this charge on Aug 14</span><span class="amt">$260</span><span class="st hold">Needs you</span></div>
-      <div class="r"><span class="nm">Elena Novak<small>Flight 16U</small></span><span class="msg">Hi Elena — installment 3 for Mia's season is outstanding…</span><span class="amt">$425</span><span class="st">Ready</span></div>
-        <div class="qf">6 of 12 shown. Nothing here sends until someone approves it.</div>
-      </div>
-      <p data-rev data-rev-d="2" style="margin-top:14px;font-size:13px;color:var(--w-2)">Product preview. Names and amounts are illustrative.</p>
-    </div>
-  </section>
 
   <section class="off band">
     <div class="wrap">
@@ -15640,6 +15665,8 @@ document.querySelectorAll('.sig-ai-coach').forEach(sigAiCoachWire);
     const i=+b.dataset.faq; S.faqOpen=S.faqOpen===i?null:i; render();});
   /* Become a coach opens the signup wizard directly — there is no marketing
      page in front of it any more. */
+  $("[data-loginbtn]").forEach(b=>b.onclick=()=>{S.modal={type:"authsheet"};render();});
+  $("[data-dashbtn]").forEach(b=>b.onclick=()=>enterCoachWorkspace());
   $("[data-becomecoach]").forEach(b=>b.onclick=()=>{
     const signed=window.SporveAuth&&window.SporveAuth.isSignedIn&&window.SporveAuth.isSignedIn();
     if(!signed){S.signupRole="coach";S.pendingIntent={kind:"coachOnboard"};
