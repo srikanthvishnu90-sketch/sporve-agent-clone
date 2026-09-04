@@ -1418,12 +1418,15 @@ button.tnav.tnav-cta:hover{background:#FFFFFF;color:#0B0D0F;border-color:#FFFFFF
 /* Owner 2026-09-03: the pill blends INTO the black header — black ground,
    white label, same text/font/size. Hover/open get a faint white lift so the
    trigger still reads as interactive. White-on-black literals per colour law. */
+/* No font-size/weight of its own (owner 2026-09-03: "product text is larger
+   than the others") — it inherits the same .tnav rules as Pricing/Book a call
+   so the row reads as one family. */
 .tnav.prodpill{background:transparent;color:#FFFFFF;border-radius:12px;
-  padding:0 18px;height:40px;line-height:40px;font-weight:600;
-  font-size:16px;font-family:var(--sans);font-style:normal;display:inline-flex;
+  padding:0 18px;height:40px;line-height:40px;
+  font-family:var(--sans);font-style:normal;display:inline-flex;
   align-items:center;gap:8px}
 .tnav.prodpill:hover,.tnav.prodpill.open{background:rgba(255,255,255,.08);color:#FFFFFF;font-style:normal}
-.tnav.prodpill .caret{font-size:14px;line-height:1;transform:translateY(-1px)}
+.tnav.prodpill .caret{font-size:1em;line-height:1;transform:translateY(-1px)}
 .productmenu .pmrow2{display:block;width:100%;text-align:left;color:#D7DEE7;
   font-size:16px;padding:7px 0;font-family:var(--sans);
   font-weight:400;text-transform:none;letter-spacing:0;font-style:normal}
