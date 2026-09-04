@@ -68,6 +68,16 @@ Deno.serve(async (req) => {
       email_status: evt.type === "email.bounced" ? "bounced" : "complained",
       email_bounced_at: new Date().toISOString(),
     }).eq("id", gid);
+    // Suppression survives the ROW (red fix 2026-09-04): the per-email
+    // suppression list is what the guardians guard consults on re-insert,
+    // so deleting + re-adding the guardian cannot resume mail.
+    const { data: g } = await admin.from("guardians").select("email").eq("id", gid).maybeSingle();
+    const em = (g as { email?: string } | null)?.email?.toLowerCase();
+    if (em) {
+      await admin.from("email_suppressions").upsert(
+        { email: em, reason: evt.type === "email.bounced" ? "bounced" : "complained" },
+        { onConflict: "email" });
+    }
   }
   return new Response(JSON.stringify({ ok: true }), { status: 200, headers: { "Content-Type": "application/json" } });
 });
