@@ -244,7 +244,10 @@
         /* ?select= limits the RETURNING set to granted columns — a bare
            return=representation implies SELECT *, and the column-level
            lockdown (stripe ids, exact lat/lng) 401s the entire insert. */
-        return API.from("providers", "?select=id,business_name,status,onboarding_completed,stripe_onboarding_started,stripe_charges_enabled", {
+        /* No leading "?": API.from prepends it, and "??select" reaches
+           PostgREST as a literal column named "?select" — a 400 that made
+           every first-time provider insert fail (pentest 2026-09-04 #2). */
+        return API.from("providers", "select=id,business_name,status,onboarding_completed,stripe_onboarding_started,stripe_charges_enabled", {
           method: "POST",
           headers: { Prefer: "return=representation" },
           body: {
@@ -683,7 +686,7 @@
        One direction only: this can set true, nothing client-side sets false. */
     completeOnboarding: function () {
       if (!uid()) return Promise.reject(new Error("not signed in"));
-      return API.from("providers", "?owner_id=eq." + encodeURIComponent(uid()), {
+      return API.from("providers", "owner_id=eq." + encodeURIComponent(uid()), {
         method: "PATCH",
         headers: { Prefer: "return=minimal" },
         body: { onboarding_completed: true },

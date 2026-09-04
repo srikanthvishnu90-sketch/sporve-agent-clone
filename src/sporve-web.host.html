@@ -7195,6 +7195,10 @@ function resetPersonalState(){
   /* auth is in the baseline as its declared value; re-assert the guest shape so
      this cannot depend on how S was originally written. */
   S.auth={status:"guest",user:null};
+  /* modal/toast sit in GUEST_KEEP (they're UI chrome), but a modal PAYLOAD can
+     carry the previous account's booking or email — never survive the purge
+     (pentest 2026-09-04 #9). */
+  S.modal=null; S.toast=null;
   /* Drop the persisted snapshot too. Resetting S in memory is not enough: the
      blob already on disk carries the previous account, and a reload before the
      next save would restore it. */
@@ -15837,7 +15841,14 @@ document.querySelectorAll('.sig-ai-coach').forEach(sigAiCoachWire);
     const pv=S.coachProvider;
     if(pv&&pv.id&&realSignedIn()&&pv.onboarding_completed===false&&window.SporveCoach&&window.SporveCoach.completeOnboarding){
       pv.onboarding_completed=true;
-      window.SporveCoach.completeOnboarding().catch(()=>{});
+      /* A silent failure here told the coach "you're set up" while the DB
+         still said false, and the gate re-trapped them on the next load
+         (pentest 2026-09-04 #3). Failure now reverts the flip and says so. */
+      window.SporveCoach.completeOnboarding().catch(()=>{
+        pv.onboarding_completed=false;
+        toast("Couldn't save your setup — check your connection and press Done again.");
+        render();
+      });
     }
     S.modal=null;render();});
   $("[data-suw-back]").forEach(b=>b.onclick=()=>{const w=S.setupWiz;if(w){w.step=1;w.err=null;}render();});

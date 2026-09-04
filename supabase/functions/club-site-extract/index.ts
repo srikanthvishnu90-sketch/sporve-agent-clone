@@ -63,20 +63,51 @@ Deno.serve(async (req) => {
     } else {
       url = String(body?.url ?? "").trim();
       if (!/^https?:\/\//i.test(url)) url = "https://" + url;
-      let host: string;
-      try { host = new URL(url).hostname; } catch { return json({ error: "That doesn't look like a URL." }, 400); }
-      // SSRF guard: public hosts only
-      if (/^(localhost|127\.|0\.|10\.|172\.(1[6-9]|2\d|3[01])\.|192\.168\.|\[)/.test(host)) {
-        return json({ error: "That host can't be fetched." }, 400);
+      // SSRF guard, applied to EVERY hop (redirects are followed manually so a
+      // public host cannot 302 us into the metadata service), and shaped to
+      // reject numeric-literal hosts (decimal/octal/hex IPs) the old prefix
+      // regex never matched. Pentest 2026-09-04 #6.
+      const badHost = (h: string) =>
+        /^(localhost|127\.|0\.|0$|10\.|169\.254\.|172\.(1[6-9]|2\d|3[01])\.|192\.168\.|100\.(6[4-9]|[7-9]\d|1[01]\d|12[0-7])\.|\[|0x|\d+$)/i.test(h);
+      let page: Response | null = null;
+      let hopUrl = url;
+      for (let hop = 0; hop < 5; hop++) {
+        let host: string;
+        try { host = new URL(hopUrl).hostname; } catch { return json({ error: "That doesn't look like a URL." }, 400); }
+        if (badHost(host)) return json({ error: "That host can't be fetched." }, 400);
+        const resp = await fetch(hopUrl, {
+          redirect: "manual",
+          headers: { "User-Agent": "SporvOnboarding/1.0 (+https://sporv.ai)" },
+          signal: AbortSignal.timeout(12000),
+        });
+        if (resp.status >= 300 && resp.status < 400 && resp.headers.get("location")) {
+          hopUrl = new URL(resp.headers.get("location")!, hopUrl).toString();
+          await resp.body?.cancel();
+          continue;
+        }
+        page = resp; break;
       }
-
-      const page = await fetch(url, {
-        redirect: "follow",
-        headers: { "User-Agent": "SporvOnboarding/1.0 (+https://sporv.vercel.app)" },
-        signal: AbortSignal.timeout(12000),
-      });
+      if (!page) return json({ error: "Too many redirects." }, 422);
       if (!page.ok) return json({ error: `The site answered ${page.status}.` }, 422);
-      text = stripHtml(await page.text());
+      // Only text-ish bodies, capped at 1MB while streaming — a huge or
+      // non-HTML response must not eat the isolate. Pentest 2026-09-04 #7.
+      const ctype = (page.headers.get("content-type") || "").toLowerCase();
+      if (ctype && !/text\/|html|xml/.test(ctype)) {
+        await page.body?.cancel();
+        return json({ error: "That URL isn't a web page." }, 422);
+      }
+      let raw = "";
+      const reader = page.body?.getReader();
+      if (reader) {
+        const dec = new TextDecoder();
+        while (raw.length < 1_000_000) {
+          const { done, value } = await reader.read();
+          if (done) break;
+          raw += dec.decode(value, { stream: true });
+        }
+        await reader.cancel().catch(() => {});
+      }
+      text = stripHtml(raw);
       if (text.length < 200) return json({ error: "The page had no readable content." }, 422);
     }
 
