@@ -124,7 +124,7 @@
       "<div><span>SAT 09:00</span><b>4 openings</b></div><div><span>SUN</span><b>closed</b></div></aside>";
     return wrap("scheduling", "R1", "calendar-head-to-split-walk", "D-L-L", hero(meta,
       "Publish the hours. Families take <em>the real openings.</em>", intro,
-      { tone: "dark", layout: "calendar", eyebrow: "COACH AVAILABILITY", aside: week }) +
+      { tone: "dark", layout: "calendar", eyebrow: "SCHEDULING & AVAILABILITY", aside: week }) +
       walkthroughSection(steps.slice(0, 2), { tone: "slate", layout: "walk-staggered" }) +
       walkthroughSection(steps.slice(2, 4), { tone: "white", layout: "walk-staggered", start: 2 }));
   }
@@ -255,7 +255,7 @@
     return wrap("roster", "R4", "compact-head-to-split-roster", "D-L-L", hero(meta,
       "Every client becomes <em>one working record.</em>",
       "Bring the families you already coach, then let new bookings add themselves. The roster joins each athlete to sessions, notes, payment state, messages, and consent without making the coach rebuild those links in a spreadsheet. It is a private operations view: families keep their own accounts and permissions, while public visitors never see the names or histories a coach uses to run the week.",
-      { tone: "dark", layout: "roster-index", eyebrow: "PRIVATE COACH OPERATIONS" }) +
+      { tone: "dark", layout: "roster-index", eyebrow: "ROSTER & IMPORT" }) +
       "<section class='pgband slate pg-roster-product pg-split-copy' data-section='product-copy' data-layout='roster-copy'><div class='shell pg-roster-grid'><div class='pg-r4-copy'><h2>The book of business, without the duplicate books.</h2>" +
       copy.map(function (p) { return "<p data-prose>" + p + "</p>"; }).join("") +
       "</div></div></section>" +
@@ -333,7 +333,7 @@
     return wrap("payments", "R3", "math-head-to-split-ledger", "D-L-L", hero(meta,
       "The whole booking is <em>the coach's payout.</em>",
       "The parent's charge and the coach's payout are two views of the same paid booking. Families pay the coach's listed price without an added booking fee, and Sporv takes zero percent of it — the software is a flat subscription instead. The coach sees the exact gross and net amounts, equal, as the transfer moves. Refunds keep their own trail. The adjacent calculation uses disclosed demo values.",
-      { tone: "dark", layout: "payout-math", eyebrow: "PAYMENTS AND PAYOUTS", aside: formula }) +
+      { tone: "dark", layout: "payout-math", eyebrow: "DUES & INSTALLMENTS", aside: formula }) +
       "<section class='pgband slate pg-payment-ledger' data-section='essay-stat' data-layout='rail-first-essay'><div class='shell'><div class='pg-essay'><h2>The arithmetic should fit on four lines.</h2>" +
       prose.map(function (p) { return "<p data-prose>" + p + "</p>"; }).join("") + worked +
       "</div></div></section>" +
@@ -678,7 +678,7 @@
     return wrap("waivers", "C01", "spec-sheet-compliance", "L-L-L", hero(meta,
       "Who signed, who cleared, <em>and when.</em>",
       "Waivers are versioned documents with a content hash pinned at signing, so what a board reads later is exactly what a guardian signed. Staff checks are records with a source and an expiry, entered from real evidence like an AAU membership ID — never a client-side default. The unsigned list is derived from the roster, so a gap is visible on Tuesday rather than at the field on Saturday.",
-      { tone: "white", layout: "split", eyebrow: "RECORDED, NOT ASSERTED" }) +
+      { tone: "white", layout: "split", eyebrow: "WAIVERS & ELIGIBILITY" }) +
       walkthroughSection([
         ["Publish a version", "A waiver is a titled, versioned document. Publishing freezes the text and stamps a hash; a change is a new version, never an edit to what people already signed."],
         ["Guardians sign for their own members", "A signature row pins the document version, the member, the season, the signer and the time. It is immutable evidence — the database refuses edits."],
@@ -690,7 +690,7 @@
     return wrap("agent", "B07", "queue-first-narrative", "D-L-D", hero(meta,
       "The work is done when <em>you open it.</em>",
       "Every night the agent reads the real ledger and drafts what needs doing: the overdue installment follow-ups, addressed to the right payer with the right amount, the waiver gaps, the schedule changes. You open a queue, not an inbox. Ten are ready, one needs you — and nothing sends, charges or changes a record until a person approves it.",
-      { tone: "dark", layout: "split", eyebrow: "DRAFTED OVERNIGHT · APPROVED BY YOU" }) +
+      { tone: "dark", layout: "split", eyebrow: "THE AGENT" }) +
       walkthroughSection([
         ["Drafted, with provenance", "Each item records what it was derived from — a ledger row, a forwarded email, a roster sweep — so a draft is traceable to its source."],
         ["One approval", "Approve sends it on its way; dismiss voids it on the record. The lifecycle is enforced in the database: a draft can never skip to done."],
@@ -702,7 +702,7 @@
     return wrap("payouts", "C02", "treasurer-five-numbers", "L-L-L", hero(meta,
       "Five numbers, <em>to the penny.</em>",
       "Gross collected, processing fees, the Sporv line (currently $0.00 — shown anyway so the line exists), net to the club, and the next deposit. Beside them, outstanding AR: billed, collected, overdue, and the families behind — with days late and amounts. That overdue list is exactly what the agent reads, so the treasurer and the agent can never disagree about who owes what.",
-      { tone: "white", layout: "split", eyebrow: "ONE LEDGER, SUMMED" }) +
+      { tone: "white", layout: "split", eyebrow: "PAYOUTS" }) +
       walkthroughSection([
         ["Money lands on your account", "Direct charges on the club's own Stripe account: the club is the merchant of record, the club's name is on the statement, and deposits follow Stripe's schedule."],
         ["The ledger is append-only", "No row is ever edited or deleted; a correction is a new row that points at what it reverses. Balance is always a sum, never a stored number."],
