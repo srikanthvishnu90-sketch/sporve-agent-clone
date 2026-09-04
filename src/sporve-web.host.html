@@ -7130,7 +7130,7 @@ function enterCoachWorkspace(){
       /* Not-yet-onboarded: the wizard is the only door (spec 04). The render
          gate keeps it open; this just seeds it and asks the DB for the step. */
       if(p && p.onboarding_completed===false){
-        S.setupWiz=S.setupWiz&&S.setupWiz.step?S.setupWiz:{step:0};
+        S.setupWiz=S.setupWiz&&S.setupWiz.step?S.setupWiz:{step:-1};
         S.modal={type:"setupwiz"};
         suwResume(p);
       }
@@ -12963,22 +12963,39 @@ function modalHTML(){
        website is written without confirmation; the billing run charges no one
        and emails no one — it creates fee schedules families pay on their own
        checkout links. State lives in S.setupWiz so re-renders survive. */
-    const w=S.setupWiz||(S.setupWiz={step:0});
+    const w=S.setupWiz||(S.setupWiz={step:-1});
     const pv=S.coachProvider;
     const dots=`<div style="display:flex;gap:6px;margin-bottom:14px">${[0,1,2,3,4,5].map(n=>
       `<span style="width:26px;height:4px;border-radius:2px;background:${n<=w.step?"var(--slate-ink)":"var(--line)"}"></span>`).join("")}</div>`;
     const wrapS=(t,body)=>wrap(t,dots+body);
+    /* DOC 12 Part A — step −1, the three doors. One question, and each door
+       presets the pack (calendar shape, grouping noun, billing shape) so
+       step 0 becomes a confirm rather than three cold questions. */
+    if(w.step===-1){
+      const door=(k,t,d)=>`<button type="button" class="btn ghost wide" data-suw-door="${k}"
+        style="text-align:left;padding:14px 16px;margin-top:10px"><b style="display:block">${t}</b>
+        <span style="color:var(--muted);font-size:var(--text-sm)">${d}</span></button>`;
+      return wrap("What are you running?",`
+      <p class="imp-sub">This shapes the setup — the words, the calendar, and how families pay.
+        Everything stays changeable later in Settings.</p>
+      ${door("private","Private training","One-on-one or small-group sessions. Clients, packages, per-session or package billing.")}
+      ${door("club","Team / club","Teams or age groups, a season, dues in installments, rosters and waivers.")}
+      ${door("camp","Camp / clinic","A fixed window, capacity, one upfront charge per camper.")}
+      <button type="button" class="lnk" data-suw-door="scratch" style="margin-top:14px;display:block">Start from scratch instead</button>`);
+    }
     if(w.step===0){
       const shape=w.calShape||"seasonal", noun=w.groupNoun||"Team", bill=w.billShape||"team";
-      return wrapS("Three quick questions",`
-      <p class="imp-sub">These shape everything else — you can change any of them later in Settings.</p>
+      return wrapS(w.orgShape&&w.orgShape!=="scratch"?"Confirm the shape":"Three quick questions",`
+      <p class="imp-sub">${w.orgShape&&w.orgShape!=="scratch"
+        ?"Set from your door — change anything that doesn't fit, then continue."
+        :"These shape everything else — you can change any of them later in Settings."}</p>
       <div class="field" style="margin-top:12px"><label>How does your year run?</label>
         <div style="display:flex;gap:8px;margin-top:6px">
           ${[["seasonal","Seasons — fall, spring, summer"],["continuous","Continuous — year-round, rolling"]].map(([v,l])=>
             `<button type="button" class="btn ${shape===v?"":"ghost "}sm" data-suw0="calShape:${v}">${l}</button>`).join("")}</div></div>
       <div class="field"><label>What do you call a group of athletes?</label>
         <div style="display:flex;gap:8px;margin-top:6px">
-          ${["Team","Squad","Class","Cohort"].map(n=>
+          ${["Team","Squad","Class","Cohort","Client","Camper"].map(n=>
             `<button type="button" class="btn ${noun===n?"":"ghost "}sm" data-suw0="groupNoun:${n}">${n}</button>`).join("")}</div></div>
       <div class="field"><label>How do families usually pay?</label>
         <div style="display:flex;gap:8px;margin-top:6px;flex-wrap:wrap">
@@ -13002,6 +13019,23 @@ function modalHTML(){
           <button class="btn" type="submit" ${w.busy?"disabled":""}>${w.busy?"Reading…":"Draft my club"}</button>
           <button class="btn ghost sm" type="button" data-suw-skip="1">I'll enter it by hand</button></div>
       </form>`);
+    if(w.step===2&&w.orgShape==="private"){
+      /* A private coach has no season and no teams — asking for them here
+         would be the door lying. Name + discipline, then straight to clients. */
+      const d=w.draft||{};
+      return wrapS("Confirm your practice",`
+        <p class="imp-sub">${w.extracted?"Drafted from your site — edit anything.":"Nothing is saved until you confirm."}</p>
+        <form id="suwPrivForm">
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:10px">
+          <div class="field"><label>Business name</label><input name="club" value="${esc(d.club_name||(pv&&pv.business_name)||"")}" required></div>
+          <div class="field"><label>Sport / discipline</label><input name="sport" value="${esc(d.sport||"")}" required></div>
+        </div>
+        <div id="suwErr" class="err ${w.err?"":"hide"}" style="margin:8px 0">${esc(w.err||"")}</div>
+        <div class="imp-actions" style="margin-top:12px">
+          <button class="btn ghost sm" type="button" data-suw-back="1">Back</button>
+          <button class="btn" type="submit" ${w.busy?"disabled":""}>${w.busy?"Saving…":"Confirm & continue"}</button></div>
+        </form>`);
+    }
     if(w.step===2){
       const d=w.draft||{teams:[],season:{}};
       const rows=(d.teams&&d.teams.length?d.teams:[{name:"",age_group:"",fee_cents:null}]);
@@ -14819,7 +14853,7 @@ function render(){
        Stripe-connect confirm are the wizard's own sub-flows, so they pass. */
     if(coachGateActive()){
       const pass=S.modal&&(S.modal.type==="setupwiz"||S.modal.type==="importclients"||S.modal.type==="confirm");
-      if(!pass){ S.setupWiz=S.setupWiz&&S.setupWiz.step!=null?S.setupWiz:{step:0}; S.modal={type:"setupwiz"}; }
+      if(!pass){ S.setupWiz=S.setupWiz&&S.setupWiz.step!=null?S.setupWiz:{step:-1}; S.modal={type:"setupwiz"}; }
     }
     /* A guest now browses the provider side rather than being bounced to the
        marketing page — the auth sheet invites, it does not wall. Mutating
@@ -15780,6 +15814,22 @@ document.querySelectorAll('.sig-ai-coach').forEach(sigAiCoachWire);
     S.setupWiz=S.setupWiz&&S.setupWiz.step?S.setupWiz:{step:1};
     S.modal={type:"setupwiz"};render();});
   $("[data-coach-retry]").forEach(b=>b.onclick=()=>{S.coachEnsureError=null;render();enterCoachWorkspace();});
+  /* DOC 12 — the doors. Each preset comes from the door's pack; "scratch"
+     presets nothing and asks the three questions cold. */
+  $("[data-suw-door]").forEach(b=>b.onclick=()=>{
+    const w=S.setupWiz;if(!w)return;
+    const k=b.dataset.suwDoor;
+    w.orgShape=k;
+    const PACK={private:{calShape:"continuous",groupNoun:"Client",billShape:"private"},
+                club:{calShape:"seasonal",groupNoun:"Team",billShape:"team"},
+                camp:{calShape:"seasonal",groupNoun:"Camper",billShape:"camp"}}[k];
+    if(PACK) Object.assign(w,PACK);
+    if(window.SporveAPI&&S.coachProvider&&S.coachProvider.id){
+      window.SporveAPI.from("provider_settings","on_conflict=provider_id,key",{
+        method:"POST",headers:{Prefer:"resolution=merge-duplicates"},
+        body:{provider_id:S.coachProvider.id,key:"org_shape",value:{shape:k}}}).catch(()=>{});
+    }
+    w.step=0;render();});
   $("[data-suw-close]").forEach(b=>b.onclick=()=>{
     /* Close is only reachable on step 5 ("Done" / "Finish setup"), so closing
        IS completing: write the lock. Optimistic local flip so the router gate
@@ -15864,6 +15914,22 @@ document.querySelectorAll('.sig-ai-coach').forEach(sigAiCoachWire);
       age_group:d["tage"+i]!==undefined?d["tage"+i]:t.age_group,
       fee_cents:d["tfee"+i]!==undefined&&d["tfee"+i]!==""?Math.round(+d["tfee"+i]*100):t.fee_cents}));
   }
+
+  /* Private-door confirm: business name + discipline, no season, no teams.
+     Saves through the coach account rail (allowlisted columns) and moves on. */
+  const suwP=document.getElementById("suwPrivForm");
+  if(suwP) suwP.onsubmit=e=>{
+    e.preventDefault();
+    const w=S.setupWiz;if(!w||w.busy)return;
+    const d=Object.fromEntries(new FormData(suwP));
+    if(!d.club||!d.sport){w.err="Business name and sport are required.";render();return;}
+    w.busy=true;w.err=null;render();
+    const done=()=>{w.busy=false;w.draft={club_name:d.club,sport:d.sport};w.step=3;render();};
+    if(window.SporveCoach&&window.SporveCoach.save){
+      window.SporveCoach.save({business_name:d.club,sports:[d.sport]}).then(done,()=>{
+        w.busy=false;w.err="Could not save — try again.";render();});
+    } else done();
+  };
 
   const suwC=document.getElementById("suwConfirmForm");
   if(suwC) suwC.onsubmit=e=>{
