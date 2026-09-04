@@ -49,7 +49,7 @@ for (const token of ["<!--MODULES-->", "/*__FONTFACE__*/", "/*__SPORTVARS__*/",
 }
 check((index.match(/<meta name="sporve-build" content="[a-f0-9]{16}">/g) || []).length === 1,
   "generated index must contain exactly one build stamp");
-check(index.includes("<title>Sporv — Every sport. One app.</title>"),
+check(index.includes("<title>Sporv — The operating system for youth sports.</title>"),
   "generated document title must use Sporv");
 
 const modules = fs.readdirSync(path.join(root, "src"))

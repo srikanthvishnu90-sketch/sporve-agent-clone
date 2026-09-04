@@ -27,3 +27,4 @@ docs/coach-portal-spec.md
 
 # Strix pentest run artifacts (PoC detail stays local)
 strix_runs/
+backups/
