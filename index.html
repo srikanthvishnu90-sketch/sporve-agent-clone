@@ -25,7 +25,7 @@
 <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16.png">
 <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
 <link rel="manifest" href="/site.webmanifest">
-<meta name="sporve-build" content="ebd1d66fa33a4fac">
+<meta name="sporve-build" content="ac9eb96f433b918e">
 </head>
 <body>
 <noscript><h1>Sporv — Every sport. One app.</h1><p>Sporv connects families and athletes with coaches, trainers, camps, and teams across more than 20 sports. Please enable JavaScript to use the app.</p></noscript>
@@ -14918,8 +14918,8 @@ function coachGateHTML(){
            Business name is asked here because providers.business_name is NOT
            NULL, so it is the one field required to create the row at all. */""}
       <form class="cg-form" id="cgForm">
-        <input class="cg-input" id="cgId" type="email" placeholder="Email address" autocomplete="username" aria-label="Email address" required>
-        <input class="cg-input" id="cgPw" type="password" placeholder="Password" autocomplete="current-password" aria-label="Password" minlength="8" required>
+        <input class="cg-input" id="cgId" type="email" placeholder="Email address" autocomplete="off" aria-label="Email address" required>
+        <input class="cg-input" id="cgPw" type="password" placeholder="Password" autocomplete="off" aria-label="Password" minlength="8" required>
         <input class="cg-input" id="cgBiz" type="text" placeholder="Business or coaching name" autocomplete="organization" aria-label="Business or coaching name">
         ${S.authError?`<div class="err" role="alert" style="margin:2px 0 6px">${esc(S.authError)}</div>`:""}
         <button class="cg-continue" id="cgGo" type="submit" disabled>${S.authBusy?"Working…":"Continue"}</button>
@@ -14930,11 +14930,16 @@ function coachGateHTML(){
         <button class="cg-social cg-social--light" type="button" data-cg-google="1" aria-label="Continue with Google"><span class="cg-social-ic">${ICON.google}</span>Continue with Google</button>
         <button class="cg-social" type="button" data-cg-apple="1" aria-label="Continue with Apple"><span class="cg-social-ic">${APPLE}</span>Continue with Apple</button>
       </div>
-      <p class="cg-fine">Just exploring? <button type="button" data-cg-demo="1">Use the demo account</button></p>`;
+      ${/* Demo-account row REMOVED from this screen (owner 2026-09-04:
+           "not include anything demo — the true process"). The handler
+           stays wired elsewhere for internal use. */""}`;
   return `<div class="coachgate">
     <div class="cg-left">
       <button class="cg-back" type="button" data-cg-back="1">&larr; Back</button>
-      <div class="cg-wordmark"><svg class="cg-logomark" width="26" height="26" viewBox="0 0 32 32" aria-hidden="true"><rect width="32" height="32" rx="7" fill="#14181D"/><circle cx="16" cy="16" r="6" fill="#F7F9FF"/></svg>Sporv</div>
+      ${/* The SAME logo as the landing's top-left (owner 2026-09-04: "make
+           the sporv logo in the beginning the same as the top left of the
+           landing page") — one brand asset, not a lookalike glyph. */""}
+      <div class="cg-wordmark"><span class="navlogo-crop"><img class="navlogo" src="${LOGO_SRC}" alt="Sporv" width="99" height="24"></span></div>
       ${left}
     </div>
     <div class="cg-right">
@@ -15669,8 +15674,11 @@ document.querySelectorAll('.sig-ai-coach').forEach(sigAiCoachWire);
   $("[data-dashbtn]").forEach(b=>b.onclick=()=>enterCoachWorkspace());
   $("[data-becomecoach]").forEach(b=>b.onclick=()=>{
     const signed=window.SporveAuth&&window.SporveAuth.isSignedIn&&window.SporveAuth.isSignedIn();
+    /* Get started (owner 2026-09-04): the FIRST screen is the full coach gate
+       — sign-in on the left, the Welcome-to-Sporv panel beside it — not the
+       small auth sheet. Post-auth still lands in the workspace via intent. */
     if(!signed){S.signupRole="coach";S.pendingIntent={kind:"coachOnboard"};
-      S.modal={type:"authsheet"};render();return;}
+      S.modal=null;S.route={name:"coachgate",arg:null};window.scrollTo(0,0);render();return;}
     enterCoachPortal();
   });
   /* ITEM 5 — nobody signs in until the form can actually succeed.
