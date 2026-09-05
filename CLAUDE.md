@@ -42,7 +42,9 @@ Never report "done" from a local build.
 This is the shared Claude/Codex release contract, enforced through Clo. Use
 `MODE: release` after the implementation and audit are complete. The release
 report must name the pushed commit SHA, successful Vercel production result,
-verification method, and `https://sporv.vercel.app`. A failed push,
+verification method, and `https://sporv.ai` (the production domain since
+2026-09-03; sporv.vercel.app is DEAD — 404 — and must not be used as the
+check, per robin 2026-09-05). A failed push,
 deployment, or live check means the task is incomplete; never silently leave
 changes local.
 
