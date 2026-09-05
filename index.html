@@ -25,7 +25,7 @@
 <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16.png">
 <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
 <link rel="manifest" href="/site.webmanifest">
-<meta name="sporve-build" content="ac9eb96f433b918e">
+<meta name="sporve-build" content="cdc8348cfe90242e">
 </head>
 <body>
 <noscript><h1>Sporv — Every sport. One app.</h1><p>Sporv connects families and athletes with coaches, trainers, camps, and teams across more than 20 sports. Please enable JavaScript to use the app.</p></noscript>
@@ -8260,9 +8260,16 @@ function primaryNavHTML(){
          Log in + Get started pair; signed in = Coach dashboard, and "Log in"
          must not render. State reads the REAL session (SporveAuth), never a
          cached flag. Equal reserved width so the swap causes no shift. */""}
-    ${realSignedIn()
-      ?`<span class="cta-pair"><button class="cta start" data-dashbtn="1">Coach dashboard</button></span>`
-      :`<span class="cta-pair"><button class="cta login" data-loginbtn="1">Log in</button><button class="cta start" data-becomecoach="1">Get started</button></span>`}
+    ${(()=>{const signed=realSignedIn();
+      const role=signed&&S.auth&&S.auth.user&&S.auth.user.role;
+      /* Codex audit 2026-09-04 P1: the dashboard CTA requires the HYDRATED
+         provider role, not just a session — enterCoachWorkspace() calls
+         ensure(), which CREATES a provider row, so a signed-in family (or a
+         still-hydrating role) must get the intentional Get-started door,
+         never an accidental provider-creation click. */
+      if(signed&&role==="provider") return `<span class="cta-pair"><button class="cta start" data-dashbtn="1">Coach dashboard</button></span>`;
+      if(signed) return `<span class="cta-pair"><button class="cta start" data-becomecoach="1">Get started</button></span>`;
+      return `<span class="cta-pair"><button class="cta login" data-loginbtn="1">Log in</button><button class="cta start" data-becomecoach="1">Get started</button></span>`;})()}
   </nav>`;
 }
 
@@ -15670,7 +15677,11 @@ document.querySelectorAll('.sig-ai-coach').forEach(sigAiCoachWire);
     const i=+b.dataset.faq; S.faqOpen=S.faqOpen===i?null:i; render();});
   /* Become a coach opens the signup wizard directly — there is no marketing
      page in front of it any more. */
-  $("[data-loginbtn]").forEach(b=>b.onclick=()=>{S.modal={type:"authsheet"};render();});
+  /* Codex audit 2026-09-04 P1: an explicit "Log in" click means the user HAS
+     an account — open the real login form directly, never the identifier
+     screen whose seeded-email heuristic funnels unknown addresses to signup.
+     Clear any stale signup intent so login stays login. */
+  $("[data-loginbtn]").forEach(b=>b.onclick=()=>{S.pendingIntent=null;S.signupRole=null;S.modal={type:"login"};render();});
   $("[data-dashbtn]").forEach(b=>b.onclick=()=>enterCoachWorkspace());
   $("[data-becomecoach]").forEach(b=>b.onclick=()=>{
     const signed=window.SporveAuth&&window.SporveAuth.isSignedIn&&window.SporveAuth.isSignedIn();
