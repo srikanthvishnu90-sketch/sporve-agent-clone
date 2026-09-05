@@ -2184,6 +2184,39 @@ button.tnav.tnav-cta:hover{background:#FFFFFF;color:#0B0D0F;border-color:#FFFFFF
 @media(max-width:640px){.defrow{grid-template-columns:1fr;gap:4px}}
 /* C4: the pricing masthead and its bare stat row. */
 .pr-head{padding:56px 0 8px}
+/* ── PRICING v2 (owner spec 2026-09-05): compact above-the-fold, billing
+   toggle, plan compare, FAQ, closing band. Reveals ride the existing
+   data-rev system; only opacity/transform animate (no CLS). */
+#app.pricing-stage .pricing-v2 .pr-head-compact{padding:48px 16px 0}
+.pricing-v2 .pr-ledec{margin-bottom:10px}
+.pr-cycle{display:inline-flex;gap:4px;margin:10px auto 0;padding:4px;border:1px solid var(--rule);border-radius:999px;background:var(--paper)}
+.pr-cyc{padding:7px 16px;border-radius:999px;font-size:var(--text-sm);font-weight:600;color:var(--muted);transition:background .16s,color .16s}
+.pr-cyc.on{background:var(--ink);color:var(--paper)}
+.pr-cyc em{font-style:normal;opacity:.75;margin-left:4px}
+.pricing-v2 .pp-plans{margin-top:28px}
+.pp-price b{display:inline-block;transition:opacity .16s ease}
+.pp-price b.swap{opacity:0;transition:opacity .12s ease}
+.js-rev [data-rev][data-rev-d="3"]{transition-delay:.24s}
+/* Recommended badge scales in 200ms after its card lands (spec §2). */
+.js-rev .pp-card[data-rev] .pp-badge{opacity:0;transform:scale(.9)}
+.js-rev .pp-card[data-rev].in .pp-badge{opacity:1;transform:scale(1);
+  transition:opacity .2s .2s cubic-bezier(.2,.7,.2,1),transform .2s .2s cubic-bezier(.2,.7,.2,1)}
+.cmp-plans td{text-align:center}
+.cmp-plans .cmp-y{color:var(--good,#2E7D51);font-weight:700}
+.cmp-plans .cmp-n{color:var(--faint)}
+.cmp-plans .mono{font-family:var(--mono);font-weight:600}
+.pr-faq{max-width:720px;margin:46px auto 0}
+.pr-faq h2{margin-bottom:14px}
+.prq{border-bottom:1px solid var(--rule);padding:12px 2px}
+.prq summary{cursor:pointer;font-weight:600;color:var(--ink);list-style:none}
+.prq summary::-webkit-details-marker{display:none}
+.prq summary::after{content:"+";float:right;color:var(--faint)}
+.prq[open] summary::after{content:"–"}
+.prq p{margin-top:8px;color:var(--muted);max-width:60ch}
+.pr-close{flex-direction:column;text-align:center;gap:8px;margin-top:52px}
+.pr-close h2{margin:0}
+.pr-close p{color:var(--muted)}
+.pr-close-btns{display:flex;gap:10px;justify-content:center;margin-top:8px}
 .pr-head .display{font-size:var(--text-hero);line-height:1.04;letter-spacing:-.03em;margin:10px 0 14px}
 .pr-stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));
   margin:26px 0 34px;border-top:1px solid var(--rule);border-bottom:1px solid var(--rule)}
@@ -6552,6 +6585,17 @@ const TODAY="2026-08-03";
    pack lists (18/4/2.5, 15/0 rake, $29 Pro) are retired and appear nowhere in
    src/ — do not reintroduce them. To change the fee, edit FEE_PCT here only. */
 const FEE_PCT = 0;
+/* Pricing page single source (spec 2026-09-05 §3): monthly base prices match
+   the shipped plans config (plan_entitlements is the DB authority PLANS syncs
+   from); everything the page shows — cards, compare table, FAQ — derives
+   from THIS object so a price exists in exactly one place. */
+const PRICING_CFG = {
+  monthly: { pro: 34.99, grow: 99.99 },   // free=$0, enterprise=Custom
+  yearlyDiscount: 0.20,
+  nonprofitDiscount: 0.15,
+  seats: { free: 1, pro: 3, grow: 10, enterprise: "Unlimited" },
+  aiActions: { free: "3/mo", pro: "Unlimited", grow: "Unlimited ×5", enterprise: "Unlimited" },
+};
 const FEE_RATE = FEE_PCT / 100;
 function dayAfter(n){
   const d=new Date(TODAY+"T12:00:00Z");
@@ -8252,16 +8296,22 @@ function pricingHTML(){
      "Spreadsheets, screenshots, a shoebox of notes.",
      "Roster, schedule, session notes and messages in one place — no monthly fee."],
   ];
-  return `<main class="shell">
-    ${/* C4, tell 9: the top-level answer to "what does this cost" was set one
-         notch above a card title with 12px support text. B1 statement now —
-         eyebrow, display headline, one paragraph — then a B2 stat row of the
-         three real numbers, bare on hairlines, then the table. FEE_PCT is the
-         single constant checkout charges; it is never retyped as prose. */""}
-    <div class="pr-head">
-      <p class="eyebrow">Pricing</p>
-      <h1 class="display">Pick the plan that fits your stage.</h1>
-      <p class="lede">A flat subscription for the software and the agent — Sporv takes ${FEE_PCT}% of dues.<br>Card processing (2.9% + 30¢) runs on your club's own Stripe account.</p>
+  /* PRICING CONFIG note (spec 2026-09-05 §3): monthly numbers reconcile
+     against plan_entitlements via syncPlans; the derived yearly figures, the
+     compare table and the FAQ all read PRICING_CFG, so no second hardcoded
+     price can drift. */
+  return `<main class="shell pricing-v2">
+    ${/* ABOVE THE FOLD (spec §1): compact hero — pad-top 48, h1 ≤52px,
+         subhead + billing toggle directly under, cards start immediately so
+         all four card headers + the Recommended badge paint at 1440×900. */""}
+    <div class="pr-head pr-head-compact">
+      <p class="eyebrow" data-rev>Pricing</p>
+      <h1 class="display pr-h1c" data-rev data-rev-d="1">Pick the plan that fits your stage.</h1>
+      <p class="lede pr-ledec" data-rev data-rev-d="2">A flat subscription for the software and the agent — Sporv takes ${FEE_PCT}% of dues. Card processing (2.9% + 30¢) runs on your club's own Stripe account.</p>
+      <div class="pr-cycle" data-rev data-rev-d="3" role="group" aria-label="Billing period">
+        <button class="pr-cyc${S.priceYearly?"":" on"}" data-pricecycle="monthly">Monthly</button>
+        <button class="pr-cyc${S.priceYearly?" on":""}" data-pricecycle="yearly">Yearly <em>−20%</em></button>
+      </div>
     </div>
     ${/* OLD DESIGN RESTORED (owner 2026-08-23) — the motion.dev serif-card grid
          (PR #211), re-expanded from three cards to FOUR plan types at the owner's
@@ -8274,6 +8324,7 @@ function pricingHTML(){
          hit the requested four — its data still lives in the plans config. */""}
     ${(()=>{
       const CK=`<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6L9 17l-5-5"/></svg>`;
+      const CFG=PRICING_CFG;
       const CARDS=[
         {id:"free",name:"Free",price:"$0",per:"",
          desc:"For a coach just getting started.",
@@ -8293,38 +8344,91 @@ function pricingHTML(){
          cta:"Talk to team"},
       ];
       const feat=f=>{const i=f.indexOf(" · planned");return i<0?esc(f):esc(f.slice(0,i))+`<em class="pt-planned"> · planned</em>`;};
-      return `<section class="pp-plans" aria-label="Plans">${CARDS.map(t=>{
-        const rec=!!t.rec;
-        return `<div class="pp-card${rec?" pp-rec":""}">
+      /* Monthly/yearly figures both derive from CFG (spec §3); the toggle
+         swaps them IN PLACE with a fade (wire: [data-pricecycle]) — a full
+         re-render would hard-swap the text, which the spec forbids. */
+      const priceOf=t=>{const m=CFG.monthly[t.id];
+        if(m==null) return {now:t.price,m:null,y:null};
+        const y="$"+(m*(1-CFG.yearlyDiscount)).toFixed(2);
+        return {now:S.priceYearly?y:"$"+m.toFixed(2),m:"$"+m.toFixed(2),y};};
+      return `<section class="pp-plans" aria-label="Plans">${CARDS.map((t,ci)=>{
+        const rec=!!t.rec, P=priceOf(t);
+        return `<div class="pp-card${rec?" pp-rec":""}" data-rev data-rev-d="${Math.min(ci,3)}">
           ${rec?`<span class="pp-badge">Recommended</span>`:""}
           <h3 class="pp-name">${esc(t.name)}</h3>
-          <div class="pp-price"><b>${esc(t.price)}</b>${t.per?`<span>${esc(t.per)}</span>`:""}</div>
+          <div class="pp-price"><b${P.m?` data-m="${esc(P.m)}" data-y="${esc(P.y)}"`:""}>${esc(P.now)}</b>${t.per?`<span>${esc(t.per)}</span>`:""}</div>
           <p class="pp-desc">${esc(t.desc)}</p>
-          <ul class="pp-feats">${t.feats.map(f=>`<li>${CK}<span>${feat(f)}</span></li>`).join("")}</ul>
+          ${/* CTA ABOVE the feature list (spec §1: the card HEADER is name,
+               price, button — all three above the fold at 1440×900). */""}
           <button class="${rec?"btn pp-cta":"pp-cta pp-cta-alt"}" data-planbuy="${t.id}">${esc(t.cta)}</button>
+          <ul class="pp-feats">${t.feats.map(f=>`<li>${CK}<span>${feat(f)}</span></li>`).join("")}</ul>
           ${t.dev?`<p class="pp-dev">In development — early access only</p>`:""}
         </div>`;
       }).join("")}</section>`;
     })()}
-    <div class="pr-stats" role="list">
-      <div role="listitem"><b class="num">2.9% + 30¢</b><span>per card transaction — standard processing on your club's own Stripe account</span></div>
-      <div role="listitem"><b class="num">${FEE_PCT}%</b><span>added by Sporv — coaches and clubs keep 100% of what families pay</span></div>
-      <div role="listitem"><b class="num">$0</b><span>monthly — no seat count, no per-team price, no annual contract</span></div>
+    <div class="pr-stats" role="list" aria-label="In every plan">
+      <div role="listitem" data-rev><b class="num">2.9% + 30¢</b><span>per card transaction — standard processing on your club's own Stripe account</span></div>
+      <div role="listitem" data-rev data-rev-d="1"><b class="num">${FEE_PCT}%</b><span>added by Sporv — coaches and clubs keep 100% of what families pay</span></div>
+      <div role="listitem" data-rev data-rev-d="2"><b class="num">$0</b><span>to join — no per-team price, no annual contract required</span></div>
     </div>
 
-    <div class="cmp-wrap">
+    ${/* Plan compare table (spec §2): the WRAPPER reveals once; rows never
+         animate individually. Values derive from PRICING_CFG. */""}
+    ${(()=>{const C=PRICING_CFG;
+      const y=v=>`<td class="cmp-y" aria-label="included">✓</td>`, n=`<td class="cmp-n" aria-label="not included">—</td>`;
+      const mono=v=>`<td><b class="mono">${esc(String(v))}</b></td>`;
+      const prow=(label,cells)=>`<tr><th scope="row">${esc(label)}</th>${cells}</tr>`;
+      const body=[
+        prow("Monthly price",mono("$0")+mono("$"+C.monthly.pro.toFixed(2))+mono("$"+C.monthly.grow.toFixed(2))+mono("Custom")),
+        prow("Yearly price (−"+Math.round(C.yearlyDiscount*100)+"%)",mono("$0")+mono("$"+(C.monthly.pro*(1-C.yearlyDiscount)).toFixed(2)+"/mo")+mono("$"+(C.monthly.grow*(1-C.yearlyDiscount)).toFixed(2)+"/mo")+mono("Custom")),
+        prow("Seats",mono(C.seats.free)+mono(C.seats.pro)+mono(C.seats.grow)+mono(C.seats.enterprise)),
+        prow("AI actions",mono(C.aiActions.free)+mono(C.aiActions.pro)+mono(C.aiActions.grow)+mono(C.aiActions.enterprise)),
+        prow("Taken from bookings",mono(FEE_PCT+"%")+mono(FEE_PCT+"%")+mono(FEE_PCT+"%")+mono(FEE_PCT+"%")),
+        prow("Roster, schedule, notes & messaging",y()+y()+y()+y()),
+        prow("Automatic payouts",n+y()+y()+y()),
+        prow("Staff roles & permissions",n+n+y()+y()),
+        prow("Per-staff background-check gating",n+n+n+y()),
+        prow("Compliance dashboard — certs & waivers",n+n+n+y()),
+      ].join("");
+      return `<div class="cmp-wrap" data-rev>
+      <table class="cmp cmp-plans" aria-label="Compare plans">
+        <thead><tr><th></th><th>Free</th><th>Pro</th><th>Grow</th><th>Enterprise</th></tr></thead>
+        <tbody>${body}</tbody>
+      </table></div>`;})()}
+
+    <div class="cmp-wrap" data-rev>
       <table class="cmp" aria-label="What Sporv costs, compared">
         <thead><tr><th>The job</th><th>Elsewhere</th><th>On Sporv</th></tr></thead>
         <tbody>${rows.map(([a,b,c])=>`<tr><th scope="row">${esc(a)}</th><td>${esc(b)}</td><td>${c}</td></tr>`).join("")}</tbody>
       </table>
     </div>
-    <p class="cmp-fine">Joining, listing, browsing and messaging are free on both sides.
+    <p class="cmp-fine" data-rev>Joining, listing, browsing and messaging are free on both sides.
       The 2.9% + 30¢ is Stripe's standard card-processing rate, charged on your
       club's own account — Sporv adds ${FEE_PCT}% and takes no seat, team, or
       monthly fee.</p>
-    <div class="cmp-ctas">
-      <a class="btn" href="mailto:support@sporv.ai?subject=Sporv%20setup%20call">Book a 15-minute setup call</a>
-      <button class="btn ghost" data-becomecoach="1">Get started</button>
+
+    ${/* FAQ (spec §2): native <details>, revealed with data-rev-d = i%3.
+         Copy states only what the config and shipped code make true. */""}
+    ${(()=>{const C=PRICING_CFG;const QA=[
+      ["How does yearly billing work?","Pay for a year up front and every paid plan drops "+Math.round(C.yearlyDiscount*100)+"% — Pro comes to $"+(C.monthly.pro*(1-C.yearlyDiscount)).toFixed(2)+"/mo and Grow to $"+(C.monthly.grow*(1-C.yearlyDiscount)).toFixed(2)+"/mo, billed once."],
+      ["Is there a nonprofit discount?","Yes — registered nonprofits get "+Math.round(C.nonprofitDiscount*100)+"% off any paid plan. Email support@sporv.ai from your organization's address and we apply it to your subscription."],
+      ["What does Sporv take from dues?",FEE_PCT+"%. Families pay your price; card processing (2.9% + 30¢, Stripe's standard rate) runs on your club's own Stripe account, and payouts go straight to you."],
+      ["Can I change plans later?","Anytime. Upgrades apply immediately; downgrades apply at the end of the current billing period. Your roster, records and history carry over untouched."],
+      ["What happens when I hit the Free plan's AI limit?","The agent keeps reading and drafting stops until next month — nothing is deleted and nothing is sent. Upgrade to Pro for unlimited actions."],
+      ["Do families need a paid account?","No. Parents and guardians never pay Sporv anything — plans are for the club side only."],
+    ];return `<section class="pr-faq" aria-label="Pricing questions">
+      <h2 data-rev>Questions, answered.</h2>
+      ${QA.map((q,i)=>`<details class="prq" data-rev data-rev-d="${i%3}"><summary>${esc(q[0])}</summary><p>${esc(q[1])}</p></details>`).join("")}
+    </section>`;})()}
+
+    ${/* Closing band (spec §2): h2 / line / buttons stagger. */""}
+    <div class="cmp-ctas pr-close">
+      <h2 data-rev>Run the season, not the spreadsheet.</h2>
+      <p data-rev data-rev-d="1">Set up in an afternoon. Nothing sends without you.</p>
+      <div class="pr-close-btns" data-rev data-rev-d="2">
+        <a class="btn" href="mailto:support@sporv.ai?subject=Sporv%20setup%20call">Book a 15-minute setup call</a>
+        <button class="btn ghost" data-becomecoach="1">Get started</button>
+      </div>
     </div>
   </main>`;
 }
@@ -15464,6 +15568,22 @@ document.querySelectorAll('.sig-ai-coach').forEach(sigAiCoachWire);
      starts a free coach and flags early access (the server rejects it anyway). A
      guest is routed through sign-in → coach onboarding, which finishes at the Pro
      checkout, so no new billing infrastructure is introduced here. */
+  /* Billing toggle (pricing spec §2): prices fade out 120ms, swap from the
+     data-m/data-y attrs, fade in 160ms — never a hard text swap, and no full
+     re-render (which would restart every reveal). Reduced motion = instant. */
+  $("[data-pricecycle]").forEach(b=>b.onclick=()=>{
+    const yearly=b.dataset.pricecycle==="yearly";
+    if(!!S.priceYearly===yearly) return;
+    S.priceYearly=yearly;
+    $(".pr-cyc").forEach(x=>x.classList.toggle("on",(x.dataset.pricecycle==="yearly")===yearly));
+    const reduce=window.matchMedia&&matchMedia("(prefers-reduced-motion:reduce)").matches;
+    $(".pp-price b[data-m]").forEach(el=>{
+      const next=yearly?el.dataset.y:el.dataset.m;
+      if(reduce){el.textContent=next;return;}
+      el.classList.add("swap");
+      setTimeout(()=>{el.textContent=next;el.classList.remove("swap");},120);
+    });
+  });
   $("[data-planbuy]").forEach(b=>b.onclick=()=>{
     const plan=b.dataset.planbuy;
     const signedInCoach=window.SporveAuth&&window.SporveAuth.isSignedIn&&window.SporveAuth.isSignedIn()
