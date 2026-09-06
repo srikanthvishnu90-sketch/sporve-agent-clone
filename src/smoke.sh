@@ -177,7 +177,7 @@ fi
 # Core rail tabs plus every tab contributed by a module (modCoachTabs()):
 # mod-notes, mod-media, mod-insights and mod-coachops each register their own.
 # Omitting them left 7 of 15 coach surfaces unchecked.
-COACHTABS="dashboard schedule bookings roster inbox listings finances reviews \
+COACHTABS="queue dashboard schedule bookings roster inbox listings finances reviews \
 notes media insights policies waitlist slots messages getting-started"
 CFAIL=0
 for t in $COACHTABS; do

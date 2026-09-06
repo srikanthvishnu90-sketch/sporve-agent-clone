@@ -25,7 +25,7 @@
 <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16.png">
 <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
 <link rel="manifest" href="/site.webmanifest">
-<meta name="sporve-build" content="430c9948c6cbafd7">
+<meta name="sporve-build" content="0ad2c30a89b87ffc">
 </head>
 <body>
 <noscript><h1>Sporv — Every sport. One app.</h1><p>Sporv connects families and athletes with coaches, trainers, camps, and teams across more than 20 sports. Please enable JavaScript to use the app.</p></noscript>
@@ -7261,13 +7261,13 @@ function suwResume(pv){
    their first time, then opens the portal on THEIR business. */
 function enterCoachWorkspace(){
   S.portal="coach"; S.signupRole="coach"; S.modal=null;
-  if(!window.SporveCoach){ S.coachTab="dashboard"; go("dashboard"); return; }
+  if(!window.SporveCoach){ S.coachTab="queue"; go("dashboard"); return; }
   window.SporveCoach.ensure(S.pendingBusinessName||"")
     .then(p=>{
       S.pendingBusinessName="";
       S.coachProvider = p || null;
       S.coachEnsureError = null;
-      S.coachTab="dashboard";
+      S.coachTab="queue";  /* home = the review queue (doc 04) */
       /* Not-yet-onboarded: the wizard is the only door (spec 04). The render
          gate keeps it open; this just seeds it and asks the DB for the step. */
       if(p && p.onboarding_completed===false){
@@ -7281,7 +7281,7 @@ function enterCoachWorkspace(){
       /* ensure() failing means we do not know WHOSE workspace this is —
          rendering the seeded dashboard here is how a new signup "saw someone
          else's account". Error screen with retry instead, never dashboard. */
-      S.coachProvider=null; S.coachEnsureError=true; S.coachTab="dashboard"; go("dashboard");
+      S.coachProvider=null; S.coachEnsureError=true; S.coachTab="queue"; go("dashboard");
     });
 }
 

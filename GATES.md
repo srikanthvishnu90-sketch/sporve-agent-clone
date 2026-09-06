@@ -33,12 +33,13 @@ database.
 
 ## G2 — MONEY: one real coach is paid by one real parent
 
-**Status: FALSE.** `src/mod-coachaccount.js` records it: of 23 approved
-providers, **zero** have `stripe_charges_enabled`, so `stripe-create-checkout`
-correctly refuses every booking.
-
-The Connect onboarding call exists. The checkout call exists. No provider has
-completed onboarding, so the marketplace has never transacted.
+**Status: FALSE.** The gate demands REAL money and none has moved — but the
+stale claim beneath it ("zero providers enabled, never transacted") died on
+2026-08-31: the first end-to-end TEST-MODE charge cleared — booking
+`9afca6d5`, event `evt_1UAa8E4…`, $50 on the connected account, fee $0 —
+checkout → connected-charge webhook → append-only ledger, verified against
+prod. What remains is only the live half: Stripe live-mode activation, KYC,
+one real-bank ACH charge (runbook: `docs/decisions/first-real-payment.md`).
 
 **Why it matters more than any feature.** Every screen in this repo is
 downstream of a transaction that cannot occur. Until one dollar moves, the
