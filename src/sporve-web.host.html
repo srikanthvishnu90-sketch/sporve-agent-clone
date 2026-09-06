@@ -11888,6 +11888,31 @@ function loadLiveObligations(){
       .catch(()=>{});
   }
 }
+/* Connectors feed the agent the MOMENT they land (owner 2026-09-06): finishing
+   the setup wizard, returning from Stripe, and committing a roster import each
+   fire one draft run instead of waiting for the nightly cron. Safe to call
+   repeatedly — run_agent_drafts is owner-gated in SQL and every generator
+   upserts on (provider_id, source_ref), so a double fire cannot duplicate a
+   draft. Drafts only; nothing is sent. */
+function agentRunAfterConnect(){
+  const pv=S.coachProvider;
+  if(!(pv&&pv.id&&realSignedIn()&&window.SporveAPI&&window.SporveAPI.isSignedIn&&window.SporveAPI.isSignedIn())) return;
+  /* A trigger that lands mid-run is QUEUED, not dropped — the running RPC's
+     snapshot may predate the rows that second connector just committed, so
+     one follow-up run fires when the first completes (CodeRabbit, PR #356). */
+  if(S.agentRunning){S.agentRerun=true;return;}
+  S.agentRunning=true;
+  const done=()=>{S.agentRunning=false;
+    if(S.agentRerun){S.agentRerun=false;agentRunAfterConnect();}};
+  window.SporveAPI.rpc("run_agent_drafts",{p_provider:pv.id})
+    .then(r=>{
+      S.obligLive=false;S.findLoaded=false;
+      loadLiveObligations();loadLiveFindings();
+      const n=(r&&r.total)||0;
+      if(n) toast("The agent drafted "+n+" item"+(n===1?"":"s")+" from your setup — they're in your queue for review. Nothing was sent.");
+      render();done();})
+    .catch(()=>{done();/* cron still covers it; silence beats a scary error at setup's end */});
+}
 /* Demo parser for step 5 ("unstructured input is a native input type"). A
    forwarded email/text is pasted; heuristics turn it into DRAFT obligations.
    The real per-artifact parse runs on the RED ingest backend (Gemini); this
@@ -16100,6 +16125,9 @@ document.querySelectorAll('.sig-ai-coach').forEach(sigAiCoachWire);
           }
         }
         render();
+        /* Fresh roster rows are agent material immediately (missing-info,
+           waivers) — draft now, not at the next cron tick. */
+        agentRunAfterConnect();
       }catch(_){/* demo view already committed; server sync surfaced next load */}})();
     }
     w.step="done"; w.committed={batch,created};
@@ -16168,7 +16196,9 @@ document.querySelectorAll('.sig-ai-coach').forEach(sigAiCoachWire);
         render();
       });
     }
-    S.modal=null;render();});
+    S.modal=null;render();
+    /* The queue the director lands on should hold work, not wait for cron. */
+    agentRunAfterConnect();});
   $("[data-suw-back]").forEach(b=>b.onclick=()=>{const w=S.setupWiz;if(w){w.step=1;w.err=null;}render();});
   $("[data-suw0]").forEach(b=>b.onclick=()=>{
     const w=S.setupWiz;if(!w)return;
@@ -18790,6 +18820,8 @@ function hydrateReturn(){
           ? "Payouts are active"
           : "Stripe still needs a few details before you can be paid");
         render();
+        /* A finished connector goes straight into the agent's hands. */
+        if(pv&&pv.stripe_charges_enabled) agentRunAfterConnect();
       }).catch(function(){});
     }
     return;
