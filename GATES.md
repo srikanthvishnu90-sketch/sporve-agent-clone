@@ -33,14 +33,13 @@ database.
 
 ## G2 — MONEY: one real coach is paid by one real parent
 
-**Status: TEST-MODE TRUE (2026-08-31), LIVE FALSE.** The first end-to-end
-test-mode charge cleared on 2026-08-31: booking `9afca6d5`, event
-`evt_1UAa8E4…`, $50 on the connected account, platform fee $0 — checkout →
-connected-charge webhook → append-only ledger, all verified against prod.
-What remains is the LIVE half: Stripe live-mode activation, KYC, and one
-real-bank ACH charge (runbook: `docs/decisions/first-real-payment.md`).
-This line was stale ("FALSE, zero providers enabled") until 2026-09-05 —
-the ledger and memory recorded the cleared test charge five days earlier.
+**Status: FALSE.** The gate demands REAL money and none has moved — but the
+stale claim beneath it ("zero providers enabled, never transacted") died on
+2026-08-31: the first end-to-end TEST-MODE charge cleared — booking
+`9afca6d5`, event `evt_1UAa8E4…`, $50 on the connected account, fee $0 —
+checkout → connected-charge webhook → append-only ledger, verified against
+prod. What remains is only the live half: Stripe live-mode activation, KYC,
+one real-bank ACH charge (runbook: `docs/decisions/first-real-payment.md`).
 
 **Why it matters more than any feature.** Every screen in this repo is
 downstream of a transaction that cannot occur. Until one dollar moves, the
