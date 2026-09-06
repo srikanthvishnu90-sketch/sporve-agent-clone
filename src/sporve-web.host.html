@@ -2194,6 +2194,11 @@ button.tnav.tnav-cta:hover{background:#FFFFFF;color:#0B0D0F;border-color:#FFFFFF
 .pr-cyc.on{background:var(--ink);color:var(--paper)}
 .pr-cyc em{font-style:normal;opacity:.75;margin-left:4px}
 .pricing-v2 .pp-plans{margin-top:28px}
+.pp-plans.pp-three{grid-template-columns:repeat(3,1fr);max-width:980px}
+@media(max-width:1100px){.pp-plans.pp-three{grid-template-columns:repeat(2,1fr)}}
+@media(max-width:680px){.pp-plans.pp-three{grid-template-columns:1fr}}
+.pp-addon{text-align:center;color:var(--muted);font-size:var(--text-sm);margin:-26px auto 34px}
+.pp-addon a{color:var(--slate-ink);text-decoration:underline}
 .pp-price b{display:inline-block;transition:opacity .16s ease}
 .pp-price b.swap{opacity:0;transition:opacity .12s ease}
 .js-rev [data-rev][data-rev-d="3"]{transition-delay:.24s}
@@ -6590,11 +6595,15 @@ const FEE_PCT = 0;
    from); everything the page shows — cards, compare table, FAQ — derives
    from THIS object so a price exists in exactly one place. */
 const PRICING_CFG = {
-  monthly: { pro: 34.99, grow: 99.99 },   // free=$0, enterprise=Custom
+  /* Owner re-tier 2026-09-05 (10/10 plan doc 08): Solo / Club / Organization.
+     DISPLAY tiers — the DB's plan_entitlements still carries the beta plans,
+     so tier CTAs route to signup / book-a-call, never to a checkout that
+     would charge a number this page doesn't show. */
+  monthly: { solo: 39, club: 179, organization: 449 },
   yearlyDiscount: 0.20,
   nonprofitDiscount: 0.15,
-  seats: { free: 1, pro: 3, grow: 10, enterprise: "Unlimited" },
-  aiActions: { free: "3/mo", pro: "Unlimited", grow: "Unlimited ×5", enterprise: "Unlimited" },
+  seats: { solo: 3, club: 10, organization: "Unlimited" },
+  aiActions: { solo: "Unlimited", club: "Unlimited", organization: "Unlimited" },
 };
 const FEE_RATE = FEE_PCT / 100;
 function dayAfter(n){
@@ -8325,23 +8334,23 @@ function pricingHTML(){
     ${(()=>{
       const CK=`<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6L9 17l-5-5"/></svg>`;
       const CFG=PRICING_CFG;
+      /* Re-tier 2026-09-05 (owner: "the only thing you adjust is the pricing
+         page"): Solo / Club / Organization. Solo+Club start free (signup —
+         no checkout charges these display prices yet); Organization books a
+         call. Every feature in the app stays available; tiers gate scale. */
       const CARDS=[
-        {id:"free",name:"Free",price:"$0",per:"",
-         desc:"For a coach just getting started.",
-         feats:["Browse checked coaches, free","List your services, no fee","Verified badge — one-time add-on to reach parents · planned","3 AI actions a month","0% taken from bookings"],
-         cta:"Start free"},
-        {id:"pro",name:"Pro",price:"$34.99",per:"/mo",rec:true,
-         desc:"For a private trainer or solo coach.",
-         feats:["Verified badge — background check included · planned","Unlimited AI actions — drafts, recaps & parent updates","Roster, schedule, session notes & messaging","Automatic payouts","Up to 3 seats","0% taken from bookings"],
-         cta:"Start coaching"},
-        {id:"grow",name:"Grow",price:"$99.99",per:"/mo",
-         desc:"For a growing training business.",
-         feats:["5× AI usage — recaps, progress reports & campaigns","Up to 10 staff seats with roles","Group sessions, camps & clinic pages · planned","Retention & revenue analytics · planned","0% taken from bookings"],
-         cta:"Talk to us"},
-        {id:"enterprise",name:"Enterprise",price:"Custom",per:"",dev:true,
-         desc:"For a club, AAU team, or academy.",
-         feats:["Unlimited coach & staff seats","Roles & granular permissions","Per-staff background-check gating","Compliance dashboard — certs & waivers","Consolidated org billing · planned"],
-         cta:"Talk to team"},
+        {id:"solo",name:"Solo",price:"$39",per:"/mo",
+         desc:"One coach or private trainer.",
+         feats:["The agent — drafts dues, waivers & reminders","Roster, schedule, session notes & messaging","Email delivery from your club address","Automatic payouts","Up to 3 seats","0% taken from bookings"],
+         cta:"Start free",buy:"signup"},
+        {id:"club",name:"Club",price:"$179",per:"/mo",rec:true,
+         desc:"A travel team, club, or camp.",
+         feats:["Everything in Solo","Up to 10 staff seats with roles","Waivers & eligibility tracking","Client discovery in the chat","Season billing in installments","0% taken from bookings"],
+         cta:"Start free",buy:"signup"},
+        {id:"organization",name:"Organization",price:"$449",per:"/mo",
+         desc:"A multi-team org, AAU program, or academy.",
+         feats:["Everything in Club","Unlimited coach & staff seats","Per-staff background-check gating","Compliance dashboard — certs & waivers","Roles & granular permissions","Consolidated org billing · planned"],
+         cta:"Book a call",buy:"call"},
       ];
       const feat=f=>{const i=f.indexOf(" · planned");return i<0?esc(f):esc(f.slice(0,i))+`<em class="pt-planned"> · planned</em>`;};
       /* Monthly/yearly figures both derive from CFG (spec §3); the toggle
@@ -8351,7 +8360,7 @@ function pricingHTML(){
         if(m==null) return {now:t.price,m:null,y:null};
         const y="$"+(m*(1-CFG.yearlyDiscount)).toFixed(2);
         return {now:S.priceYearly?y:"$"+m.toFixed(2),m:"$"+m.toFixed(2),y};};
-      return `<section class="pp-plans" aria-label="Plans">${CARDS.map((t,ci)=>{
+      return `<section class="pp-plans pp-three" aria-label="Plans">${CARDS.map((t,ci)=>{
         const rec=!!t.rec, P=priceOf(t);
         return `<div class="pp-card${rec?" pp-rec":""}" data-rev data-rev-d="${Math.min(ci,3)}">
           ${rec?`<span class="pp-badge">Recommended</span>`:""}
@@ -8360,11 +8369,14 @@ function pricingHTML(){
           <p class="pp-desc">${esc(t.desc)}</p>
           ${/* CTA ABOVE the feature list (spec §1: the card HEADER is name,
                price, button — all three above the fold at 1440×900). */""}
-          <button class="${rec?"btn pp-cta":"pp-cta pp-cta-alt"}" data-planbuy="${t.id}">${esc(t.cta)}</button>
+          ${t.buy==="call"
+            ?`<a class="${rec?"btn pp-cta":"pp-cta pp-cta-alt"}" href="mailto:support@sporv.ai?subject=Sporv%20Organization%20plan">${esc(t.cta)}</a>`
+            :`<button class="${rec?"btn pp-cta":"pp-cta pp-cta-alt"}" data-becomecoach="1">${esc(t.cta)}</button>`}
           <ul class="pp-feats">${t.feats.map(f=>`<li>${CK}<span>${feat(f)}</span></li>`).join("")}</ul>
           ${t.dev?`<p class="pp-dev">In development — early access only</p>`:""}
         </div>`;
-      }).join("")}</section>`;
+      }).join("")}</section>
+      <p class="pp-addon" data-rev>Camp add-on — run seasonal camps and clinics on any plan, priced per camp. <a href="mailto:support@sporv.ai?subject=Camp%20add-on">Ask us</a>.</p>`;
     })()}
     <div class="pr-stats" role="list" aria-label="In every plan">
       <div role="listitem" data-rev><b class="num">2.9% + 30¢</b><span>per card transaction — standard processing on your club's own Stripe account</span></div>
@@ -8379,20 +8391,20 @@ function pricingHTML(){
       const mono=v=>`<td><b class="mono">${esc(String(v))}</b></td>`;
       const prow=(label,cells)=>`<tr><th scope="row">${esc(label)}</th>${cells}</tr>`;
       const body=[
-        prow("Monthly price",mono("$0")+mono("$"+C.monthly.pro.toFixed(2))+mono("$"+C.monthly.grow.toFixed(2))+mono("Custom")),
-        prow("Yearly price (−"+Math.round(C.yearlyDiscount*100)+"%)",mono("$0")+mono("$"+(C.monthly.pro*(1-C.yearlyDiscount)).toFixed(2)+"/mo")+mono("$"+(C.monthly.grow*(1-C.yearlyDiscount)).toFixed(2)+"/mo")+mono("Custom")),
-        prow("Seats",mono(C.seats.free)+mono(C.seats.pro)+mono(C.seats.grow)+mono(C.seats.enterprise)),
-        prow("AI actions",mono(C.aiActions.free)+mono(C.aiActions.pro)+mono(C.aiActions.grow)+mono(C.aiActions.enterprise)),
-        prow("Taken from bookings",mono(FEE_PCT+"%")+mono(FEE_PCT+"%")+mono(FEE_PCT+"%")+mono(FEE_PCT+"%")),
-        prow("Roster, schedule, notes & messaging",y()+y()+y()+y()),
-        prow("Automatic payouts",n+y()+y()+y()),
-        prow("Staff roles & permissions",n+n+y()+y()),
-        prow("Per-staff background-check gating",n+n+n+y()),
-        prow("Compliance dashboard — certs & waivers",n+n+n+y()),
+        prow("Monthly price",mono("$"+C.monthly.solo)+mono("$"+C.monthly.club)+mono("$"+C.monthly.organization)),
+        prow("Yearly price (−"+Math.round(C.yearlyDiscount*100)+"%)",mono("$"+(C.monthly.solo*(1-C.yearlyDiscount)).toFixed(2)+"/mo")+mono("$"+(C.monthly.club*(1-C.yearlyDiscount)).toFixed(2)+"/mo")+mono("$"+(C.monthly.organization*(1-C.yearlyDiscount)).toFixed(2)+"/mo")),
+        prow("Seats",mono(C.seats.solo)+mono(C.seats.club)+mono(C.seats.organization)),
+        prow("AI actions",mono(C.aiActions.solo)+mono(C.aiActions.club)+mono(C.aiActions.organization)),
+        prow("Taken from bookings",mono(FEE_PCT+"%")+mono(FEE_PCT+"%")+mono(FEE_PCT+"%")),
+        prow("The agent, roster, schedule, notes & messaging",y()+y()+y()),
+        prow("Automatic payouts",y()+y()+y()),
+        prow("Staff roles & permissions",n+y()+y()),
+        prow("Per-staff background-check gating",n+n+y()),
+        prow("Compliance dashboard — certs & waivers",n+n+y()),
       ].join("");
       return `<div class="cmp-wrap" data-rev>
       <table class="cmp cmp-plans" aria-label="Compare plans">
-        <thead><tr><th></th><th>Free</th><th>Pro</th><th>Grow</th><th>Enterprise</th></tr></thead>
+        <thead><tr><th></th><th>Solo</th><th>Club</th><th>Organization</th></tr></thead>
         <tbody>${body}</tbody>
       </table></div>`;})()}
 
@@ -8410,12 +8422,13 @@ function pricingHTML(){
     ${/* FAQ (spec §2): native <details>, revealed with data-rev-d = i%3.
          Copy states only what the config and shipped code make true. */""}
     ${(()=>{const C=PRICING_CFG;const QA=[
-      ["How does yearly billing work?","Pay for a year up front and every paid plan drops "+Math.round(C.yearlyDiscount*100)+"% — Pro comes to $"+(C.monthly.pro*(1-C.yearlyDiscount)).toFixed(2)+"/mo and Grow to $"+(C.monthly.grow*(1-C.yearlyDiscount)).toFixed(2)+"/mo, billed once."],
+      ["How does yearly billing work?","Pay for a year up front and every plan drops "+Math.round(C.yearlyDiscount*100)+"% — Solo comes to $"+(C.monthly.solo*(1-C.yearlyDiscount)).toFixed(2)+"/mo, Club to $"+(C.monthly.club*(1-C.yearlyDiscount)).toFixed(2)+"/mo, and Organization to $"+(C.monthly.organization*(1-C.yearlyDiscount)).toFixed(2)+"/mo, billed once."],
       ["Is there a nonprofit discount?","Yes — registered nonprofits get "+Math.round(C.nonprofitDiscount*100)+"% off any paid plan. Email support@sporv.ai from your organization's address and we apply it to your subscription."],
       ["What does Sporv take from dues?",FEE_PCT+"%. Families pay your price; card processing (2.9% + 30¢, Stripe's standard rate) runs on your club's own Stripe account, and payouts go straight to you."],
       ["Can I change plans later?","Anytime. Upgrades apply immediately; downgrades apply at the end of the current billing period. Your roster, records and history carry over untouched."],
-      ["What happens when I hit the Free plan's AI limit?","The agent keeps reading and drafting stops until next month — nothing is deleted and nothing is sent. Upgrade to Pro for unlimited actions."],
+      ["Can I start without paying?","Yes — Solo and Club start free: set up, import your roster, and see the agent's drafts before any billing begins. No card required to start."],
       ["Do families need a paid account?","No. Parents and guardians never pay Sporv anything — plans are for the club side only."],
+      ["What's the Camp add-on?","A per-camp module for seasonal camps and clinics — registration, capacity, one upfront charge per camper — available on any plan. Email support@sporv.ai to turn it on."],
     ];return `<section class="pr-faq" aria-label="Pricing questions">
       <h2 data-rev>Questions, answered.</h2>
       ${QA.map((q,i)=>`<details class="prq" data-rev data-rev-d="${i%3}"><summary>${esc(q[0])}</summary><p>${esc(q[1])}</p></details>`).join("")}
