@@ -385,13 +385,22 @@ Deno.serve(async (req) => {
       ? `service:${typeof body.actorId === "string" ? body.actorId : "system"}`
       : `user:${actorId}`;
     const minuteLimit = isService ? SERVICE_REQUESTS_PER_MINUTE : USER_REQUESTS_PER_MINUTE;
+    // Check the minute window FIRST and stop there on a deny — consuming the
+    // day budget for a request the minute limiter already refused would let a
+    // burst attacker drain the whole day's allowance without one real call.
     const minuteOk = await consumeQuota(admin, quotaActor, "ai:minute", minuteLimit, 60);
-    const dayOk = isService ||
-      await consumeQuota(admin, quotaActor, "ai:day", USER_REQUESTS_PER_DAY, 86400);
-    if (minuteOk === null || dayOk === null) {
+    if (minuteOk === null) {
       return json({ error: "AI quota service is unavailable." }, 503);
     }
-    if (!minuteOk || !dayOk) {
+    if (!minuteOk) {
+      return json({ error: "AI request limit reached. Please try again later." }, 429);
+    }
+    const dayOk = isService ||
+      await consumeQuota(admin, quotaActor, "ai:day", USER_REQUESTS_PER_DAY, 86400);
+    if (dayOk === null) {
+      return json({ error: "AI quota service is unavailable." }, 503);
+    }
+    if (!dayOk) {
       return json({ error: "AI request limit reached. Please try again later." }, 429);
     }
 
