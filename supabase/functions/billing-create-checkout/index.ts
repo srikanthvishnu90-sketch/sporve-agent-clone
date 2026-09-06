@@ -113,6 +113,12 @@ Deno.serve(async (req) => {
     const admin = createClient(SUPABASE_URL, SERVICE_ROLE, {
       auth: { persistSession: false, autoRefreshToken: false },
     });
+    const { data: withinLimit, error: rateError } = await admin.rpc(
+      "consume_edge_rate_limit",
+      { p_actor_key: `user:${uid}`, p_scope: "billing-checkout:minute", p_limit: 10, p_window_seconds: 60 },
+    );
+    if (rateError) return json({ error: "Billing is temporarily unavailable." }, 503);
+    if (withinLimit !== true) return json({ error: "Too many billing attempts. Try again later." }, 429);
     const { data: provider, error: pErr } = await admin
       .from("providers")
       .select("id, business_name, stripe_customer_id, founding_coach, plan, plan_status")

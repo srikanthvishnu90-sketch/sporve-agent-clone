@@ -65,6 +65,12 @@ Deno.serve(async (req) => {
     const admin = createClient(SUPABASE_URL, SERVICE_ROLE, {
       auth: { persistSession: false, autoRefreshToken: false },
     });
+    const { data: withinLimit, error: rateError } = await admin.rpc(
+      "consume_edge_rate_limit",
+      { p_actor_key: `user:${uid}`, p_scope: "stripe-payouts:minute", p_limit: 30, p_window_seconds: 60 },
+    );
+    if (rateError) return json({ error: "Payout history is temporarily unavailable." }, 503);
+    if (withinLimit !== true) return json({ error: "Too many payout requests. Try again later." }, 429);
     const { data: provider, error: provErr } = await admin
       .from("providers")
       .select("id, owner_id, stripe_account_id, stripe_charges_enabled")

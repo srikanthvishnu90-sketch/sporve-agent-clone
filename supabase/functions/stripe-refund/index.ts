@@ -63,6 +63,19 @@ Deno.serve(async (req) => {
   const uid = userData?.user?.id ?? null;
   if (userErr || !uid) return json({ error: "Sign in to request a refund." }, 401);
 
+  // Refunds move real money, so throttle only after the caller identity is
+  // verified. A limiter outage is unavailable (503), never permission to
+  // continue; an exhausted window is an explicit 429.
+  const { data: rateData, error: rateError } = await admin.rpc("consume_edge_rate_limit", {
+    p_actor_key: `user:${uid}`,
+    p_scope: "stripe-refund:minute",
+    p_limit: 10,
+    p_window_seconds: 60,
+  });
+  if (rateError) return json({ error: "Refund service is temporarily unavailable." }, 503);
+  const withinLimit = rateData === true || (rateData && rateData.allowed === true);
+  if (!withinLimit) return json({ error: "Too many refund attempts. Try again shortly." }, 429);
+
   // ---- what they are asking about ------------------------------------------
   let bookingId: string | null = null;
   try {

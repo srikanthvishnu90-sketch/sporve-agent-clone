@@ -9,12 +9,10 @@
 //              logistics reminders, sonnet for richer follow-ups), strip claims,
 //              store content, status='drafted'. NOTHING sends — the coach
 //              approves later (lifecycle-approve / approval queue).
-//   • auto  -> ONLY logistics types. Fill a FIXED template with thin
-//              personalization (child first name, date/time, place), status
-//              'approved', then send via the notifications/inbox channel,
-//              status='sent'. HARD GUARDRAIL: the auto path never calls the model
-//              and never emits free-form content — if a clean logistics template
-//              can't be built it FALLS BACK to draft (a human approves).
+//   • auto  -> legacy preference: prepare a FIXED logistics template with thin
+//              personalization, then store 'drafted' for human approval. It
+//              never sends or approves. If a clean template cannot be built,
+//              fall back to model-assisted drafting (still human-approved).
 //
 // Tone via buildCoachVoiceProfile; guardrails identical to P3 (no credential /
 // medical / safety claims). Every model call is logged to ai_audit_log
@@ -28,6 +26,7 @@
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { deliverPush } from "../_shared/push.ts";
 import { buildCoachVoiceProfile } from "../_shared/coach_voice.ts";
+import { withHttpDeadline, readBoundedJson } from "../_shared/http.ts";
 import {
   resolveAction,
   modelForEvent,
@@ -49,6 +48,12 @@ const GATEWAY_FN = Deno.env.get("GATEWAY_FUNCTION_NAME") ?? "ai-gateway";
 const RESEND_API_KEY = Deno.env.get("RESEND_API_KEY") ?? "";
 const MAIL_DOMAIN = Deno.env.get("MAIL_DOMAIN") ?? "mail.sporv.ai";
 const BATCH = Number(Deno.env.get("LIFECYCLE_BATCH") ?? 25);
+const GENERATION_DB_MS = 8_000;
+const GENERATION_MODEL_MS = 20_000;
+const GENERATION_RESPONSE_BYTES = 64_000;
+
+const generationDb = <T>(work: (signal: AbortSignal) => PromiseLike<T>): Promise<T> =>
+  withHttpDeadline(async signal => await work(signal), GENERATION_DB_MS);
 
 const EVENT_GUIDANCE: Record<string, string> = {
   booking_confirmed: "a brief, warm confirmation that the session is booked.",
@@ -70,58 +75,155 @@ const SYSTEM = [
 
 type Admin = ReturnType<typeof createClient>;
 
+// A failed delivery precondition is not permission to use cached recipient
+// data. Keep the approved draft visible for human review, with a checked receipt.
+class DeliveryPreconditionError extends Error {}
+async function deliveryRead<T>(query: PromiseLike<T>, reason: string): Promise<T> {
+  try { return await query; } catch { throw new DeliveryPreconditionError(reason); }
+}
+async function holdForReview(admin: Admin, row: { id: string; provider_id: string; approved_by: string }, reason: string) {
+  const { data, error } = await admin.from("outbound_messages")
+    .update({ status: "needs_review", last_error: reason })
+    .eq("id", row.id).eq("provider_id", row.provider_id)
+    .eq("status", "approved").eq("approved_by", row.approved_by).not("approved_by", "is", null).is("sent_at", null)
+    .select("id, provider_id, approved_by, sent_at, status, last_error").maybeSingle();
+  if (error || data?.id !== row.id || data?.provider_id !== row.provider_id ||
+    !data?.approved_by || data.approved_by !== row.approved_by || data?.sent_at !== null ||
+    data?.status !== "needs_review" || data?.last_error !== reason) {
+    throw new Error("Delivery review receipt unavailable.");
+  }
+}
+
 /** Resolve the coach's profile id (notification recipient author) + display name. */
-async function resolveProvider(admin: Admin, providerId: string) {
-  const { data } = await admin.from("providers")
-    .select("owner_id, business_name").eq("id", providerId).maybeSingle();
+async function resolveProvider(admin: Admin, providerId: string, signal: AbortSignal) {
+  signal.throwIfAborted();
+  const { data, error } = await admin.from("providers")
+    .select("id, owner_id, business_name").eq("id", providerId).abortSignal(signal).maybeSingle();
+  signal.throwIfAborted();
+  if (error || data?.id !== providerId || typeof data.owner_id !== "string" || !data.owner_id) {
+    throw new Error("Generation provider unavailable.");
+  }
   return {
     ownerId: (data as { owner_id?: string } | null)?.owner_id ?? null,
     businessName: (data as { business_name?: string } | null)?.business_name ?? null,
   };
 }
 
-/** Logistics vars + guardian for a row (child first name, date/time/place, guardian id). */
-async function resolveContext(admin: Admin, row: Record<string, unknown>) {
-  let childFirstName = "";
-  let guardianId: string | null = null;
-  if (row.child_id) {
-    const { data: child } = await admin.from("athletes")
-      .select("first_name, parent_id").eq("id", row.child_id as string).maybeSingle();
-    childFirstName = (child as { first_name?: string } | null)?.first_name ?? "";
-    guardianId = (child as { parent_id?: string } | null)?.parent_id ?? null;
-  }
+/** Service-role reads need their own tenant proof; a foreign key alone is not it. */
+async function resolveContext(admin: Admin, row: Record<string, unknown>, signal: AbortSignal) {
+  signal.throwIfAborted();
+  let childFirstName = "", guardianId: string | null = null;
   let dateText = "", timeText = "", place = "";
+  let bookingParent: string | null = null;
   if (row.booking_id) {
-    const { data: b } = await admin.from("bookings")
-      .select("session_id, athlete_first_name").eq("id", row.booking_id as string).maybeSingle();
-    if (!childFirstName) childFirstName = (b as { athlete_first_name?: string } | null)?.athlete_first_name ?? "";
-    const sessionId = (b as { session_id?: string } | null)?.session_id ?? null;
-    if (sessionId) {
-      const { data: s } = await admin.from("sessions")
-        .select("start_date, start_time, address").eq("id", sessionId).maybeSingle();
-      const sd = s as { start_date?: string; start_time?: string; address?: string } | null;
-      dateText = sd?.start_date ?? "";
-      timeText = sd?.start_time ?? "";
-      place = sd?.address ?? "";
+    const { data: b, error: bookingError } = await admin.from("bookings")
+      .select("id, session_id, program_id, athlete_id, searcher_id, athlete_first_name, sessions!inner(id, program_id, programs!inner(id, provider_id))")
+      .eq("id", row.booking_id as string).eq("sessions.programs.provider_id", row.provider_id).abortSignal(signal).maybeSingle();
+    signal.throwIfAborted();
+    const session = b?.sessions as { id?: string; program_id?: string; programs?: { id?: string; provider_id?: string } } | null;
+    if (bookingError || b?.id !== row.booking_id || !session || !session.id ||
+      b.session_id !== session.id || !session.program_id || session.programs?.id !== session.program_id ||
+      session.programs?.provider_id !== row.provider_id ||
+      (b.program_id !== null && b.program_id !== session.program_id) ||
+      b.athlete_id !== (row.child_id ?? null) || typeof b.searcher_id !== "string" || !b.searcher_id) {
+      throw new Error("Generation booking unavailable.");
     }
+    bookingParent = b.searcher_id;
+    childFirstName = b.athlete_first_name ?? "";
+    const { data: s, error: sessionError } = await admin.from("sessions")
+      .select("id, program_id, start_date, start_time, address, programs!inner(id, provider_id)")
+      .eq("id", session.id).eq("program_id", session.program_id).eq("programs.provider_id", row.provider_id).abortSignal(signal).maybeSingle();
+    signal.throwIfAborted();
+    const program = s?.programs as { id?: string; provider_id?: string } | null;
+    if (sessionError || s?.id !== session.id || s.program_id !== session.program_id ||
+      program?.id !== session.program_id || program?.provider_id !== row.provider_id) {
+      throw new Error("Generation session unavailable.");
+    }
+    dateText = s.start_date ?? "";
+    timeText = s.start_time ?? "";
+    place = s.address ?? "";
+  } else if (row.child_id) {
+    // Canonical rebook nudges intentionally have no booking_id. Their authority
+    // comes from a completed booking for this child with this provider, not from
+    // the arbitrary child_id carried by an outbound row.
+    if (row.event_type !== "rebook_nudge") throw new Error("Generation booking required for this event.");
+    const { data: prior, error } = await admin.from("bookings")
+      .select("id, athlete_id, searcher_id, status, program_id, programs!inner(id, provider_id)")
+      .eq("athlete_id", row.child_id).eq("status", "completed").eq("programs.provider_id", row.provider_id)
+      .order("created_at", { ascending: false }).order("id", { ascending: false }).limit(1).abortSignal(signal).maybeSingle();
+    signal.throwIfAborted();
+    const program = prior?.programs as { id?: string; provider_id?: string } | null;
+    if (error || !prior?.id || prior.athlete_id !== row.child_id || prior.status !== "completed" ||
+      !prior.program_id || program?.id !== prior.program_id || program?.provider_id !== row.provider_id ||
+      typeof prior.searcher_id !== "string" || !prior.searcher_id) {
+      throw new Error("Generation child relationship unavailable.");
+    }
+    bookingParent = prior.searcher_id;
+  }
+  if (row.child_id) {
+    const { data: child, error: childError } = await admin.from("athletes")
+      .select("id, first_name, parent_id").eq("id", row.child_id as string).eq("parent_id", bookingParent).abortSignal(signal).maybeSingle();
+    signal.throwIfAborted();
+    if (childError || child?.id !== row.child_id || !bookingParent || child.parent_id !== bookingParent) {
+      throw new Error("Generation child unavailable.");
+    }
+    childFirstName = child.first_name ?? childFirstName;
+    guardianId = child.parent_id;
   }
   return { childFirstName, guardianId, dateText, timeText, place };
 }
 
-/** Deliver a finalized body to the child's guardian via the notifications channel. */
-async function deliver(admin: Admin, guardianId: string, childFirstName: string, body: string) {
-  const title = childFirstName ? `Message from your coach about ${childFirstName}` : "Message from your coach";
-  const { error } = await admin.from("notifications")
-    .insert([{ user_id: guardianId, title, message: body.slice(0, 280) }]);
-  return !error;
+/** Generation only stages a draft; approval/delivery belongs to the human path. */
+function sameJson(a: unknown, b: unknown): boolean {
+  if (a === b) return true;
+  if (!a || !b || typeof a !== "object" || typeof b !== "object") return false;
+  if (Array.isArray(a) || Array.isArray(b)) {
+    return Array.isArray(a) && Array.isArray(b) && a.length === b.length && a.every((v, i) => sameJson(v, b[i]));
+  }
+  const aa = a as Record<string, unknown>, bb = b as Record<string, unknown>;
+  return Object.keys(aa).length === Object.keys(bb).length &&
+    Object.keys(aa).every(k => Object.prototype.hasOwnProperty.call(bb, k) && sameJson(aa[k], bb[k]));
+}
+async function storeDraft(admin: Admin, row: Record<string, unknown>, content: Record<string, unknown>) {
+  const { data, error } = await generationDb(signal => admin.from("outbound_messages")
+    .update({ content, status: "drafted", last_error: null })
+    .eq("id", row.id).eq("provider_id", row.provider_id).eq("status", "processing")
+    .is("approved_by", null).is("approved_at", null).is("sent_at", null)
+    .select("id, provider_id, status, approved_by, approved_at, sent_at, content, last_error").abortSignal(signal).maybeSingle());
+  if (error || data?.id !== row.id || data?.provider_id !== row.provider_id ||
+    data?.status !== "drafted" || data?.approved_by !== null || data?.approved_at !== null || data?.sent_at !== null ||
+    data?.last_error !== null || !sameJson(data?.content, content)) {
+    throw new Error("Draft receipt unavailable.");
+  }
+}
+
+// A skip or retry is also a write, not an assumed outcome. Release only this
+// unapproved processing claim; a no-op/error leaves the tick visibly failed.
+// Recovery: pending is the inverse of a generation claim; skipped rows may be
+// explicitly requeued only after confirming the intended mode and null approvals.
+async function finishGeneration(
+  admin: Admin, row: Record<string, unknown>, status: "pending" | "skipped", reason: string,
+) {
+  const { data, error } = await generationDb(signal => admin.from("outbound_messages")
+    .update({ status, last_error: reason })
+    .eq("id", row.id).eq("provider_id", row.provider_id).eq("status", "processing")
+    .is("approved_by", null).is("approved_at", null).is("sent_at", null)
+    .select("id, provider_id, status, approved_by, approved_at, sent_at, last_error").abortSignal(signal).maybeSingle());
+  if (error || data?.id !== row.id || data?.provider_id !== row.provider_id || data?.status !== status ||
+    data?.approved_by !== null || data?.approved_at !== null || data?.sent_at !== null || data?.last_error !== reason) {
+    throw new Error("Generation transition receipt unavailable.");
+  }
 }
 
 /** Generate a drafted body via the gateway (service role, attributed to coach). */
 async function generateDraft(
-  admin: Admin, row: Record<string, unknown>, ownerId: string | null, childFirstName: string,
+  admin: Admin, row: Record<string, unknown>, ownerId: string | null, childFirstName: string, guardianUserId: string | null,
 ): Promise<{ body: string; removed: string[]; model: string | null; audit_id: string | null } | { error: string }> {
+  return withHttpDeadline(async signal => {
   const eventType = row.event_type as string;
-  const samples = await buildCoachVoiceProfile(admin, row.provider_id as string);
+  const samples = await buildCoachVoiceProfile(admin, row.provider_id as string, signal,
+    typeof row.child_id === "string" && guardianUserId ? { childId: row.child_id, guardianUserId } : undefined);
+  signal.throwIfAborted();
   const parts: string[] = [
     `Write ${EVENT_GUIDANCE[eventType] ?? "a short, warm message."}`,
     `Child's first name: ${childFirstName || "(not given)"}`,
@@ -132,6 +234,7 @@ async function generateDraft(
   }
   const gResp = await fetch(`${SUPABASE_URL}/functions/v1/${GATEWAY_FN}`, {
     method: "POST",
+    signal, redirect: "error",
     headers: { "apikey": SERVICE_ROLE_KEY, "Authorization": `Bearer ${SERVICE_ROLE_KEY}`, "Content-Type": "application/json" },
     body: JSON.stringify({
       task: "draft",
@@ -144,10 +247,15 @@ async function generateDraft(
       maxTokens: 500,
     }),
   });
-  const g = await gResp.json();
-  if (!gResp.ok) return { error: g?.error ?? `ai-gateway error (${gResp.status})` };
-  const { body, removed } = enforceLifecycleDraft(g?.text ?? "");
-  return { body, removed, model: g?.model ?? null, audit_id: g?.audit?.id ?? null };
+  const g = await readBoundedJson(gResp, GENERATION_RESPONSE_BYTES, signal);
+  signal.throwIfAborted();
+  if (!gResp.ok || typeof g?.text !== "string") return { error: "draft_generation_unavailable" };
+  const { body, removed } = enforceLifecycleDraft(g.text);
+  if (!body.trim()) return { error: "draft_generation_empty" };
+  const audit = g.audit as { id?: unknown } | null;
+  return { body, removed, model: typeof g.model === "string" ? g.model : null,
+    audit_id: typeof audit?.id === "string" ? audit.id : null };
+  }, GENERATION_MODEL_MS);
 }
 
 Deno.serve(async (req) => {
@@ -188,12 +296,12 @@ Deno.serve(async (req) => {
     // ── EMAIL DELIVERY PASS (doc 08, spec rev 2026-09-02) ───────────────
     // Sends ONLY rows a human approved (approved_by NOT NULL — the Send click).
     // Window -> send_after; bad address -> needs_review; 3 failures -> failed.
-    // Idempotency: the sent_at-null guard on the final UPDATE means a row can
-    // never be delivered twice even across overlapping ticks.
+    // The processing claim limits overlapping ticks; it does NOT make provider
+    // delivery and the database receipt atomic. Reconciliation remains required.
     const emailSummary = { emailed: 0, emailSkipped: 0, emailFailed: 0, inApp: 0, windowDeferred: 0, needsReview: 0 };
     {
       const nowIso = new Date().toISOString();
-      const { data: eRows } = await admin.from("outbound_messages")
+      const { data: eRows, error: approvedReadError } = await admin.from("outbound_messages")
         .select("id, provider_id, content, approved_by, attempt_count, send_after")
         .not("approved_by", "is", null)
         .is("sent_at", null)
@@ -201,19 +309,25 @@ Deno.serve(async (req) => {
         .or(`send_after.is.null,send_after.lte.${nowIso}`)
         .order("created_at", { ascending: true })
         .limit(50);
+      if (approvedReadError || !Array.isArray(eRows)) {
+        return json({ error: "Approved delivery queue unavailable." }, 503);
+      }
       for (const er of eRows ?? []) {
        // Per-row guard: one org's bad settings (or any single-row surprise)
        // must never abort the tick for every other org. A row that keeps
        // throwing is retried at most 3 times, like the email-failure path.
        try {
         const c = er.content as { body?: string; subject?: string; to_email?: string; guardian_id?: string } | null;
-        if (!c?.body || (!c?.to_email && !c?.guardian_id)) continue;
+        if (typeof c?.body !== "string" || !c.body.trim() || (!c.to_email && !c.guardian_id)) {
+          throw new DeliveryPreconditionError("delivery_content_invalid");
+        }
 
         // send window from settings (default 8am-8pm org tz, blocked days)
-        const { data: winRow } = await admin.from("provider_settings")
-          .select("value").eq("provider_id", er.provider_id).eq("key", "send_window").maybeSingle();
-        const { data: tzRow } = await admin.from("provider_settings")
-          .select("value").eq("provider_id", er.provider_id).eq("key", "org_tz").maybeSingle();
+        const { data: winRow, error: windowError } = await deliveryRead(admin.from("provider_settings")
+          .select("value").eq("provider_id", er.provider_id).eq("key", "send_window").maybeSingle(), "delivery_settings_unavailable");
+        const { data: tzRow, error: timezoneError } = await deliveryRead(admin.from("provider_settings")
+          .select("value").eq("provider_id", er.provider_id).eq("key", "org_tz").maybeSingle(), "delivery_settings_unavailable");
+        if (windowError || timezoneError) throw new DeliveryPreconditionError("delivery_settings_unavailable");
         const win = (winRow?.value ?? {}) as { start?: string; end?: string; blocked_days?: (string|number)[]; pause_until?: string };
         // tz + window are tenant input (validated on write since 001022, but
         // rows written before that may hold garbage): a bad tz falls back to
@@ -241,12 +355,18 @@ Deno.serve(async (req) => {
         // resolve the guardian: claimed -> in-app now; else email path.
         let claimedUser: string | null = null; let gEmail: string | null = c.to_email ?? null; let gStatus = "ok";
         if (c.guardian_id) {
-          const { data: gg } = await admin.from("guardians")
-            .select("user_id, email, email_status").eq("id", c.guardian_id).maybeSingle();
-          const gr = gg as { user_id?: string; email?: string; email_status?: string } | null;
+          const { data: gg, error: guardianError } = await deliveryRead(admin.from("guardians")
+            .select("id, provider_id, user_id, email, email_status")
+            .eq("id", c.guardian_id).eq("provider_id", er.provider_id).maybeSingle(), "guardian_recipient_unavailable");
+          const gr = gg as { id?: string; provider_id?: string; user_id?: string; email?: string; email_status?: string } | null;
+          if (guardianError || !gr || gr.id !== c.guardian_id || gr.provider_id !== er.provider_id) {
+            throw new DeliveryPreconditionError("guardian_recipient_unavailable");
+          }
           claimedUser = gr?.user_id ?? null;
-          gEmail = gr?.email ?? gEmail;
-          gStatus = gr?.email_status ?? "ok";
+          // Never fall back to a stale draft address or assume an unknown status
+          // means consent. Claimed guardians still receive the in-app channel.
+          gEmail = gr.email ?? null;
+          gStatus = gr.email_status ?? "unknown";
         }
 
         if (claimedUser) {
@@ -276,22 +396,20 @@ Deno.serve(async (req) => {
 
         // email path — bad address never sends; director fixes it in the roster.
         if (gStatus !== "ok") {
-          await admin.from("outbound_messages").update({
-            status: "needs_review", last_error: `guardian email_status=${gStatus}`,
-          }).eq("id", er.id).eq("status", "approved");
-          emailSummary.needsReview++; continue;
+          throw new DeliveryPreconditionError("guardian_email_not_deliverable");
         }
-        if (!RESEND_API_KEY || !gEmail) continue;   // key unset: leave for a future tick
+        if (!RESEND_API_KEY) throw new DeliveryPreconditionError("email_provider_not_configured");
+        if (typeof gEmail !== "string" || !/^[^\s@<>,;:"\\]+@[^\s@<>,;:"\\]+\.[^\s@<>,;:"\\]+$/.test(gEmail)) {
+          throw new DeliveryPreconditionError("recipient_email_invalid");
+        }
         // Per-email suppression list (red fix 2026-09-04): authoritative even
         // when the guardian ROW was deleted and re-created — the address is
         // what complained, so the address is what's suppressed.
-        const { data: supRow } = await admin.from("email_suppressions")
-          .select("reason").eq("email", gEmail.toLowerCase()).maybeSingle();
+        const { data: supRow, error: suppressionError } = await deliveryRead(admin.from("email_suppressions")
+          .select("reason").eq("email", gEmail.toLowerCase()).maybeSingle(), "email_suppression_unavailable");
+        if (suppressionError) throw new DeliveryPreconditionError("email_suppression_unavailable");
         if (supRow) {
-          await admin.from("outbound_messages").update({
-            status: "needs_review", last_error: `address suppressed (${(supRow as { reason?: string }).reason})`,
-          }).eq("id", er.id).eq("status", "approved");
-          emailSummary.needsReview++; continue;
+          throw new DeliveryPreconditionError("recipient_email_suppressed");
         }
 
         const { data: eClaimed } = await admin.from("outbound_messages")
@@ -374,6 +492,17 @@ Deno.serve(async (req) => {
           emailSummary.emailFailed++;
         }
        } catch (rowErr) {
+        if (rowErr instanceof DeliveryPreconditionError) {
+          try {
+            await holdForReview(admin, er, rowErr.message);
+          } catch {
+            // Do not report success or retry delivery when even the failure
+            // receipt cannot be confirmed. No external call occurred for this row.
+            return json({ error: "Delivery review receipt unavailable.", ...emailSummary }, 503);
+          }
+          emailSummary.needsReview++;
+          continue;
+        }
         // isolation net for anything above: record, bounded-retry, move on.
         const attempts = (er.attempt_count ?? 0) + 1;
         await admin.from("outbound_messages").update({
@@ -385,13 +514,14 @@ Deno.serve(async (req) => {
       }
     }
 
-    const { data: rows, error } = await admin.from("outbound_messages")
+    const { data: rows, error } = await generationDb(signal => admin.from("outbound_messages")
       .select("*")
       .eq("status", "pending")
+      .is("approved_by", null).is("approved_at", null).is("sent_at", null)
       .or(`scheduled_for.is.null,scheduled_for.lte.${new Date().toISOString()}`)
       .order("created_at", { ascending: true })
-      .limit(BATCH);
-    if (error) return json({ error: error.message }, 500);
+      .limit(BATCH).abortSignal(signal));
+    if (error || !Array.isArray(rows)) return json({ error: "Draft queue unavailable." }, 503);
 
     const summary = { processed: 0, skipped: 0, drafted: 0, autoSent: 0, fellBackToDraft: 0, failed: 0 };
 
@@ -399,65 +529,90 @@ Deno.serve(async (req) => {
       const eventType = row.event_type as string;
       const providerId = row.provider_id as string;
 
-      // ATOMIC CLAIM: flip pending -> processing for THIS row only. If another
-      // (overlapping) tick already claimed it, the update matches 0 rows and we
-      // skip — this is the single guard against double-draft / double-send.
-      const { data: claimed } = await admin.from("outbound_messages")
-        .update({ status: "processing" })
-        .eq("id", row.id).eq("status", "pending")
-        .select("id").maybeSingle();
-      if (!claimed) continue;
-      summary.processed++;
-
-      // Effective mode for this coach + event (default 'draft' when no pref row).
-      const { data: pref } = await admin.from("lifecycle_message_prefs")
-        .select("mode").eq("provider_id", providerId).eq("event_type", eventType).maybeSingle();
-      const mode = (pref as { mode?: string } | null)?.mode ?? "draft";
+      // A missing preference row is the documented default, but a failed read
+      // is not permission to override a possibly-off mode. Read before claiming
+      // so an unavailable preference leaves the row eligible for a later tick.
+      let prefResult;
+      try {
+        prefResult = await generationDb(signal => admin.from("lifecycle_message_prefs")
+          .select("mode").eq("provider_id", providerId).eq("event_type", eventType).abortSignal(signal).maybeSingle());
+      } catch { return json({ error: "Lifecycle preference unavailable." }, 503); }
+      if (prefResult.error || (prefResult.data !== null &&
+        !["off", "draft", "auto"].includes(prefResult.data?.mode))) {
+        return json({ error: "Lifecycle preference unavailable." }, 503);
+      }
+      const mode = prefResult.data?.mode ?? "draft";
       let action = resolveAction(mode, eventType);
 
+      // ATOMIC CLAIM: flip pending -> processing for THIS row only. If another
+      // (overlapping) tick already claimed it, the update matches 0 rows and we
+      // skip. Generation can only claim unapproved, unsent rows in this org.
+      const { data: claimed, error: claimError } = await generationDb(signal => admin.from("outbound_messages")
+        .update({ status: "processing" })
+        .eq("id", row.id).eq("provider_id", providerId).eq("status", "pending")
+        .is("approved_by", null).is("approved_at", null).is("sent_at", null)
+        .select("id, provider_id, status, approved_by, approved_at, sent_at").abortSignal(signal).maybeSingle());
+      if (claimError) return json({ error: "Draft claim unavailable." }, 503);
+      if (!claimed) continue;
+      if (claimed.id !== row.id || claimed.provider_id !== providerId || claimed.status !== "processing" ||
+        claimed.approved_by !== null || claimed.approved_at !== null || claimed.sent_at !== null) {
+        return json({ error: "Draft claim receipt invalid." }, 503);
+      }
+      summary.processed++;
+
       if (action === "skip") {
-        await admin.from("outbound_messages").update({ status: "skipped" }).eq("id", row.id);
+        await finishGeneration(admin, row, "skipped", "lifecycle_mode_off");
         summary.skipped++;
         continue;
       }
 
-      const { ownerId } = await resolveProvider(admin, providerId);
-      const ctx = await resolveContext(admin, row);
+      let ownerId: string | null;
+      let ctx: Awaited<ReturnType<typeof resolveContext>>;
+      try {
+        ({ ownerId, ctx } = await generationDb(async signal => {
+          const provider = await resolveProvider(admin, providerId, signal);
+          const context = await resolveContext(admin, row, signal);
+          signal.throwIfAborted();
+          return { ownerId: provider.ownerId, ctx: context };
+        }));
+      } catch {
+        await finishGeneration(admin, row, "pending", "draft_context_unavailable");
+        summary.failed++;
+        continue;
+      }
 
-      // AUTO (logistics only): fixed template, no model. Fall back to draft if a
-      // clean logistics template can't be built OR there's no guardian to deliver
-      // to (the hard guardrail — a human approves instead of auto-sending).
+      // Legacy AUTO keeps deterministic logistics preparation, not permission
+      // to send. Every template lands in the same human approval queue.
       if (action === "auto") {
         const tpl = autoOrFallback(eventType, ctx);
         if (!tpl || !ctx.guardianId) {
           action = "draft";
           summary.fellBackToDraft++;
         } else {
-          const sent = await deliver(admin, ctx.guardianId, ctx.childFirstName, tpl);
-          await admin.from("outbound_messages").update({
-            content: { body: tpl, auto: true, template: true },
-            status: sent ? "sent" : "approved",
-            approved_at: new Date().toISOString(),
-            sent_at: sent ? new Date().toISOString() : null,
-          }).eq("id", row.id);
-          if (sent) summary.autoSent++; else summary.failed++;
+          await storeDraft(admin, row, {
+            ...(row.content && typeof row.content === "object" ? row.content : {}),
+            body: tpl, auto: false, template: true,
+          });
+          summary.drafted++;
           continue;
         }
       }
 
       // DRAFT: generate, store, surface for approval. Nothing sends.
-      const gen = await generateDraft(admin, row, ownerId, ctx.childFirstName);
+      let gen;
+      try { gen = await generateDraft(admin, row, ownerId, ctx.childFirstName, ctx.guardianId); }
+      catch { gen = { error: "draft_generation_unavailable" }; }
       if ("error" in gen) {
-        // release the claim so a later tick can retry (see follow-up: add an
-        // attempts cap to avoid unbounded retries on a permanently-bad row).
-        await admin.from("outbound_messages").update({ status: "pending" }).eq("id", row.id);
+        // Retry policy still needs a separate generation budget/backoff; don't
+        // consume the delivery attempt counter for a model-generation failure.
+        await finishGeneration(admin, row, "pending", gen.error);
         summary.failed++;
         continue;
       }
-      await admin.from("outbound_messages").update({
-        content: { body: gen.body, model: gen.model, removed: gen.removed, auto: false },
-        status: "drafted",
-      }).eq("id", row.id);
+      await storeDraft(admin, row, {
+        ...(row.content && typeof row.content === "object" ? row.content : {}),
+        body: gen.body, model: gen.model, removed: gen.removed, auto: false,
+      });
       summary.drafted++;
     }
 

@@ -25,29 +25,22 @@
  *   4. Size lock         — body and field caps before the model is called.
  *   5. Rate limit        — per-IP sliding window (see the caveat below).
  *
- * What this does NOT defend against: a determined attacker with curl and a
- * rotating IP pool. Origin and Content-Type are browser-enforced, not
- * server-verifiable. Closing that needs a signed token minted per session,
- * which needs real auth — tracked, not solved here.
+ *   6. Identity/quota    — caller JWT and database entitlement verdict, before
+ *                          any model call; unavailable/malformed gates close.
+ * The per-IP Map is not a distributed burst limit. The database monthly quota
+ * does not limit bursts on an unlimited plan; production hardening is pending.
  */
 
 import Anthropic from "@anthropic-ai/sdk";
 import { Buffer } from "node:buffer";
+import { quotaConfig, readQuotaResponse, validQuota, withDeadline } from "../lib/ai-request-boundary.js";
 
-/* Haiku 4.5 — the cheapest current model ($1/$5 per Mtok). Filling three fields
-   from one sentence is a classification task, which is what it is best at. */
+/* Existing intent-classification model; this route does not execute actions. */
 const MODEL = "claude-haiku-4-5";
 
-/* The Supabase project this page already talks to. Both values are PUBLIC —
-   they ship inside the built page (mod-api.js) — and are only used here to
-   forward the CALLER'S OWN JWT to the consume_ai_quota RPC. No service-role
-   key exists in this deployment, by design: the quota decision, the usage
-   insert and the plan lookup all run in the database under the caller's
-   identity. Env vars override for previews pointed at another project. */
-const SUPABASE_URL =
-  process.env.SUPABASE_URL || "https://tseszaprvtvqrkfpditu.supabase.co";
-const SUPABASE_ANON =
-  process.env.SUPABASE_ANON_KEY || "sb_publishable_CLawpS61QZDONSyy8ZdhTQ_rjCBLYBW";
+/* Environment-only project + public key; no cross-project fallback. The quota
+   request forwards the CALLER'S JWT, never a service-role bearer. Configure
+   SUPABASE_URL and SUPABASE_ANON_KEY before release; absence returns503. */
 
 const MAX_TEXT = 2000;
 const MAX_BODY_BYTES = 8 * 1024;
@@ -59,9 +52,9 @@ const MAX_PER_WINDOW = 12;
  * CAVEAT, stated plainly: this Map lives in one warm function instance. Vercel
  * runs several concurrently and recycles them, so the real ceiling is
  * MAX_PER_WINDOW x live instances, and a cold start resets it. It raises the
- * cost of casual abuse; it is NOT a hard quota. A hard quota needs shared state
- * (Upstash/Redis via the Marketplace) or the platform WAF's rate-limit rule.
- * Both are dashboard changes, not code, so they belong to the owner. */
+ * cost of casual abuse; it is NOT a hard quota. The consume_ai_quota review
+ * draft adds a shared actor burst cap, but its deployed version and
+ * concurrency behavior must be verified before claiming that limit is live. */
 const hits = new Map();
 
 function rateLimited(ip) {
@@ -209,7 +202,8 @@ export default async function handler(req, res) {
   const retry = rateLimited(clientIp(req));
   if (retry) {
     res.setHeader("Retry-After", String(retry));
-    return res.status(429).json({ error: "rate_limited", retry_after: retry });
+    return res.status(429).json({ error: "rate_limited", retry_after: retry,
+      message: `Too many requests. Try again in ${retry} seconds.` });
   }
 
   /* No key configured is a normal state, not a crash: the client falls back to
@@ -218,8 +212,11 @@ export default async function handler(req, res) {
     return res.status(503).json({ error: "ai_not_configured" });
   }
 
-  const body = req.body && typeof req.body === "object" ? req.body : {};
-  if (Buffer.byteLength(JSON.stringify(body), "utf8") > MAX_BODY_BYTES) {
+  const body = req.body && typeof req.body === "object" && !Array.isArray(req.body) ? req.body : {};
+  let bodyBytes;
+  try { bodyBytes = Buffer.byteLength(JSON.stringify(body), "utf8"); }
+  catch { return res.status(400).json({ error: "invalid_body" }); }
+  if (bodyBytes > MAX_BODY_BYTES) {
     return res.status(413).json({ error: "payload_too_large" });
   }
 
@@ -248,30 +245,46 @@ export default async function handler(req, res) {
      Runs AFTER body validation (malformed input should not cost a DB round
      trip) and BEFORE the model call (an unauthenticated curl spends nothing). */
   const bearer = String(req.headers.authorization || "");
-  if (!/^Bearer .+/.test(bearer)) {
+  if (!/^Bearer\s+\S+$/i.test(bearer)) {
     return res.status(401).json({ error: "auth_required" });
   }
+  const config = quotaConfig(process.env);
+  if (!config) return res.status(503).json({ error: "quota_not_configured" });
   let quota;
   try {
-    const q = await fetch(`${SUPABASE_URL}/rest/v1/rpc/consume_ai_quota`, {
-      method: "POST",
-      headers: {
-        apikey: SUPABASE_ANON,
-        Authorization: bearer,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({ p_kind: "command_bar" }),
-    });
-    if (q.status === 401) return res.status(401).json({ error: "auth_invalid" });
-    if (!q.ok) throw new Error(`quota check ${q.status}`);
-    quota = await q.json();
-  } catch (err) {
+    const result = await withDeadline(async signal => {
+      const q = await fetch(`${config.url}/rest/v1/rpc/consume_ai_quota`, {
+        method: "POST", signal, redirect: "error",
+        headers: {
+          apikey: config.key, Authorization: bearer, "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ p_kind: "command_bar" }),
+      });
+      if (q.status === 401) {
+        void q.body?.cancel().catch(() => {});
+        return {httpStatus:q.status};
+      }
+      if (!q.ok) { void q.body?.cancel().catch(() => {}); throw new Error('Quota unavailable'); }
+      return {quota:await readQuotaResponse(q, signal)};
+    }, 8000);
+    if (result.httpStatus === 401) return res.status(401).json({ error: "auth_invalid" });
+    quota = result.quota;
+    if (!validQuota(quota)) throw new Error('Invalid quota verdict');
+  } catch {
     /* The metering layer being down must not silently become free unlimited
        AI — fail closed, with a shape the client reports honestly. */
-    console.error("quota check failed:", err?.message || err);
+    console.error("AI quota verification unavailable");
     return res.status(503).json({ error: "quota_unavailable" });
   }
-  if (!quota?.allowed) {
+  if (quota.allowed === false) {
+    if (quota.reason === "quota_unavailable") {
+      return res.status(503).json({ error: "quota_unavailable" });
+    }
+    if (quota.reason === "rate_limited") {
+      res.setHeader("Retry-After", String(quota.retry_after));
+      return res.status(429).json({ error: "rate_limited", retry_after: quota.retry_after,
+        message: `Too many requests. Try again in ${quota.retry_after} seconds.` });
+    }
     if (quota?.reason === "quota_exhausted") {
       return res.status(429).json({
         error: "quota_exhausted",
@@ -288,10 +301,10 @@ export default async function handler(req, res) {
     return res.status(401).json({ error: "auth_invalid" });
   }
 
-  const client = new Anthropic(); // reads ANTHROPIC_API_KEY from the environment
-
   try {
-    const message = await client.messages.create({
+    // One attempt: SDK retries must not multiply spend or the request deadline.
+    const client = new Anthropic({maxRetries:0, timeout:20_000});
+    const message = await withDeadline(signal => client.messages.create({
       model: MODEL,
       max_tokens: 1024,
       system: SYSTEM,
@@ -306,7 +319,7 @@ export default async function handler(req, res) {
             `Instruction: ${text}`,
         },
       ],
-    });
+    }, {signal}), 20_000);
 
     /* A refusal returns HTTP 200 with empty content — read stop_reason first or
        content[0] throws. */
@@ -314,14 +327,17 @@ export default async function handler(req, res) {
 
     const block = message.content.find((b) => b.type === "text");
     if (!block) return res.status(200).json(UNKNOWN);
+    if (typeof block.text !== "string" || Buffer.byteLength(block.text, "utf8") > 16_384) {
+      throw new Error('Malformed model response');
+    }
 
     const parsed = JSON.parse(block.text);
     return res.status(200).json(normalizeAction(parsed));
-  } catch (err) {
+  } catch {
     /* Never leak the upstream error to the browser — it can carry request
        details and, on some failure modes, fragments of the key's identity.
        Log server-side, return a shape the client already handles. */
-    console.error("ai handler failed:", err?.message || err);
+    console.error("AI classification unavailable");
     return res.status(502).json({ error: "ai_unavailable" });
   }
 }

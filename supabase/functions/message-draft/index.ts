@@ -132,7 +132,10 @@ Deno.serve(async (req) => {
       .from("providers").select("id").eq("id", providerId).eq("owner_id", uid).maybeSingle();
     if (!prov) return json({ error: "Not authorized to draft for this provider." }, 403);
 
-    // Tone anchors — the coach's OWN approved writing (read-only).
+    // This request supplies free-form thread text, not a server-verified child /
+    // family identifier. The helper therefore returns no historical raw tone
+    // samples; drafting still uses the explicit current thread below. Do not
+    // infer a recipient from a name or import another family's private history.
     const coachStyleSamples = await buildCoachVoiceProfile(admin, providerId);
 
     // Build the user message.

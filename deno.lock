@@ -59,7 +59,7 @@
   "workspace": {
     "packageJson": {
       "dependencies": [
-        "npm:@anthropic-ai/sdk@0.68"
+        "npm:@anthropic-ai/sdk@0.68.0"
       ]
     }
   }

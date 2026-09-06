@@ -3,8 +3,8 @@
 // ============================================================================
 // The CONTROL decisions that must never depend on the network: which action a
 // queued message takes given the coach's mode, which model drafts it, the FIXED
-// auto-send template, and the hard guardrail that the auto path may only ever
-// emit templated logistics (anything else falls back to draft). No Deno/Supabase
+// legacy auto-preparation template, and the guardrail that the auto path only
+// drafts templated logistics (anything else falls back to model drafting). No Deno/Supabase
 // deps so it unit-tests in plain Node.
 //
 // Mirrors the claim lexicon used by message-draft/session-note guardrails so all
@@ -25,7 +25,8 @@ export function isLogistics(eventType) {
 }
 
 // Resolve the effective action for a queued row. ENFORCES auto-only-logistics:
-// 'auto' on a non-logistics type falls back to 'draft' (never auto-sends). An
+// 'auto' means template preparation, never permission to deliver. On a
+// non-logistics type it falls back to model drafting. An
 // unknown/missing mode is treated as the safe default 'draft'.
 //   returns 'skip' | 'draft' | 'auto'
 export function resolveAction(mode, eventType) {
@@ -70,7 +71,7 @@ export function enforceLifecycleDraft(text) {
   return { body: kept.join(" ").replace(/\s+/g, " ").trim(), removed };
 }
 
-// ── Auto-send template (FIXED, logistics only) ──────────────────────────────
+// ── Legacy auto-preparation template (FIXED, logistics only) ────────────────
 // Thin personalization over a fixed template: child first name + date/time/place.
 // Returns null when it CANNOT be built as pure logistics (non-logistics type or
 // missing when) — the caller MUST fall back to draft. Never free-form.
@@ -92,7 +93,7 @@ export function buildAutoTemplate(eventType, vars) {
 
 // HARD GUARDRAIL for the auto path: an auto message may ONLY be the fixed
 // logistics template, and must contain NO claims. Returns the safe template to
-// send, or null meaning "fall back to draft" (so a human approves).
+// stage for approval, or null meaning "fall back to model drafting".
 export function autoOrFallback(eventType, vars) {
   if (!isLogistics(eventType)) return null;
   const tpl = buildAutoTemplate(eventType, vars);

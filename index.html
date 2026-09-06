@@ -25,7 +25,7 @@
 <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16.png">
 <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
 <link rel="manifest" href="/site.webmanifest">
-<meta name="sporve-build" content="d9b63b94f2dc8ab8">
+<meta name="sporve-build" content="0b21b4a0a43146dc">
 </head>
 <body>
 <noscript><h1>Sporv — Every sport. One app.</h1><p>Sporv connects families and athletes with coaches, trainers, camps, and teams across more than 20 sports. Please enable JavaScript to use the app.</p></noscript>
@@ -16132,7 +16132,13 @@ document.querySelectorAll('.sig-ai-coach').forEach(sigAiCoachWire);
         const raw=(w.rawText||w.fileName||"")+"|"+created.map(c=>c.name+","+(c.contact||"")+","+(c.dob||"")).join(";");
         const hb=await crypto.subtle.digest("SHA-256",new TextEncoder().encode(raw));
         const hash=Array.from(new Uint8Array(hb)).map(b=>b.toString(16).padStart(2,"0")).join("");
-        const b=await window.SporveAPI.from("import_batches","",{method:"POST",
+        /* The unique index is the race-safe backstop; this read makes the
+           common sequential re-upload path honest even before that migration
+           reaches an environment. Scope it to this provider and active batch. */
+        const prior=await window.SporveAPI.from("import_batches",
+          "select=id&provider_id=eq."+encodeURIComponent(pv.id)+
+          "&content_hash=eq."+encodeURIComponent(hash)+"&undone_at=is.null&limit=1").catch(()=>[]);
+        const b=prior&&prior[0] ? null : await window.SporveAPI.from("import_batches","",{method:"POST",
           headers:{Prefer:"return=representation"},
           body:{provider_id:pv.id,source_filename:w.fileName||"pasted CSV",
                 row_count:created.length,content_hash:hash}}).catch(e=>{
@@ -16184,21 +16190,38 @@ document.querySelectorAll('.sig-ai-coach').forEach(sigAiCoachWire);
   });
   $("[data-imp-undo]").forEach(b=>b.onclick=()=>{
     const id=b.dataset.impUndo; if(!id) return;
-    S.teamRoster=teamRoster().filter(r=>r.batchId!==id);
     const rec=(S.importBatches||[]).find(x=>x.id===id);
-    S.importBatches=(S.importBatches||[]).map(x=>x.id===id?{...x,undone:true}:x);
-    /* server undo (spec 04): delete exactly this batch's member rows, then the
-       batch record itself — inside 24h; RLS confines it to the owner's org. */
-    if(rec&&rec.serverId&&window.SporveAPI&&window.SporveAPI.isSignedIn&&window.SporveAPI.isSignedIn()
-       &&Date.now()-(rec.serverAt||0)<24*3600*1000){
+    if(!rec||rec.undone||rec.undoing) return;
+    const localUndo=()=>{
+      S.teamRoster=teamRoster().filter(r=>r.batchId!==id);
+      S.importBatches=(S.importBatches||[]).map(x=>x.id===id?{...x,undone:true,undoing:false}:x);
+      if(S.importWiz&&S.importWiz.step==="done"){S.modal=null;S.importWiz=null;}
+      render(); toast("Import undone — the roster is back to its previous state.");
+    };
+    /* A server-backed undo is only reported after both server operations
+       succeed.  The old handler changed the local roster first, so a rejected
+       delete could claim success while the database still contained rows. */
+    if(rec.serverId&&window.SporveAPI&&window.SporveAPI.isSignedIn&&window.SporveAPI.isSignedIn()){
+      if(Date.now()-(rec.serverAt||0)>=24*3600*1000){
+        toast("This import is older than 24 hours and cannot be undone."); return;
+      }
+      S.importBatches=(S.importBatches||[]).map(x=>x.id===id?{...x,undoing:true}:x);
+      render(); toast("Undoing import…");
       (async()=>{try{
         await window.SporveAPI.from("team_athletes","import_batch_id=eq."+rec.serverId,{method:"DELETE"});
-        await window.SporveAPI.from("import_batches","id=eq."+rec.serverId,{method:"DELETE"}).catch(()=>
-          window.SporveAPI.from("import_batches","id=eq."+rec.serverId,{method:"PATCH",body:{undone_at:new Date().toISOString()}}));
-      }catch(_){/* client roster already restored */}})();
+        try{
+          await window.SporveAPI.from("import_batches","id=eq."+rec.serverId,{method:"DELETE"});
+        }catch(_){
+          await window.SporveAPI.from("import_batches","id=eq."+rec.serverId,{method:"PATCH",body:{undone_at:new Date().toISOString()}});
+        }
+        localUndo();
+      }catch(_){
+        S.importBatches=(S.importBatches||[]).map(x=>x.id===id?{...x,undoing:false}:x);
+        render(); toast("Undo failed — no roster rows were removed. Please try again.");
+      }})();
+      return;
     }
-    if(S.importWiz&&S.importWiz.step==="done"){S.modal=null;S.importWiz=null;}
-    render(); toast("Import undone — the roster is back to its previous state.");
+    localUndo();
   });
   $("[data-imp-toinvites]").forEach(b=>b.onclick=()=>{
     const w=S.importWiz; if(!w||!w.committed) return;
@@ -16356,24 +16379,45 @@ document.querySelectorAll('.sig-ai-coach').forEach(sigAiCoachWire);
          a second season when the director resubmits */
       let seasonId=w.seasonId;
       if(!seasonId){
-        const sRows=await window.SporveAPI.from("seasons","",{method:"POST",
-          headers:{Prefer:"return=representation"},
-          body:{provider_id:pv.id,name:d.season.name,start_date:d.season.start_date,end_date:d.season.end_date}});
-        seasonId=w.seasonId=sRows[0].id;
+        const seasonQuery="select=id&provider_id=eq."+encodeURIComponent(pv.id)+
+          "&name=eq."+encodeURIComponent(d.season.name)+
+          "&start_date=eq."+encodeURIComponent(d.season.start_date)+
+          "&end_date=eq."+encodeURIComponent(d.season.end_date)+"&limit=1";
+        const existingSeasons=await window.SporveAPI.from("seasons",seasonQuery);
+        if(existingSeasons&&existingSeasons[0]&&existingSeasons[0].id){
+          seasonId=w.seasonId=existingSeasons[0].id;
+        }else{
+          const sRows=await window.SporveAPI.from("seasons","",{method:"POST",
+            headers:{Prefer:"return=representation"},
+            body:{provider_id:pv.id,name:d.season.name,start_date:d.season.start_date,end_date:d.season.end_date}});
+          seasonId=w.seasonId=sRows[0].id;
+        }
       }
       const out=[];
       for(const t of teams){
-        const tr=await window.SporveAPI.from("teams","",{method:"POST",
-          headers:{Prefer:"return=representation"},
-          body:{provider_id:pv.id,name:t.name,sport:d.sport,season_id:seasonId}});
+        const teamQuery="select=id&provider_id=eq."+encodeURIComponent(pv.id)+
+          "&season_id=eq."+encodeURIComponent(seasonId)+
+          "&name=eq."+encodeURIComponent(t.name)+"&limit=1";
+        const existingTeams=await window.SporveAPI.from("teams",teamQuery);
+        const tr=existingTeams&&existingTeams[0]&&existingTeams[0].id
+          ? [existingTeams[0]]
+          : await window.SporveAPI.from("teams","",{method:"POST",
+              headers:{Prefer:"return=representation"},
+              body:{provider_id:pv.id,name:t.name,sport:d.sport,season_id:seasonId}});
         /* one team = one 'team'-shaped program; its price is the season fee
            the billing run splits into installments (spec 03 shapes) */
         let programId=null;
         if(t.fee_cents!=null&&t.fee_cents>0){
-          const prow=await window.SporveAPI.from("programs","",{method:"POST",
-            headers:{Prefer:"return=representation"},
-            body:{provider_id:pv.id,title:t.name+" — "+d.season.name,sport_type:d.sport,
-                  offering_type:"team",price:t.fee_cents/100,age_group:t.age_group||null}}).catch(()=>null);
+          const programTitle=t.name+" — "+d.season.name;
+          const programQuery="select=id&provider_id=eq."+encodeURIComponent(pv.id)+
+            "&title=eq."+encodeURIComponent(programTitle)+"&limit=1";
+          const existingPrograms=await window.SporveAPI.from("programs",programQuery);
+          const prow=existingPrograms&&existingPrograms[0]&&existingPrograms[0].id
+            ? [existingPrograms[0]]
+            : await window.SporveAPI.from("programs","",{method:"POST",
+                headers:{Prefer:"return=representation"},
+                body:{provider_id:pv.id,title:programTitle,sport_type:d.sport,
+                      offering_type:"team",price:t.fee_cents/100,age_group:t.age_group||null}}).catch(()=>null);
           programId=prow&&prow[0]&&prow[0].id;
         }
         out.push({team_id:tr[0].id,program_id:programId,name:t.name,fee_cents:t.fee_cents||0});

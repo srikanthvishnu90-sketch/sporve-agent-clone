@@ -203,7 +203,7 @@ Deno.serve(async (req) => {
     });
   }
   const sig = req.headers.get("stripe-signature");
-  if (!sig) return new Response("Missing stripe-signature", { status: 400 });
+  if (!sig) return new Response("Missing stripe-signature", { status: 401 });
 
   const declaredBytes = Number(req.headers.get("content-length") ?? 0);
   if (Number.isFinite(declaredBytes) && declaredBytes > 1_000_000) {
@@ -224,12 +224,11 @@ Deno.serve(async (req) => {
 
   // Two legitimate signers: the platform endpoint (billing/subscriptions) and
   // the Connect endpoint (direct-charge booking events from connected accounts),
-  // each with its own signing secret. Verify against both; both failing = 400.
+  // each with its own signing secret. Verify against both; both failing = 401.
   const secrets = [WEBHOOK_SECRET, CONNECT_WEBHOOK_SECRET].filter(
     (s): s is string => Boolean(s),
   );
   let event: Stripe.Event | null = null;
-  let lastErr: Error | null = null;
   for (const secret of secrets) {
     try {
       event = await stripe.webhooks.constructEventAsync(
@@ -240,13 +239,14 @@ Deno.serve(async (req) => {
         cryptoProvider,
       );
       break;
-    } catch (e) {
-      lastErr = e as Error;
+    } catch {
+      // Try the other configured signer; neither may authorize by default.
     }
   }
   if (!event) {
-    console.error("Signature verification failed:", lastErr?.message);
-    return new Response("Invalid signature", { status: 400 });
+    // SDK errors may contain the raw payload; do not log unauthenticated data.
+    console.error("Stripe signature verification failed");
+    return new Response("Invalid signature", { status: 401 });
   }
 
   try {

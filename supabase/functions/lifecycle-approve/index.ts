@@ -42,14 +42,20 @@ Deno.serve(async (req) => {
     if (uErr || !u?.user) return json({ error: "Not authenticated" }, 401);
     const uid = u.user.id;
 
+    const admin = createClient(SUPABASE_URL, SERVICE_ROLE_KEY, {
+      auth: { persistSession: false, autoRefreshToken: false },
+    });
+    const { data: withinLimit, error: rateError } = await admin.rpc(
+      "consume_edge_rate_limit",
+      { p_actor_key: `user:${uid}`, p_scope: "lifecycle-approve:minute", p_limit: 30, p_window_seconds: 60 },
+    );
+    if (rateError) return json({ error: "Approval service is temporarily unavailable." }, 503);
+    if (withinLimit !== true) return json({ error: "Too many approval attempts. Try again shortly." }, 429);
+
     const body = await req.json().catch(() => ({}));
     const id: string = typeof body?.id === "string" ? body.id : "";
     if (!id) return json({ error: "id is required." }, 400);
     const editedBody: string | null = typeof body?.body === "string" ? body.body : null;
-
-    const admin = createClient(SUPABASE_URL, SERVICE_ROLE_KEY, {
-      auth: { persistSession: false, autoRefreshToken: false },
-    });
 
     const { data: row, error: rErr } = await admin.from("outbound_messages")
       .select("id, provider_id, child_id, status, content").eq("id", id).maybeSingle();

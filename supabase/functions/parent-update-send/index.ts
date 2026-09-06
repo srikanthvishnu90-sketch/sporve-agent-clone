@@ -48,13 +48,19 @@ Deno.serve(async (req) => {
     if (uErr || !u?.user) return json({ error: "Not authenticated" }, 401);
     const uid = u.user.id;
 
-    const body = await req.json().catch(() => ({}));
-    const parentUpdateId: string = typeof body?.parentUpdateId === "string" ? body.parentUpdateId : "";
-    if (!parentUpdateId) return json({ error: "parentUpdateId is required." }, 400);
-
     const admin = createClient(SUPABASE_URL, SERVICE_ROLE_KEY, {
       auth: { persistSession: false, autoRefreshToken: false },
     });
+    const { data: withinLimit, error: rateError } = await admin.rpc(
+      "consume_edge_rate_limit",
+      { p_actor_key: `user:${uid}`, p_scope: "parent-update-send:minute", p_limit: 30, p_window_seconds: 60 },
+    );
+    if (rateError) return json({ error: "Send service is temporarily unavailable." }, 503);
+    if (withinLimit !== true) return json({ error: "Too many send attempts. Try again shortly." }, 429);
+
+    const body = await req.json().catch(() => ({}));
+    const parentUpdateId: string = typeof body?.parentUpdateId === "string" ? body.parentUpdateId : "";
+    if (!parentUpdateId) return json({ error: "parentUpdateId is required." }, 400);
 
     // Load the record (service role bypasses RLS — we authorize manually below).
     const { data: pu, error: puErr } = await admin
