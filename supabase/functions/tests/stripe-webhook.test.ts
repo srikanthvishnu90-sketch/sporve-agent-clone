@@ -125,7 +125,7 @@ Deno.test("(a) a MISSING signature header is rejected", async () => {
     () =>
       stripe.webhooks.constructEventAsync(
         payload,
-        "", // the function returns 400 on a missing header BEFORE this (index.ts:78)
+        "", // the function returns 401 on a missing header BEFORE SDK verification
         WEBHOOK_SECRET,
         undefined,
         cryptoProvider,

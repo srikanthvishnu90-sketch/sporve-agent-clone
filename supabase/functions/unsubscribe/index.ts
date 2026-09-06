@@ -12,16 +12,42 @@
 // nothing stored. Deploy with --no-verify-jwt: an unsubscribe link must work
 // from a mail client with no session.
 import { createClient } from "npm:@supabase/supabase-js@2";
+import { withHttpDeadline } from "../_shared/http.ts";
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SERVICE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 
 async function hmac(id: string): Promise<string> {
   const key = await crypto.subtle.importKey(
-    "raw", new TextEncoder().encode(SERVICE_KEY),
-    { name: "HMAC", hash: "SHA-256" }, false, ["sign"]);
-  const sig = await crypto.subtle.sign("HMAC", key, new TextEncoder().encode(id));
-  return [...new Uint8Array(sig)].map(b => b.toString(16).padStart(2, "0")).join("").slice(0, 32);
+    "raw",
+    new TextEncoder().encode(SERVICE_KEY),
+    { name: "HMAC", hash: "SHA-256" },
+    false,
+    ["sign"],
+  );
+  const sig = await crypto.subtle.sign(
+    "HMAC",
+    key,
+    new TextEncoder().encode(id),
+  );
+  return [...new Uint8Array(sig)].map((b) => b.toString(16).padStart(2, "0"))
+    .join("").slice(0, 32);
+}
+
+function matchesToken(actual: string, expected: string): boolean {
+  if (!/^[0-9a-f]{32}$/.test(actual) || actual.length !== expected.length) {
+    return false;
+  }
+  let difference = 0;
+  for (let i = 0; i < expected.length; i++) {
+    difference |= actual.charCodeAt(i) ^ expected.charCodeAt(i);
+  }
+  return difference === 0;
+}
+
+function validEmail(email: unknown): email is string {
+  return typeof email === "string" && email.length <= 254 &&
+    /^[^\s@<>]+@[^\s@<>]+\.[^\s@<>]+$/.test(email);
 }
 
 const page = (title: string, body: string, status = 200) =>
@@ -32,35 +58,139 @@ const page = (title: string, body: string, status = 200) =>
 <div style="max-width:420px;margin:12vh auto;padding:32px;background:#fff;border:1px solid #E3E7ED;border-radius:12px">
 <h1 style="font-size:20px;margin:0 0 10px">${title}</h1><p style="margin:0;color:#475569">${body}</p>
 <p style="margin-top:18px;color:#94A3B8;font-size:13px">Sporv · questions? support@sporv.ai</p></div>`,
-    { status, headers: { "Content-Type": "text/html; charset=utf-8" } });
+    {
+      status,
+      headers: {
+        "Content-Type": "text/html; charset=utf-8",
+        "Cache-Control": "no-store",
+        "Referrer-Policy": "no-referrer",
+      },
+    },
+  );
 
 Deno.serve(async (req) => {
-  if (!["GET", "POST"].includes(req.method)) return page("Not allowed", "", 405);
+  if (!["GET", "POST"].includes(req.method)) {
+    return page("Not allowed", "", 405);
+  }
   const u = new URL(req.url);
   const g = (u.searchParams.get("g") || "").trim();
   const t = (u.searchParams.get("t") || "").trim();
   const email = (u.searchParams.get("email") || "").trim().toLowerCase();
-  const admin = createClient(SUPABASE_URL, SERVICE_KEY);
-
   try {
-    if (g && t) {
-      if (!/^[0-9a-f-]{36}$/.test(g) || t !== await hmac(g)) {
-        return page("Link not recognized", "This unsubscribe link is invalid or expired. Email support@sporv.ai and we'll take care of it.", 400);
+    if (!SUPABASE_URL || !SERVICE_KEY) {
+      throw new Error("Opt-out storage is not configured");
+    }
+    const admin = createClient(SUPABASE_URL, SERVICE_KEY, {
+      auth: { persistSession: false, autoRefreshToken: false },
+    });
+    const saveSuppression = async (address: string, signal: AbortSignal) => {
+      const { data, error } = await admin.from("email_suppressions")
+        .upsert({ email: address, reason: "unsubscribed" }, {
+          onConflict: "email",
+        })
+        .select("email, reason").abortSignal(signal).single();
+      if (error || data?.email !== address || data.reason !== "unsubscribed") {
+        throw new Error("Opt-out receipt missing");
       }
-      await admin.from("guardians").update({ email_status: "unsubscribed" }).eq("id", g);
-      // Per-email suppression too, so a re-added row stays unsubscribed.
-      const { data: gu } = await admin.from("guardians").select("email").eq("id", g).maybeSingle();
-      const em = (gu as { email?: string } | null)?.email?.toLowerCase();
-      if (em) await admin.from("email_suppressions").upsert({ email: em, reason: "unsubscribed" }, { onConflict: "email" });
-      return page("You're unsubscribed", "You won't receive further messages from your club through Sporv. Account and safety notices may still be sent when required.");
+    };
+    if (g || t) {
+      if (
+        !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/.test(
+          g,
+        ) ||
+        !matchesToken(t, await hmac(g))
+      ) {
+        return page(
+          "Link not recognized",
+          "This unsubscribe link is invalid or expired. Email support@sporv.ai and we'll take care of it.",
+          400,
+        );
+      }
+      await withHttpDeadline(async (signal) => {
+        const { data: current, error: lookupError } = await admin.from(
+          "guardians",
+        )
+          .select("id, email").eq("id", g).abortSignal(signal).maybeSingle();
+        if (lookupError || current?.id !== g) {
+          throw new Error("Guardian unavailable");
+        }
+        const address = typeof current.email === "string"
+          ? current.email.trim().toLowerCase()
+          : null;
+        if (current.email !== null && !validEmail(address)) {
+          throw new Error("Guardian address invalid");
+        }
+        // Persist the address opt-out first. A partial failure never resumes mail.
+        if (address) await saveSuppression(address, signal);
+        let query = admin.from("guardians").update({
+          email_status: "unsubscribed",
+        }).eq("id", g);
+        query = current.email === null
+          ? query.is("email", null)
+          : query.eq("email", current.email);
+        const { data, error } = await query.select("id, email, email_status")
+          .abortSignal(signal).single();
+        if (
+          error || data?.id !== g || data.email !== current.email ||
+          data.email_status !== "unsubscribed"
+        ) {
+          throw new Error("Guardian opt-out receipt missing");
+        }
+      }, 8000);
+      return page(
+        "You're unsubscribed",
+        "You won't receive further messages from your club through Sporv. Account and safety notices may still be sent when required.",
+      );
     }
-    if (email && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-      await admin.from("guardians").update({ email_status: "unsubscribed" }).eq("email", email);
-      await admin.from("email_suppressions").upsert({ email, reason: "unsubscribed" }, { onConflict: "email" });
-      return page("You're unsubscribed", "You won't receive further messages through Sporv at this address. Account and safety notices may still be sent when required.");
+    if (validEmail(email)) {
+      await withHttpDeadline(async (signal) => {
+        await saveSuppression(email, signal);
+        const { data, error } = await admin.from("guardians").update({
+          email_status: "unsubscribed",
+        })
+          .eq("email", email).select("id, email, email_status").abortSignal(
+            signal,
+          );
+        if (
+          error || !Array.isArray(data) ||
+          data.some((row) =>
+            !row.id || row.email !== email ||
+            row.email_status !== "unsubscribed"
+          )
+        ) {
+          throw new Error("Guardian opt-out update failed");
+        }
+        // An empty update may be legitimate for a waitlist-only email, but must
+        // not conceal a trigger/RLS no-op against an existing matching guardian.
+        const remaining = await admin.from("guardians").select("id").eq(
+          "email",
+          email,
+        )
+          .or("email_status.is.null,email_status.neq.unsubscribed").limit(1)
+          .abortSignal(signal);
+        if (
+          remaining.error || !Array.isArray(remaining.data) ||
+          remaining.data.length
+        ) {
+          throw new Error("Guardian opt-out verification failed");
+        }
+      }, 8000);
+      return page(
+        "You're unsubscribed",
+        "You won't receive further messages through Sporv at this address. Account and safety notices may still be sent when required.",
+      );
     }
-    return page("Unsubscribe", "Open the unsubscribe link from one of our emails, or write to support@sporv.ai and we'll remove you.", 400);
+    return page(
+      "Unsubscribe",
+      "Open the unsubscribe link from one of our emails, or write to support@sporv.ai and we'll remove you.",
+      400,
+    );
   } catch (_e) {
-    return page("Something went wrong", "Please email support@sporv.ai and we'll remove you by hand.", 500);
+    console.error("Unsubscribe persistence unavailable");
+    return page(
+      "Something went wrong",
+      "Please email support@sporv.ai and we'll remove you by hand.",
+      503,
+    );
   }
 });

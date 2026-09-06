@@ -18,6 +18,7 @@ enabled_tools = [
   "stripe_api_details",
   "stripe_api_read",
   "get_stripe_account_info",
+  "list_available_accounts_or_orgs",
   "search_stripe_documentation",
   "stripe_implementation_planner",
 ]

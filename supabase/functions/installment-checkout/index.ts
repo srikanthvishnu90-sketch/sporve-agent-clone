@@ -48,15 +48,22 @@ Deno.serve(async (req) => {
     if (!u?.user) return json({ error: "Not authenticated" }, 401);
     const uid = u.user.id;
 
+    const admin = createClient(SUPABASE_URL, SERVICE_ROLE, {
+      auth: { persistSession: false, autoRefreshToken: false },
+    });
+    const { data: withinLimit, error: rateError } = await admin.rpc(
+      "consume_edge_rate_limit",
+      { p_actor_key: `user:${uid}`, p_scope: "installment-checkout:minute", p_limit: 10, p_window_seconds: 60 },
+    );
+    if (rateError) return json({ error: "Checkout is temporarily unavailable." }, 503);
+    if (withinLimit !== true) return json({ error: "Too many checkout attempts. Try again later." }, 429);
+
     const body = await req.json().catch(() => ({}));
     const installmentId = typeof body?.installmentId === "string" ? body.installmentId : null;
     if (!installmentId) return json({ error: "installmentId is required" }, 400);
     const origin = CHECKOUT_ORIGINS.includes(String(body?.origin)) ? String(body.origin) : CHECKOUT_ORIGINS[0];
     if (!origin) return json({ error: "Checkout is not configured." }, 503);
 
-    const admin = createClient(SUPABASE_URL, SERVICE_ROLE, {
-      auth: { persistSession: false, autoRefreshToken: false },
-    });
     const { data: inst, error: iErr } = await admin
       .from("installments")
       .select("id, amount_cents, status, member_id, fee_schedules!inner(id, provider_id, status, providers!inner(owner_id, business_name, stripe_account_id, stripe_charges_enabled))")

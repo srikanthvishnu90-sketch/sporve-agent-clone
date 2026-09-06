@@ -42,7 +42,11 @@ async function invoke({ method = "POST", contentType = "application/json", origi
 }
 
 const previousKey = process.env.ANTHROPIC_API_KEY;
+const previousUrl = process.env.SUPABASE_URL;
+const previousAnon = process.env.SUPABASE_ANON_KEY;
 process.env.ANTHROPIC_API_KEY = "contract-test-only";
+process.env.SUPABASE_URL = "https://quota.fixture.invalid";
+process.env.SUPABASE_ANON_KEY = "fixture-public-key";
 
 try {
   let res = await invoke({ method: "GET" });
@@ -196,6 +200,10 @@ try {
 } finally {
   if (previousKey === undefined) delete process.env.ANTHROPIC_API_KEY;
   else process.env.ANTHROPIC_API_KEY = previousKey;
+  if (previousUrl === undefined) delete process.env.SUPABASE_URL;
+  else process.env.SUPABASE_URL = previousUrl;
+  if (previousAnon === undefined) delete process.env.SUPABASE_ANON_KEY;
+  else process.env.SUPABASE_ANON_KEY = previousAnon;
 }
 
 console.log("AI contract: 34 assertions passed");

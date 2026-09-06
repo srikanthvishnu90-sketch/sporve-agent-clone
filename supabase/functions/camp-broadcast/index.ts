@@ -55,6 +55,12 @@ Deno.serve(async (req) => {
     const admin = createClient(SUPABASE_URL, SERVICE_ROLE_KEY, {
       auth: { persistSession: false, autoRefreshToken: false },
     });
+    const { data: withinLimit, error: rateError } = await admin.rpc(
+      "consume_edge_rate_limit",
+      { p_actor_key: `user:${uid}`, p_scope: "camp-broadcast:minute", p_limit: 10, p_window_seconds: 60 },
+    );
+    if (rateError) return json({ error: "Camp broadcast is temporarily unavailable." }, 503);
+    if (withinLimit !== true) return json({ error: "Too many camp broadcast requests. Try again later." }, 429);
 
     // AUTHORIZE: the caller must OWN the provider of this camp service.
     const { data: svc, error: svcErr } = await admin

@@ -5,19 +5,20 @@
 // features that write in a coach's voice (message-draft today; session notes
 // later). It returns 1–3 SHORT sample strings of the coach's OWN approved
 // writing, to be injected as VOICE/CONTINUITY guidance only — never as a source
-// of facts, and never another coach's content.
+// of facts, and never another organization's content.
 //
-// Sources, both strictly scoped to this provider:
-//   • parent_updates the coach has APPROVED (status in 'approved'|'sent') — the
-//     coach authored & signed off on these (ai-stage2-audit §4).
-//   • messages the COACH THEMSELVES sent (messages.sender_id = provider owner).
-//     NOTE: chat is not persisted yet (ai-stage2-audit §2: saveMessages is a
-//     no-op), so this query returns nothing today; it is future-proofed so the
-//     voice profile improves automatically once messages are stored.
+// Sources, strictly scoped to this provider and a server-verified target family:
+//   • parent_updates the current owner approved for this exact child.
+//   • messages the current owner sent in a conversation linked to this org's
+//     program. conversations.provider_id is a PROFILE id, not an organization.
+// Unlinked/general conversations remain available in chat but cannot establish
+// organization provenance for a tone sample, so they are not sampled here.
+// Missing target identity yields no raw samples; callers can still draft from
+// the explicit current request. Prompt wording is not a privacy boundary.
 //
-// Privacy: returns only text the coach authored. No other coach's content, and
-// no PII beyond what the coach themselves wrote. Best-effort: any read error
-// degrades to fewer (or zero) samples rather than throwing.
+// Privacy: samples may contain text the coach wrote/approved; this is not PII
+// redaction or consent verification. Best-effort read errors yield fewer/zero
+// verified samples; cancellation is rethrown rather than silently ignored.
 // ============================================================================
 
 import type { SupabaseClient } from "npm:@supabase/supabase-js@2";
@@ -49,50 +50,84 @@ type Dated = { text: string; at: string; rank: number };
 export async function buildCoachVoiceProfile(
   admin: SupabaseClient,
   providerId: string,
+  signal?: AbortSignal,
+  target?: { childId: string; guardianUserId: string },
 ): Promise<string[]> {
   if (!providerId || typeof providerId !== "string") return [];
+  const readSignal = signal ?? new AbortController().signal;
+  readSignal.throwIfAborted();
+  if (!target || typeof target.childId !== "string" || !target.childId ||
+    typeof target.guardianUserId !== "string" || !target.guardianUserId) return [];
 
-  // Resolve the coach's profile id (the author of any sent messages).
+  // A shared owner id is not org proof. Resolve the requested provider exactly
+  // before considering either approved updates or authored messages.
   let ownerId: string | null = null;
   try {
-    const { data: prov } = await admin
-      .from("providers").select("owner_id").eq("id", providerId).maybeSingle();
-    ownerId = (prov?.owner_id as string | undefined) ?? null;
-  } catch (_) { /* degrade to parent_updates only */ }
+    const { data: prov, error } = await admin
+      .from("providers").select("id, owner_id").eq("id", providerId).abortSignal(readSignal).maybeSingle();
+    if (!error && prov?.id === providerId && typeof prov.owner_id === "string" && prov.owner_id) {
+      ownerId = prov.owner_id;
+    }
+  } catch (_) { /* no verified owner means no samples */ }
+  readSignal.throwIfAborted();
+  if (!ownerId) return [];
 
   const candidates: Dated[] = [];
 
   // 1) Coach-approved parent updates (the primary tone source today).
   try {
-    const { data: updates } = await admin
+    const { data: updates, error } = await admin
       .from("parent_updates")
-      .select("summary_body, created_at")
+      .select("id, provider_id, child_id, approved_by, approved_at, status, summary_body, created_at, athletes!inner(id, parent_id)")
       .eq("provider_id", providerId)
+      .eq("child_id", target.childId).eq("athletes.parent_id", target.guardianUserId)
+      .eq("approved_by", ownerId)
+      .not("approved_at", "is", null)
       .in("status", ["approved", "sent"])
       .not("summary_body", "is", null)
       .order("created_at", { ascending: false })
-      .limit(MAX_SAMPLES);
-    for (const u of updates ?? []) {
+      .limit(MAX_SAMPLES).abortSignal(readSignal);
+    if (error || !Array.isArray(updates)) throw new Error("Voice updates unavailable.");
+    for (const u of updates) {
+      const child = u?.athletes as { id?: string; parent_id?: string } | null;
+      if (!u || typeof u.id !== "string" || !u.id || u.provider_id !== providerId ||
+        u.child_id !== target.childId || child?.id !== target.childId || child?.parent_id !== target.guardianUserId ||
+        u.approved_by !== ownerId || !["approved", "sent"].includes(u.status) ||
+        typeof u.approved_at !== "string" || !Number.isFinite(Date.parse(u.approved_at)) ||
+        typeof u.summary_body !== "string") continue;
       const s = toSample((u as { summary_body?: string }).summary_body);
       if (s) candidates.push({ text: s, at: String((u as { created_at?: string }).created_at ?? ""), rank: candidates.length });
     }
   } catch (_) { /* best-effort */ }
+  readSignal.throwIfAborted();
 
-  // 2) Messages the coach themselves sent (future-proofed; empty today).
+  // 2) Current-owner messages with independently verified organization lineage.
   if (ownerId) {
     try {
-      const { data: msgs } = await admin
+      const { data: msgs, error } = await admin
         .from("messages")
-        .select("body, created_at")
+        .select("id, sender_id, conversation_id, body, created_at, conversations!inner(id, provider_id, searcher_id, program_id, programs!inner(id, provider_id))")
         .eq("sender_id", ownerId)
+        .eq("conversations.provider_id", ownerId)
+        .eq("conversations.searcher_id", target.guardianUserId)
+        .eq("conversations.programs.provider_id", providerId)
         .order("created_at", { ascending: false })
-        .limit(MAX_SAMPLES);
-      for (const m of msgs ?? []) {
+        .limit(MAX_SAMPLES).abortSignal(readSignal);
+      if (error || !Array.isArray(msgs)) throw new Error("Voice messages unavailable.");
+      for (const m of msgs) {
+        const c = m?.conversations as { id?: string; provider_id?: string; searcher_id?: string; program_id?: string;
+          programs?: { id?: string; provider_id?: string } } | null;
+        if (!m || typeof m.id !== "string" || !m.id || m.sender_id !== ownerId ||
+          !m.conversation_id || c?.id !== m.conversation_id || c?.provider_id !== ownerId ||
+          c?.searcher_id !== target.guardianUserId ||
+          !c?.program_id || c.programs?.id !== c.program_id || c.programs?.provider_id !== providerId ||
+          typeof m.body !== "string") continue;
         const s = toSample((m as { body?: string }).body);
         if (s) candidates.push({ text: s, at: String((m as { created_at?: string }).created_at ?? ""), rank: candidates.length });
       }
     } catch (_) { /* best-effort */ }
   }
+  readSignal.throwIfAborted();
 
   // Most-recent-first across both sources, de-duplicated, capped at 3. Ties
   // (equal/missing timestamps) fall back to fetch order for deterministic output.

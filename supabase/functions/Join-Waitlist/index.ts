@@ -3,6 +3,7 @@
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { SMTPClient } from "https://deno.land/x/denomailer@1.6.0/mod.ts";
+import { HttpInputError, readBoundedJson, withHttpDeadline } from "../_shared/http.ts";
 
 // ---- CORS (locked down: reflect only allowlisted origins) -------------------
 function allowedOrigins(): string[] {
@@ -33,7 +34,7 @@ function corsHeaders(req: Request): Record<string, string> {
 const json = (body: unknown, status: number, cors: Record<string, string>) =>
   new Response(JSON.stringify(body), {
     status,
-    headers: { "content-type": "application/json", ...cors },
+    headers: { "content-type": "application/json", "Cache-Control": "no-store", ...cors },
   });
 
 // ---- hCaptcha -------------------------------------------------------------
@@ -56,39 +57,38 @@ async function verifyCaptcha(body: Record<string, unknown>): Promise<boolean> {
     const params = new URLSearchParams();
     params.set("secret", secretKey);
     params.set("response", token as string);
-    const resp = await fetch("https://hcaptcha.com/siteverify", {
-      method: "POST",
-      headers: { "content-type": "application/x-www-form-urlencoded" },
-      body: params.toString(),
-    });
-    const data = (await resp.json()) as { success?: boolean };
-    return data?.success === true;
-  } catch (e) {
-    console.error("captcha verify failed", e);
-    return false;
+    return await withHttpDeadline(async signal => {
+      const resp = await fetch("https://hcaptcha.com/siteverify", {
+        method: "POST", signal,
+        headers: { "content-type": "application/x-www-form-urlencoded" },
+        body: params.toString(),
+      });
+      if (!resp.ok) throw new Error('captcha unavailable');
+      const data = await readBoundedJson(resp, 16_384, signal);
+      return data.success === true;
+    }, 10_000);
+  } catch {
+    throw new HttpInputError(503, "Verification unavailable. Please try again later.");
   }
 }
 
-// ---- Durable rate limiting (Postgres-backed) ------------------------------
+// ---- Durable rate limiting (atomic Postgres-backed fixed window) ----------
+// The gateway must supply a trusted client IP. Header authenticity still needs
+// deployed verification; CORS alone is not an identity or abuse boundary.
 async function underRateLimit(
   // deno-lint-ignore no-explicit-any
   supabase: any,
   ip: string,
 ): Promise<boolean> {
-  const since = new Date(Date.now() - 60 * 60 * 1000).toISOString();
-  const { count, error } = await supabase
-    .from("waitlist_rate_limit")
-    .select("*", { count: "exact", head: true })
-    .eq("ip", ip)
-    .gte("ts", since);
-  if (error) {
-    console.error("rate limit check error", error);
-    return true; // fail open
+  const { data, error } = await withHttpDeadline(async signal => await supabase
+    .rpc("consume_edge_rate_limit", {
+      p_actor_key: "ip:" + ip, p_scope: "join-waitlist:hour",
+      p_limit: 5, p_window_seconds: 3600,
+    }).abortSignal(signal), 5000);
+  if (error || typeof data !== "boolean") {
+    throw new HttpInputError(503, "Signup limit service unavailable. Please try again later.");
   }
-  if ((count ?? 0) >= 5) return false;
-  const { error: insErr } = await supabase.from("waitlist_rate_limit").insert({ ip });
-  if (insErr) console.error("rate limit insert error", insErr);
-  return true;
+  return data;
 }
 
 // ---- Handler --------------------------------------------------------------
@@ -99,55 +99,92 @@ Deno.serve(async (req) => {
 
   let body: Record<string, unknown>;
   try {
-    body = await req.json();
-  } catch {
-    return json({ ok: false, error: "Bad request" }, 400, cors);
+    body = await withHttpDeadline(signal => readBoundedJson(req, 16_384, signal), 5000);
+  } catch (error) {
+    return json({ ok: false, error: error instanceof HttpInputError ? error.message : "Bad request" },
+      error instanceof HttpInputError ? error.status : 400, cors);
   }
 
-  // Honeypot: bots fill hidden "company" field → pretend success, store nothing.
+  // Honeypot rejects the request; never claim an unrecorded signup succeeded.
   if (typeof body.company === "string" && body.company.trim() !== "") {
-    return json({ ok: true, position: 0, refCode: "", alreadyOnList: false }, 200, cors);
-  }
-
-  // hCaptcha (after honeypot, before any DB work).
-  if (!(await verifyCaptcha(body))) {
     return json({ ok: false, error: "Bad request" }, 400, cors);
   }
 
+  const serviceUrl = Deno.env.get("SUPABASE_URL"), serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
+  if (!serviceUrl || !serviceKey) return json({ ok: false, error: "Signup unavailable. Please try again later." }, 503, cors);
   const supabase = createClient(
-    Deno.env.get("SUPABASE_URL")!,
-    Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
+    serviceUrl, serviceKey,
   );
 
   // Durable IP rate limit (before inserting the signup).
   const fwd = req.headers.get("x-forwarded-for") ?? "";
   const ip = fwd.split(",")[0].trim() || "unknown";
-  if (!(await underRateLimit(supabase, ip))) {
-    return json({ ok: false, error: "Too many requests. Try again later." }, 429, cors);
+  if (ip.length > 128) return json({ ok: false, error: "Bad request" }, 400, cors);
+  try {
+    if (!(await underRateLimit(supabase, ip))) {
+      const retry = 3600 - Math.floor(Date.now() / 1000) % 3600;
+      return json({ ok: false, error: "Too many requests. Try again later." }, 429,
+        {...cors, "Retry-After": String(retry)});
+    }
+  } catch (error) {
+    return json({ ok: false, error: error instanceof HttpInputError ? error.message : "Signup limit service unavailable." },
+      error instanceof HttpInputError ? error.status : 503, cors);
   }
 
-  const email = String(body.email ?? "").trim().toLowerCase();
-  if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email)) {
+  // Quota precedes captcha network work and all signup/confirmation writes.
+  try {
+    if (!(await verifyCaptcha(body))) return json({ ok: false, error: "Bad request" }, 400, cors);
+  } catch {
+    return json({ ok: false, error: "Verification unavailable. Please try again later." }, 503, cors);
+  }
+
+  const email = typeof body.email === "string" ? body.email.trim().toLowerCase() : "";
+  if (email.length > 254 || !/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email)) {
     return json({ ok: false, error: "Enter a valid email address." }, 400, cors);
   }
 
   const role = body.role === "provider" ? "coach" : "parent";
-  const sports = Array.isArray(body.sports) ? (body.sports as string[]).slice(0, 12) : [];
-  const referred_by = typeof body.ref === "string" && body.ref ? body.ref : null;
+  const sports = Array.isArray(body.sports) ? body.sports.filter((s): s is string => typeof s === 'string')
+    .slice(0, 12).map(s => s.slice(0, 80)) : [];
+  const referred_by = typeof body.ref === "string" && body.ref ? body.ref.slice(0, 120) : null;
   const source = typeof body.source === "string" ? body.source.slice(0, 120) : "landing";
 
-  const { data, error } = await supabase
-    .from("waitlist")
-    .insert({ email, role, sports, referred_by, source })
-    .select("position, ref_code")
-    .single();
+  let saved;
+  try {
+    saved = await withHttpDeadline(async signal => await supabase
+      .from("waitlist")
+      .insert({ email, role, sports, referred_by, source })
+      .select("position, ref_code")
+      .abortSignal(signal)
+      .single(), 8000);
+  } catch {
+    return json({ ok: false, error: "We couldn't confirm your signup. Please try again." }, 503, cors);
+  }
+  const { data, error } = saved;
 
   if (error) {
     if ((error as { code?: string }).code === "23505") {
-      return json({ ok: true }, 200, cors); // duplicate: no membership leak
+      // Another unique key (for example ref_code) can collide too. Confirm
+      // this exact normalized email exists before acknowledging idempotency.
+      try {
+        const existing = await withHttpDeadline(async signal => await supabase
+          .from("waitlist").select("id").eq("email", email)
+          .abortSignal(signal).maybeSingle(), 5000);
+        if (!existing.error && typeof existing.data?.id === "string" && existing.data.id) {
+          return json({ ok: true }, 200, cors); // no membership details or re-send
+        }
+      } catch { /* Ambiguous result remains a failure, never a phantom signup. */ }
+      return json({ ok: false, error: "We couldn't confirm your signup. Please try again." }, 503, cors);
     }
-    console.error("insert error", error);
+    console.error("waitlist insert failed");
     return json({ ok: false, error: "Something went wrong — try again." }, 500, cors);
+  }
+
+  if (!data || !Number.isSafeInteger(data.position) || data.position < 1 ||
+    typeof data.ref_code !== "string" || !/^[A-Za-z0-9_-]{1,120}$/.test(data.ref_code)) {
+    // Ambiguous result: the insert may have committed, so a retry remains
+    // idempotent through the existing unique email constraint; never email here.
+    return json({ ok: false, error: "We couldn't confirm your signup. Please try again." }, 502, cors);
   }
 
   const position: number | undefined = data.position;
@@ -156,8 +193,8 @@ Deno.serve(async (req) => {
   if (refCode) {
     try {
       await sendConfirmation(email, role, refCode, position ?? 0);
-    } catch (e) {
-      console.error("email send failed", e);
+    } catch {
+      console.error("waitlist confirmation delivery not confirmed");
     }
   }
 
@@ -214,12 +251,15 @@ async function sendConfirmation(to: string, role: string, refCode: string, posit
     "Unsubscribe: " + unsubLink + "\n" +
     "Sporve · [YOUR BUSINESS MAILING ADDRESS]";
 
-  await client.send({
-    from: `Sporve <${user}>`,
-    to,
-    subject: "You're on the Sporve waitlist 🎉",
-    content,
-    html,
-  });
-  await client.close();
+  try {
+    await withHttpDeadline(() => client.send({
+      from: `Sporve <${user}>`,
+      to,
+      subject: "You're on the Sporve waitlist 🎉",
+      content,
+      html,
+    }), 10_000);
+  } finally {
+    await withHttpDeadline(() => client.close(), 2000);
+  }
 }

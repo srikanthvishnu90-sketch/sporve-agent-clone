@@ -103,6 +103,12 @@ Deno.serve(async (req) => {
     const admin = createClient(SUPABASE_URL, SERVICE_ROLE, {
       auth: { persistSession: false, autoRefreshToken: false },
     });
+    const { data: withinLimit, error: rateError } = await admin.rpc(
+      "consume_edge_rate_limit",
+      { p_actor_key: `user:${uid}`, p_scope: "stripe-checkout:minute", p_limit: 10, p_window_seconds: 60 },
+    );
+    if (rateError) return json({ error: "Checkout is temporarily unavailable." }, 503);
+    if (withinLimit !== true) return json({ error: "Too many checkout attempts. Try again later." }, 429);
 
     const { data: booking, error: bErr } = await admin
       .from("bookings")

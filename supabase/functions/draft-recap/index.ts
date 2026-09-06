@@ -78,6 +78,17 @@ Deno.serve(async (req) => {
     const { data: u, error: uErr } = await userClient.auth.getUser();
     if (uErr || !u?.user) return json({ error: "Not authenticated" }, 401);
 
+    const uid = u.user.id;
+    const admin = createClient(SUPABASE_URL, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!, {
+      auth: { persistSession: false, autoRefreshToken: false },
+    });
+    const { data: withinLimit, error: rateError } = await admin.rpc(
+      "consume_edge_rate_limit",
+      { p_actor_key: `user:${uid}`, p_scope: "draft-recap:minute", p_limit: 30, p_window_seconds: 60 },
+    );
+    if (rateError) return json({ error: "Drafting is temporarily unavailable." }, 503);
+    if (withinLimit !== true) return json({ error: "Too many draft requests. Try again later." }, 429);
+
     const body = await req.json().catch(() => ({}));
     const childFirstName: string = typeof body?.childFirstName === "string" ? body.childFirstName.trim() : "";
     const sport: string = typeof body?.sport === "string" ? body.sport.trim() : "";

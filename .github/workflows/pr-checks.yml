@@ -13,6 +13,25 @@ on:
 permissions:
   contents: read
 jobs:
+  security-regressions:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          # Same runtime used for the local TypeScript-stripping handler tests.
+          node-version: "24.16.0"
+      - name: Install locked SDK for intercepted API integration test
+        run: npm ci --ignore-scripts --no-audit --no-fund
+      - name: Extraction and webhook security boundaries (no external services)
+        run: |
+          node --test supabase/functions/club-site-extract/safety.test.mjs supabase/functions/stripe-webhook/signature.test.mjs
+          node --test supabase/functions/Join-Waitlist/security.test.mjs
+          node --test supabase/functions/unsubscribe/security.test.mjs
+          node --test supabase/functions/lifecycle-process/security.test.mjs supabase/functions/lifecycle-process/policy.test.mjs
+          node --test scripts/ai-security-test.mjs
+
   smoke:
     runs-on: ubuntu-latest
     timeout-minutes: 15
