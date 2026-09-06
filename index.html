@@ -25,7 +25,7 @@
 <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16.png">
 <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
 <link rel="manifest" href="/site.webmanifest">
-<meta name="sporve-build" content="d9b63b94f2dc8ab8">
+<meta name="sporve-build" content="93d3c9c7fa0c5ff0">
 </head>
 <body>
 <noscript><h1>Sporv — Every sport. One app.</h1><p>Sporv connects families and athletes with coaches, trainers, camps, and teams across more than 20 sports. Please enable JavaScript to use the app.</p></noscript>
@@ -1244,6 +1244,8 @@ img{max-width:100%;display:block}
 .cg-input{width:100%;height:44px;padding:0 14px;border-radius:10px;border:1px solid #2A333F;background:#14181D;color:#F7F9FF;font-family:var(--sans);font-size:var(--text-base)}
 .cg-input::placeholder{color:#8290A0}
 .cg-input:focus{outline:none;border-color:#8FA3BC}
+.coachgate .pw-eye{color:#8290A0}
+.coachgate .pw-eye:hover{color:#F7F9FF;background:#1B2027}
 /* Chrome autofill paints its own light overlay and IGNORES background-color;
    the only reliable override is an opaque inset shadow + text-fill-color
    (owner fix 2026-09-05). Values are the field's own dark palette above
@@ -12818,7 +12820,7 @@ function modalHTML(){
       </div>
       <div class="field"><label>Email address</label><input name="email" type="email" value="${esc((S.authIdentifier||"").includes("@")?S.authIdentifier:"")}" placeholder="alex@example.com" autocomplete="off" required></div>
       <div class="field"><label>Phone number</label><input name="phone" placeholder="+1 (555) 000-0000"></div>
-      ${pwField("Password",'<input name="password" type="password" autocomplete="new-password" placeholder="Min. 8 characters" required>')}
+      ${pwField("Password",'<input name="password" type="password" autocomplete="new-password" placeholder="Min. 12 characters" required>')}
       <label style="display:flex;gap:11px;align-items:flex-start;cursor:pointer;margin:6px 0 4px">
         <input type="checkbox" name="privacy" required style="width:17px;height:17px;margin-top:2px;flex:0 0 auto;accent-color:var(--slate-ink)">
         <span style="font-size:var(--text-sm);color:var(--muted)">I have read Sporv's <button type="button" class="lnk" data-foot="info:privacy" style="font-size:inherit;font-weight:700">Privacy Policy</button> and <button type="button" class="lnk" data-foot="info:terms" style="font-size:inherit;font-weight:700">Terms of Service</button>.</span></label>
@@ -12829,7 +12831,7 @@ function modalHTML(){
   if(m.type==="login") return wrap("Log in",`
     <form id="loginForm">
       <div class="field"><label>Email address</label><input name="email" type="email" value="${esc(S.authIdentifier||"")}" autocomplete="off" required></div>
-      ${pwField("Password",'<input name="password" type="password" autocomplete="off" placeholder="Min. 8 characters" required>')}
+      ${pwField("Password",'<input name="password" type="password" autocomplete="off" placeholder="Min. 12 characters" required>')}
       <div id="loginErr" class="err hide" style="margin:8px 0"></div>
       <button class="btn wide" type="submit">Log in</button>
       <button class="btn ghost wide" type="button" data-onboard="1" style="margin-top:9px">Create an account</button>
@@ -13220,7 +13222,7 @@ function modalHTML(){
         <p style="color:var(--muted);margin-bottom:18px">
           We sent a reset code to <b style="color:var(--ink)">${esc(S.forgotEmail||"your email")}</b>.</p>
         <div class="field"><label>Reset code</label><input name="token" placeholder="Enter code from email" required></div>
-        ${pwField("New password",'<input name="password" type="password" autocomplete="new-password" placeholder="Min. 8 characters" required>')}
+        ${pwField("New password",'<input name="password" type="password" autocomplete="new-password" placeholder="Min. 12 characters" required>')}
         <div id="forgotErr" class="err hide" style="margin:8px 0"></div>
         <button class="btn wide" type="submit">Set new password</button>`
       :`<p style="color:var(--muted);margin-bottom:18px">
@@ -13279,7 +13281,7 @@ function modalHTML(){
         </div>
         <div class="field"><label>Email address</label><input name="email" type="email" value="${esc((S.authIdentifier||"").includes("@")?S.authIdentifier:"")}" placeholder="alex@example.com" autocomplete="off" required></div>
         <div class="field"><label>Phone number</label><input name="phone" placeholder="+1 (555) 000-0000"></div>
-        ${pwField("Password",'<input name="password" type="password" autocomplete="off" placeholder="Min. 8 characters" required>')}
+        ${pwField("Password",'<input name="password" type="password" autocomplete="off" placeholder="Min. 12 characters" required>')}
         <label style="display:flex;gap:11px;align-items:flex-start;cursor:pointer;margin:6px 0 4px">
           <input type="checkbox" name="privacy" required style="width:17px;height:17px;margin-top:2px;flex:0 0 auto;accent-color:var(--slate-ink)">
           <span style="font-size:var(--text-sm);color:var(--muted)">I have read Sporv's <button type="button" class="lnk" data-foot="info:privacy" style="font-size:inherit;font-weight:700">Privacy Policy</button> and <button type="button" class="lnk" data-foot="info:terms" style="font-size:inherit;font-weight:700">Terms of Service</button>.</span></label>
@@ -15111,7 +15113,7 @@ function coachGateHTML(){
         <label class="cg-sr" for="cgId">Email address</label>
         <input class="cg-input" id="cgId" type="email" placeholder="Email address" autocomplete="off" inputmode="email" autocapitalize="off" spellcheck="false" required>
         <label class="cg-sr" for="cgPw">Password</label>
-        <input class="cg-input" id="cgPw" type="password" placeholder="Password" autocomplete="off" minlength="8" required>
+        <div class="pw-wrap"><input class="cg-input" id="cgPw" type="password" placeholder="Password" autocomplete="off" minlength="12" required><button type="button" class="pw-eye" aria-label="Show password"><svg class="eye-on" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7-10-7-10-7z"/><circle cx="12" cy="12" r="3"/></svg><svg class="eye-off" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3l18 18M10.6 10.6a3 3 0 004.24 4.24M9.9 5.2A9.4 9.4 0 0112 5c6.4 0 10 7 10 7a17.3 17.3 0 01-3.3 4.1M6.1 6.2A17.3 17.3 0 002 12s3.6 7 10 7a9.5 9.5 0 003.6-.7"/></svg></button></div>
         ${(S.cgMode||"signup")==="login"?"":`
         <label class="cg-sr" for="cgBiz">Organization name</label>
         <input class="cg-input" id="cgBiz" type="text" placeholder="Organization name" autocomplete="off" required>`}
@@ -15901,9 +15903,9 @@ document.querySelectorAll('.sig-ai-coach').forEach(sigAiCoachWire);
      Continue rendered enabled with every field empty, so the first thing a
      coach could do was submit nothing and get a server error back. The button
      now starts DISABLED and is enabled only when the input would be accepted:
-     a syntactically valid email and a password of at least 8 characters, which
-     is GoTrue's own minimum — validating against a different number here would
-     mean the button lights up for a password the server then rejects.
+     a syntactically valid email and a password of at least 12 characters —
+     password_min_length=12 on this Supabase project (verified 2026-09-06); a
+     smaller number here lights the button for a password the server rejects.
 
      Disabled, never hidden, and never a silent no-op on click. It re-evaluates
      on every keystroke rather than on blur, so the moment the form is valid the
@@ -15913,7 +15915,7 @@ document.querySelectorAll('.sig-ai-coach').forEach(sigAiCoachWire);
     const pw=(document.getElementById("cgPw")||{}).value||"";
     const biz=((document.getElementById("cgBiz")||{}).value||"").trim();
     const needBiz=(S.cgMode||"signup")==="signup";
-    return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(em.trim()) && pw.length>=8 && (!needBiz||biz.length>0);
+    return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(em.trim()) && pw.length>=12 && (!needBiz||biz.length>0);
   };
   const cgSync=()=>{
     const b=document.getElementById("cgGo");
@@ -15938,8 +15940,8 @@ document.querySelectorAll('.sig-ai-coach').forEach(sigAiCoachWire);
        Enter-key submission path too, with a visible reason. */
     if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)){
       S.authError="Enter a valid email address.";render();return;}
-    if(pw.length<8){
-      S.authError="Password must be at least 8 characters.";render();return;}
+    if(pw.length<12){
+      S.authError="Password must be at least 12 characters.";render();return;}
     /* The MODE says what this form does — never inferred from which fields
        happen to be filled (the old blank-name rule, deleted per spec §3.2). */
     const mode=S.cgMode||"signup";
@@ -15957,7 +15959,7 @@ document.querySelectorAll('.sig-ai-coach').forEach(sigAiCoachWire);
        to leave and the 250ms debounce would not have fired. */
     S.pendingIntent={kind:"coachOnboard"};
     try{ saveState(); }catch(e){}
-    try{ sessionStorage.setItem("sporv:oauth-intent","signup"); }catch(e){}
+    try{ sessionStorage.setItem("sporv:oauth-intent",(S.cgMode||"signup")==="login"?"signin":"signup"); }catch(e){}
     if(window.SporveAuth) window.location.href=window.SporveAuth.oauthUrl("google", oauthReturnUrl());
   });
   /* The demo account stays, and stays a MOCK — it is the only way to look
@@ -17137,7 +17139,7 @@ document.querySelectorAll('.sig-ai-coach').forEach(sigAiCoachWire);
     const show=m=>{err.textContent=m;err.classList.remove("hide");};
     if(!d.first||!d.last||!d.email||!d.password) return show("Please fill out all the fields.");
     if(!/^[\w.+-]+@[\w-]+\.[\w.-]+$/.test(d.email)) return show("Please enter a valid email address.");
-    if(d.password.length<8) return show("Password must be at least 8 characters.");
+    if(d.password.length<12) return show("Password must be at least 12 characters.");
     if(!d.privacy) return show("Please acknowledge Sporv's Privacy Policy to continue.");
     /* Real signup. mailer_autoconfirm is TRUE (owner 2026-09-05), so doSignUp
        adopts the instant session and signs the visitor in; if autoconfirm is
@@ -17164,7 +17166,7 @@ document.querySelectorAll('.sig-ai-coach').forEach(sigAiCoachWire);
     const err=document.getElementById("loginErr");
     if(!/^[\w.+-]+@[\w-]+\.[\w.-]+$/.test(d.email)){
       err.textContent="Please enter a valid email address.";err.classList.remove("hide");return;}
-    if(!d.password||d.password.length<8){
+    if(!d.password||d.password.length<12){
       err.textContent="Please enter both email and password.";err.classList.remove("hide");return;}
     /* Real sign-in. The toast moved INSIDE the success branch: it used to fire
        on the next line, which with a real network call would have congratulated
@@ -17451,7 +17453,7 @@ document.querySelectorAll('.sig-ai-coach').forEach(sigAiCoachWire);
       });
     }else{
       if(!d.token||!d.token.trim()) return show("Please enter the code from your email.");
-      if(!d.password||d.password.length<8) return show("Please choose a password of at least 8 characters.");
+      if(!d.password||d.password.length<12) return show("Please choose a password of at least 12 characters.");
       const btn=ff.querySelector('button[type="submit"]');
       if(btn){btn.disabled=true;btn.textContent="Setting password…";}
       A.resetPassword(S.forgotEmail||d.email, d.token, d.password).then(()=>{
