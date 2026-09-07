@@ -112,6 +112,9 @@ function myListings(){
 function roster(){
   if (!demoAllowed()) return [];   // real accounts: live roster only, never the seeded families
   const m = myListings();
+  /* Same empty-pool guard as seedWaitlist: no listings and no catalog means
+     an empty demo roster, never a boot-interrupting throw. */
+  if (!m.length && !DEMO_CATALOGUE.length) return [];
   const pid = i => (m[i] || m[m.length - 1] || DEMO_CATALOGUE[0]).id;
   return [
     { id: "athlete_1", name: "Julian Mercer", parent: "Alex Mercer", programId: pid(0),
@@ -216,6 +219,7 @@ const sessionById = id => ledger().find(s => s.id === id) || null;
    deliberately unwritten so the queue has honest work in it. */
 function seedNotes(){
   const r = roster();
+  if (r.length < 4) return [];  // empty/partial demo roster seeds no notes, never throws
   const A = r[0], B = r[1], C = r[2], D = r[3];
   const mk = (a, date, worked, win, next, skills, shared) => ({
     id: "nt_" + a.id + "_" + date,
@@ -372,7 +376,7 @@ function athleteProgramId(id){
   const a = athleteById(id);
   if (a) return a.programId;
   const n = notes().find(x => x.athleteId === id) || completed().find(x => x.athleteId === id);
-  return n ? n.programId : (myListings()[0] || DEMO_CATALOGUE[0]).id;
+  return n ? n.programId : ((myListings()[0] || DEMO_CATALOGUE[0] || {}).id || null);
 }
 function notesFor(id){
   return notes().filter(n => n.athleteId === id).sort((a, b) => a.date.localeCompare(b.date));

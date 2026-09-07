@@ -157,6 +157,10 @@ function nearFull(){
 }
 function seedWaitlist(){
   const pool = nearFull();
+  /* An empty catalog (slow hydration, scrubbed demo) must seed an empty list,
+     not throw mid-boot — this exact throw was interrupting unrelated renders
+     (found 2026-09-07 while probing the public org page). */
+  if (!pool.length) return [];
   const pick = i => pool[i % pool.length].id;
   const people = [
     ["Renata Okafor", "Nia Okafor", 13, "2026-07-21T14:10:00.000Z", "Both", "waiting"],
@@ -192,6 +196,7 @@ function seedWaitlist(){
 function seedSlots(){
   if (!demoAllowed()) return [];   // a real account starts with an empty grid
   const mine = myListings();
+  if (!mine.length && !DEMO_CATALOGUE.length) return [];  // empty pools seed empty, never throw
   const at = i => (mine[i] || DEMO_CATALOGUE[i] || DEMO_CATALOGUE[0]).id;
   const capOf = i => (mine[i] || DEMO_CATALOGUE[i] || DEMO_CATALOGUE[0]).cap;
   return [

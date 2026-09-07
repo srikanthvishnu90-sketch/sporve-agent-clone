@@ -1,0 +1,455 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Sporv — Design kit · batch 2</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Roboto+Condensed:wght@700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@500&display=swap" rel="stylesheet">
+<style>
+  :root{
+    /* kit chrome (dark) */
+    --kbg:#050607;--kline:#1E242B;--kink:#EDEFF2;--kink2:#9BA3AD;--kink3:#6B7480;
+    /* PUBLIC surfaces are light — family-facing, matches the marketing site */
+    --page:#F0F1F3;--card:#FFFFFF;--line:#E1E4E8;--line-2:#C9CED5;
+    --ink:#0F1215;--ink-2:#4E555E;--ink-3:#7C838C;
+    --nav:#0B0D0F;
+    --steel:#6B7F9E;--steel-l:#8FA2BE;--steel-bg:rgba(107,127,158,.10);--steel-br:rgba(107,127,158,.34);
+    --ok:#3F8A5C;--ok-bg:rgba(63,138,92,.10);--ok-br:rgba(63,138,92,.30);
+    --attn:#3F7FB0;--attn-bg:rgba(63,127,176,.10);--attn-br:rgba(63,127,176,.30);
+    --t0:10px;--t1:10.5px;--t2:12.5px;--t3:13.5px;--t4:15.5px;
+    --h1:clamp(17px,2vw,20px);--h0:clamp(22px,3vw,28px);
+    --s1:4px;--s2:8px;--s3:12px;--s4:16px;--s5:24px;--s6:32px;--s7:48px;
+  }
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  body{margin:0;background:var(--kbg);color:var(--kink);font-family:Inter,system-ui,sans-serif;font-size:var(--t3);line-height:1.5;-webkit-font-smoothing:antialiased}
+  button,input,select,textarea{font:inherit;color:inherit;background:none;border:0}button{cursor:pointer}
+  .rc{font-family:"Roboto Condensed",sans-serif;text-transform:uppercase;font-weight:700}
+  .mono{font-family:"JetBrains Mono",monospace;font-weight:500;font-variant-numeric:tabular-nums}
+
+  .kit{position:sticky;top:0;z-index:50;background:rgba(5,6,7,.94);backdrop-filter:blur(10px);border-bottom:1px solid var(--kline);display:flex;gap:var(--s2);padding:var(--s2) var(--s4);align-items:center;flex-wrap:wrap}
+  .kit .g{display:flex;gap:var(--s1);align-items:center;flex-wrap:wrap}
+  .kit .lab{font-family:"JetBrains Mono",monospace;font-size:var(--t0);letter-spacing:.12em;text-transform:uppercase;color:var(--kink3);margin-right:var(--s1)}
+  .kit button{height:28px;padding:0 10px;border:1px solid #2A323B;border-radius:999px;font-size:var(--t2);color:var(--kink2)}
+  .kit button.on{background:var(--kink);color:var(--kbg);border-color:var(--kink);font-weight:500}
+  .kit .sp{flex:1}
+  .stage{padding:var(--s6) var(--s4) 120px;display:grid;place-items:start center}
+  .frame{width:100%;max-width:1040px;background:var(--page);color:var(--ink);border:1px solid var(--kline);border-radius:14px;overflow:hidden;min-height:640px;position:relative}
+  .stage.m .frame{width:375px;max-width:375px;border-radius:38px;min-height:812px}
+  .screen{display:none}.screen.on{display:block}
+  .note{max-width:1040px;margin:var(--s5) auto 0;color:var(--kink3);font-size:var(--t2);line-height:1.55}
+  .note b{color:var(--kink2);font-weight:500}
+  .hidden{display:none!important}
+
+  /* ── public chrome ── */
+  .pbar{height:56px;display:flex;align-items:center;gap:var(--s3);padding:0 var(--s4);background:var(--card);border-bottom:1px solid var(--line)}
+  .pbar .mark{width:30px;height:30px;border-radius:7px;background:var(--nav);display:grid;place-items:center;font-family:"JetBrains Mono",monospace;font-size:var(--t0);color:#fff}
+  .pbar .nm{font-weight:600;font-size:var(--t3)}
+  .pbar .via{margin-left:auto;font-size:var(--t1);color:var(--ink-3)}
+  .pbar .via b{font-family:"Roboto Condensed",sans-serif;text-transform:uppercase;font-weight:700;letter-spacing:.06em;color:var(--ink-2)}
+  .wrap{max-width:900px;margin:0 auto;padding:var(--s5) var(--s4) var(--s7)}
+  h1{font-family:"Roboto Condensed",sans-serif;text-transform:uppercase;font-weight:700;font-size:var(--h0);letter-spacing:.02em;margin:0 0 var(--s1);line-height:1.1}
+  h2{font-family:"Roboto Condensed",sans-serif;text-transform:uppercase;font-weight:700;font-size:var(--h1);letter-spacing:.035em;margin:0 0 var(--s2);line-height:1.15}
+  h3{font-family:"Roboto Condensed",sans-serif;text-transform:uppercase;font-weight:700;font-size:var(--t1);letter-spacing:.09em;color:var(--ink-3);margin:0 0 var(--s2)}
+  .sub{color:var(--ink-2);font-size:var(--t3);margin:0 0 var(--s4)}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:12px;overflow:hidden}
+  .card+.card{margin-top:var(--s2)}
+  .row{display:flex;align-items:center;gap:var(--s3);padding:var(--s3) var(--s4);border-bottom:1px solid var(--line);min-height:44px}
+  .row:last-child{border-bottom:0}
+  .row .lab{flex:1;min-width:0}.row .lab b{display:block;font-weight:500;font-size:var(--t3)}.row .lab small{display:block;color:var(--ink-3);font-size:var(--t2);margin-top:1px}
+  .row .ctl{flex:none;display:flex;gap:var(--s2);align-items:center}
+  .btn{height:44px;padding:0 var(--s4);border:1px solid var(--ink);border-radius:8px;font-family:"Roboto Condensed",sans-serif;text-transform:uppercase;font-weight:700;font-size:var(--t2);letter-spacing:.07em;display:inline-flex;align-items:center;justify-content:center;gap:var(--s2);color:var(--ink);transition:background .15s,color .15s,transform .12s}
+  .btn:hover{background:var(--ink);color:#fff}.btn:active{transform:scale(.985)}
+  .btn.pri{background:var(--ink);color:#fff}.btn.pri:hover{background:#2A2F36}
+  .btn.steel{background:var(--steel);border-color:var(--steel);color:#fff}.btn.steel:hover{background:#7A8FAE}
+  .btn.sm{height:34px;padding:0 var(--s3)}
+  .btn.ghost{border-color:transparent;color:var(--ink-2)}.btn.ghost:hover{background:var(--line);color:var(--ink)}
+  .btn.full{width:100%}
+  .btn:disabled{opacity:.4;cursor:not-allowed;transform:none}
+  .pill{font-size:var(--t1);font-weight:500;padding:2px 8px;border-radius:999px;border:1px solid var(--line-2);color:var(--ink-3);white-space:nowrap}
+  .pill.ok{color:var(--ok);background:var(--ok-bg);border-color:var(--ok-br)}
+  .pill.attn{color:var(--attn);background:var(--attn-bg);border-color:var(--attn-br)}
+  .pill.steel{color:var(--steel);background:var(--steel-bg);border-color:var(--steel-br)}
+  .callout{border-left:1px solid var(--steel);padding:var(--s2) var(--s4);color:var(--ink-2);font-size:var(--t2);margin-top:var(--s4);line-height:1.55}
+  .callout b{color:var(--ink);font-weight:600}
+  input[type=text],input[type=email],input[type=tel],input[type=date],select,textarea{width:100%;height:44px;padding:0 var(--s3);background:var(--card);border:1px solid var(--line-2);border-radius:8px;font-size:16px;color:var(--ink)}
+  input:focus,select:focus,textarea:focus{outline:0;border-color:var(--steel)}
+  label.l{display:block;font-family:"Roboto Condensed",sans-serif;text-transform:uppercase;font-weight:700;font-size:var(--t1);letter-spacing:.08em;color:var(--ink-3);margin:0 0 var(--s2)}
+  .f{margin-bottom:var(--s4)}
+  .hint{color:var(--ink-3);font-size:var(--t2);margin-top:var(--s2)}
+  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:var(--s3)}
+  .stage.m .grid2{grid-template-columns:1fr}
+  .money{font-family:"JetBrains Mono",monospace;font-weight:500}
+  .steps{display:flex;gap:var(--s1);margin:var(--s2) 0 var(--s5)}
+  .steps i{flex:1;height:2px;background:var(--line-2)}.steps i.on{background:var(--ink)}
+
+  /* ── booking page ── */
+  .hero{display:grid;grid-template-columns:1fr auto;gap:var(--s5);align-items:start;margin-bottom:var(--s5)}
+  .stage.m .hero{grid-template-columns:1fr}
+  .hero .facts{display:flex;gap:var(--s3);flex-wrap:wrap;margin-top:var(--s3)}
+  .hero .facts span{font-size:var(--t2);color:var(--ink-2)}
+  .hero .facts span b{font-family:"JetBrains Mono",monospace;font-weight:500;color:var(--ink)}
+  .hero .cta{display:flex;flex-direction:column;gap:var(--s2);min-width:200px}
+  .stage.m .hero .cta{min-width:0}
+  .face{width:96px;height:96px;border-radius:14px;background:#DDE2E8;display:grid;place-items:center;font-family:"JetBrains Mono",monospace;font-size:var(--t0);color:var(--ink-3);flex:none}
+  .solo{display:flex;gap:var(--s4);align-items:flex-start}
+  .stage.m .solo{flex-direction:column}
+  .offer{display:grid;grid-template-columns:1fr auto;gap:var(--s3);align-items:center;padding:var(--s4);border-bottom:1px solid var(--line)}
+  .offer:last-child{border-bottom:0}
+  .offer b{display:block;font-weight:500;font-size:var(--t3)}
+  .offer small{display:block;color:var(--ink-3);font-size:var(--t2);margin-top:2px}
+  .offer .pr{text-align:right}
+  .offer .pr b{font-family:"JetBrains Mono",monospace;font-weight:500;font-size:var(--t4)}
+  .offer .pr small{color:var(--ink-3)}
+  .offer .btn{grid-column:1/-1;width:100%}
+  .stage:not(.m) .offer{grid-template-columns:1fr auto auto}
+  .stage:not(.m) .offer .btn{grid-column:auto;width:auto}
+  .trust{display:grid;grid-template-columns:repeat(3,1fr);border:1px solid var(--line);border-radius:12px;background:var(--card);overflow:hidden}
+  .stage.m .trust{grid-template-columns:1fr}
+  .trust>div{padding:var(--s3) var(--s4);border-right:1px solid var(--line)}
+  .trust>div:last-child{border-right:0}
+  .stage.m .trust>div{border-right:0;border-bottom:1px solid var(--line)}
+  .trust b{display:block;font-family:"JetBrains Mono",monospace;font-weight:500;font-size:var(--t4);margin-bottom:2px}
+  .trust small{font-size:var(--t2);color:var(--ink-3)}
+  .cred{display:inline-flex;align-items:center;gap:var(--s2);font-size:var(--t2);color:var(--ink-2)}
+  .cred b{font-family:"JetBrains Mono",monospace;font-weight:500;color:var(--ink)}
+  .credbar{height:6px;border-radius:3px;background:var(--line);overflow:hidden;width:120px}
+  .credbar i{display:block;height:100%;background:var(--ink)}
+
+  /* ── slot picker ── */
+  .days{display:flex;gap:var(--s1);overflow:auto;padding-bottom:var(--s1)}
+  .day{flex:none;width:52px;height:60px;border:1px solid var(--line-2);border-radius:8px;background:var(--card);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px}
+  .day .d{font-family:"JetBrains Mono",monospace;font-size:var(--t0);letter-spacing:.08em;color:var(--ink-3);text-transform:uppercase}
+  .day .n{font-family:"JetBrains Mono",monospace;font-size:var(--t4);font-weight:500}
+  .day.on{background:var(--ink);border-color:var(--ink);color:#fff}.day.on .d{color:#C9CED5}
+  .day.off{opacity:.35}
+  .slots{display:grid;grid-template-columns:repeat(auto-fill,minmax(100px,1fr));gap:var(--s2);margin-top:var(--s3)}
+  .slot{height:44px;border:1px solid var(--line-2);border-radius:8px;background:var(--card);font-family:"JetBrains Mono",monospace;font-size:var(--t2);font-weight:500;color:var(--ink)}
+  .slot.on{background:var(--ink);color:#fff;border-color:var(--ink)}
+  .slot.gone{color:var(--ink-3);border-style:dashed;text-decoration:line-through;cursor:not-allowed}
+  .sticky{position:sticky;bottom:0;background:var(--page);padding:var(--s3) 0 0;margin-top:var(--s4);border-top:1px solid var(--line)}
+
+  /* ── waiver ── */
+  .legal{height:220px;overflow:auto;border:1px solid var(--line-2);border-radius:8px;padding:var(--s3) var(--s4);font-size:var(--t2);line-height:1.6;color:var(--ink-2);background:var(--card)}
+  .legal h4{font-size:var(--t2);color:var(--ink);margin:0 0 var(--s2)}
+  .legal p{margin:0 0 var(--s2)}
+  .sig{border:1px solid var(--line-2);border-radius:8px;background:var(--card);height:140px;position:relative;touch-action:none}
+  .sig canvas{width:100%;height:100%;display:block;border-radius:8px}
+  .sig .ph{position:absolute;inset:0;display:grid;place-items:center;color:var(--ink-3);font-size:var(--t2);pointer-events:none}
+  .sig .ph.hide{display:none}
+  .sig .line{position:absolute;left:var(--s4);right:var(--s4);bottom:34px;border-top:1px solid var(--line-2);pointer-events:none}
+  .sig .clr{position:absolute;right:var(--s2);top:var(--s2)}
+  .chk{display:flex;gap:var(--s3);align-items:flex-start;font-size:var(--t2);color:var(--ink-2);margin-top:var(--s3)}
+  .chk input{width:18px;height:18px;margin-top:2px;accent-color:var(--ink);flex:none}
+  .athl{border:1px solid var(--line);border-radius:12px;background:var(--card);padding:var(--s4);margin-bottom:var(--s2);position:relative}
+  .athl .rm{position:absolute;right:var(--s3);top:var(--s3)}
+  .rcpt{border:1px solid var(--line);border-radius:12px;background:var(--card);overflow:hidden}
+  .rcpt .r{display:flex;justify-content:space-between;padding:var(--s3) var(--s4);border-bottom:1px solid var(--line);font-size:var(--t3)}
+  .rcpt .r:last-child{border-bottom:0}
+  .rcpt .r span:first-child{color:var(--ink-2)}
+  .rcpt .r.tot{background:#F7F8FA}.rcpt .r.tot span{font-weight:600}
+  /* dark queue peek for the director */
+  .dark{background:#0F1216;color:#EDEFF2;border:1px solid #1E242B;border-radius:10px;padding:var(--s3) var(--s4);margin-top:var(--s4)}
+  .dark small{color:#6B7480;font-size:var(--t2)}
+  .dark .sig2{font-family:"JetBrains Mono",monospace;font-size:var(--t1);color:#9DB0CB;background:rgba(107,127,158,.12);border:1px solid rgba(107,127,158,.34);border-radius:5px;padding:1px 6px}
+</style>
+</head>
+<body>
+
+<div class="kit">
+  <span class="g"><span class="lab">Screen</span>
+    <button class="on" data-sc="org">5 · Club page</button><button data-sc="solo">5 · Solo trainer</button><button data-sc="package">5 · Package + credits</button><button data-sc="slots">5 · Time slots</button><button data-sc="reg">6 · Registration</button><button data-sc="waiver">6 · Waiver</button><button data-sc="done">6 · Confirmation</button></span>
+  <span class="sp"></span>
+  <span class="g" id="states"><span class="lab">State</span></span>
+  <span class="g"><span class="lab">Width</span><button class="on" data-w="d">Desktop</button><button data-w="m">375</button></span>
+</div>
+
+<div class="stage" id="stage"><div class="frame" id="frame">
+
+<!-- ═══ 5 · CLUB PAGE ═══ -->
+<div class="screen on" data-sc="org" data-states="open,fullybooked,closed,empty">
+  <div class="pbar"><span class="mark">NF</span><span class="nm">Northside Flight</span><span class="via">Bookings by <b>Sporv</b></span></div>
+  <div class="wrap">
+    <div class="hero">
+      <div><h3>Basketball · Chicago</h3><h1>Northside Flight</h1>
+        <p class="sub" style="margin:0">Travel basketball for ages 11–17. Four teams, a winter clinic, and private sessions with our staff.</p>
+        <div class="facts"><span><b>4</b> teams</span><span><b>11</b> coaches</span><span>Season <b>Sep 8 – Dec 14</b></span></div></div>
+      <div class="cta" data-st="open,fullybooked"><a class="btn pri" href="#">Register an athlete</a><a class="btn" href="#">Book a private session</a></div>
+      <div class="cta" data-st="closed"><span class="pill attn" style="align-self:flex-start">Not accepting new families this season</span><a class="btn" href="#">Join the waitlist</a></div>
+    </div>
+
+    <div data-st="open,fullybooked,closed">
+      <h2>Programs</h2>
+      <div class="card">
+        <div class="offer"><span><b>14U Flight · Fall season</b><small>Sep 8 – Dec 14 · Tue/Thu 6:00 PM · Sat 10:00 AM</small></span><span class="pr"><b>$1,560</b><small><br>or 4 × $390</small></span><a class="btn sm" href="#" data-st="open">Register</a><span class="pill" data-st="fullybooked,closed">Full · waitlist</span></div>
+        <div class="offer"><span><b>16U Flight · Fall season</b><small>Sep 8 – Dec 14 · Mon/Wed 6:30 PM · Sat 11:45 AM</small></span><span class="pr"><b>$1,700</b><small><br>or 4 × $425</small></span><a class="btn sm" href="#" data-st="open">Register</a><span class="pill" data-st="fullybooked,closed">Full · waitlist</span></div>
+        <div class="offer"><span><b>Winter clinic</b><small>Dec 20 – Jan 3 · 9 sessions · ages 11–14</small></span><span class="pr"><b>$240</b><small><br>one charge</small></span><a class="btn sm" href="#" data-st="open,fullybooked">Enroll</a><span class="pill" data-st="closed">Closed</span></div>
+      </div>
+      <h2 style="margin-top:var(--s5)">Private sessions</h2>
+      <div class="card">
+        <div class="offer"><span><b>1-on-1 skills · 60 min</b><small>With any cleared staff coach · Northside Community Gym</small></span><span class="pr"><b>$75</b><small><br>per session</small></span><a class="btn sm" href="#">Pick a time</a></div>
+        <div class="offer"><span><b>10-session pack</b><small>Use within 90 days · any coach · transferable between siblings</small></span><span class="pr"><b>$650</b><small><br>$65 each</small></span><a class="btn sm" href="#">Buy pack</a></div>
+      </div>
+    </div>
+
+    <div data-st="empty" class="card"><div class="row" style="flex-direction:column;align-items:flex-start;padding:var(--s5) var(--s4)"><b style="font-weight:500">Nothing to book yet</b><small style="color:var(--ink-3);font-size:var(--t2)">Northside Flight hasn't published programs or sessions. If you were sent here by the club, ask them for a registration link.</small></div></div>
+
+    <h2 style="margin-top:var(--s5)">What we can tell you</h2>
+    <div class="trust">
+      <div><b>11 of 11</b><small>staff coaches have a background check on file, recorded by the club. Sporv records it; the provider runs it.</small></div>
+      <div><b>24h</b><small>free cancellation before any private session. The rule is saved on your booking and can't change after.</small></div>
+      <div><b>0%</b><small>added by Sporv. You pay the club's price. Card processing runs on the club's own account.</small></div>
+    </div>
+    <p class="hint">No reviews are shown because none have been collected through Sporv. We don't import them from elsewhere.</p>
+  </div>
+</div>
+
+<!-- ═══ 5 · SOLO TRAINER ═══ -->
+<div class="screen" data-sc="solo" data-states="open,closed">
+  <div class="pbar"><span class="mark">MR</span><span class="nm">Marcus Reed</span><span class="via">Bookings by <b>Sporv</b></span></div>
+  <div class="wrap">
+    <div class="solo">
+      <div class="face">PHOTO</div>
+      <div style="flex:1"><h3>Goalkeeper training · Lincoln Park</h3><h1>Marcus Reed</h1>
+        <p class="sub" style="margin:0 0 var(--s3)">Former college keeper. Nine years coaching youth goalkeepers across Chicagoland. Sessions are footwork, distribution, and reading the play.</p>
+        <div class="facts" style="display:flex;gap:var(--s3);flex-wrap:wrap"><span class="pill ok">Background check on file · 2026</span><span class="pill">Ages 8–17</span><span class="pill">Lincoln Park · Evanston</span></div></div>
+      <div class="cta" style="display:flex;flex-direction:column;gap:var(--s2);min-width:180px" data-st="open"><a class="btn pri" href="#">Book a session</a><a class="btn" href="#">Buy a pack</a></div>
+      <div class="cta" style="display:flex;flex-direction:column;gap:var(--s2);min-width:180px" data-st="closed"><span class="pill attn">Not taking new clients</span><a class="btn" href="#">Join the waitlist</a></div>
+    </div>
+    <h2 style="margin-top:var(--s5)">Sessions</h2>
+    <div class="card">
+      <div class="offer"><span><b>1-on-1 · 60 min</b><small>Lincoln Park Turf · bring your own gloves</small></span><span class="pr"><b>$85</b><small><br>per session</small></span><a class="btn sm" href="#">Pick a time</a></div>
+      <div class="offer"><span><b>Small group · 2–3 keepers · 75 min</b><small>Split between families</small></span><span class="pr"><b>$45</b><small><br>per athlete</small></span><a class="btn sm" href="#">Pick a time</a></div>
+      <div class="offer"><span><b>10-session pack</b><small>Use within 120 days</small></span><span class="pr"><b>$750</b><small><br>$75 each</small></span><a class="btn sm" href="#">Buy pack</a></div>
+    </div>
+    <h2 style="margin-top:var(--s5)">Policies</h2>
+    <div class="card"><div class="row"><div class="lab"><b>Cancellation</b><small>Free up to 24 hours before. Inside 24 hours the session is charged. Saved on every booking.</small></div></div>
+      <div class="row"><div class="lab"><b>Weather</b><small>Turf sessions move indoors or reschedule at no charge.</small></div></div></div>
+  </div>
+</div>
+
+<!-- ═══ 5 · PACKAGE + CREDITS ═══ -->
+<div class="screen" data-sc="package" data-states="pick,pay,confirmed,family,trainer">
+  <div class="pbar"><span class="mark">MR</span><span class="nm">Marcus Reed</span><span class="via">Bookings by <b>Sporv</b></span></div>
+  <div class="wrap" style="max-width:520px">
+    <div data-st="pick,pay,confirmed"><div class="steps"><i class="on"></i><i data-st="pay,confirmed" class="on"></i><i data-st="confirmed" class="on"></i></div></div>
+
+    <div data-st="pick">
+      <h2>Choose a pack</h2><p class="sub">Credits are per family and work for any athlete in it.</p>
+      <div class="card">
+        <label class="row" style="cursor:pointer"><input type="radio" name="pk" style="width:18px;height:18px;accent-color:var(--ink)"><span class="lab"><b>5 sessions</b><small>Use within 60 days</small></span><span class="money">$400</span></label>
+        <label class="row" style="cursor:pointer"><input type="radio" name="pk" checked style="width:18px;height:18px;accent-color:var(--ink)"><span class="lab"><b>10 sessions</b><small>Use within 120 days · $75 each</small></span><span class="money">$750</span></label>
+        <label class="row" style="cursor:pointer"><input type="radio" name="pk" style="width:18px;height:18px;accent-color:var(--ink)"><span class="lab"><b>20 sessions</b><small>Use within 180 days · $70 each</small></span><span class="money">$1,400</span></label>
+      </div>
+      <div class="callout"><b>Unused credits refund at the pack rate</b> until the window closes. That rule is saved on this purchase.</div>
+      <div class="sticky"><button class="btn pri full" data-go="pay">Continue to payment</button></div>
+    </div>
+
+    <div data-st="pay">
+      <h2>Payment</h2><p class="sub">Handled by Stripe on Marcus Reed's account. Sporv adds nothing.</p>
+      <div class="rcpt"><div class="r"><span>10-session pack</span><span class="money">$750.00</span></div><div class="r"><span>Card processing</span><span class="money">$22.05</span></div><div class="r tot"><span>Total today</span><span class="money">$772.05</span></div></div>
+      <div class="f" style="margin-top:var(--s4)"><label class="l">Card</label><input type="text" placeholder="Card number" inputmode="numeric"></div>
+      <div class="grid2"><div class="f"><label class="l">Expiry</label><input type="text" placeholder="MM / YY" inputmode="numeric"></div><div class="f"><label class="l">CVC</label><input type="text" placeholder="CVC" inputmode="numeric"></div></div>
+      <div class="f"><label class="l">Email for the receipt</label><input type="email" placeholder="you@example.com"></div>
+      <div class="sticky"><button class="btn pri full" data-go="confirmed">Pay $772.05</button><p class="hint" style="text-align:center">Prototype — no card is charged. Real form is Stripe Elements.</p></div>
+    </div>
+
+    <div data-st="confirmed">
+      <h2>You have 10 sessions</h2><p class="sub">Receipt sent. Use them any time before <span class="mono">Jan 5, 2027</span>.</p>
+      <div class="card"><div class="row"><div class="lab"><b>Sessions left</b><small>Family pack · Reyes</small></div><div class="ctl cred"><span class="credbar"><i style="width:100%"></i></span><b>10 of 10</b></div></div></div>
+      <div class="sticky"><a class="btn pri full" href="#" data-go="slots">Book the first one</a></div>
+    </div>
+
+    <div data-st="family">
+      <h2>Your credits</h2><p class="sub">What the Reyes family sees in their portal.</p>
+      <div class="card">
+        <div class="row"><div class="lab"><b>Marcus Reed · 10-session pack</b><small>Expires Jan 5, 2027 · any athlete</small></div><div class="ctl cred"><span class="credbar"><i style="width:30%"></i></span><b>3 of 10</b></div></div>
+        <div class="row"><div class="lab"><b>Sep 9 · Ava · 60 min</b><small>Used</small></div><span class="mono" style="color:var(--ink-3)">−1</span></div>
+        <div class="row"><div class="lab"><b>Sep 12 · Mateo · 60 min</b><small>Used</small></div><span class="mono" style="color:var(--ink-3)">−1</span></div>
+        <div class="row"><div class="lab"><b>Sep 16 · Ava · 60 min</b><small>Booked · counts when it happens</small></div><span class="pill">Held</span></div>
+      </div>
+      <div class="sticky"><a class="btn pri full" href="#">Book with a credit</a></div>
+    </div>
+
+    <div data-st="trainer">
+      <h2>Reyes family</h2><p class="sub">What Marcus sees on the client record. Dark because it's inside the product.</p>
+      <div class="dark">
+        <div style="display:flex;justify-content:space-between;align-items:baseline"><b style="font-weight:500">10-session pack</b><span class="mono" style="color:#9DB0CB">3 of 10 left</span></div>
+        <small>Bought Sep 5 · $750 · expires Jan 5 · 1 held</small>
+        <div style="margin-top:var(--s3);display:flex;gap:var(--s2)"><button class="btn sm" style="border-color:#2A323B;color:#EDEFF2">Book a session</button><button class="btn sm" style="border-color:#2A323B;color:#9BA3AD">Refund unused</button></div>
+        <small style="display:block;margin-top:var(--s2)">Refund goes through the queue. Nothing moves money from this button.</small>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ 5 · TIME SLOTS ═══ -->
+<div class="screen" data-sc="slots" data-states="open,fullday,none">
+  <div class="pbar"><span class="mark">MR</span><span class="nm">Marcus Reed</span><span class="via">Bookings by <b>Sporv</b></span></div>
+  <div class="wrap" style="max-width:520px">
+    <h2>Pick a time</h2><p class="sub">1-on-1 · 60 min · Lincoln Park Turf. Times are Central.</p>
+    <div class="days" id="days">
+      <button class="day on"><span class="d">Tue</span><span class="n">9</span></button><button class="day"><span class="d">Wed</span><span class="n">10</span></button><button class="day off"><span class="d">Thu</span><span class="n">11</span></button><button class="day"><span class="d">Fri</span><span class="n">12</span></button><button class="day"><span class="d">Sat</span><span class="n">13</span></button><button class="day off"><span class="d">Sun</span><span class="n">14</span></button><button class="day"><span class="d">Mon</span><span class="n">15</span></button><button class="day"><span class="d">Tue</span><span class="n">16</span></button>
+    </div>
+    <div data-st="open"><h3 style="margin-top:var(--s4)">Tuesday Sep 9</h3>
+      <div class="slots" id="slots"><button class="slot gone">3:00 PM</button><button class="slot">4:00 PM</button><button class="slot">5:15 PM</button><button class="slot gone">6:30 PM</button><button class="slot">7:45 PM</button></div>
+      <p class="hint">Struck-through times are taken. A held slot is released after 10 minutes if you don't finish.</p></div>
+    <div data-st="fullday"><h3 style="margin-top:var(--s4)">Tuesday Sep 9</h3>
+      <div class="slots"><button class="slot gone">3:00 PM</button><button class="slot gone">4:00 PM</button><button class="slot gone">5:15 PM</button><button class="slot gone">6:30 PM</button><button class="slot gone">7:45 PM</button></div>
+      <div class="callout"><b>Tuesday is full.</b> Wednesday has 4 open times. Or join the waitlist for Tuesday and we'll text you if one opens.</div>
+      <div style="display:flex;gap:var(--s2);margin-top:var(--s3)"><button class="btn sm">See Wednesday</button><button class="btn sm ghost">Waitlist Tuesday</button></div></div>
+    <div data-st="none"><div class="callout" style="margin-top:var(--s4)"><b>No times in the next two weeks.</b> Marcus hasn't opened availability past Sep 20 yet. Leave your number and you'll get a text when he does.</div>
+      <div class="f" style="margin-top:var(--s3)"><input type="tel" placeholder="Phone number"></div><button class="btn full">Text me when times open</button></div>
+    <div class="sticky" data-st="open"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:var(--s2);font-size:var(--t2);color:var(--ink-2)"><span id="pick">Choose a time</span><span class="money">$85</span></div><button class="btn pri full" id="bookBtn" disabled>Continue</button></div>
+  </div>
+</div>
+
+<!-- ═══ 6 · REGISTRATION ═══ -->
+<div class="screen" data-sc="reg" data-states="form,error">
+  <div class="pbar"><span class="mark">NF</span><span class="nm">Northside Flight</span><span class="via">Registration by <b>Sporv</b></span></div>
+  <div class="wrap" style="max-width:560px">
+    <div class="steps"><i class="on"></i><i></i><i></i></div>
+    <h2>Register for Fall 2026</h2><p class="sub">About four minutes. One guardian, any number of athletes.</p>
+
+    <h3>Guardian</h3>
+    <div class="grid2"><div class="f"><label class="l">Your name</label><input type="text" placeholder="Dana Reyes" autocomplete="name"></div><div class="f"><label class="l">Phone</label><input type="tel" placeholder="(312) 555-0142" autocomplete="tel"></div></div>
+    <div class="f"><label class="l">Email</label><input type="email" placeholder="dana@example.com" autocomplete="email" data-st="form"><input type="email" value="dana@example" data-st="error" style="border-color:#C4685E"><p class="hint" data-st="error" style="color:#C4685E">That doesn't look like a complete email. Receipts and the waiver link go here.</p></div>
+
+    <h3 style="margin-top:var(--s4)">Athletes</h3>
+    <div id="athl">
+      <div class="athl">
+        <div class="grid2"><div class="f"><label class="l">Athlete name</label><input type="text" placeholder="Ava Reyes"></div><div class="f"><label class="l">Date of birth</label><input type="date"></div></div>
+        <div class="f" style="margin:0"><label class="l">Program</label><select><option>14U Flight · Fall season · $1,560</option><option>16U Flight · Fall season · $1,700</option><option>Winter clinic · $240</option></select><p class="hint">Age is checked against the program's bracket when you continue.</p></div>
+      </div>
+    </div>
+    <button class="btn sm" id="addAthl">+ Add another athlete</button>
+
+    <h3 style="margin-top:var(--s5)">Payment</h3>
+    <div class="card">
+      <label class="row" style="cursor:pointer"><input type="radio" name="pay" checked style="width:18px;height:18px;accent-color:var(--ink)"><span class="lab"><b>Pay the first installment now</b><small>$390 today, then 3 × $390 on the 15th. Card or bank.</small></span></label>
+      <label class="row" style="cursor:pointer"><input type="radio" name="pay" style="width:18px;height:18px;accent-color:var(--ink)"><span class="lab"><b>Pay the season in full</b><small>$1,560 today.</small></span></label>
+      <label class="row" style="cursor:pointer"><input type="radio" name="pay" style="width:18px;height:18px;accent-color:var(--ink)"><span class="lab"><b>Register now, pay later</b><small>Your spot is held 72 hours. The club sends the payment link.</small></span></label>
+    </div>
+    <div class="sticky"><button class="btn pri full" data-go="waiver">Continue to the waiver</button></div>
+  </div>
+</div>
+
+<!-- ═══ 6 · WAIVER ═══ -->
+<div class="screen" data-sc="waiver" data-states="unsigned,signed">
+  <div class="pbar"><span class="mark">NF</span><span class="nm">Northside Flight</span><span class="via">Registration by <b>Sporv</b></span></div>
+  <div class="wrap" style="max-width:560px">
+    <div class="steps"><i class="on"></i><i class="on"></i><i></i></div>
+    <h2>Season waiver</h2><p class="sub">Version 3 · covers Ava Reyes for Fall 2026. Read it all — the sign button unlocks at the bottom.</p>
+    <div class="legal" id="legal">
+      <h4>Northside Flight · Participation agreement and release · v3</h4>
+      <p>1. Participation. I am the parent or legal guardian of the athlete named above and I consent to their participation in Northside Flight programs for the Fall 2026 season.</p>
+      <p>2. Assumption of risk. I understand that basketball involves inherent risks including collision, falls, and overexertion, and that injuries can occur despite reasonable supervision.</p>
+      <p>3. Medical. I authorize club staff to seek emergency medical treatment for my athlete if I cannot be reached. I will keep emergency contact and medical information current in the family portal.</p>
+      <p>4. Conduct. Athletes and guardians agree to the club's code of conduct. The club may remove a participant for conduct that endangers others.</p>
+      <p>5. Release. To the extent permitted by Illinois law, I release Northside Flight, its coaches, and volunteers from claims arising from ordinary negligence during club activities.</p>
+      <p>6. Photo and media. Consent for photo and media use is a separate, optional document and is not granted by signing this waiver.</p>
+      <p>7. Term. This agreement covers the Fall 2026 season and expires with it. A new version must be signed for each season.</p>
+      <p style="color:var(--ink);font-weight:500">End of document.</p>
+    </div>
+    <p class="hint" id="readHint">Scroll to the end to unlock signing.</p>
+
+    <div data-st="unsigned">
+      <div class="f" style="margin-top:var(--s4)"><label class="l">Type your full legal name</label><input type="text" id="typed" placeholder="Dana Reyes"></div>
+      <label class="l">Sign with your finger or mouse</label>
+      <div class="sig" id="sig"><canvas id="cv"></canvas><span class="line"></span><span class="ph" id="sigPh">Sign here</span><button class="btn sm ghost clr" id="clr">Clear</button></div>
+      <label class="chk"><input type="checkbox" id="agree"><span>I have read this agreement, I am the athlete's legal guardian, and I sign it electronically. A copy goes to my email and stays in the family portal.</span></label>
+      <div class="sticky"><button class="btn pri full" id="signBtn" disabled>Sign and continue</button></div>
+    </div>
+    <div data-st="signed">
+      <div class="callout" style="margin-top:var(--s4)"><b>Signed.</b> Dana Reyes · Sep 7, 2026 · 9:41 AM · v3. The signed copy is in your inbox and your portal. Ava is covered for Fall 2026.</div>
+      <div class="sticky"><button class="btn pri full" data-go="done">Continue</button></div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ 6 · CONFIRMATION ═══ -->
+<div class="screen" data-sc="done" data-states="paid,paylater,director">
+  <div class="pbar"><span class="mark">NF</span><span class="nm">Northside Flight</span><span class="via">Registration by <b>Sporv</b></span></div>
+  <div class="wrap" style="max-width:560px">
+    <div data-st="paid,paylater"><div class="steps"><i class="on"></i><i class="on"></i><i class="on"></i></div>
+      <h2>Ava is registered</h2><p class="sub">14U Flight · Fall 2026. Everything below is in your email and your family portal.</p>
+      <div class="rcpt">
+        <div class="r"><span>Athlete</span><span>Ava Reyes · 14U Flight</span></div>
+        <div class="r"><span>Guardian</span><span>Dana Reyes</span></div>
+        <div class="r"><span>Waiver</span><span class="pill ok">Signed · v3</span></div>
+        <div class="r" data-st="paid"><span>Paid today</span><span class="money">$390.00</span></div>
+        <div class="r" data-st="paid"><span>Next</span><span class="money">$390 on Oct 15</span></div>
+        <div class="r" data-st="paylater"><span>Payment</span><span class="pill attn">Spot held 72h · link coming</span></div>
+        <div class="r"><span>First practice</span><span class="mono">Tue Sep 9 · 6:00 PM</span></div>
+      </div>
+      <div class="callout"><b>What happens next.</b> Coach Marcus sees Ava on the 14U roster now. Practice reminders come the day before. You can change payment method any time in the portal.</div>
+      <div class="sticky"><a class="btn pri full" href="#">Open the family portal</a><a class="btn ghost full" href="#" style="margin-top:var(--s2)">Register another athlete</a></div>
+    </div>
+    <div data-st="director">
+      <h2>What the director sees</h2><p class="sub">The registration lands in the queue as a finding, not as an email to read.</p>
+      <div class="dark">
+        <div style="display:flex;justify-content:space-between;gap:var(--s2);align-items:baseline"><b style="font-weight:500">New registration · Ava Reyes → 14U Flight</b><span class="mono" style="color:#6B7480;font-size:var(--t1)">9:41 AM</span></div>
+        <small>Guardian Dana Reyes · waiver v3 signed · $390 paid · 3 installments scheduled</small>
+        <div style="margin-top:var(--s2)"><span class="sig2">open link · nf-fall-2026 · first of 12 today</span></div>
+        <div style="margin-top:var(--s3);display:flex;gap:var(--s2)"><button class="btn sm" style="border-color:#2A323B;color:#EDEFF2">Add to roster</button><button class="btn sm" style="border-color:#2A323B;color:#9BA3AD">Review</button></div>
+        <small style="display:block;margin-top:var(--s2)">Age check passed (13y 4m, bracket 13–14). Nothing was sent to the family beyond the receipt.</small>
+      </div>
+    </div>
+  </div>
+</div>
+
+</div>
+<div class="note" id="note"></div>
+</div>
+
+<script>
+(function(){
+  const $=s=>document.querySelector(s), $$=s=>[...document.querySelectorAll(s)];
+  const NOTES={
+    org:"<b>Decisions:</b> public pages are light — families are the audience and it matches the marketing site; the product stays dark. Trust block shows only what Sporv can attest to from server state (checks on file as recorded by the club, the saved cancellation rule, 0% added). No reviews until collected through Sporv. States: open · fully booked · not accepting · no offerings.",
+    solo:"<b>Decision:</b> a solo trainer's page leads with their name and face; the org is invisible because for own-name orgs it's the same thing. Credentials render as text pills, never badges. Background check pill appears only when the server has a cleared result with a year.",
+    package:"<b>Credits are per family</b> and transferable between siblings. A held booking doesn't consume a credit until the session happens, so cancellations inside the window don't burn one. The refund rule is saved on the purchase. Trainer view is dark (inside the product); refund routes through the queue.",
+    slots:"<b>Mobile-first grid:</b> a horizontal day strip, then a slot grid for the chosen day, price and Continue pinned to the bottom. Slots are held 10 minutes. Full-day and no-availability states both offer a waitlist by text.",
+    reg:"<b>Decisions:</b> one guardian, N athletes in one pass (Add another athlete duplicates the block). Three payment paths including pay-later with a 72h hold — required at registration is a per-program setting, default off. Age is validated against the bracket on Continue.",
+    waiver:"<b>The signing moment:</b> full legal text in a scroll box; the sign button stays disabled until the box is scrolled to the end AND the name is typed AND the box is drawn on AND the checkbox is ticked. Timestamp, version, and signer are written on the record. Photo consent is explicitly a separate document.",
+    done:"<b>Family</b> gets a receipt-shaped confirmation with the first practice date. <b>Director</b> gets a queue finding with the signal chip (which link, count today) and an age-check result — not an email."
+  };
+  let screen="org", state=null;
+  function paintStates(){ const sc=$(`.screen[data-sc="${screen}"]`), sts=sc.dataset.states.split(","); state=sts[0];
+    const h=$("#states"); h.innerHTML='<span class="lab">State</span>'+sts.map((s,i)=>`<button class="${i?"":"on"}" data-st="${s}">${s}</button>`).join("");
+    h.querySelectorAll("button").forEach(b=>b.onclick=()=>{state=b.dataset.st;h.querySelectorAll("button").forEach(x=>x.classList.toggle("on",x===b));apply();}); apply(); }
+  function apply(){ const sc=$(`.screen[data-sc="${screen}"]`); sc.querySelectorAll("[data-st]").forEach(el=>el.classList.toggle("hidden",!el.dataset.st.split(",").includes(state))); $("#note").innerHTML=NOTES[screen]; }
+  function go(sc,st){ screen=sc; $$(".kit [data-sc]").forEach(x=>x.classList.toggle("on",x.dataset.sc===sc)); $$(".screen").forEach(s=>s.classList.toggle("on",s.dataset.sc===sc)); paintStates(); if(st){ state=st; $$("#states button").forEach(b=>b.classList.toggle("on",b.dataset.st===st)); apply(); } $("#frame").scrollIntoView({block:"start"}); }
+  $$(".kit [data-sc]").forEach(b=>b.onclick=()=>go(b.dataset.sc));
+  $$(".kit [data-w]").forEach(b=>b.onclick=()=>{ $$(".kit [data-w]").forEach(x=>x.classList.toggle("on",x===b)); $("#stage").classList.toggle("m",b.dataset.w==="m"); });
+  $$("[data-go]").forEach(b=>b.onclick=e=>{ e.preventDefault(); const t=b.dataset.go; if(t==="slots") go("slots"); else if(t==="waiver") go("waiver"); else if(t==="done") go("done"); else { state=t; $$("#states button").forEach(x=>x.classList.toggle("on",x.dataset.st===t)); apply(); } });
+
+  /* slots */
+  $$("#days .day:not(.off)").forEach(d=>d.onclick=()=>{ $$("#days .day").forEach(x=>x.classList.toggle("on",x===d)); });
+  $$("#slots .slot:not(.gone)").forEach(s=>s.onclick=()=>{ $$("#slots .slot").forEach(x=>x.classList.toggle("on",x===s)); $("#pick").textContent="Tue Sep 9 · "+s.textContent; $("#bookBtn").disabled=false; });
+
+  /* registration */
+  $("#addAthl").onclick=()=>{ const a=$("#athl .athl").cloneNode(true); a.querySelectorAll("input").forEach(i=>i.value=""); const rm=document.createElement("button"); rm.className="btn sm ghost rm"; rm.textContent="Remove"; rm.onclick=()=>a.remove(); a.appendChild(rm); $("#athl").appendChild(a); };
+
+  /* waiver gating */
+  let read=false,drawn=false;
+  const legal=$("#legal"); legal.addEventListener("scroll",()=>{ if(legal.scrollTop+legal.clientHeight>=legal.scrollHeight-8){ read=true; $("#readHint").textContent="Read to the end."; gate(); } });
+  const cv=$("#cv"), ctx=cv.getContext("2d"); let dr=false;
+  function size(){ const r=cv.getBoundingClientRect(); cv.width=r.width*devicePixelRatio; cv.height=r.height*devicePixelRatio; ctx.scale(devicePixelRatio,devicePixelRatio); ctx.lineWidth=2; ctx.lineCap="round"; ctx.strokeStyle="#0F1215"; }
+  new ResizeObserver(size).observe(cv);
+  const pos=e=>{ const r=cv.getBoundingClientRect(); const p=e.touches?e.touches[0]:e; return [p.clientX-r.left,p.clientY-r.top]; };
+  const down=e=>{ dr=true; const [x,y]=pos(e); ctx.beginPath(); ctx.moveTo(x,y); e.preventDefault(); };
+  const move=e=>{ if(!dr) return; const [x,y]=pos(e); ctx.lineTo(x,y); ctx.stroke(); drawn=true; $("#sigPh").classList.add("hide"); gate(); e.preventDefault(); };
+  const up=()=>{dr=false};
+  cv.addEventListener("mousedown",down); cv.addEventListener("mousemove",move); addEventListener("mouseup",up);
+  cv.addEventListener("touchstart",down,{passive:false}); cv.addEventListener("touchmove",move,{passive:false}); addEventListener("touchend",up);
+  $("#clr").onclick=()=>{ ctx.clearRect(0,0,cv.width,cv.height); drawn=false; $("#sigPh").classList.remove("hide"); gate(); };
+  $("#typed").addEventListener("input",gate); $("#agree").addEventListener("change",gate);
+  function gate(){ $("#signBtn").disabled=!(read&&drawn&&$("#typed").value.trim().length>2&&$("#agree").checked); }
+  $("#signBtn").onclick=()=>{ state="signed"; $$("#states button").forEach(x=>x.classList.toggle("on",x.dataset.st==="signed")); apply(); };
+
+  paintStates();
+})();
+</script>
+</body>
+</html>

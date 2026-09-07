@@ -15318,6 +15318,84 @@ function coachGateHTML(){
     </div>
   </div>`;
 }
+/* ═══ PUBLIC ORG PAGE (design batch 2, slice 1) ══════════════════════════
+   sporv.ai/?org=UUID — the link a club shares. LIGHT surface (owner ruling:
+   families are the audience). Reads only what anon can already read in prod:
+   approved providers and their published programs. The trust strip states
+   only server facts; there are no reviews because none were collected. */
+function loadPublicOrg(id){
+  if(S.pubOrg&&S.pubOrg.id===id&&(S.pubOrg.loaded||S.pubOrg.loading||S.pubOrg.error)) return;
+  S.pubOrg={id:id,loading:true};
+  if(!window.SporveAPI){S.pubOrg={id:id,error:"offline"};return;}
+  Promise.all([
+    window.SporveAPI.from("providers","select=id,business_name,bio,sports,location,provider_type,cancellation_policy,logo_url,avatar_url,background_check_status&id=eq."+id+"&status=eq.approved")
+      .catch(()=>null),
+    window.SporveAPI.from("programs","select=id,title,description,sport_type,age_group,price,currency,pricing_model,city,max_capacity,enrolled_count&provider_id=eq."+id+"&status=eq.published&order=title&limit=50")
+      .catch(()=>[]),
+  ]).then(([pv,progs])=>{
+    const org=Array.isArray(pv)&&pv[0]?pv[0]:null;
+    S.pubOrg=org?{id:id,loaded:true,org:org,programs:Array.isArray(progs)?progs:[]}
+                :{id:id,error:"notfound"};
+    render();
+  }).catch(()=>{S.pubOrg={id:id,error:"network"};render();});
+}
+function publicOrgHTML(id){
+  loadPublicOrg(id);
+  const st=S.pubOrg||{};
+  const head=(nm)=>`<div style="height:56px;display:flex;align-items:center;gap:12px;padding:0 16px;background:var(--paper);border-bottom:1px solid var(--rule)">
+      <span class="navlogo-crop"><img class="navlogo" src="${LOGO_SRC}" alt="Sporv" width="83" height="20"></span>
+      ${nm?`<b style="font-size:var(--text-base)">${esc(nm)}</b>`:""}
+      <span style="margin-left:auto;color:var(--faint);font-size:var(--text-xs)">Bookings by <b style="font-weight:700">Sporv</b></span></div>`;
+  if(st.loading||(!st.loaded&&!st.error)) return `${head("")}
+    <section class="band"><div class="in" style="max-width:640px;padding:72px 0;text-align:center;color:var(--muted)">Loading this organization…</div></section>`;
+  if(st.error) return `${head("")}
+    <section class="band"><div class="in" style="max-width:560px;padding:72px 0;text-align:center">
+      <h1 style="margin-bottom:10px">${st.error==="notfound"?"This page isn't available":"Couldn't load this page"}</h1>
+      <p style="color:var(--muted)">${st.error==="notfound"
+        ?"The organization may not be public yet. If a club sent you this link, ask them to check it."
+        :"This is usually a connection blip — try again in a moment."}</p></div></section>`;
+  const org=st.org, progs=st.programs||[];
+  const money=(p)=>{const n=+p.price||0;const cur=(p.currency||"USD")==="USD"?"$":(p.currency+" ");
+    return cur+(n%1?n.toFixed(2):n.toLocaleString());};
+  const per={per_session:"per session",package:"per package",monthly:"per month",per_person:"per athlete"};
+  const bg=org.background_check_status==="verified";
+  return `${head(org.business_name)}
+  <section class="band"><div class="in" style="max-width:900px;padding:40px 0 64px">
+    <p class="eyebrow">${esc((Array.isArray(org.sports)&&org.sports[0])||"Youth sports")}${org.location?` · ${esc(org.location)}`:""}</p>
+    <h1 style="margin:4px 0 8px">${esc(org.business_name)}</h1>
+    ${org.bio?`<p style="color:var(--muted);max-width:62ch;line-height:1.6">${esc(org.bio)}</p>`:""}
+    <div style="display:flex;gap:10px;margin-top:18px;flex-wrap:wrap">
+      <button class="btn" data-porg-join="1">Join this ${org.provider_type==="solo"?"trainer":"club"}</button>
+      <span style="align-self:center;color:var(--faint);font-size:var(--text-sm)">Already invited? Open the link your ${org.provider_type==="solo"?"trainer":"club"} sent you.</span>
+    </div>
+
+    <h2 style="margin-top:36px">Programs</h2>
+    ${progs.length?`<div class="panel" style="padding:0;overflow:hidden">
+      ${progs.map(p=>`<div style="display:flex;gap:12px;align-items:center;padding:14px 18px;border-bottom:1px solid var(--rule)">
+        <span style="flex:1;min-width:0"><b style="font-weight:600">${esc(p.title)}</b>
+          <span style="display:block;color:var(--faint);font-size:var(--text-sm);margin-top:1px">${esc([p.age_group,p.city].filter(Boolean).join(" · "))}</span></span>
+        <span style="text-align:right"><b class="num" style="font-size:var(--text-md)">${money(p)}</b>
+          <span style="display:block;color:var(--faint);font-size:var(--text-xs)">${per[p.pricing_model]||""}</span></span>
+      </div>`).join("")}
+    </div>`:`<div class="panel"><b style="font-weight:600">Nothing to book yet</b>
+      <p style="color:var(--muted);font-size:var(--text-sm);margin-top:4px">${esc(org.business_name)} hasn't published programs. If they sent you here, ask them for a registration link.</p></div>`}
+
+    <h2 style="margin-top:36px">What we can tell you</h2>
+    <div class="panel" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:18px">
+      <div><b class="num" style="font-size:var(--text-md)">${bg?"On file":"Not on record"}</b>
+        <p style="color:var(--faint);font-size:var(--text-sm);margin-top:2px">${bg
+          ?"A background check is recorded for this organization. Sporv records it; the provider runs it."
+          :"No background check has been recorded with Sporv for this organization."}</p></div>
+      <div><b class="num" style="font-size:var(--text-md)">${org.cancellation_policy?esc(org.cancellation_policy):"—"}</b>
+        <p style="color:var(--faint);font-size:var(--text-sm);margin-top:2px">${org.cancellation_policy
+          ?"Cancellation policy, saved on every booking — it can't change after you book."
+          :"No cancellation policy is published yet."}</p></div>
+      <div><b class="num" style="font-size:var(--text-md)">0%</b>
+        <p style="color:var(--faint);font-size:var(--text-sm);margin-top:2px">added by Sporv. You pay the organization's price; card processing runs on their own account.</p></div>
+    </div>
+    <p style="color:var(--faint);font-size:var(--text-sm);margin-top:14px">No reviews are shown because none have been collected through Sporv. We don't import them from elsewhere.</p>
+  </div></section>`;
+}
 function render(){
   const r=S.route;
   /* SET BEFORE ANY MARKUP IS BUILT. This assignment used to live ~50 lines
@@ -15393,6 +15471,7 @@ function render(){
   else if(r.name==="notifications") body=notifSettingsHTML();
   else if(r.name==="about") body=aboutHTML();
   else if(r.name==="info") body=infoHTML(r.arg||"help");
+  else if(r.name==="orgpage") body=publicOrgHTML(r.arg);
   else if(modView(r.name)) body=modView(r.name)();
   /* MARKETPLACE ROUTES KILLED (spec 01, 2026-08-31): explore, map, saved and
      assistant were parent-side discovery — rosters fill by invitation, not
@@ -16113,6 +16192,10 @@ document.querySelectorAll('.sig-ai-coach').forEach(sigAiCoachWire);
     S.pendingIntent={kind:"coachOnboard"};
     if(mode==="signup") doCoachSignUp(email,pw,""); else doSignIn(email,pw);
   });
+  $("[data-porg-join]").forEach(b=>b.onclick=()=>{
+    /* Family signup — the existing sheet; after signup the org connects them
+       with an invite link. Public registration is a later, RED-gated slice. */
+    S.modal={type:"authsheet"};render();});
   $("[data-cg-mode]").forEach(b=>b.onclick=()=>{
     S.cgMode=b.getAttribute("data-cg-mode");S.authError=null;render();});
   $("[data-cg-google]").forEach(b=>b.onclick=()=>{
@@ -19145,6 +19228,16 @@ function hydrateReturn(){
   try { q = new URLSearchParams(window.location.search); } catch(e){ return; }
   var bookingId = q.get("booking");
   var connect   = q.get("connect");
+  var orgId     = q.get("org");
+  if(orgId&&/^[0-9a-f-]{36}$/.test(orgId)){
+    scrub();
+    /* Render here: boot's first paint runs BEFORE hydrateReturn, so without
+       this the landing stays on screen under an updated route. The empty-pool
+       seed crashes this render used to trip are fixed at their source
+       (seedSlots/seedNotes/seedWaitlist/roster now seed empty, never throw). */
+    S.route={name:"orgpage",arg:orgId};render();
+    return;
+  }
   var invite    = q.get("invite");
   if(invite){
     scrub();
