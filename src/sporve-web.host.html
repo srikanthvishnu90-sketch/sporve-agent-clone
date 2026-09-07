@@ -10135,13 +10135,13 @@ function aiContext(){
     inbox:    ["Draft a reply to a parent"],
     schedule: ["What's on my schedule this week?","Message families about a change"],
   };
-  const LABEL={dashboard:"Home",roster:"Clients",inbox:"Messages",finances:"Earnings",
+  const LABEL={dashboard:"Home",roster:rosterLabel(),inbox:"Messages",finances:"Earnings",
                schedule:"Schedule",listings:"Listings",media:"Media",operations:"Operations",
                profile:"Settings",search:"Search"};
   /* The v2 header's context-action — the surface-relevant view, deep-linked to a
      real coach tab. Each maps to a tab data-ctab already routes to. */
   const CTXACT={dashboard:{label:"View schedule",tab:"schedule"},schedule:{label:"View schedule",tab:"schedule"},
-    roster:{label:"View clients",tab:"roster"},inbox:{label:"View messages",tab:"inbox"},
+    roster:{label:"View "+rosterLabel().toLowerCase(),tab:"roster"},inbox:{label:"View messages",tab:"inbox"},
     listings:{label:"View listings",tab:"listings"},media:{label:"View media",tab:"media"}};
   return {label:LABEL[t]||t, chips:MAP[t]||["What needs my attention today?"], ctxAction:CTXACT[t]||null};
 }
@@ -10762,7 +10762,7 @@ function coachHTML(){
   /* The gate sits here, above every branch, so a private tab cannot be reached
      by any route that sets S.coachTab — including module code and the AI bar. */
   if(isCoachGuest()&&COACH_PRIVATE[t]){
-    const label=(modCoachTabs().concat([["finances","Earnings"],["roster","Clients"],
+    const label=(modCoachTabs().concat([["finances","Earnings"],["roster",rosterLabel()],
       ["inbox","Messages"]]).find(x=>x[0]===t)||[t,t])[1];
     return coachLockHTML(label,COACH_PRIVATE[t]);
   }
@@ -10796,11 +10796,11 @@ function coachHTML(){
      their modules — the back office is queue, clients, money. */
   const GROUPS=[
     [null,      [["queue","Queue"],["dashboard","Home"]]],
-    ["Clients", [["roster","Clients"],["inbox","Messages"],["schedule","Schedule"]]],
+    [rosterLabel(), [["roster",rosterLabel()],["inbox","Messages"],["schedule","Schedule"]]],
     ["Business",[["finances","Earnings"],["approvals","Approvals"],["operations","Operations"],["billing","Billing"]]],
   ];
   const core=[["dashboard","Home"],["schedule","Schedule"],
-              ["roster","Clients"],["inbox","Messages"],
+              ["roster",rosterLabel()],["inbox","Messages"],
               ["finances","Earnings"],["operations","Operations"],["billing","Billing"]];
   const extra=modCoachTabs().filter(([k])=>!core.some(c=>c[0]===k));
   const gs=gettingStarted();
@@ -11480,10 +11480,10 @@ function coachClientsPage(){
       title:SEED.teams[0].name,
       subtitle:"Clients currently attached to this team; payment status comes from each loaded relationship.",
       body:ui.DataTable({
-        columns:[{key:"client",label:"Client"},{key:"jersey",label:"Jersey",mono:true},{key:"available",label:"Available"},{key:"payment",label:"Payment"},{key:"actions",label:"Actions"}],
+        columns:[{key:"client",label:"Client"},{key:"jersey",label:sportField().label,mono:true},{key:"available",label:"Available"},{key:"payment",label:"Payment"},{key:"actions",label:"Actions"}],
         rows:roster.map((row,index)=>({
           client:ui.html(`<b>${esc(row.name)}</b>${row.guardian?`<small>${esc(row.guardian)}</small>`:""}`),
-          jersey:"#"+String(row.jersey||"—"),
+          jersey:(sportField().key==="jersey"&&sportField().label==="Jersey"?"#":"")+String(row.jersey||"—"),
           available:ui.html(`<span class="cui-badge ${row.available?"cui-badge--good":"cui-badge--warn"}">${row.available?"Yes":"No"}</span>`),
           payment:ui.html(`<span class="cui-badge ${row.paid?"cui-badge--good":"cui-badge--warn"}">${row.paid?"Paid":row.payState==="sent"?"Link sent":"Unpaid"}</span>`),
           actions:row.paid?"—":ui.html(ui.Button({label:row.payState==="sent"?"Mark paid":"Send payment link",size:"sm",variant:"secondary",attrs:row.payState==="sent"?`data-simpaid="${index}"`:`data-paylink="${index}"`})),
@@ -11997,6 +11997,38 @@ function vocab(k){
   return (v[k]&&String(v[k]).trim())||d[k]||k;
 }
 function setKVget(k,d){return (S.setKV&&S.setKV[k]&&S.setKV[k].value)!==undefined&&S.setKV[k]?S.setKV[k].value:d;}
+/* THE SPINE (segments plan, owner-ratified 2026-09-07): the door writes
+   provider_settings.org_shape; this is the read-back that makes the platform
+   branch on it. One platform, one queue — the shape only decides labels and
+   which modules render, never which product they got. */
+function orgShape(){
+  const v=setKVget("org_shape",null);
+  return (v&&v.shape)||(S.setupWiz&&S.setupWiz.orgShape)||null;
+}
+function rosterLabel(){
+  return {private:"Clients",club:"Roster",camp:"Campers"}[orgShape()]||"Clients";
+}
+/* ALL-SPORTS field pack (owner 2026-09-07: every sport exists, every feature
+   fits every sport). One generic mechanism: the org's sport names the roster
+   identity column; unmapped sports keep Jersey. Lookup is case-insensitive
+   because sports arrive from free text and extraction. */
+const SPORT_FIELD={
+  swimming:{key:"jersey",label:"Event"},diving:{key:"jersey",label:"Event"},
+  "track & field":{key:"jersey",label:"Event"},"cross country":{key:"jersey",label:"Event"},
+  crew:{key:"jersey",label:"Boat"},surfing:{key:"jersey",label:"Division"},
+  tennis:{key:"jersey",label:"Rating"},squash:{key:"jersey",label:"Rating"},
+  badminton:{key:"jersey",label:"Rating"},pickleball:{key:"jersey",label:"Rating"},
+  "table tennis":{key:"jersey",label:"Rating"},golf:{key:"jersey",label:"Handicap"},
+  "martial arts":{key:"jersey",label:"Belt"},karate:{key:"jersey",label:"Belt"},
+  judo:{key:"jersey",label:"Belt"},taekwondo:{key:"jersey",label:"Belt"},
+  boxing:{key:"jersey",label:"Weight class"},wrestling:{key:"jersey",label:"Weight class"},
+  gymnastics:{key:"jersey",label:"Level"},dance:{key:"jersey",label:"Level"},
+  cheerleading:{key:"jersey",label:"Squad"},
+};
+function sportField(){
+  const sp=String((S.coachProvider&&Array.isArray(S.coachProvider.sports)&&S.coachProvider.sports[0])||"").toLowerCase().trim();
+  return SPORT_FIELD[sp]||{key:"jersey",label:"Jersey"};
+}
 function setJobMode(k){return (S.setPrefs&&S.setPrefs[k]&&S.setPrefs[k].mode)||"draft";}
 function coachSettingsPage(){
   loadOrgSettings();
@@ -12088,6 +12120,8 @@ function coachSettingsPage(){
     <div class="stcard">
       ${row("Name","Appears on messages and receipts.",`<input class="stin" id="stOrgName" value="${esc(pv.business_name||"")}">`)}
       ${row("Timezone","Drives the sending window.",`<select class="stin" id="stTz">${["America/Chicago","America/New_York","America/Denver","America/Los_Angeles"].map(z=>`<option ${((setKVget("org_tz",{})||{}).tz||"America/Chicago")===z?"selected":""}>${z}</option>`).join("")}</select>`)}
+      ${row("Organization type","Decides the words and modules you see — a trainer runs clients, a club runs a roster, a camp runs campers. Changeable anytime, exactly as the setup door promised.",
+        `<span class="stchips">${[["private","Private training"],["club","Team / club"],["camp","Camp / clinic"]].map(([v,l])=>`<button class="stchip ${orgShape()===v?"on":""}" data-stshape="${v}">${l}</button>`).join("")}</span>`)}
       ${row("What do you call a group?","Used across the app — Team, Squad, Class, Cohort…",`<input class="stin" id="stVocabGroup" value="${esc(((setKVget("vocab",{})||{}).group)||"Team")}" style="width:140px">`)}
       ${row("Calendar shape","Seasonal orgs roll over by season; continuous orgs bill and check credentials on a rolling 12 months.",
         `<span class="stchips">${[["seasonal","Seasonal"],["continuous","Continuous"]].map(([v,l])=>`<button class="stchip ${((setKVget("calendar_shape",{})||{}).shape||"seasonal")===v?"on":""}" data-stcal="${v}">${l}</button>`).join("")}</span>`)}
@@ -16633,6 +16667,10 @@ document.querySelectorAll('.sig-ai-coach').forEach(sigAiCoachWire);
   if(stEx) stEx.onchange=()=>{if(!stEx.value)return;
     const cur=(setKVget("auto_exclude_guardians",[])||[]).concat([stEx.value]);
     kvSave("auto_exclude_guardians",cur,"This family will always get drafts, never auto-sends.");};
+  $("[data-stshape]").forEach(c=>c.onclick=()=>kvSave("org_shape",{shape:c.dataset.stshape},
+    {private:"Private training — clients, packages, per-session billing.",
+     club:"Team / club — roster, seasons, dues in installments.",
+     camp:"Camp / clinic — campers, fixed window, upfront charge."}[c.dataset.stshape]));
   $("[data-stcal]").forEach(c=>c.onclick=()=>kvSave("calendar_shape",{shape:c.dataset.stcal},
     c.dataset.stcal==="continuous"?"Continuous — rolling 12-month credential checks and billing.":"Seasonal — rollover and expiry follow your seasons."));
   $("#stDays button").forEach(d=>d.onclick=()=>{
