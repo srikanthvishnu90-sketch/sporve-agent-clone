@@ -13423,8 +13423,13 @@ function modalHTML(){
       <div class="imp-actions" style="margin-top:14px">
         <button class="btn" data-suw-next="1">Continue</button></div>`);
     }
-    if(w.step===1) return wrapS("Set up your club",`
-      <p class="imp-sub">Paste your club's public website and the agent reads it —
+    if(w.step===1){
+      /* The heading speaks the DOOR's noun — a trainer just said they run a
+         practice, and "Set up your club" told them we weren't listening
+         (signup review, owner 2026-09-07). */
+      const noun={private:"practice",club:"club",camp:"camp"}[w.orgShape]||"organization";
+      return wrapS("Set up your "+noun,`
+      <p class="imp-sub">Paste your ${noun==="club"?"club's":"organization's"} public website and the agent reads it —
         sport, teams, season, published fees. No site? Paste any description —
         a flyer, a welcome email, a paragraph. It only drafts: you confirm every
         line on the next screen before anything is saved.</p>
@@ -13437,7 +13442,7 @@ function modalHTML(){
         <div class="imp-actions" style="margin-top:12px">
           <button class="btn" type="submit" ${w.busy?"disabled":""}>${w.busy?"Reading…":"Draft my club"}</button>
           <button class="btn ghost sm" type="button" data-suw-skip="1">I'll enter it by hand</button></div>
-      </form>`);
+      </form>`);}
     if(w.step===2&&w.orgShape==="private"){
       /* A private coach has no season and no teams — asking for them here
          would be the door lying. Name + discipline, then straight to clients. */
