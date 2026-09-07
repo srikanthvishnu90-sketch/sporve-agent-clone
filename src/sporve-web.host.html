@@ -7135,6 +7135,15 @@ const INTENTS = {
   /* Was startCoachOnboarding(), which flipped the portal and showed the seeded
      Apex dashboard. Now creates the coach's OWN provider row first. */
   coachOnboard: () => enterCoachWorkspace(),
+  /* Build 2 (segments plan): a family opened sporv.ai/?invite=TOKEN. The RPC
+     is single-use, expiry-checked, and SECURITY DEFINER (prod, previously
+     zero callers). Runs after auth so it survives the signup round-trip. */
+  redeemInvite: a => {
+    if(!(window.SporveAPI&&window.SporveAPI.isSignedIn&&window.SporveAPI.isSignedIn())) return;
+    window.SporveAPI.rpc("redeem_coach_invite",{p_token:a.token})
+      .then(()=>{toast("Invite accepted — you're connected to the club.");})
+      .catch(e=>{toast((e&&e.message)||"That invite can't be used.");});
+  },
 };
 function runIntent(intent){
   if(!intent) return;
@@ -11462,14 +11471,29 @@ function coachHomePage(){
   });
 }
 
+/* Live invites (build 2): tokens the enforce_coach_invite trigger filled but
+   nothing ever read back. RLS scopes the select to the owner's org. */
+function loadCoachInvites(){
+  const pv=S.coachProvider;
+  if(S.invLoading||S.invLoaded) return;
+  if(!(pv&&pv.id&&window.SporveAPI&&window.SporveAPI.isSignedIn&&window.SporveAPI.isSignedIn())) return;
+  S.invLoading=true;
+  window.SporveAPI.from("coach_invites",
+    "select=id,invited_email,status,token,created_at&provider_id=eq."+pv.id+"&order=created_at.desc&limit=100")
+    .then(rows=>{if(Array.isArray(rows)){S.coachInvites=rows;S.invLoaded=true;render();}})
+    .catch(()=>{}).finally(()=>{S.invLoading=false;});
+}
 function coachClientsPage(){
   const ui=window.COACH_UI;
+  loadCoachInvites();
   const roster=teamRoster();
   const requests=(S.waitlistEntries||[]).slice();
   const history=(S.bookings||[]).slice();
+  const invites=(S.coachInvites||[]);
   const tabs=[
-    {key:"roster",label:"Roster",count:roster.length},
+    {key:"roster",label:rosterLabel(),count:roster.length},
     {key:"requests",label:"Requests",count:requests.filter(r=>r.status==="waiting").length},
+    {key:"invites",label:"Invites",count:invites.filter(i=>i.status==="pending").length},
     {key:"import",label:"Import"},
     {key:"history",label:"History",count:history.length},
   ];
@@ -11523,6 +11547,24 @@ function coachClientsPage(){
         }),
         emptyTitle:"No open requests",emptyBody:"New roster and waitlist requests will appear here.",
       }),
+    });
+  } else if(active==="invites"){
+    const invites=(S.coachInvites||[]);
+    body+=ui.Block({
+      title:"Invite links",
+      subtitle:"Each family gets its own single-use link. The links are yours to send — by text, email, or group chat. Sporv emails nothing on its own.",
+      body:invites.length?ui.DataTable({
+        columns:[{key:"email",label:"Family"},{key:"status",label:"Status"},{key:"created",label:"Created"},{key:"actions",label:"Link"}],
+        rows:invites.map(iv=>({
+          email:ui.html(`<b>${esc(iv.invited_email||"—")}</b>`),
+          status:ui.html(`<span class="cui-badge ${iv.status==="accepted"?"cui-badge--good":iv.status==="pending"?"":"cui-badge--warn"}">${esc(iv.status)}</span>`),
+          created:iv.created_at?String(iv.created_at).slice(0,10):"—",
+          actions:iv.status==="pending"&&iv.token
+            ?ui.html(ui.Button({label:"Copy link",size:"sm",variant:"secondary",attrs:`data-invcopy="${esc(iv.token)}"`}))
+            :"—",
+        })),
+      }):`<div class="empty" style="padding:36px 20px"><h3>No invites yet</h3>
+        <p style="margin-top:6px">Send invites from the Import tab — each becomes a copyable link here.</p></div>`,
     });
   } else if(active==="import"){
     body=ui.Block({
@@ -16098,8 +16140,18 @@ document.querySelectorAll('.sig-ai-coach').forEach(sigAiCoachWire);
         {method:"POST",body:{provider_id:pv.id,invited_email:p.email}});}catch(_){/* surfaced in toast below */}});
     }
     S.importedClients=[...(S.importedClients||[]),...people.map(p=>p.email)];
-    const n=people.length; S.modal=null; S.importWiz=null; render();
-    toast(n+" invite"+(n===1?"":"s")+" sent");
+    const n=people.length; S.modal=null; S.importWiz=null;
+    /* Honest copy (build 2): creating a row SENDS nothing — the coach shares
+       each link themselves from the Invites tab, which we open on. */
+    S.invLoaded=false; S.clientsPageTab="invites"; render();
+    loadCoachInvites();
+    toast(n+" invite link"+(n===1?"":"s")+" created — copy each family's link below. Nothing was emailed.");
+  });
+  $("[data-invcopy]").forEach(b=>b.onclick=()=>{
+    const url=window.location.origin+"/?invite="+b.dataset.invcopy;
+    const done=()=>toast("Link copied — send it to the family however you normally reach them.");
+    if(navigator.clipboard&&navigator.clipboard.writeText){navigator.clipboard.writeText(url).then(done).catch(()=>{prompt("Copy this link:",url);});}
+    else prompt("Copy this link:",url);
   });
   /* SPEC-01 CSV import handlers. Parse → map → dry-run → commit → done/undo.
      Commit writes SHADOW records only (never real athletes rows) and sends
@@ -18958,6 +19010,19 @@ function hydrateReturn(){
   try { q = new URLSearchParams(window.location.search); } catch(e){ return; }
   var bookingId = q.get("booking");
   var connect   = q.get("connect");
+  var invite    = q.get("invite");
+  if(invite){
+    scrub();
+    /* Signed in: redeem now. Signed out: park the intent — the replayer fires
+       it the moment auth completes, exactly like a parked booking. */
+    if(window.SporveAPI&&window.SporveAPI.isSignedIn&&window.SporveAPI.isSignedIn()){
+      runIntent({kind:"redeemInvite",token:invite});
+    } else {
+      S.pendingIntent={kind:"redeemInvite",token:invite};
+      S.modal={type:"authsheet"};render();
+    }
+    return;
+  }
   /* mod-booking.js sends BOTH successUrl (paid=1) and cancelUrl (paid=0). This
      read was missing, so an abandoned checkout came back through the identical
      path as a completed one and the modal announced "Payment received — Stripe
