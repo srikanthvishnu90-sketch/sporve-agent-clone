@@ -1209,7 +1209,12 @@ img{max-width:100%;display:block}
 /* 54px with text-lg made the column read as a phone form blown up on a
    desktop. 44px is still the accessible touch floor, and text-base is the
    size every other input on the site uses. */
-.cg-input{width:100%;height:44px;padding:0 14px;border-radius:10px;border:1px solid #2A333F;background:#14181D;color:#F7F9FF;font-family:var(--sans);font-size:var(--text-base)}
+.cg-input{width:100%;height:44px;padding:0 14px;border-radius:10px;border:1px solid #2A333F;background:#14181D;color:#F7F9FF;font-family:var(--sans);font-size:var(--text-sm)}
+/* #app-scoped so the typed text actually lands at --text-sm (owner 2026-09-07
+   "smaller"): a bare class loses to the app-level input sizing. Same pattern
+   as the hero-search cell. */
+#app .cg-input{font-size:var(--text-sm)}
+#app .cg-fine.cg-flip,#app .cg-fine.cg-flip button{font-size:var(--text-md)}
 .cg-input::placeholder{color:#8290A0}
 .cg-input:focus{outline:none;border-color:#8FA3BC}
 .coachgate .pw-eye{color:#8290A0}
@@ -1259,13 +1264,20 @@ img{max-width:100%;display:block}
 .cg-social:active{background:#222A33}
 .cg-social:focus-visible,.cg-continue:focus-visible,.cg-input:focus-visible{outline:2px solid #8FA3BC;outline-offset:2px}
 .cg-social:disabled{opacity:.45;cursor:not-allowed}
-.cg-social--light{background:#FFFFFF;color:#0A0C0F;border-color:#FFFFFF}
+/* Google sign-in branding: the label renders in Roboto Medium per Google's
+   button guidelines ("Continue with Google" wording, Roboto with Arial
+   fallback). Roboto is not embedded (CSP), so the stack falls to Arial —
+   Google's own sample CSS uses the same fallback. */
+.cg-social--light{background:#FFFFFF;color:#0A0C0F;border-color:#FFFFFF;font-family:'Roboto',Arial,sans-serif;font-weight:500}
 .cg-social--light:hover{background:#E9EEF4;border-color:#E9EEF4}
 .cg-social--light:active{background:#DCE4EC;border-color:#DCE4EC}
 .cg-social-ic{position:absolute;left:14px;display:grid;place-items:center;width:20px;height:20px}
 .cg-sq{width:54px;height:54px;border-radius:12px;border:1px solid #2A333F;background:#14181D;color:#F7F9FF;display:grid;place-items:center;cursor:pointer;transition:background .15s}
 .cg-sq:hover{background:#1B2027}
 .cg-fine{margin-top:26px;color:#8FA3BC;font-family:var(--sans);font-size:var(--text-sm)}
+/* The create/log-in flip is a primary path, not fine print (owner 2026-09-07). */
+.cg-fine.cg-flip{font-size:var(--text-base)}
+.cg-fine.cg-flip button{font-size:var(--text-base)}
 .cg-fine button{background:none;border:0;color:#F7F9FF;cursor:pointer;text-decoration:underline;font:inherit}
 .cg-right{position:relative;overflow:hidden;background:#000;display:grid;place-items:center}
 .cg-welcome{font-family:var(--serif);font-weight:400;font-size:var(--text-hero);color:#F7F9FF;letter-spacing:-.02em;text-align:center;padding:24px;line-height:1.05}
@@ -13270,6 +13282,45 @@ function modalHTML(){
       ${door("camp","Camp / clinic","A fixed window, capacity, one upfront charge per camper.")}
       <button type="button" class="lnk" data-suw-door="scratch" style="margin-top:14px;display:block">Start from scratch instead</button>`);
     }
+    /* NAME step (owner 2026-09-07): asked right after the door, with wording
+       that matches what they just said they run — a club is "called"
+       something; a solo trainer may have no business name at all and goes by
+       their own name instead. Moved here FROM the signup screen so the gate
+       asks for identity only. */
+    if(w.step==="name"){
+      const shape=w.orgShape||"scratch";
+      const COPY={
+        private:{h:"What's your training business called?",ph:"e.g. Peak Form Training",
+          sub:"This is the name families see on messages and payments."},
+        club:{h:"What's your club called?",ph:"e.g. Rivertown FC",
+          sub:"This is the name families see on messages, dues and payments."},
+        camp:{h:"What's your camp or clinic called?",ph:"e.g. Summit Hoops Camp",
+          sub:"This is the name families see on messages and payments."},
+        scratch:{h:"What's your organization called?",ph:"e.g. Northside Athletics",
+          sub:"This is the name families see on messages and payments."}}[shape];
+      const own=!!w.ownName;
+      return wrapS(COPY.h,`
+      <p class="imp-sub">${COPY.sub} You can change it anytime in Settings.</p>
+      <form id="suwNameForm">
+        ${own?`
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:12px">
+          <div class="field"><label>Your first name</label><input name="first" value="${esc(w.ownFirst||"")}" required></div>
+          <div class="field"><label>Your last name</label><input name="last" value="${esc(w.ownLast||"")}" required></div>
+        </div>
+        <p class="imp-sub" style="margin-top:2px">Families will see your own name — e.g. <b style="color:var(--ink)">Coach ${esc(w.ownFirst||"…")}</b>.</p>`
+        :`
+        <div class="field" style="margin-top:12px"><label>Name</label>
+          <input name="orgname" placeholder="${esc(COPY.ph)}" value="${esc(w.orgName||"")}" ${w.busy?"disabled":""} required></div>`}
+        <div id="suwErr" class="err ${w.err?"":"hide"}" style="margin:8px 0">${esc(w.err||"")}</div>
+        <div class="imp-actions" style="margin-top:12px">
+          <button class="btn ghost sm" type="button" data-suw-name-back="1">Back</button>
+          <button class="btn" type="submit" ${w.busy?"disabled":""}>${w.busy?"Saving…":"Continue"}</button></div>
+        ${shape==="private"||shape==="scratch"?`
+        <button type="button" class="lnk" data-suw-ownname="${own?"0":"1"}" style="margin-top:12px;display:block">${own
+          ?"Actually, I do have a business name"
+          :"I don't have a business name — I go by my own name"}</button>`:""}
+      </form>`);
+    }
     if(w.step===0){
       const shape=w.calShape||"seasonal", noun=w.groupNoun||"Team", bill=w.billShape||"team";
       return wrapS(w.orgShape&&w.orgShape!=="scratch"?"Confirm the shape":"Three quick questions",`
@@ -15056,8 +15107,10 @@ function coachGateHTML(){
       ${/* EXPLICIT MODE, not the blank-name rule (spec 2026-09-05 §3.2): the
            old copy asked people to decode "leave the name blank to sign in".
            S.cgMode now says which form this is; the footer link flips it.
-           Organization name is asked at signup because providers.business_name
-           is NOT NULL — it is the one field required to create the row at all.
+           Organization name is NOT asked here (owner 2026-09-07): it moved to
+           the wizard's door step, where the label can match the program type
+           and a solo trainer can say they go by their own name. The provider
+           row is created with the account rail's fallback and renamed there.
            autocomplete stays OFF on identity fields by owner ruling 2026-09-04
            ("no accounts/emails remembered whatsoever"), which supersedes the
            spec's autocomplete guidance. */""}
@@ -15066,12 +15119,9 @@ function coachGateHTML(){
         <input class="cg-input" id="cgId" type="email" placeholder="Email address" autocomplete="off" inputmode="email" autocapitalize="off" spellcheck="false" required>
         <label class="cg-sr" for="cgPw">Password</label>
         <div class="pw-wrap"><input class="cg-input" id="cgPw" type="password" placeholder="Password" autocomplete="off" minlength="12" required><button type="button" class="pw-eye" aria-label="Show password"><svg class="eye-on" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7-10-7-10-7z"/><circle cx="12" cy="12" r="3"/></svg><svg class="eye-off" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3l18 18M10.6 10.6a3 3 0 004.24 4.24M9.9 5.2A9.4 9.4 0 0112 5c6.4 0 10 7 10 7a17.3 17.3 0 01-3.3 4.1M6.1 6.2A17.3 17.3 0 002 12s3.6 7 10 7a9.5 9.5 0 003.6-.7"/></svg></button></div>
-        ${(S.cgMode||"signup")==="login"?"":`
-        <label class="cg-sr" for="cgBiz">Organization name</label>
-        <input class="cg-input" id="cgBiz" type="text" placeholder="Organization name" autocomplete="off" required>`}
         ${S.authError?`<div class="err" role="alert" style="margin:2px 0 6px">${esc(S.authError)}</div>`:""}
         <button class="cg-continue" id="cgGo" type="submit" disabled>${S.authBusy?"Working…":((S.cgMode||"signup")==="login"?"Log in":"Create account")}</button>
-        <p class="cg-fine" style="margin-top:10px">${(S.cgMode||"signup")==="login"
+        <p class="cg-fine cg-flip" style="margin-top:12px">${(S.cgMode||"signup")==="login"
           ?`New to Sporv? <button type="button" data-cg-mode="signup">Create an account</button>`
           :`Already have an account? <button type="button" data-cg-mode="login">Log in</button>`}</p>
       </form>
@@ -15865,15 +15915,13 @@ document.querySelectorAll('.sig-ai-coach').forEach(sigAiCoachWire);
   const cgOk=()=>{
     const em=(document.getElementById("cgId")||{}).value||"";
     const pw=(document.getElementById("cgPw")||{}).value||"";
-    const biz=((document.getElementById("cgBiz")||{}).value||"").trim();
-    const needBiz=(S.cgMode||"signup")==="signup";
-    return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(em.trim()) && pw.length>=12 && (!needBiz||biz.length>0);
+    return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(em.trim()) && pw.length>=12;
   };
   const cgSync=()=>{
     const b=document.getElementById("cgGo");
     if(b) b.disabled=S.authBusy||!cgOk();
   };
-  ["cgId","cgPw","cgBiz"].forEach(id=>{
+  ["cgId","cgPw"].forEach(id=>{
     const el=document.getElementById(id);
     if(el) el.oninput=cgSync;
   });
@@ -15886,7 +15934,6 @@ document.querySelectorAll('.sig-ai-coach').forEach(sigAiCoachWire);
   $("#cgForm").forEach(f=>f.onsubmit=e=>{e.preventDefault();
     const email=((document.getElementById("cgId")||{}).value||"").trim();
     const pw=((document.getElementById("cgPw")||{}).value||"");
-    const biz=((document.getElementById("cgBiz")||{}).value||"").trim();
     /* HARD GATE (owner 2026-09-05): Enter must not advance an invalid form.
        The disabled button already blocks clicks; this blocks the implicit
        Enter-key submission path too, with a visible reason. */
@@ -15895,13 +15942,13 @@ document.querySelectorAll('.sig-ai-coach').forEach(sigAiCoachWire);
     if(pw.length<12){
       S.authError="Password must be at least 12 characters.";render();return;}
     /* The MODE says what this form does — never inferred from which fields
-       happen to be filled (the old blank-name rule, deleted per spec §3.2). */
+       happen to be filled (the old blank-name rule, deleted per spec §3.2).
+       No name is asked here (owner 2026-09-07): the wizard's door step names
+       the organization with wording that matches the program type. */
     const mode=S.cgMode||"signup";
-    if(mode==="signup"&&!biz){
-      S.authError="Enter your organization's name.";render();return;}
     S.authError=null;
     S.pendingIntent={kind:"coachOnboard"};
-    if(mode==="signup") doCoachSignUp(email,pw,biz); else doSignIn(email,pw);
+    if(mode==="signup") doCoachSignUp(email,pw,""); else doSignIn(email,pw);
   });
   $("[data-cg-mode]").forEach(b=>b.onclick=()=>{
     S.cgMode=b.getAttribute("data-cg-mode");S.authError=null;render();});
@@ -16204,7 +16251,41 @@ document.querySelectorAll('.sig-ai-coach').forEach(sigAiCoachWire);
         method:"POST",headers:{Prefer:"resolution=merge-duplicates"},
         body:{provider_id:S.coachProvider.id,key:"org_shape",value:{shape:k}}}).catch(()=>{});
     }
-    w.step=0;render();});
+    /* Name comes right after the door (owner 2026-09-07) — the question can
+       now match the type they just picked. Prefill with the current row's
+       name unless it is still the account rail's placeholder. */
+    const pv=S.coachProvider;
+    const cur=(pv&&pv.business_name)||"";
+    w.orgName=(cur&&cur!=="My coaching business")?cur:"";
+    w.step="name";render();});
+  $("[data-suw-ownname]").forEach(b=>b.onclick=()=>{
+    const w=S.setupWiz;if(!w)return;
+    w.ownName=b.dataset.suwOwnname==="1";w.err=null;render();});
+  $("[data-suw-name-back]").forEach(b=>b.onclick=()=>{
+    const w=S.setupWiz;if(!w)return;w.step=-1;w.err=null;render();});
+  const suwN=document.getElementById("suwNameForm");
+  if(suwN) suwN.onsubmit=e=>{
+    e.preventDefault();
+    const w=S.setupWiz;if(!w||w.busy)return;
+    const d=Object.fromEntries(new FormData(suwN));
+    let name="";
+    if(w.ownName){
+      w.ownFirst=String(d.first||"").trim();w.ownLast=String(d.last||"").trim();
+      if(!w.ownFirst||!w.ownLast){w.err="Enter your first and last name.";render();return;}
+      name=(w.ownFirst+" "+w.ownLast).trim();
+    }else{
+      name=String(d.orgname||"").trim();
+      if(!name){w.err="Enter a name, or choose the own-name option below.";render();return;}
+    }
+    w.orgName=name;
+    const done=()=>{w.busy=false;w.step=0;render();};
+    if(window.SporveCoach&&window.SporveCoach.save&&realSignedIn()){
+      w.busy=true;w.err=null;render();
+      window.SporveCoach.save({business_name:name}).then(()=>{
+        if(S.coachProvider)S.coachProvider.business_name=name;done();
+      },()=>{w.busy=false;w.err="Could not save the name — check your connection and try again.";render();});
+    } else done();
+  };
   $("[data-suw-close]").forEach(b=>b.onclick=()=>{
     /* Close is only reachable on step 5 ("Done" / "Finish setup"), so closing
        IS completing: write the lock. Optimistic local flip so the router gate
