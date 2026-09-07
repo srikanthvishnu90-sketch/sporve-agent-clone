@@ -1,0 +1,404 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Sporv — Design kit · batch 1</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Roboto+Condensed:wght@700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@500&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#0A0C0F;--panel:#0F1216;--panel-2:#14181D;--raise:#1A1F25;
+    --line:#1E242B;--line-2:#2A323B;
+    --ink:#EDEFF2;--ink-2:#9BA3AD;--ink-3:#6B7480;
+    --steel:#6B7F9E;--steel-l:#9DB0CB;--steel-bg:rgba(107,127,158,.12);--steel-br:rgba(107,127,158,.34);
+    --ok:#6FA982;--ok-bg:rgba(111,169,130,.12);--ok-br:rgba(111,169,130,.28);
+    --attn:#8EC5E8;--attn-bg:rgba(142,197,232,.10);--attn-br:rgba(142,197,232,.28);
+    /* the scale — nothing else */
+    --t0:10px;--t1:10.5px;--t2:12.5px;--t3:13.5px;--t4:15.5px;
+    --h1:clamp(17px,2vw,20px);--h2:clamp(13.5px,1.4vw,15.5px);
+    --s1:4px;--s2:8px;--s3:12px;--s4:16px;--s5:24px;--s6:32px;--s7:48px;
+  }
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  body{margin:0;background:#050607;color:var(--ink);font-family:Inter,system-ui,sans-serif;font-size:var(--t3);line-height:1.5;-webkit-font-smoothing:antialiased}
+  button,input,textarea{font:inherit;color:inherit;background:none;border:0}button{cursor:pointer}
+  .rc{font-family:"Roboto Condensed",sans-serif;text-transform:uppercase;font-weight:700}
+  .mono{font-family:"JetBrains Mono",monospace;font-weight:500;font-variant-numeric:tabular-nums}
+  svg.i{width:16px;height:16px;stroke:currentColor;fill:none;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round;flex:none}
+
+  /* ── kit chrome ── */
+  .kit{position:sticky;top:0;z-index:50;background:rgba(5,6,7,.94);backdrop-filter:blur(10px);border-bottom:1px solid var(--line);display:flex;gap:var(--s2);padding:var(--s2) var(--s4);align-items:center;flex-wrap:wrap}
+  .kit .g{display:flex;gap:var(--s1);align-items:center}
+  .kit .lab{font-family:"JetBrains Mono",monospace;font-size:var(--t0);letter-spacing:.12em;text-transform:uppercase;color:var(--ink-3);margin-right:var(--s1)}
+  .kit button{height:28px;padding:0 10px;border:1px solid var(--line-2);border-radius:999px;font-size:var(--t2);color:var(--ink-2)}
+  .kit button.on{background:var(--ink);color:var(--bg);border-color:var(--ink);font-weight:500}
+  .kit .sp{flex:1}
+  .stage{padding:var(--s6) var(--s4) 120px;display:grid;place-items:start center}
+  .frame{width:100%;max-width:1040px;background:var(--bg);border:1px solid var(--line);border-radius:14px;overflow:hidden;min-height:640px;position:relative}
+  .stage.m .frame{width:375px;max-width:375px;border-radius:38px;min-height:812px}
+  .screen{display:none}.screen.on{display:block}
+  .note{max-width:1040px;margin:var(--s5) auto 0;color:var(--ink-3);font-size:var(--t2);line-height:1.55}
+  .note b{color:var(--ink-2);font-weight:500}
+
+  /* ── shared product chrome ── */
+  .bar{height:52px;display:flex;align-items:center;gap:var(--s3);padding:0 var(--s4);border-bottom:1px solid var(--line)}
+  .bar .t{font-family:"Roboto Condensed",sans-serif;text-transform:uppercase;font-weight:700;font-size:var(--t3);letter-spacing:.06em}
+  .bar .r{margin-left:auto;display:flex;gap:var(--s2);align-items:center;font-size:var(--t2);color:var(--ink-3)}
+  .pad{padding:var(--s4)}
+  h1{font-family:"Roboto Condensed",sans-serif;text-transform:uppercase;font-weight:700;font-size:var(--h1);letter-spacing:.035em;margin:0 0 var(--s1);line-height:1.15}
+  h2{font-family:"Roboto Condensed",sans-serif;text-transform:uppercase;font-weight:700;font-size:var(--t1);letter-spacing:.09em;color:var(--ink-3);margin:0 0 var(--s2)}
+  .sub{color:var(--ink-2);font-size:var(--t3);margin:0 0 var(--s4)}
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:10px;overflow:hidden}
+  .card+.card{margin-top:var(--s2)}
+  .row{display:flex;align-items:center;gap:var(--s3);padding:var(--s3) var(--s4);border-bottom:1px solid var(--line);min-height:44px}
+  .row:last-child{border-bottom:0}
+  .row .lab{flex:1;min-width:0}.row .lab b{display:block;font-weight:500;font-size:var(--t3)}.row .lab small{display:block;color:var(--ink-3);font-size:var(--t2);margin-top:1px}
+  .row .ctl{flex:none;display:flex;gap:var(--s2);align-items:center}
+  .btn{height:44px;padding:0 var(--s4);border:1px solid var(--line-2);border-radius:8px;font-family:"Roboto Condensed",sans-serif;text-transform:uppercase;font-weight:700;font-size:var(--t2);letter-spacing:.07em;display:inline-flex;align-items:center;justify-content:center;gap:var(--s2);transition:background .15s,transform .12s}
+  .btn:active{transform:scale(.985)}
+  .btn.pri{background:var(--steel);color:#fff;border-color:var(--steel)}.btn.pri:hover{background:#7A8FAE}
+  .btn.sm{height:32px;padding:0 var(--s3)}
+  .btn.ghost{border-color:transparent;color:var(--ink-2)}
+  .btn.ok{background:var(--ok-bg);border-color:var(--ok-br);color:var(--ok)}
+  .btn.full{width:100%}
+  .pill{font-size:var(--t1);font-weight:500;padding:2px 8px;border-radius:999px;border:1px solid var(--line-2);color:var(--ink-3);white-space:nowrap}
+  .pill.ok{color:var(--ok);background:var(--ok-bg);border-color:var(--ok-br)}
+  .pill.attn{color:var(--attn);background:var(--attn-bg);border-color:var(--attn-br)}
+  .pill.steel{color:var(--steel-l);background:var(--steel-bg);border-color:var(--steel-br)}
+  .callout{border-left:1px solid var(--steel);padding:var(--s2) var(--s4);color:var(--ink-2);font-size:var(--t2);margin-top:var(--s4)}
+  .callout b{color:var(--ink);font-weight:600}
+  textarea,input[type=text]{width:100%;background:var(--bg);border:1px solid var(--line-2);border-radius:8px;padding:10px 12px;font-size:var(--t3);color:var(--ink);min-height:44px}
+  textarea{min-height:76px;resize:vertical;line-height:1.5}
+  .seg{display:flex;border:1px solid var(--line-2);border-radius:8px;overflow:hidden}
+  .seg button{flex:1;height:44px;font-family:"Roboto Condensed",sans-serif;text-transform:uppercase;font-weight:700;font-size:var(--t2);letter-spacing:.07em;color:var(--ink-3);border-right:1px solid var(--line-2)}
+  .seg button:last-child{border-right:0}
+  .seg button.on{background:var(--ink);color:var(--bg)}
+  .seg button.on.yes{background:var(--ok);color:#0A0C0F}
+  .seg button.on.no{background:var(--raise);color:var(--ink)}
+  .hidden{display:none!important}
+
+  /* ── RSVP: coach strip ── */
+  .strip{display:flex;gap:var(--s1);height:6px;border-radius:3px;overflow:hidden;background:var(--line);margin-top:var(--s2)}
+  .strip i{display:block;height:100%}
+  .strip .g{background:var(--ok)}.strip .o{background:var(--ink-3)}.strip .n{background:transparent}
+  .counts{display:flex;gap:var(--s4);font-size:var(--t2);color:var(--ink-3);margin-top:var(--s2)}
+  .counts b{font-family:"JetBrains Mono",monospace;font-weight:500;color:var(--ink)}
+  .who{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:var(--s2);margin-top:var(--s3)}
+  .who div{display:flex;align-items:center;gap:var(--s2);font-size:var(--t2);padding:6px 8px;border:1px solid var(--line);border-radius:7px;color:var(--ink-2)}
+  .who div i{width:6px;height:6px;border-radius:50%;flex:none;background:var(--ink-3)}
+  .who div.g i{background:var(--ok)}.who div.o i{background:var(--ink-3)}.who div.n{color:var(--ink-3);border-style:dashed}.who div.n i{background:transparent;border:1px solid var(--ink-3)}
+  .who div small{margin-left:auto;font-size:var(--t0);color:var(--ink-3)}
+
+  /* ── CHAT ── */
+  .chat{display:grid;grid-template-columns:280px 1fr;min-height:640px}
+  .stage.m .chat{grid-template-columns:1fr}
+  .stage.m .chat .list.hidem{display:none}
+  .stage:not(.m) .chat .thread.hided{display:flex}
+  .list{border-right:1px solid var(--line);display:flex;flex-direction:column}
+  .stage.m .list{border-right:0}
+  .tabs{display:flex;border-bottom:1px solid var(--line)}
+  .tabs button{flex:1;height:44px;font-family:"Roboto Condensed",sans-serif;text-transform:uppercase;font-weight:700;font-size:var(--t2);letter-spacing:.07em;color:var(--ink-3);border-bottom:2px solid transparent;margin-bottom:-1px}
+  .tabs button.on{color:var(--ink);border-bottom-color:var(--ink)}
+  .th{display:flex;gap:var(--s3);padding:var(--s3) var(--s4);border-bottom:1px solid var(--line);align-items:flex-start;text-align:left;width:100%;min-height:60px}
+  .th:hover{background:var(--panel)}.th.on{background:var(--panel-2)}
+  .th .av{width:34px;height:34px;border-radius:9px;background:var(--panel-2);border:1px solid var(--line-2);display:grid;place-items:center;font-family:"JetBrains Mono",monospace;font-size:var(--t0);color:var(--ink-2);flex:none}
+  .th .av.grp{border-radius:9px;background:var(--steel-bg);border-color:var(--steel-br);color:var(--steel-l)}
+  .th .av.dm{border-radius:50%}
+  .th .b{flex:1;min-width:0}
+  .th .b b{display:flex;gap:var(--s2);align-items:baseline;font-weight:500;font-size:var(--t3)}
+  .th .b b .tm{margin-left:auto;font-family:"JetBrains Mono",monospace;font-size:var(--t0);color:var(--ink-3);font-weight:500}
+  .th .b small{display:block;color:var(--ink-3);font-size:var(--t2);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;margin-top:1px}
+  .th .b small .d{color:var(--steel-l)}
+  .th .n{font-family:"JetBrains Mono",monospace;font-size:var(--t0);color:var(--attn);align-self:center}
+  .thread{display:flex;flex-direction:column;min-height:640px}
+  .thread .hd{display:flex;align-items:center;gap:var(--s3);padding:0 var(--s4);height:52px;border-bottom:1px solid var(--line)}
+  .thread .hd b{font-weight:500;font-size:var(--t3)}
+  .thread .hd small{color:var(--ink-3);font-size:var(--t2)}
+  .thread .hd .r{margin-left:auto;display:flex;gap:var(--s2)}
+  .msgs{flex:1;padding:var(--s4);display:flex;flex-direction:column;gap:var(--s3);overflow:auto}
+  .m{max-width:78%;display:flex;flex-direction:column;gap:3px}
+  .m .from{font-size:var(--t1);color:var(--ink-3);display:flex;gap:var(--s2);align-items:baseline}
+  .m .from b{color:var(--ink-2);font-weight:500}
+  .m .from .role{font-family:"JetBrains Mono",monospace;font-size:var(--t0);letter-spacing:.06em;text-transform:uppercase}
+  .m .bd{padding:9px 12px;border-radius:12px;font-size:var(--t3);line-height:1.5;background:var(--panel-2);border:1px solid var(--line)}
+  .m.coach{align-self:flex-end;align-items:flex-end}
+  .m.coach .bd{background:var(--steel-bg);border-color:var(--steel-br)}
+  .m.parent .bd{background:var(--panel-2)}
+  .m .tm{font-family:"JetBrains Mono",monospace;font-size:var(--t0);color:var(--ink-3)}
+  .m.draft{max-width:100%;align-self:stretch}
+  .m.draft .bd{background:transparent;border:1px dashed var(--steel-br);border-radius:10px;padding:var(--s3) var(--s4)}
+  .m.draft .dh{display:flex;gap:var(--s2);align-items:center;margin-bottom:var(--s2)}
+  .m.draft .dh .pill{margin-left:auto}
+  .m.draft .why{font-size:var(--t1);color:var(--ink-3);margin-top:var(--s2)}
+  .m.draft .why span{font-family:"JetBrains Mono",monospace;color:var(--steel-l)}
+  .m.draft .acts{display:flex;gap:var(--s2);margin-top:var(--s3)}
+  .m.draft .acts .btn{flex:1}
+  .sysline{text-align:center;font-size:var(--t1);color:var(--ink-3);padding:var(--s2) 0}
+  .comp{border-top:1px solid var(--line);padding:var(--s3) var(--s4)}
+  .comp .mode{display:flex;align-items:center;gap:var(--s2);font-size:var(--t1);color:var(--ink-3);margin-bottom:var(--s2)}
+  .comp .mode .pill{margin-left:auto}
+  .comp .box{display:flex;gap:var(--s2);align-items:flex-end}
+  .comp textarea{min-height:44px;height:44px}
+  .comp .btn{height:44px;flex:none}
+  .comp.locked textarea{opacity:.4;pointer-events:none}
+  .empty{padding:var(--s7) var(--s4);text-align:center;color:var(--ink-3);font-size:var(--t2)}
+  .empty b{display:block;font-family:"Roboto Condensed",sans-serif;text-transform:uppercase;font-weight:700;font-size:var(--t3);letter-spacing:.05em;color:var(--ink-2);margin-bottom:var(--s1)}
+
+  /* ── QUEUE ── */
+  .qwrap{max-width:720px;margin:0 auto}
+  .qtop{display:flex;align-items:baseline;gap:var(--s3);margin-bottom:var(--s5)}
+  .qtop .el{margin-left:auto;font-family:"JetBrains Mono",monospace;font-size:var(--t1);color:var(--ink-3)}
+  .qg{margin-bottom:var(--s5)}
+  .qgh{display:flex;align-items:center;gap:var(--s2);padding:0 2px var(--s2)}
+  .qgh b{font-family:"Roboto Condensed",sans-serif;text-transform:uppercase;font-weight:700;font-size:var(--t1);letter-spacing:.09em;color:var(--ink-3)}
+  .qgh .c{font-family:"JetBrains Mono",monospace;font-size:var(--t0);color:var(--ink-3)}
+  .qgh .all{margin-left:auto}
+  .qr{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:var(--s3) var(--s4);margin-bottom:var(--s2);transition:opacity .2s}
+  .qr .l1{display:flex;align-items:baseline;gap:var(--s2);flex-wrap:wrap}
+  .qr .l1 b{font-weight:500;font-size:var(--t3)}
+  .qr .l1 .meta{font-size:var(--t2);color:var(--ink-3)}
+  .qr .l1 .amt{margin-left:auto;font-family:"JetBrains Mono",monospace;font-size:var(--t2)}
+  .qr .what{font-size:var(--t2);color:var(--ink-2);margin-top:6px;line-height:1.5;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+  .qr .what.open{-webkit-line-clamp:unset}
+  .qr .why{display:flex;align-items:center;gap:var(--s2);margin-top:var(--s2);font-size:var(--t1);color:var(--ink-3);flex-wrap:wrap}
+  .qr .why .sig{font-family:"JetBrains Mono",monospace;color:var(--steel-l);background:var(--steel-bg);border:1px solid var(--steel-br);border-radius:5px;padding:1px 6px}
+  .qr .why .tone{margin-left:auto;display:inline-flex;align-items:center;gap:4px}
+  .qr .why .tone .pill{cursor:pointer}
+  .qr .acts{display:flex;gap:var(--s2);margin-top:var(--s3)}
+  .qr .acts .btn{flex:1}
+  .qr.done{opacity:.35;pointer-events:none}
+  .undo{position:sticky;bottom:var(--s4);margin-top:var(--s4);background:var(--raise);border:1px solid var(--line-2);border-radius:10px;padding:var(--s3) var(--s4);display:none;align-items:center;gap:var(--s3);font-size:var(--t2)}
+  .undo.on{display:flex}
+  .undo .bar2{flex:1;height:2px;background:var(--line-2);border-radius:1px;overflow:hidden}
+  .undo .bar2 i{display:block;height:100%;background:var(--steel);width:100%;transform-origin:left;animation:shrink 8s linear forwards}
+  @keyframes shrink{to{transform:scaleX(0)}}
+  .stage.m .qr .acts .btn{padding:0 var(--s2)}
+  @media(prefers-reduced-motion:reduce){.undo .bar2 i{animation:none}}
+</style>
+</head>
+<body>
+
+<div class="kit">
+  <span class="g"><span class="lab">Screen</span>
+    <button class="on" data-sc="rsvp-parent">1 · RSVP parent</button><button data-sc="rsvp-coach">1 · RSVP coach</button><button data-sc="chat">2 · Team chat</button><button data-sc="queue">10 · Queue v2</button></span>
+  <span class="sp"></span>
+  <span class="g" id="states"><span class="lab">State</span></span>
+  <span class="g"><span class="lab">Width</span><button class="on" data-w="d">Desktop</button><button data-w="m">375</button></span>
+</div>
+
+<div class="stage" id="stage"><div class="frame" id="frame">
+
+<!-- ══════════════ 1a · RSVP — PARENT ══════════════ -->
+<div class="screen on" data-sc="rsvp-parent" data-states="answered,unanswered,changed,past">
+  <div class="bar"><span class="t">Northside Flight</span><span class="r"><span class="mono">RSVP</span></span></div>
+  <div class="pad" style="max-width:420px;margin:0 auto">
+    <h2>Saturday</h2>
+    <h1>14U Practice</h1>
+    <p class="sub"><span class="mono">SEP 13 · 10:00–11:30</span> · Northside Community Gym</p>
+
+    <div class="card" data-st="unanswered,answered,changed">
+      <div class="row"><div class="lab"><b>Ava Reyes</b><small>14U</small></div>
+        <div class="ctl" style="width:200px"><div class="seg" id="rp-ava"><button class="yes on" data-v="yes">Going</button><button class="no" data-v="no">Out</button></div></div></div>
+      <div class="row"><div class="lab"><b>Mateo Reyes</b><small>12U · same time, Court B</small></div>
+        <div class="ctl" style="width:200px"><div class="seg" id="rp-mateo"><button class="yes" data-v="yes">Going</button><button class="no" data-v="no">Out</button></div></div></div>
+    </div>
+
+    <div data-st="answered,changed" style="margin-top:var(--s4)">
+      <h2>Note for the coach <span style="color:var(--ink-3);letter-spacing:0;text-transform:none;font-family:Inter;font-weight:400">· optional</span></h2>
+      <input type="text" placeholder="Running 15 late" value="">
+    </div>
+
+    <div class="callout" data-st="answered"><b>Saved.</b> Coach Marcus sees this now. Change it any time before Saturday 10:00.</div>
+    <div class="callout" data-st="changed"><b>Updated.</b> Ava is now marked out. Coach Marcus sees the change.</div>
+    <div class="callout" data-st="unanswered"><b>Tap once per athlete.</b> No account needed. Nothing else to do.</div>
+
+    <div data-st="past">
+      <div class="card"><div class="row"><div class="lab"><b>Ava Reyes</b><small>Went</small></div><div class="ctl"><span class="pill ok">Going</span></div></div>
+        <div class="row"><div class="lab"><b>Mateo Reyes</b><small>Did not respond</small></div><div class="ctl"><span class="pill">No answer</span></div></div></div>
+      <div class="callout"><b>This session has passed.</b> Answers are locked. Your next one is Tuesday 6:00 PM.</div>
+    </div>
+
+    <p style="font-size:var(--t1);color:var(--ink-3);margin-top:var(--s6);text-align:center">Sent by Northside Flight via Sporv · <span style="color:var(--ink-2)">Stop these texts</span></p>
+  </div>
+</div>
+
+<!-- ══════════════ 1b · RSVP — COACH ══════════════ -->
+<div class="screen" data-sc="rsvp-coach" data-states="none,partial,all,past">
+  <div class="bar"><span class="t">Schedule</span><span class="r"><span>Sat Sep 13</span></span></div>
+  <div class="pad" style="max-width:720px;margin:0 auto">
+    <div class="card">
+      <div class="row" style="align-items:flex-start;flex-direction:column;gap:0">
+        <div style="display:flex;width:100%;align-items:baseline;gap:var(--s2)"><b style="font-weight:500">14U Practice</b><span class="mono" style="font-size:var(--t2);color:var(--ink-3)">10:00–11:30</span><span class="pill" data-st="past" style="margin-left:auto">Past</span></div>
+        <small style="color:var(--ink-3);font-size:var(--t2)">Northside Community Gym · 14 athletes</small>
+
+        <div class="strip" style="width:100%" data-st="none"><i class="n" style="width:100%"></i></div>
+        <div class="strip" style="width:100%" data-st="partial"><i class="g" style="width:57%"></i><i class="o" style="width:14%"></i><i class="n" style="width:29%"></i></div>
+        <div class="strip" style="width:100%" data-st="all,past"><i class="g" style="width:79%"></i><i class="o" style="width:21%"></i></div>
+
+        <div class="counts" data-st="none">Going <b>0</b> · Out <b>0</b> · No answer <b>14</b> · <span style="color:var(--ink-3)">Reminder sent 2h ago</span></div>
+        <div class="counts" data-st="partial">Going <b>8</b> · Out <b>2</b> · No answer <b>4</b></div>
+        <div class="counts" data-st="all">Going <b>11</b> · Out <b>3</b> · No answer <b>0</b></div>
+        <div class="counts" data-st="past">Went <b>11</b> · Out <b>3</b> · <span style="color:var(--ink-3)">Locked at 10:00</span></div>
+
+        <div class="who" style="width:100%" data-st="partial">
+          <div class="g"><i></i>Ava R.</div><div class="g"><i></i>Noah T.</div><div class="g"><i></i>Liam K.</div><div class="g"><i></i>Sofia O.</div>
+          <div class="g"><i></i>Maya D.</div><div class="g"><i></i>Eli B.</div><div class="g"><i></i>Jonah P.</div><div class="g"><i></i>Zara M.</div>
+          <div class="o"><i></i>Theo W.<small>sick</small></div><div class="o"><i></i>Ivy C.<small>late 15</small></div>
+          <div class="n"><i></i>Mateo R.</div><div class="n"><i></i>Priya S.</div><div class="n"><i></i>Owen L.</div><div class="n"><i></i>Ruth D.</div>
+        </div>
+
+        <div style="display:flex;gap:var(--s2);margin-top:var(--s4);width:100%" data-st="none,partial">
+          <button class="btn sm" id="nudge">Draft a nudge to the <span class="mono" data-st="none">14</span><span class="mono" data-st="partial">4</span> silent</button>
+        </div>
+        <div class="callout" style="width:100%" data-st="none,partial" id="nudgeOut" hidden><b>Drafted, not sent.</b> 4 reminders are in your queue with the "no reply to Saturday's RSVP" signal. Nothing sends without your approval.</div>
+        <div class="callout" style="width:100%" data-st="all"><b>Everyone answered.</b> Nothing to do. Court B needs 11 spots.</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════ 2 · TEAM CHAT ══════════════ -->
+<div class="screen" data-sc="chat" data-states="live,announce,muted,empty">
+  <div class="chat">
+    <div class="list" id="clist">
+      <div class="bar"><span class="t">Messages</span><span class="r"><button class="btn sm ghost">New</button></span></div>
+      <div class="tabs"><button>Direct</button><button class="on">Groups</button></div>
+      <button class="th on"><span class="av grp">14U</span><span class="b"><b>14U Practice group<span class="tm">10:14</span></b><small><span class="d">Draft waiting</span> · Saturday moved to 10:00 —</small></span><span class="n">1</span></button>
+      <button class="th"><span class="av grp">ALL</span><span class="b"><b>Whole club<span class="tm">Fri</span></b><small>Marcus: Photo day is the 20th, details Monday.</small></span></button>
+      <button class="th"><span class="av grp">CW2</span><span class="b"><b>Camp · week 2<span class="tm">Thu</span></b><small>Announce-only · 31 families</small></span></button>
+      <button class="th"><span class="av dm">DR</span><span class="b"><b>Dana Reyes<span class="tm">Wed</span></b><small>Thanks, that works for us.</small></span></button>
+    </div>
+
+    <div class="thread">
+      <div class="hd"><button class="btn sm ghost" id="backToList" style="display:none">‹</button><div><b>14U Practice group</b><br><small>14 families · 1 coach · <span data-st="live">open chat</span><span data-st="announce">announce-only</span><span data-st="muted">muted by you</span><span data-st="empty">open chat</span></small></div>
+        <span class="r"><span class="pill" data-st="announce">Announce-only</span><span class="pill" data-st="muted">Muted</span></span></div>
+
+      <div class="msgs" data-st="live,announce,muted">
+        <div class="sysline">Thursday</div>
+        <div class="m coach"><div class="from"><b>Marcus Reed</b><span class="role" style="color:var(--steel-l)">Coach</span><span class="tm">6:02 PM</span></div><div class="bd">Good work tonight. Saturday is a full session, 10 to 11:30. Bring water, it's warm in the gym.</div></div>
+        <div class="m parent"><div class="from"><b>Dana Reyes</b><span class="role">Guardian · Ava</span><span class="tm">6:40 PM</span></div><div class="bd">Ava will be there. Is Court B the same entrance?</div></div>
+        <div class="m coach"><div class="from"><b>Marcus Reed</b><span class="role" style="color:var(--steel-l)">Coach</span><span class="tm">6:44 PM</span></div><div class="bd">Same entrance, second door on the left.</div></div>
+        <div class="sysline">Today</div>
+
+        <div class="m draft" data-st="live,muted">
+          <div class="bd">
+            <div class="dh"><span class="role" style="font-family:'JetBrains Mono';font-size:var(--t0);letter-spacing:.06em;text-transform:uppercase;color:var(--steel-l)">Sporv draft</span><span style="font-size:var(--t1);color:var(--ink-3)">to 14 families</span><span class="pill steel">Waiting on you</span></div>
+            <div style="font-size:var(--t3);line-height:1.5">Saturday's practice has moved to <b>10:00 AM</b>, same gym. It ends at 11:30. Reply here if that changes anyone's plans.</div>
+            <div class="why">Why: <span>calendar event 09/13 start 09:00 → 10:00 · changed by A. Mensah 2h ago</span></div>
+            <div class="acts"><button class="btn sm pri">Approve and send</button><button class="btn sm">Edit</button><button class="btn sm ghost">Discard</button></div>
+          </div>
+        </div>
+        <div class="callout" data-st="announce" style="margin:0"><b>Announce-only.</b> Families can read and RSVP. Only coaches post here. Replies go to you as direct messages.</div>
+      </div>
+      <div class="empty" data-st="empty"><b>Nothing here yet</b>14 families are in this group. Your first message lands in their inbox and their texts if they've opted in.</div>
+
+      <div class="comp" data-st="live,empty">
+        <div class="mode"><span>Posting as Marcus Reed · to 14 families</span><span class="pill steel" style="cursor:pointer">Open chat</span></div>
+        <div class="box"><textarea placeholder="Message the group"></textarea><button class="btn pri">Send</button></div>
+      </div>
+      <div class="comp" data-st="announce">
+        <div class="mode"><span>Posting as Marcus Reed · announcement to 14 families</span><span class="pill" style="cursor:pointer">Announce-only</span></div>
+        <div class="box"><textarea placeholder="Announce to the group"></textarea><button class="btn pri">Send</button></div>
+      </div>
+      <div class="comp locked" data-st="muted">
+        <div class="mode"><span>You muted this group. You still receive drafts that need you.</span><button class="btn sm" style="margin-left:auto">Unmute</button></div>
+        <div class="box"><textarea placeholder="Message the group"></textarea><button class="btn pri">Send</button></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════ 10 · QUEUE ROW v2 ══════════════ -->
+<div class="screen" data-sc="queue" data-states="full,empty">
+  <div class="bar"><span class="t">Review queue</span><span class="r"><span class="mono">4 waiting</span></span></div>
+  <div class="pad qwrap">
+    <div data-st="full">
+      <div class="qtop"><div><h1>Waiting on you</h1><p class="sub" style="margin:0">Drafts. Nothing here has been sent.</p></div><span class="el">set up in 11:32</span></div>
+
+      <div class="qg" data-g="0">
+        <div class="qgh"><b>Overdue dues follow-ups</b><span class="c">2</span><span class="all"><button class="btn sm" data-all="0">Approve all 2</button></span></div>
+        <div class="qr"><div class="l1"><b>Dana Reyes</b><span class="meta">Guardian · Ava · 14U</span><span class="amt">$390</span></div>
+          <div class="what">Hi Dana — installment 3 for Ava's season fee was due Sept 1 and hasn't come through yet. The link in your portal is the fastest way, or reply here if the timing is hard this month and we'll work something out.</div>
+          <div class="why">Why <span class="sig">7 days past due · installment 3 of 4 · no plan on file</span><span class="tone">Tone <span class="pill">Friendly</span></span></div>
+          <div class="acts"><button class="btn sm pri" data-ok>Approve</button><button class="btn sm" data-edit>Edit</button><button class="btn sm ghost" data-skip>Skip</button></div></div>
+        <div class="qr"><div class="l1"><b>Ruth Delgado</b><span class="meta">Guardian · Mateo · 12U</span><span class="amt">$340</span></div>
+          <div class="what">Hi Ruth — following up again on the September installment for Mateo. This is the second reminder; if we don't hear back by Friday I'll pass it to the board treasurer.</div>
+          <div class="why">Why <span class="sig">21 days past due · second reminder</span><span class="tone">Tone <span class="pill attn">Firm · above your auto cap</span></span></div>
+          <div class="acts"><button class="btn sm pri" data-ok>Approve</button><button class="btn sm" data-edit>Edit</button><button class="btn sm ghost" data-skip>Skip</button></div></div>
+      </div>
+
+      <div class="qg" data-g="1">
+        <div class="qgh"><b>RSVP nudges</b><span class="c">1</span></div>
+        <div class="qr"><div class="l1"><b>4 families</b><span class="meta">14U · Saturday 10:00</span></div>
+          <div class="what">Quick one — haven't heard whether Saturday works for you. Tap Going or Out in the link so Marcus can set the courts.</div>
+          <div class="why">Why <span class="sig">no RSVP 48h before session · reminder sent 2h ago</span><span class="tone">Tone <span class="pill">Neutral</span></span></div>
+          <div class="acts"><button class="btn sm pri" data-ok>Approve</button><button class="btn sm" data-edit>Edit</button><button class="btn sm ghost" data-skip>Skip</button></div></div>
+      </div>
+
+      <div class="qg" data-g="2">
+        <div class="qgh"><b>For you</b><span class="c">1</span></div>
+        <div class="qr"><div class="l1"><b>Calendar conflict</b><span class="meta">Sat Sep 13</span></div>
+          <div class="what">14U and 16U are both on Court A at 10:00. Move one or confirm the double-booking.</div>
+          <div class="why">Why <span class="sig">Google Calendar · 2 events, 1 venue</span></div>
+          <div class="acts"><button class="btn sm pri">Open calendar</button><button class="btn sm ghost" data-skip>Dismiss</button></div></div>
+      </div>
+
+      <div class="undo" id="undo"><span id="undoTxt">Sending 2 to families in 8s</span><span class="bar2"><i></i></span><button class="btn sm" id="undoBtn">Undo</button></div>
+    </div>
+    <div class="empty" data-st="empty"><b>Nothing to review.</b>The agent ran at 8:02 this morning and everything it found is handled. It runs again tonight.</div>
+  </div>
+</div>
+
+</div>
+<div class="note" id="note"></div>
+</div>
+
+<script>
+(function(){
+  const $=s=>document.querySelector(s), $$=s=>[...document.querySelectorAll(s)];
+  const NOTES={
+    "rsvp-parent":"<b>Decisions:</b> answer is per-athlete (a family with two kids taps twice; one tap for one kid). Note is optional and only appears after an answer. No account, no login — the link carries the family token. Change allowed until session start; after that the page is read-only and says so. States: unanswered · answered · changed · past.",
+    "rsvp-coach":"<b>Placement:</b> the strip lives inside the session row on the Schedule screen and expands on tap; no separate RSVP page. Counts are three numbers, no percentages. 'Draft a nudge' writes to the queue and never sends. States: none yet · partial · everyone answered · past (locked).",
+    "chat":"<b>Decisions:</b> keep Direct | Groups tabs. Replies are flat (no threading) — parents don't thread. No reactions in v1. Attachments: not in v1; the composer has no clip. Sender identity is a role label, not a color. The agent draft is the differentiator: it renders inline, dashed, with why + approve/edit/discard, and never shows as 'sent' until the server confirms. States: open · announce-only · muted · empty.",
+    "queue":"<b>Row:</b> who · what (2-line clamp, tap to expand) · why as a mono signal chip · tone chip. Tone is set per-org in Settings; the per-row chip shows it and flags when a draft exceeds the auto cap. Approve-all triggers an 8s undo bar pinned to the bottom; nothing sends until it expires. Elapsed setup time sits top-right of the page header, once, then disappears after the first session."
+  };
+  let screen="rsvp-parent", state=null;
+  function paintStates(){
+    const sc=$(`.screen[data-sc="${screen}"]`), sts=sc.dataset.states.split(",");
+    state=sts[0]; const host=$("#states"); host.innerHTML='<span class="lab">State</span>'+sts.map((s,i)=>`<button class="${i?"":"on"}" data-st="${s}">${s.replace("-"," ")}</button>`).join("");
+    host.querySelectorAll("button").forEach(b=>b.onclick=()=>{state=b.dataset.st;host.querySelectorAll("button").forEach(x=>x.classList.toggle("on",x===b));applyState();});
+    applyState();
+  }
+  function applyState(){
+    const sc=$(`.screen[data-sc="${screen}"]`);
+    sc.querySelectorAll("[data-st]").forEach(el=>{ el.classList.toggle("hidden", !el.dataset.st.split(",").includes(state)); });
+    $("#note").innerHTML=NOTES[screen];
+  }
+  $$(".kit [data-sc]").forEach(b=>b.onclick=()=>{ screen=b.dataset.sc; $$(".kit [data-sc]").forEach(x=>x.classList.toggle("on",x===b)); $$(".screen").forEach(s=>s.classList.toggle("on",s.dataset.sc===screen)); paintStates(); });
+  $$(".kit [data-w]").forEach(b=>b.onclick=()=>{ $$(".kit [data-w]").forEach(x=>x.classList.toggle("on",x===b)); $("#stage").classList.toggle("m",b.dataset.w==="m"); mobileChat(); });
+
+  /* rsvp parent */
+  $$("#rp-ava button,#rp-mateo button").forEach(b=>b.onclick=()=>{ b.parentElement.querySelectorAll("button").forEach(x=>x.classList.toggle("on",x===b)); });
+  /* rsvp coach */
+  $("#nudge").onclick=()=>{ $("#nudgeOut").hidden=false; $("#nudge").textContent="Drafted · in queue"; $("#nudge").disabled=true; };
+  /* chat mobile: list → thread */
+  function mobileChat(){ const m=$("#stage").classList.contains("m"); $("#backToList").style.display=m?"inline-flex":"none"; if(m){ $("#clist").classList.remove("hidem"); $(".thread").style.display="none"; } else { $(".thread").style.display="flex"; } }
+  $$("#clist .th").forEach(t=>t.onclick=()=>{ $$("#clist .th").forEach(x=>x.classList.toggle("on",x===t)); if($("#stage").classList.contains("m")){ $("#clist").classList.add("hidem"); $(".thread").style.display="flex"; } });
+  $("#backToList").onclick=()=>{ $("#clist").classList.remove("hidem"); $(".thread").style.display="none"; };
+  /* queue */
+  let undoT=null;
+  function count(){ const n=$$(".qr:not(.done)").length; $(".screen[data-sc=queue] .bar .mono").textContent=n+" waiting"; }
+  $$(".qr [data-ok]").forEach(b=>b.onclick=()=>{ b.closest(".qr").classList.add("done"); count(); });
+  $$(".qr [data-skip]").forEach(b=>b.onclick=()=>{ b.closest(".qr").classList.add("done"); count(); });
+  $$(".qr [data-edit]").forEach(b=>b.onclick=()=>{ const r=b.closest(".qr"), w=r.querySelector(".what"); const ta=document.createElement("textarea"); ta.value=w.textContent.trim(); w.replaceWith(ta); r.querySelector(".acts").innerHTML='<button class="btn sm pri">Approve and send</button><button class="btn sm ghost">Cancel</button>'; r.querySelector(".acts .pri").onclick=()=>{r.classList.add("done");count();}; });
+  $$(".qr .what").forEach(w=>w.onclick=()=>w.classList.toggle("open"));
+  $$("[data-all]").forEach(b=>b.onclick=()=>{ const g=b.closest(".qg"); const rows=[...g.querySelectorAll(".qr:not(.done)")]; rows.forEach(r=>r.classList.add("done")); count();
+    const u=$("#undo"); u.classList.add("on"); $("#undoTxt").textContent=`Sending ${rows.length} to families in 8s`; u.querySelector(".bar2 i").style.animation="none"; void u.offsetWidth; u.querySelector(".bar2 i").style.animation="";
+    clearTimeout(undoT); undoT=setTimeout(()=>{u.classList.remove("on");$("#undoTxt").textContent="";},8000);
+    $("#undoBtn").onclick=()=>{ rows.forEach(r=>r.classList.remove("done")); count(); u.classList.remove("on"); clearTimeout(undoT); }; });
+
+  paintStates(); mobileChat();
+})();
+</script>
+</body>
+</html>

@@ -25,7 +25,7 @@
 <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16.png">
 <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
 <link rel="manifest" href="/site.webmanifest">
-<meta name="sporve-build" content="505ca30e3632d119">
+<meta name="sporve-build" content="59d3038be3aaacf8">
 </head>
 <body>
 <noscript><h1>Sporv — Every sport. One app.</h1><p>Sporv connects families and athletes with coaches, trainers, camps, and teams across more than 20 sports. Please enable JavaScript to use the app.</p></noscript>
@@ -4092,6 +4092,29 @@ body.reg-coach .greet{font-size:24px}
 .au-head h2{font-size:var(--t-h3)}
 .au-head p{color:var(--muted);margin-top:7px;font-size:var(--t-small)}
 .au-form .field{margin-bottom:12px}
+/* Queue row v2 (design batch 1). Mono for signals and counts; the clamp is
+   two lines until tapped; the undo bar's draining line is the one animation,
+   and reduced-motion stills it. */
+.ob2who{display:flex;align-items:baseline;gap:8px;flex-wrap:wrap}
+.ob2who>b{font-weight:600}
+.ob2meta{color:var(--faint);font-size:var(--text-sm)}
+.ob2amt{margin-left:auto;font-size:var(--text-sm)}
+.ob2clamp{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;cursor:pointer}
+.ob2clamp.ob2open{-webkit-line-clamp:unset}
+.ob2why{display:flex;align-items:center;gap:8px;margin-top:8px;font-size:var(--text-xs);color:var(--faint);flex-wrap:wrap}
+.ob2sig{font-size:var(--text-xs);color:var(--slate-ink);background:var(--accent-tint,#EEF2F6);border:1px solid var(--rule);border-radius:5px;padding:1px 6px}
+#app.coachdark .ob2sig{color:#9DB0CB;background:rgba(107,127,158,.12);border-color:rgba(107,127,158,.34)}
+.ob2tone{margin-left:auto;display:inline-flex;align-items:center;gap:4px}
+.ob2group{margin-top:12px}
+.ob2gh{display:flex;align-items:center;gap:8px;padding:0 2px 8px}
+.ob2gh>b{font-size:var(--text-xs);font-weight:700;letter-spacing:.09em;text-transform:uppercase;color:var(--faint)}
+.ob2gh .num{font-size:var(--text-xs);color:var(--faint)}
+.obholding{opacity:.45}
+.ob2undo{position:sticky;bottom:16px;margin-top:16px;background:var(--raise);border:1px solid var(--rule-strong);border-radius:10px;padding:12px 16px;display:flex;align-items:center;gap:12px;font-size:var(--text-sm)}
+.ob2undobar{flex:1;height:2px;background:var(--rule);border-radius:1px;overflow:hidden}
+.ob2undobar i{display:block;height:100%;background:var(--slate,#64748B);width:100%;transform-origin:left;animation:ob2shrink 8s linear forwards}
+@keyframes ob2shrink{to{transform:scaleX(0)}}
+@media(prefers-reduced-motion:reduce){.ob2undobar i{animation:none}}
 /* Show/hide password (owner 2026-08-23). The eye button sits inside .pw-wrap; the
    input reserves right padding so text never runs under it. eye-on shows by
    default, eye-off (slashed) shows when .on = password is revealed. */
@@ -11980,13 +12003,17 @@ function loadLiveObligations(){
   if(!(pv&&pv.id&&window.SporveAPI&&window.SporveAPI.isSignedIn&&window.SporveAPI.isSignedIn())) return;
   S.obligLoading=true;
   window.SporveAPI.from("obligations",
-    "select=id,kind,status,title,detail,amount_cents,source_kind,source_ref,due_at,guardian_id,run_id"+
+    "select=id,kind,status,title,detail,amount_cents,source_kind,source_ref,due_at,guardian_id,run_id,why_finding_id,draft_type,created_at,"+
+    "guardian:guardian_id(first_name,last_name),why:why_finding_id(title)"+
     "&provider_id=eq."+pv.id+"&status=neq.void&order=created_at.desc&limit=200")
     .then(rows=>{
       if(!Array.isArray(rows)) return;
       S.obligations=rows.map(r=>({id:r.id,kind:r.kind,status:r.status,
         title:r.title,detail:r.detail||"",sourceKind:r.source_kind,
-        sourceRef:r.source_ref||"",guardianId:r.guardian_id||null,runId:r.run_id||null,live:true}));
+        sourceRef:r.source_ref||"",guardianId:r.guardian_id||null,runId:r.run_id||null,
+        amountCents:r.amount_cents!=null?+r.amount_cents:null,
+        guardianName:r.guardian?((r.guardian.first_name||"")+" "+(r.guardian.last_name||"")).trim():null,
+        whyTitle:(r.why&&r.why.title)||null,draftType:r.draft_type||null,createdAt:r.created_at||null,live:true}));
       S.obligLive=true;render();
     })
     .catch(()=>{/* table not applied yet or offline: demo stands, honestly labelled */})
@@ -12220,6 +12247,8 @@ function coachSettingsPage(){
       ${row("Organization type","Decides the words and modules you see — a trainer runs clients, a club runs a roster, a camp runs campers. Changeable anytime, exactly as the setup door promised.",
         `<span class="stchips">${[["private","Private training"],["club","Team / club"],["camp","Camp / clinic"]].map(([v,l])=>`<button class="stchip ${orgShape()===v?"on":""}" data-stshape="${v}">${l}</button>`).join("")}</span>`)}
       ${row("What do you call a group?","Used across the app — Team, Squad, Class, Cohort…",`<input class="stin" id="stVocabGroup" value="${esc(((setKVget("vocab",{})||{}).group)||"Team")}" style="width:140px">`)}
+      ${row("Message tone","How the agent writes to families. Every draft still waits for your approval.",
+        `<span class="stchips">${[["friendly","Friendly"],["neutral","Neutral"],["firm","Firm"]].map(([v,l])=>`<button class="stchip ${orgTone()===v?"on":""}" data-sttone="${v}">${l}</button>`).join("")}</span>`)}
       ${row("Dues-chase cap","How far the agent escalates a payment reminder before stopping and flagging you.",
         `<span class="stchips" id="stCap">${[["friendly","Friendly — 1 nudge"],["firm","Firm — 2"],["persistent","Persistent — 3"]].map(([v,l])=>`<button data-cap="${v}" class="stchip ${((setKVget("auto_money_cap",{})||{}).level||"friendly")===v?"on":""}">${l}</button>`).join("")}</span>`)}
       ${row("Calendar shape","Seasonal orgs roll over by season; continuous orgs bill and check credentials on a rolling 12 months.",
@@ -12244,19 +12273,40 @@ function coachSettingsPage(){
     <div class="stmain">${body}</div>
   </div>`;
 }
+/* Design batch 1 — queue row v2 helpers. Tone is per-org (owner decision:
+   the row chip DISPLAYS it, never edits it); the above-cap flag compares the
+   draft's attempt number (carried in source_ref as :attempt:N) against the
+   auto_money_cap level, so a draft the cap would have blocked from auto-send
+   is visibly marked for the human deciding it. */
+function orgTone(){return ((setKVget("tone",{})||{}).level)||"friendly";}
+function capMax(){return {friendly:1,firm:2}[((setKVget("auto_money_cap",{})||{}).level)||"friendly"]||3;}
+function obligAttempt(o){const m=/:attempt:(\d+)/.exec(o.sourceRef||"");return m?+m[1]:null;}
+function obligWhy(o){
+  if(o.whyTitle) return o.whyTitle;
+  const ref=(o.sourceRef||"").split(":");
+  return ref.length>1?ref.slice(0,2).join(" · ").replace(/_/g," "):null;
+}
 function coachQueuePage(){
   const q=obligationQueue();
   const drafts=q.filter(o=>o.status==="draft");
   const approved=q.filter(o=>o.status==="approved");
   const done=q.filter(o=>o.status==="done");
   const card=o=>{const m=OBLIG_META[o.kind]||OBLIG_META.message;
-    return `<div class="obcard">
-      <div class="obtop">
-        <span class="pill ${m.tone}">${esc(m.label)}</span>
-        <span class="obsrc">from ${esc(OBLIG_SRC[o.sourceKind]||o.sourceKind||"")}${o.sourceRef?` · ${esc(o.sourceRef)}`:""}</span>
+    const att=obligAttempt(o), aboveCap=att!=null&&att>capMax();
+    const why=obligWhy(o), tone=orgTone();
+    const holding=(S.obligHold||[]).includes(o.id);
+    return `<div class="obcard${holding?" obholding":""}">
+      <div class="ob2who">
+        <b>${esc(o.guardianName||o.title)}</b>
+        <span class="ob2meta">${esc(m.label)}${o.sourceKind&&o.sourceKind!=="agent"?` · from ${esc(OBLIG_SRC[o.sourceKind]||o.sourceKind)}`:""}</span>
+        ${o.amountCents!=null?`<span class="ob2amt num">$${(o.amountCents/100).toFixed(o.amountCents%100?2:0)}</span>`:""}
       </div>
-      <b class="obtitle">${esc(o.title)}</b>
-      ${o.detail?`<p class="obdetail" style="white-space:pre-line">${esc(o.detail)}</p>`:""}
+      ${o.guardianName&&o.title?`<b class="obtitle">${esc(o.title)}</b>`:""}
+      ${o.detail?`<p class="obdetail ob2clamp" data-obexpand="1" style="white-space:pre-line">${esc(o.detail)}</p>`:""}
+      <div class="ob2why">
+        ${why?`Why <span class="ob2sig num">${esc(why)}</span>`:""}
+        ${o.status==="draft"&&(o.guardianId||o.sourceKind==="agent")?`<span class="ob2tone">Tone <span class="pill${aboveCap?" warn":""}">${esc(tone[0].toUpperCase()+tone.slice(1))}${aboveCap?" · above your auto cap":""}</span></span>`:""}
+      </div>
       <div class="obacts">
         ${o.status==="draft"?`<button class="btn sm" data-oblig-approve="${esc(o.id)}">Approve</button>
           <button class="btn ghost sm" data-oblig-dismiss="${esc(o.id)}">Dismiss</button>`:""}
@@ -12296,7 +12346,22 @@ function coachQueuePage(){
     </div>
     <div style="margin-top:18px">
       <div class="sec-head" style="margin:0"><h3>Waiting for you${drafts.length?` · ${drafts.length}`:""}</h3></div>
-      ${drafts.length?drafts.map(card).join(""):`<p class="imp-empty">Nothing waiting — the queue is clear.</p>`}
+      ${drafts.length?(()=>{
+        /* grouped by job (design batch 1): each group header carries its own
+           Approve-all, which HOLDS for 8 seconds before anything sends. */
+        const groups={};drafts.forEach(o=>{const k=(OBLIG_META[o.kind]||OBLIG_META.message).label;(groups[k]=groups[k]||[]).push(o);});
+        return Object.entries(groups).map(([label,rows])=>{
+          const sendable=rows.filter(o=>o.live&&o.sourceKind==="agent"&&!(S.obligHold||[]).includes(o.id));
+          return `<div class="ob2group">
+            <div class="ob2gh"><b>${esc(label)}</b><span class="num">${rows.length}</span>
+              ${sendable.length>1?`<button class="btn ghost sm" data-approveall-kind="${esc(rows[0].kind)}" style="margin-left:auto">Approve all ${sendable.length}</button>`:""}</div>
+            ${rows.map(card).join("")}</div>`;
+        }).join("");
+      })():`<p class="imp-empty">Nothing waiting — the queue is clear.</p>`}
+      ${(S.obligHold&&S.obligHold.length)?`<div class="ob2undo" role="status">
+        <span>Sending ${S.obligHold.length} to families in a moment — nothing has gone out yet</span>
+        <span class="ob2undobar"><i></i></span>
+        <button class="btn sm" data-oblig-holdundo="1">Undo</button></div>`:""}
     </div>
     ${approved.length?`<div style="margin-top:18px"><div class="sec-head" style="margin:0"><h3>Approved · ${approved.length}</h3></div>${approved.map(card).join("")}</div>`:""}
     ${done.length?`<div style="margin-top:18px"><div class="sec-head" style="margin:0"><h3>Done · ${done.length}</h3></div>${done.map(card).join("")}</div>`:""}`;
@@ -16710,6 +16775,43 @@ document.querySelectorAll('.sig-ai-coach').forEach(sigAiCoachWire);
       return;
     }
     o.status="approved";obligPatch(o,"approved");render();toast("Approved. It moves out of your queue — nothing was sent or charged.");});
+  /* Approve-all per group, with an HONEST hold (design batch 1): rows are
+     marked and an undo bar runs for 8s; the approve RPC and the send fire
+     only after it expires. Undo before that costs nothing because nothing
+     was called. The single-row Approve stays immediate, as designed. */
+  $("[data-approveall-kind]").forEach(b=>b.onclick=()=>{
+    const kind=b.dataset.approveallKind;
+    const rows=obligationQueue().filter(o=>o.status==="draft"&&o.live&&o.sourceKind==="agent"&&o.kind===kind&&!(S.obligHold||[]).includes(o.id));
+    if(!rows.length) return;
+    S.obligHold=(S.obligHold||[]).concat(rows.map(o=>o.id));render();
+    const ids=rows.map(o=>o.id);
+    const t=setTimeout(async()=>{
+      S._holdTimers=(S._holdTimers||[]).filter(x=>x!==t);
+      const goRows=obligationQueue().filter(o=>ids.includes(o.id)&&(S.obligHold||[]).includes(o.id));
+      S.obligHold=(S.obligHold||[]).filter(id=>!ids.includes(id));
+      let sent=0,held=0,failed=0;
+      for(const o of goRows){
+        try{
+          o.status="approved";render();
+          const msgId=await window.SporveAPI.rpc("approve_obligation_and_queue",{p_obligation_id:o.id});
+          if(msgId){
+            try{const r=await window.SporveAPI.fn("lifecycle-approve",{id:msgId});
+                if(r&&r.queuedEmail)held++;else sent++;}
+            catch(e){failed++;}
+          }
+        }catch(_){o.status="draft";failed++;}
+      }
+      render();
+      toast("Approved "+goRows.length+" — "+sent+" sent"+(held?", "+held+" queued for email":"")+(failed?", "+failed+" failed":"")+".");
+    },8000);
+    S._holdTimers=(S._holdTimers||[]).concat([t]);
+  });
+  $("[data-oblig-holdundo]").forEach(b=>b.onclick=()=>{
+    (S._holdTimers||[]).forEach(clearTimeout);S._holdTimers=[];
+    const n=(S.obligHold||[]).length;S.obligHold=[];render();
+    toast("Held "+n+" back — nothing was sent, they're still drafts.");
+  });
+  $("[data-obexpand]").forEach(el=>el.onclick=()=>el.classList.toggle("ob2open"));
   $("[data-oblig-approveall]").forEach(b=>b.onclick=async()=>{
     if(S.bulkApproving) return;
     const rows=obligationQueue().filter(o=>o.status==="draft"&&o.live&&o.sourceKind==="agent");
@@ -16798,6 +16900,8 @@ document.querySelectorAll('.sig-ai-coach').forEach(sigAiCoachWire);
   if(stEx) stEx.onchange=()=>{if(!stEx.value)return;
     const cur=(setKVget("auto_exclude_guardians",[])||[]).concat([stEx.value]);
     kvSave("auto_exclude_guardians",cur,"This family will always get drafts, never auto-sends.");};
+  $("[data-sttone]").forEach(c=>c.onclick=()=>kvSave("tone",{level:c.dataset.sttone},
+    "Tone saved — new drafts are written "+c.dataset.sttone+"."));
   $("[data-stshape]").forEach(c=>c.onclick=()=>kvSave("org_shape",{shape:c.dataset.stshape},
     {private:"Private training — clients, packages, per-session billing.",
      club:"Team / club — roster, seasons, dues in installments.",
