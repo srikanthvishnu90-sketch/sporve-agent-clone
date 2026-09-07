@@ -7144,10 +7144,12 @@ const INTENTS = {
      is single-use, expiry-checked, and SECURITY DEFINER (prod, previously
      zero callers). Runs after auth so it survives the signup round-trip. */
   redeemInvite: a => {
+    /* CONSENT GATE (pentest 2026-09-07 M1): a URL must never BE the consent —
+       a hostile link clicked by a signed-in family would silently attach them
+       to a stranger's org. The click opens a named question; only Accept
+       calls the RPC. */
     if(!(window.SporveAPI&&window.SporveAPI.isSignedIn&&window.SporveAPI.isSignedIn())) return;
-    window.SporveAPI.rpc("redeem_coach_invite",{p_token:a.token})
-      .then(()=>{toast("Invite accepted — you're connected to the club.");})
-      .catch(e=>{toast((e&&e.message)||"That invite can't be used.");});
+    S.modal={type:"inviteconfirm",token:a.token};render();
   },
 };
 function runIntent(intent){
@@ -12170,6 +12172,8 @@ function coachSettingsPage(){
       ${row("Organization type","Decides the words and modules you see — a trainer runs clients, a club runs a roster, a camp runs campers. Changeable anytime, exactly as the setup door promised.",
         `<span class="stchips">${[["private","Private training"],["club","Team / club"],["camp","Camp / clinic"]].map(([v,l])=>`<button class="stchip ${orgShape()===v?"on":""}" data-stshape="${v}">${l}</button>`).join("")}</span>`)}
       ${row("What do you call a group?","Used across the app — Team, Squad, Class, Cohort…",`<input class="stin" id="stVocabGroup" value="${esc(((setKVget("vocab",{})||{}).group)||"Team")}" style="width:140px">`)}
+      ${row("Dues-chase cap","How far the agent escalates a payment reminder before stopping and flagging you.",
+        `<span class="stchips" id="stCap">${[["friendly","Friendly — 1 nudge"],["firm","Firm — 2"],["persistent","Persistent — 3"]].map(([v,l])=>`<button data-cap="${v}" class="stchip ${((setKVget("auto_money_cap",{})||{}).level||"friendly")===v?"on":""}">${l}</button>`).join("")}</span>`)}
       ${row("Calendar shape","Seasonal orgs roll over by season; continuous orgs bill and check credentials on a rolling 12 months.",
         `<span class="stchips">${[["seasonal","Seasonal"],["continuous","Continuous"]].map(([v,l])=>`<button class="stchip ${((setKVget("calendar_shape",{})||{}).shape||"seasonal")===v?"on":""}" data-stcal="${v}">${l}</button>`).join("")}</span>`)}
       ${row("","",`<button class="btn sm" data-stsave="org">Save organization</button>`)}
@@ -12888,6 +12892,14 @@ function modalHTML(){
      this modal normally never shows — signup signs you straight in. It stays
      because it is the correct screen if autoconfirm is ever turned back off;
      without it an unconfirmed visitor is silently stranded on a closed modal. */
+  if(m.type==="inviteconfirm") return wrap("Accept this invite?",`
+    <p style="color:var(--muted);margin-bottom:14px;line-height:1.6">A coach or club sent
+      you this link to join their roster on Sporv. Accepting marks the invite as used
+      by your account — nothing is charged and no message is sent.</p>
+    <p style="color:var(--faint);font-size:var(--text-sm);margin-bottom:18px;line-height:1.6">
+      Didn't expect this? Close this window — nothing happens unless you accept.</p>
+    <button class="btn wide" data-invaccept="${esc(m.token)}">Accept invite</button>
+    <button class="btn ghost wide" data-close="1" style="margin-top:9px">Not now</button>`);
   if(m.type==="confirmemail") return wrap("Check your email",`
     <p style="color:var(--muted);margin-bottom:18px;line-height:1.6">
       We sent a confirmation link to <b style="color:var(--ink)">${esc(m.email||"")}</b>.
@@ -16157,6 +16169,15 @@ document.querySelectorAll('.sig-ai-coach').forEach(sigAiCoachWire);
     loadCoachInvites();
     toast(n+" invite link"+(n===1?"":"s")+" created — copy each family's link below. Nothing was emailed.");
   });
+  $("[data-invaccept]").forEach(b=>b.onclick=()=>{
+    const tk=b.dataset.invaccept;
+    S.modal=null;render();
+    window.SporveAPI.rpc("redeem_coach_invite",{p_token:tk})
+      /* Honest claim (pentest M2): redemption marks the invite used — it does
+         not yet create a membership row, so say what actually happened. */
+      .then(()=>{toast("Invite accepted — the club can now see you've joined their list.");})
+      .catch(e=>{toast((e&&e.message)||"That invite can't be used.");});
+  });
   $("[data-invcopy]").forEach(b=>b.onclick=()=>{
     const url=window.location.origin+"/?invite="+b.dataset.invcopy;
     const done=()=>toast("Link copied — send it to the family however you normally reach them.");
@@ -19026,7 +19047,7 @@ function hydrateReturn(){
     /* Signed in: redeem now. Signed out: park the intent — the replayer fires
        it the moment auth completes, exactly like a parked booking. */
     if(window.SporveAPI&&window.SporveAPI.isSignedIn&&window.SporveAPI.isSignedIn()){
-      runIntent({kind:"redeemInvite",token:invite});
+      S.modal={type:"inviteconfirm",token:invite};render();
     } else {
       S.pendingIntent={kind:"redeemInvite",token:invite};
       S.modal={type:"authsheet"};render();
