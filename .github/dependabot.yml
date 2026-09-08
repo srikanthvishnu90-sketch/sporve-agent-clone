@@ -1,0 +1,19 @@
+# Keeps the GitHub Actions this repo runs (checkout, gitleaks, …) and the
+# Node dev tooling on patched versions. Security updates open a PR; the normal
+# PR gate (smoke, security-regressions, secret-scan, CodeRabbit) reviews it.
+version: 2
+updates:
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 3
+  - package-ecosystem: npm
+    directory: /
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 3
+    # only security-relevant bumps; feature bumps of dev tooling are noise
+    ignore:
+      - dependency-name: "*"
+        update-types: ["version-update:semver-major", "version-update:semver-minor"]
