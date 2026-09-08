@@ -4060,6 +4060,21 @@ body.reg-coach .greet{font-size:24px}
 .au-head h2{font-size:var(--t-h3)}
 .au-head p{color:var(--muted);margin-top:7px;font-size:var(--t-small)}
 .au-form .field{margin-bottom:12px}
+/* Agent run screen (design batch 3). Phases advance on real returns; the
+   only animation is the running dot's blink, stilled under reduced motion. */
+.arphases{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:12px}
+.arph{padding:8px 10px;border:1px solid var(--rule);border-radius:7px;font-size:var(--text-sm);color:var(--faint);display:flex;align-items:center;gap:8px}
+.arph i{width:6px;height:6px;border-radius:50%;background:var(--rule-strong);flex:none}
+.arph.run{color:var(--ink);border-color:var(--slate,#64748B)}
+.arph.run i{background:var(--slate,#64748B);animation:arblink 1s infinite}
+.arph.done{color:var(--muted)}.arph.done i{background:var(--ok,#7FA98C)}
+@keyframes arblink{50%{opacity:.3}}
+@media(prefers-reduced-motion:reduce){.arph.run i{animation:none}}
+.arterm{border:1px solid var(--rule);border-radius:10px;padding:12px 14px;min-height:170px;max-height:280px;overflow:auto}
+.arln{display:flex;gap:12px;font-size:var(--text-sm);line-height:1.9;color:var(--muted)}
+.arln.sk span:last-child{color:var(--faint)}
+.arln.hi span:last-child{color:var(--ink)}
+.arln.ok span:last-child{color:var(--ok,#3F8A5C);font-weight:600}
 /* Queue row v2 (design batch 1). Mono for signals and counts; the clamp is
    two lines until tapped; the undo bar's draining line is the one animation,
    and reduced-motion stills it. */
@@ -11984,6 +11999,48 @@ function loadLiveObligations(){
    repeatedly — run_agent_drafts is owner-gated in SQL and every generator
    upserts on (provider_id, source_ref), so a double fire cannot duplicate a
    draft. Drafts only; nothing is sent. */
+/* The run SCREEN (design batch 3): same runs as agentRunAfterConnect, but
+   visible — the onboarding proof moment and the Settings/queue re-run share
+   it. Async steps append REAL lines; phases advance on real returns. */
+function startAgentRunScreen(){
+  const pv=S.coachProvider;
+  if(!(pv&&pv.id&&realSignedIn()&&window.SporveAPI&&window.SporveAPI.isSignedIn&&window.SporveAPI.isSignedIn())) return false;
+  const t0=Date.now();
+  const ts=()=>{const s2=Math.floor((Date.now()-t0)/1000);return String(Math.floor(s2/60)).padStart(2,"0")+":"+String(s2%60).padStart(2,"0");};
+  const ar=S.agentRun={lines:[],phase:"extract",done:false,total:0};
+  const line=(txt,cls)=>{ar.lines.push({t:ts(),txt:txt,cls:cls||""});render();};
+  S.modal={type:"agentrun"};render();
+  line("Organization · "+(pv.business_name||"your org"));
+  const fams=(S.setGuardians||[]).length;
+  line(fams?("Families on file · "+fams):"Families on file · none yet");
+  ar.phase="scan";
+  line("Google not connected — skipped","sk");
+  line(pv.stripe_charges_enabled?"Stripe connected — payments readable":"Stripe not connected — billing drafts are held","sk");
+  ar.phase="read";render();
+  window.SporveAPI.rpc("run_agent_read",{p_provider:pv.id}).catch(()=>null).then(n=>{
+    line(typeof n==="number"?("Read pass · "+n+" thing"+(n===1?"":"s")+" noticed"):"Read pass · unavailable this run","hi");
+    ar.phase="write";render();
+    return window.SporveAPI.rpc("run_agent_drafts",{p_provider:pv.id}).catch(()=>null);
+  }).then(r=>{
+    if(r&&typeof r==="object"){
+      const L={dues:["dues follow-up","dues follow-ups"],waivers:["waiver request","waiver requests"],
+        practice:["practice reminder","practice reminders"],reactivation:["win-back draft","win-back drafts"],
+        eligibility:["eligibility report","eligibility reports"],missing_info:["missing-info request","missing-info requests"],
+        capacity_offer:["idle-capacity offer","idle-capacity offers"]};
+      let any=false;
+      Object.keys(L).forEach(k=>{if(r[k]>0){any=true;line("Drafted "+r[k]+" "+L[k][r[k]===1?0:1]+" · none sent");}});
+      if(!any) line("Nothing new to draft — dues, waivers and schedule are current");
+      ar.total=(r.total||0);
+      line("Done. "+ar.total+" item"+(ar.total===1?"":"s")+" in your queue.","ok");
+    } else {
+      line("Draft pass · unavailable this run — the nightly run still covers it","sk");
+    }
+    ar.phase="write";ar.done=true;
+    S.obligLive=false;S.findLoaded=false;loadLiveObligations();loadLiveFindings();
+    render();
+  });
+  return true;
+}
 function agentRunAfterConnect(){
   const pv=S.coachProvider;
   if(!(pv&&pv.id&&realSignedIn()&&window.SporveAPI&&window.SporveAPI.isSignedIn&&window.SporveAPI.isSignedIn())) return;
@@ -12957,6 +13014,25 @@ function modalHTML(){
      this modal normally never shows — signup signs you straight in. It stays
      because it is the correct screen if autoconfirm is ever turned back off;
      without it an unconfirmed visitor is silently stranded on a closed modal. */
+  if(m.type==="agentrun"){
+    /* Every line is a REAL fact: connector lines state what exists (Google
+       does not — it prints a skip), counts come from the RPC returns, and the
+       final number is the queue's number. Nothing animates on a timer;
+       phases advance when their call returns. */
+    const ar=S.agentRun||{};
+    const ph=(k,label)=>`<div class="arph ${ar.phase===k?"run":(ar.done||["extract","scan","read","write"].indexOf(k)<["extract","scan","read","write"].indexOf(ar.phase||"extract"))?"done":""}"><i></i>${label}</div>`;
+    return wrap(ar.done?(ar.total?"Done":"Nothing found yet"):"Reading your organization",`
+      <p style="color:var(--muted);font-size:var(--text-sm);margin-bottom:14px">${ar.done
+        ?(ar.total?ar.total+" item"+(ar.total===1?"":"s")+" in your queue. All of them are drafts — nothing was sent.":"The run finished with no findings — usually there isn't enough on file yet.")
+        :"Under a minute. Everything it drafts waits for you — nothing is sent from this screen."}</p>
+      <div class="arphases">${ph("extract","Extract")}${ph("scan","Scan")}${ph("read","Read")}${ph("write","Write")}</div>
+      <div class="arterm" aria-live="polite">${(ar.lines||[]).map(l=>`<div class="arln ${l.cls||""}"><span class="num" style="color:var(--faint)">${l.t}</span><span>${esc(l.txt)}</span></div>`).join("")}</div>
+      ${ar.done?(ar.total?`<button class="btn wide" data-arqueue="1" style="margin-top:14px">Open the review queue</button>`
+        :`<div style="display:flex;flex-direction:column;gap:8px;margin-top:14px">
+           <button class="btn wide" data-arroster="1">Add your roster</button>
+           <button class="btn ghost wide" data-arrerun="1">Run again</button></div>`)
+        :`<button class="btn ghost wide" data-close="1" style="margin-top:14px">Run in the background</button>`}`);
+  }
   if(m.type==="inviteconfirm") return wrap("Accept this invite?",`
     <p style="color:var(--muted);margin-bottom:14px;line-height:1.6">A coach or club sent
       you this link to join their roster on Sporv. Accepting marks the invite as used
@@ -16568,8 +16644,9 @@ document.querySelectorAll('.sig-ai-coach').forEach(sigAiCoachWire);
       });
     }
     S.modal=null;render();
-    /* The queue the director lands on should hold work, not wait for cron. */
-    agentRunAfterConnect();});
+    /* The queue the director lands on should hold work, not wait for cron —
+       and the FIRST run is the proof moment, so it is visible (batch 3). */
+    if(!startAgentRunScreen()) agentRunAfterConnect();});
   $("[data-suw-back]").forEach(b=>b.onclick=()=>{const w=S.setupWiz;if(w){w.step=1;w.err=null;}render();});
   $("[data-suw0]").forEach(b=>b.onclick=()=>{
     const w=S.setupWiz;if(!w)return;
@@ -17000,7 +17077,11 @@ document.querySelectorAll('.sig-ai-coach').forEach(sigAiCoachWire);
       .then(()=>{S.setLoaded=false;loadOrgSettings();toast("New version created — existing signatures stay bound to the version they signed.");})
       .catch(e=>toast("Could not create a version: "+((e&&e.message)||"")));
   });
+  $("[data-arqueue]").forEach(b=>b.onclick=()=>{S.modal=null;S.portal="coach";S.coachTab="queue";render();});
+  $("[data-arroster]").forEach(b=>b.onclick=()=>{S.modal=null;S.coachTab="roster";S.clientsPageTab="import";render();});
+  $("[data-arrerun]").forEach(b=>b.onclick=()=>startAgentRunScreen());
   $("[data-agent-run]").forEach(b=>b.onclick=()=>{
+    if(startAgentRunScreen()) return;
     const pv=S.coachProvider; if(!pv||!window.SporveAPI||S.agentRunning) return;
     S.agentRunning=true;render();
     window.SporveAPI.rpc("run_agent_drafts",{p_provider:pv.id})

@@ -1,0 +1,402 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Sporv — Design kit · batch 3</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Roboto+Condensed:wght@700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@500&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#0A0C0F;--panel:#0F1216;--panel-2:#14181D;--raise:#1A1F25;
+    --line:#1E242B;--line-2:#2A323B;
+    --ink:#EDEFF2;--ink-2:#9BA3AD;--ink-3:#6B7480;
+    --steel:#6B7F9E;--steel-l:#9DB0CB;--steel-bg:rgba(107,127,158,.12);--steel-br:rgba(107,127,158,.34);
+    --ok:#6FA982;--ok-bg:rgba(111,169,130,.12);--ok-br:rgba(111,169,130,.28);
+    --attn:#8EC5E8;--attn-bg:rgba(142,197,232,.10);--attn-br:rgba(142,197,232,.28);
+    --bad:#C4685E;--bad-bg:rgba(196,104,94,.10);--bad-br:rgba(196,104,94,.30);
+    --t0:10px;--t1:10.5px;--t2:12.5px;--t3:13.5px;--t4:15.5px;
+    --h1:clamp(17px,2vw,20px);
+    --s1:4px;--s2:8px;--s3:12px;--s4:16px;--s5:24px;--s6:32px;--s7:48px;
+  }
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  body{margin:0;background:#050607;color:var(--ink);font-family:Inter,system-ui,sans-serif;font-size:var(--t3);line-height:1.5;-webkit-font-smoothing:antialiased}
+  button,input,select,textarea{font:inherit;color:inherit;background:none;border:0}button{cursor:pointer}
+  .mono{font-family:"JetBrains Mono",monospace;font-weight:500;font-variant-numeric:tabular-nums}
+  .kit{position:sticky;top:0;z-index:50;background:rgba(5,6,7,.94);backdrop-filter:blur(10px);border-bottom:1px solid var(--line);display:flex;gap:var(--s2);padding:var(--s2) var(--s4);align-items:center;flex-wrap:wrap}
+  .kit .g{display:flex;gap:var(--s1);align-items:center;flex-wrap:wrap}
+  .kit .lab{font-family:"JetBrains Mono",monospace;font-size:var(--t0);letter-spacing:.12em;text-transform:uppercase;color:var(--ink-3);margin-right:var(--s1)}
+  .kit button{height:28px;padding:0 10px;border:1px solid var(--line-2);border-radius:999px;font-size:var(--t2);color:var(--ink-2)}
+  .kit button.on{background:var(--ink);color:var(--bg);border-color:var(--ink);font-weight:500}
+  .kit .sp{flex:1}
+  .stage{padding:var(--s6) var(--s4) 120px;display:grid;place-items:start center}
+  .frame{width:100%;max-width:1040px;background:var(--bg);border:1px solid var(--line);border-radius:14px;overflow:hidden;min-height:640px;position:relative}
+  .stage.m .frame{width:375px;max-width:375px;border-radius:38px;min-height:812px}
+  .screen{display:none}.screen.on{display:block}
+  .note{max-width:1040px;margin:var(--s5) auto 0;color:var(--ink-3);font-size:var(--t2);line-height:1.55}
+  .note b{color:var(--ink-2);font-weight:500}
+  .hidden{display:none!important}
+
+  .bar{height:52px;display:flex;align-items:center;gap:var(--s3);padding:0 var(--s4);border-bottom:1px solid var(--line)}
+  .bar .t{font-family:"Roboto Condensed",sans-serif;text-transform:uppercase;font-weight:700;font-size:var(--t3);letter-spacing:.06em}
+  .bar .r{margin-left:auto;display:flex;gap:var(--s2);align-items:center;font-size:var(--t2);color:var(--ink-3)}
+  .pad{padding:var(--s4);max-width:760px;margin:0 auto}
+  h1{font-family:"Roboto Condensed",sans-serif;text-transform:uppercase;font-weight:700;font-size:var(--h1);letter-spacing:.035em;margin:0 0 var(--s1);line-height:1.15}
+  h2{font-family:"Roboto Condensed",sans-serif;text-transform:uppercase;font-weight:700;font-size:var(--t1);letter-spacing:.09em;color:var(--ink-3);margin:var(--s5) 0 var(--s2)}
+  h2:first-child{margin-top:0}
+  .sub{color:var(--ink-2);font-size:var(--t3);margin:0 0 var(--s4)}
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:10px;overflow:hidden}
+  .card+.card{margin-top:var(--s2)}
+  .row{display:flex;align-items:center;gap:var(--s3);padding:var(--s3) var(--s4);border-bottom:1px solid var(--line);min-height:44px}
+  .row:last-child{border-bottom:0}
+  .row .lab{flex:1;min-width:0}.row .lab b{display:block;font-weight:500;font-size:var(--t3)}.row .lab small{display:block;color:var(--ink-3);font-size:var(--t2);margin-top:1px;line-height:1.4}
+  .row .ctl{flex:none;display:flex;gap:var(--s2);align-items:center;flex-wrap:wrap;justify-content:flex-end}
+  .btn{height:44px;padding:0 var(--s4);border:1px solid var(--line-2);border-radius:8px;font-family:"Roboto Condensed",sans-serif;text-transform:uppercase;font-weight:700;font-size:var(--t2);letter-spacing:.07em;display:inline-flex;align-items:center;justify-content:center;gap:var(--s2);transition:background .15s,transform .12s}
+  .btn:hover{background:var(--panel-2)}.btn:active{transform:scale(.985)}
+  .btn.pri{background:var(--steel);color:#fff;border-color:var(--steel)}.btn.pri:hover{background:#7A8FAE}
+  .btn.sm{height:32px;padding:0 var(--s3)}
+  .btn.ghost{border-color:transparent;color:var(--ink-2)}
+  .btn.full{width:100%}
+  .btn.danger{border-color:var(--bad-br);color:var(--bad)}
+  .btn:disabled{opacity:.4;cursor:not-allowed;transform:none}
+  .pill{font-size:var(--t1);font-weight:500;padding:2px 8px;border-radius:999px;border:1px solid var(--line-2);color:var(--ink-3);white-space:nowrap}
+  .pill.ok{color:var(--ok);background:var(--ok-bg);border-color:var(--ok-br)}
+  .pill.attn{color:var(--attn);background:var(--attn-bg);border-color:var(--attn-br)}
+  .pill.steel{color:var(--steel-l);background:var(--steel-bg);border-color:var(--steel-br)}
+  .pill.bad{color:var(--bad);background:var(--bad-bg);border-color:var(--bad-br)}
+  .callout{border-left:1px solid var(--steel);padding:var(--s2) var(--s4);color:var(--ink-2);font-size:var(--t2);margin-top:var(--s4);line-height:1.55}
+  .callout b{color:var(--ink);font-weight:600}
+  .callout.bad{border-left-color:var(--bad)}
+  input[type=text],input[type=email],input[type=tel],select,textarea{width:100%;height:44px;padding:0 var(--s3);background:var(--bg);border:1px solid var(--line-2);border-radius:8px;font-size:16px;color:var(--ink)}
+  textarea{height:auto;min-height:88px;padding:10px 12px;line-height:1.5;resize:vertical}
+  input:focus,select:focus,textarea:focus{outline:0;border-color:var(--steel)}
+  label.l{display:block;font-family:"Roboto Condensed",sans-serif;text-transform:uppercase;font-weight:700;font-size:var(--t1);letter-spacing:.08em;color:var(--ink-3);margin:0 0 var(--s2)}
+  .f{margin-bottom:var(--s4)}
+  .hint{color:var(--ink-3);font-size:var(--t2);margin-top:var(--s2)}
+  .seg{display:flex;border:1px solid var(--line-2);border-radius:8px;overflow:hidden}
+  .seg button{flex:1;height:44px;font-family:"Roboto Condensed",sans-serif;text-transform:uppercase;font-weight:700;font-size:var(--t2);letter-spacing:.07em;color:var(--ink-3);border-right:1px solid var(--line-2)}
+  .seg button:last-child{border-right:0}.seg button.on{background:var(--ink);color:var(--bg)}
+  .sticky{position:sticky;bottom:0;background:var(--bg);padding:var(--s3) 0 0;margin-top:var(--s4);border-top:1px solid var(--line)}
+
+  /* ── staff ── */
+  table.mtx{width:100%;border-collapse:collapse;font-size:var(--t2)}
+  .mtx th{font-family:"Roboto Condensed",sans-serif;text-transform:uppercase;font-weight:700;font-size:var(--t1);letter-spacing:.07em;color:var(--ink-3);text-align:left;padding:var(--s2) var(--s4);border-bottom:1px solid var(--line);background:var(--panel-2)}
+  .mtx th:not(:first-child),.mtx td:not(:first-child){text-align:center;width:22%}
+  .mtx td{padding:var(--s2) var(--s4);border-bottom:1px solid var(--line);color:var(--ink-2)}
+  .mtx tr:last-child td{border-bottom:0}.mtx td:first-child{color:var(--ink)}
+  .y{color:var(--ok)}.n{color:var(--line-2)}
+  .av{width:28px;height:28px;border-radius:50%;background:var(--panel-2);border:1px solid var(--line-2);display:grid;place-items:center;font-family:"JetBrains Mono",monospace;font-size:var(--t0);color:var(--ink-2);flex:none}
+
+  /* ── sms ── */
+  .thr{display:flex;flex-direction:column;gap:var(--s3)}
+  .m{max-width:78%;display:flex;flex-direction:column;gap:3px}
+  .m .from{font-size:var(--t1);color:var(--ink-3);display:flex;gap:var(--s2);align-items:center}
+  .m .from b{color:var(--ink-2);font-weight:500}
+  .m .ch{font-family:"JetBrains Mono",monospace;font-size:var(--t0);letter-spacing:.06em;text-transform:uppercase;padding:1px 6px;border-radius:4px;border:1px solid var(--line-2);color:var(--ink-3)}
+  .m .ch.sms{color:var(--attn);border-color:var(--attn-br)}
+  .m .bd{padding:9px 12px;border-radius:12px;font-size:var(--t3);line-height:1.5;background:var(--panel-2);border:1px solid var(--line)}
+  .m.out{align-self:flex-end;align-items:flex-end}.m.out .bd{background:var(--steel-bg);border-color:var(--steel-br)}
+  .m.sms .bd{border-radius:8px;font-family:Inter}
+  .draft{border:1px dashed var(--steel-br);border-radius:10px;padding:var(--s3) var(--s4);margin-top:var(--s2)}
+  .draft .dh{display:flex;gap:var(--s2);align-items:center;margin-bottom:var(--s2);font-size:var(--t1);color:var(--ink-3);flex-wrap:wrap}
+  .draft .dh .pill{margin-left:auto}
+  .draft textarea{min-height:64px}
+  .cnt{display:flex;justify-content:space-between;font-family:"JetBrains Mono",monospace;font-size:var(--t1);color:var(--ink-3);margin-top:var(--s2)}
+  .cnt .over{color:var(--attn)}
+  .sysline{text-align:center;font-size:var(--t1);color:var(--ink-3);padding:var(--s1) 0}
+
+  /* ── agent run ── */
+  .phase{display:grid;grid-template-columns:repeat(4,1fr);gap:var(--s2);margin-bottom:var(--s4)}
+  .stage.m .phase{grid-template-columns:1fr 1fr}
+  .phase div{padding:var(--s2) var(--s3);border:1px solid var(--line);border-radius:7px;font-size:var(--t2);color:var(--ink-3);display:flex;align-items:center;gap:var(--s2)}
+  .phase div i{width:6px;height:6px;border-radius:50%;background:var(--line-2);flex:none}
+  .phase div.run{color:var(--ink);border-color:var(--steel-br)}.phase div.run i{background:var(--steel);animation:blink 1s infinite}
+  .phase div.done{color:var(--ink-2)}.phase div.done i{background:var(--ok)}
+  .phase div.skip{color:var(--ink-3)}.phase div.skip i{background:transparent;border:1px solid var(--ink-3)}
+  @keyframes blink{50%{opacity:.3}}
+  .term{border:1px solid var(--line);border-radius:10px;overflow:hidden}
+  .term .th{display:flex;gap:var(--s3);padding:var(--s2) var(--s4);background:var(--panel-2);border-bottom:1px solid var(--line);font-size:var(--t2);color:var(--ink-3)}
+  .term .th b{color:var(--ink);font-weight:500}.term .th .st{margin-left:auto;font-family:"JetBrains Mono",monospace}
+  .term .tb{padding:var(--s3) var(--s4);font-family:"JetBrains Mono",monospace;font-size:var(--t2);line-height:1.95;min-height:220px}
+  .term .ln{display:flex;gap:var(--s3);color:var(--ink-2);opacity:0;transform:translateY(4px);transition:opacity .3s,transform .3s}
+  .term .ln.in{opacity:1;transform:none}
+  .term .ts{color:var(--ink-3);flex:none}.term .ok{color:var(--ok)}.term .hi{color:var(--ink)}.term .at{color:var(--attn)}.term .sk{color:var(--ink-3)}
+  .result{display:grid;grid-template-columns:repeat(3,1fr);border:1px solid var(--line);border-radius:10px;overflow:hidden;margin-top:var(--s4)}
+  .result>div{padding:var(--s3) var(--s4);border-right:1px solid var(--line)}.result>div:last-child{border-right:0}
+  .result .l{font-size:var(--t1);color:var(--ink-3)}.result .v{font-family:"JetBrains Mono",monospace;font-weight:500;font-size:var(--t4);margin-top:2px}
+  .stage.m .result{grid-template-columns:1fr}.stage.m .result>div{border-right:0;border-bottom:1px solid var(--line)}
+
+  /* ── connect ── */
+  .conn{display:grid;grid-template-columns:1fr 1fr;gap:var(--s2)}
+  .stage.m .conn{grid-template-columns:1fr}
+  .cn{display:flex;align-items:flex-start;gap:var(--s3);padding:var(--s3) var(--s4);border:1px solid var(--line-2);border-radius:9px;background:var(--bg);text-align:left;min-height:44px}
+  .cn .ic{width:28px;height:28px;border-radius:7px;background:var(--panel-2);border:1px solid var(--line);display:grid;place-items:center;font-family:"JetBrains Mono",monospace;font-size:var(--t0);color:var(--ink-2);flex:none;margin-top:1px}
+  .cn.on{border-color:var(--ok-br)}.cn.on .ic{border-color:var(--ok-br);color:var(--ok)}
+  .cn.busy{border-color:var(--steel-br)}
+  .cn .b{flex:1;min-width:0}.cn b{display:block;font-size:var(--t3);font-weight:500}
+  .cn small{display:block;font-size:var(--t1);color:var(--ink-3);line-height:1.4;margin-top:2px}
+  .cn .st{display:flex;flex-direction:column;align-items:flex-end;gap:var(--s1);flex:none}
+  .cn .st .btn{height:30px}
+  .cn .meta{font-family:"JetBrains Mono",monospace;font-size:var(--t0);color:var(--ink-3)}
+  .fix{display:flex;align-items:center;gap:var(--s3);padding:var(--s3) var(--s4);border:1px solid var(--attn-br);border-radius:9px;margin-top:var(--s2);font-size:var(--t2)}
+  .fix .btn{margin-left:auto}
+</style>
+</head>
+<body>
+
+<div class="kit">
+  <span class="g"><span class="lab">Screen</span>
+    <button class="on" data-sc="staffq">7 · Onboarding Q</button><button data-sc="staff">7 · Staff list</button><button data-sc="accept">7 · Accept invite</button><button data-sc="sms">3 · SMS thread</button><button data-sc="smsset">3 · SMS settings</button><button data-sc="run">8 · Agent run</button><button data-sc="connect">9 · Connect</button></span>
+  <span class="sp"></span>
+  <span class="g" id="states"><span class="lab">State</span></span>
+  <span class="g"><span class="lab">Width</span><button class="on" data-w="d">Desktop</button><button data-w="m">375</button></span>
+</div>
+
+<div class="stage" id="stage"><div class="frame" id="frame">
+
+<!-- ═══ 7 · ONBOARDING QUESTION ═══ -->
+<div class="screen on" data-sc="staffq" data-states="ask,filled,skipped">
+  <div class="bar"><span class="t">Sporv</span><span class="r"><span class="mono">03 / 06</span></span></div>
+  <div class="pad" style="max-width:600px">
+    <h1>Will anyone else help run this?</h1>
+    <p class="sub">A treasurer, another coach, an admin. They get an invite by email and join this club — they never create a second one. Skip if it's just you.</p>
+    <div data-st="ask,filled" id="invites">
+      <div class="card">
+        <div class="row" style="gap:var(--s2)"><input type="email" placeholder="name@club.org" style="flex:1"><select style="width:140px;flex:none"><option>Coach</option><option>Treasurer</option><option>Admin</option></select><button class="btn sm">Add</button></div>
+      </div>
+      <div class="card" data-st="filled" style="margin-top:var(--s2)">
+        <div class="row"><span class="av">AM</span><div class="lab"><b>a.mensah@northsideflight.org</b><small>Treasurer · sees money, can't change settings</small></div><div class="ctl"><button class="btn sm ghost">Remove</button></div></div>
+        <div class="row"><span class="av">JO</span><div class="lab"><b>j.ortiz@gmail.com</b><small>Coach · sees their own teams only</small></div><div class="ctl"><button class="btn sm ghost">Remove</button></div></div>
+      </div>
+      <p class="hint" data-st="filled">Invites send when you finish setup, not now. You approve the first message like everything else.</p>
+    </div>
+    <div data-st="skipped" class="callout"><b>Skipped.</b> You can invite people any time from Settings → People. Nothing else changes.</div>
+    <div class="sticky" style="display:flex;gap:var(--s2)"><button class="btn ghost">Back</button><button class="btn pri" style="flex:1">Continue</button><button class="btn ghost" data-st="ask">Skip</button></div>
+  </div>
+</div>
+
+<!-- ═══ 7 · STAFF LIST ═══ -->
+<div class="screen" data-sc="staff" data-states="list,roles">
+  <div class="bar"><span class="t">Settings · People</span><span class="r"><span class="mono">4 people · 1 pending</span></span></div>
+  <div class="pad">
+    <div data-st="list">
+      <div style="display:flex;align-items:baseline;gap:var(--s3)"><h1>People</h1><button class="btn sm pri" style="margin-left:auto">Invite</button></div>
+      <p class="sub">Who can get in and what they can see. Roles are fixed; there is no custom role.</p>
+      <div class="card">
+        <div class="row"><span class="av">VS</span><div class="lab"><b>Vishnu Srikanth</b><small>you · joined Aug 2026</small></div><div class="ctl"><span class="pill steel">Owner</span></div></div>
+        <div class="row"><span class="av">AM</span><div class="lab"><b>Aisha Mensah</b><small>a.mensah@northsideflight.org · last active today</small></div><div class="ctl"><span class="pill">Treasurer</span><button class="btn sm ghost">Change</button><button class="btn sm ghost danger">Revoke</button></div></div>
+        <div class="row"><span class="av">MR</span><div class="lab"><b>Marcus Reed</b><small>14U, 16U · background check on file · exp Aug 2027</small></div><div class="ctl"><span class="pill">Coach</span><button class="btn sm ghost">Change</button><button class="btn sm ghost danger">Revoke</button></div></div>
+        <div class="row"><span class="av">JO</span><div class="lab"><b>Jordan Ortiz</b><small>12U · <span style="color:var(--attn)">no background check recorded</span> · can't be assigned to a fixture</small></div><div class="ctl"><span class="pill">Coach</span><button class="btn sm ghost">Change</button><button class="btn sm ghost danger">Revoke</button></div></div>
+      </div>
+      <h2>Pending</h2>
+      <div class="card">
+        <div class="row"><span class="av">—</span><div class="lab"><b>r.delgado@gmail.com</b><small>Admin · invited Sep 4 by you · expires Sep 11</small></div><div class="ctl"><span class="pill attn">Pending</span><button class="btn sm ghost">Resend</button><button class="btn sm ghost danger">Cancel</button></div></div>
+      </div>
+      <div class="callout"><b>Revoking is immediate.</b> Their sessions end now, their approvals stay in the audit log with their name, and nothing they created is deleted.</div>
+      <button class="btn sm ghost" style="margin-top:var(--s3)" data-go="roles">What each role can see</button>
+    </div>
+    <div data-st="roles">
+      <h1>Roles</h1><p class="sub">Four roles in v1. Money is visible to Owner and Treasurer only.</p>
+      <div class="card"><table class="mtx">
+        <tr><th>Can</th><th>Owner</th><th>Admin</th><th>Treasurer</th><th>Coach</th></tr>
+        <tr><td>Change settings, automation, billing plan</td><td class="y">Yes</td><td class="n">—</td><td class="n">—</td><td class="n">—</td></tr>
+        <tr><td>Invite and revoke people</td><td class="y">Yes</td><td class="y">Yes</td><td class="n">—</td><td class="n">—</td></tr>
+        <tr><td>Approve queue drafts</td><td class="y">Yes</td><td class="y">Yes</td><td class="y">Money only</td><td class="y">Own teams</td></tr>
+        <tr><td>See the ledger and payouts</td><td class="y">Yes</td><td class="n">—</td><td class="y">Yes</td><td class="n">—</td></tr>
+        <tr><td>Issue a refund</td><td class="y">Yes</td><td class="n">—</td><td class="y">Yes</td><td class="n">—</td></tr>
+        <tr><td>Edit rosters and schedule</td><td class="y">Yes</td><td class="y">Yes</td><td class="n">—</td><td class="y">Own teams</td></tr>
+        <tr><td>Message families</td><td class="y">Yes</td><td class="y">Yes</td><td class="y">Billing only</td><td class="y">Own teams</td></tr>
+        <tr><td>Export all data</td><td class="y">Yes</td><td class="n">—</td><td class="n">—</td><td class="n">—</td></tr>
+        <tr><td>Close the organization</td><td class="y">Yes</td><td class="n">—</td><td class="n">—</td><td class="n">—</td></tr>
+      </table></div>
+      <button class="btn sm ghost" style="margin-top:var(--s3)" data-go="list">Back to people</button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ 7 · ACCEPT INVITE ═══ -->
+<div class="screen" data-sc="accept" data-states="fresh,signedin,expired">
+  <div class="bar"><span class="t">Sporv</span></div>
+  <div class="pad" style="max-width:480px;padding-top:var(--s7)">
+    <div data-st="fresh,signedin">
+      <h2>You've been invited</h2>
+      <h1>Northside Flight</h1>
+      <p class="sub">Vishnu Srikanth invited you as <b style="color:var(--ink);font-weight:500">Treasurer</b>. Accepting joins their club — it does not create a new one.</p>
+      <div class="card"><div class="row"><div class="lab"><b>As Treasurer you can</b><small>See the ledger and payouts, approve money drafts, issue refunds, message families about billing.</small></div></div>
+        <div class="row"><div class="lab"><b>You can't</b><small>Change settings, invite people, edit rosters, or see non-billing messages.</small></div></div></div>
+      <div data-st="fresh"><div class="f" style="margin-top:var(--s4)"><label class="l">Your email</label><input type="email" value="a.mensah@northsideflight.org" readonly style="color:var(--ink-2)"></div>
+        <button class="btn pri full">Accept and sign in with a link</button>
+        <p class="hint" style="text-align:center">Or <span style="color:var(--ink-2)">continue with Google</span> using the same address.</p></div>
+      <div data-st="signedin"><p class="hint" style="margin-top:var(--s4)">Signed in as <span class="mono" style="color:var(--ink-2)">a.mensah@northsideflight.org</span></p><button class="btn pri full">Accept invite</button></div>
+      <p class="hint" style="margin-top:var(--s5);text-align:center">Expires Sep 11. Not you? Ignore this and nothing happens.</p>
+    </div>
+    <div data-st="expired"><h1>This invite expired</h1><p class="sub">It was sent Sep 4 and lasted seven days. Ask Vishnu Srikanth to send a new one — nothing was created on your side.</p></div>
+  </div>
+</div>
+
+<!-- ═══ 3 · SMS THREAD ═══ -->
+<div class="screen" data-sc="sms" data-states="optedin,stopped,neverinvited">
+  <div class="bar"><button class="btn sm ghost">‹</button><div><b style="font-weight:500;font-size:var(--t3)">Dana Reyes</b><br><small style="color:var(--ink-3);font-size:var(--t2)">Guardian · Ava, Mateo · <span data-st="optedin">texts on</span><span data-st="stopped">texts stopped</span><span data-st="neverinvited">no texts yet</span></small></div>
+    <span class="r"><span class="pill attn" data-st="optedin">SMS</span><span class="pill bad" data-st="stopped">STOP</span><span class="pill" data-st="neverinvited">Email only</span></span></div>
+  <div class="pad" style="max-width:640px">
+    <div class="thr">
+      <div class="sysline">Tuesday</div>
+      <div class="m out"><div class="from"><b>You</b><span class="ch">Email</span><span class="mono" style="font-size:var(--t0)">6:02 PM</span></div><div class="bd">Saturday's practice has moved to 10:00 AM, same gym. Reply here if that changes anyone's plans.</div></div>
+      <div class="m sms"><div class="from"><b>Dana Reyes</b><span class="ch sms">SMS</span><span class="mono" style="font-size:var(--t0)">6:40 PM</span></div><div class="bd">Ava's good. Mateo has a dentist thing, might be 15 late</div></div>
+      <div class="m out sms"><div class="from"><b>You</b><span class="ch sms">SMS</span><span class="mono" style="font-size:var(--t0)">6:44 PM</span></div><div class="bd">No problem, we'll start him when he gets there.</div></div>
+      <div class="sysline" data-st="stopped">Wed 9:12 AM · Dana replied STOP · texts blocked by carrier rule · email still on</div>
+    </div>
+
+    <div class="draft" data-st="optedin">
+      <div class="dh"><span class="mono" style="color:var(--steel-l);letter-spacing:.06em;text-transform:uppercase;font-size:var(--t0)">Sporv draft</span><span class="ch sms">This sends as a text</span><span class="pill steel">Waiting on you</span></div>
+      <textarea id="smsTa">Hi Dana — installment 3 for Ava ($390) was due Sept 1. Link in your portal, or reply here if timing is hard this month.</textarea>
+      <div class="cnt"><span>Why: <span style="color:var(--steel-l)">7 days past due · SMS preferred by this family</span></span><span id="smsCnt">128 / 160 · 1 segment</span></div>
+      <div style="display:flex;gap:var(--s2);margin-top:var(--s3)"><button class="btn sm pri">Approve and send</button><button class="btn sm ghost">Send by email instead</button><button class="btn sm ghost">Skip</button></div>
+    </div>
+    <div class="callout bad" data-st="stopped"><b>Texts are blocked for this family.</b> Dana replied STOP on Sep 3. That is a carrier rule Sporv can't override. Billing and safety notices still go by email; everything else waits until she texts START.</div>
+    <div class="callout" data-st="neverinvited"><b>This family has never been invited to texts.</b> Drafts go by email. Invite them once — the message asks for consent and nothing else.<div style="margin-top:var(--s2)"><button class="btn sm">Draft the text invite</button></div></div>
+
+    <div class="sticky" data-st="optedin,neverinvited"><div style="display:flex;gap:var(--s2);align-items:flex-end"><textarea placeholder="Reply" style="min-height:44px;height:44px"></textarea><button class="btn pri">Send</button></div>
+      <div class="cnt"><span>Replies go by <span data-st="optedin">text</span><span data-st="neverinvited">email</span> · from Northside Flight</span><span class="mono" data-st="optedin">0 / 160</span></div></div>
+    <div class="sticky" data-st="stopped"><div style="display:flex;gap:var(--s2);align-items:flex-end;opacity:.5"><textarea placeholder="Reply by email" style="min-height:44px;height:44px"></textarea><button class="btn pri">Send</button></div><div class="cnt"><span>Text is off for this family. This goes by email.</span></div></div>
+  </div>
+</div>
+
+<!-- ═══ 3 · SMS SETTINGS ═══ -->
+<div class="screen" data-sc="smsset" data-states="pending,active">
+  <div class="bar"><span class="t">Settings · Messaging</span></div>
+  <div class="pad">
+    <h1>Text messaging</h1><p class="sub">One Sporv number per organization. Families see your club name; replies land here.</p>
+    <div class="card">
+      <div class="row"><div class="lab"><b>Your number</b><small>Provisioned for Northside Flight. Not transferable to another org.</small></div><div class="ctl"><span class="mono" style="font-size:var(--t3)">+1 (312) 555-0148</span></div></div>
+      <div class="row"><div class="lab"><b>Carrier registration</b><small data-st="pending">Required before any text sends. Submitted Sep 2; carriers usually take 1–3 weeks.</small><small data-st="active">Approved Sep 5. Texts send from your number.</small></div><div class="ctl"><span class="pill attn" data-st="pending">In review</span><span class="pill ok" data-st="active">Active</span></div></div>
+      <div class="row"><div class="lab"><b>Sender name families see</b><small>Fixed. Families must know who is writing.</small></div><div class="ctl"><span class="mono" style="color:var(--ink-2)">Northside Flight</span></div></div>
+      <div class="row"><div class="lab"><b>Consent</b><small>Families opt in from a one-time invite text. STOP blocks texts; START restores them. Sporv enforces both.</small></div><div class="ctl"><span class="mono" style="color:var(--ink-2)">41 on · 2 stopped · 19 never invited</span></div></div>
+      <div class="row"><div class="lab"><b>What sends as a text</b><small>Reminders, schedule changes, and replies. Waivers and receipts always go by email.</small></div><div class="ctl"><button class="btn sm">Edit</button></div></div>
+      <div class="row"><div class="lab"><b>Cost</b><small>Billed at cost, added to your Sporv invoice. Long messages count as more than one segment.</small></div><div class="ctl"><span class="mono" style="color:var(--ink-2)">1,104 segments · $8.83 MTD</span></div></div>
+    </div>
+    <div class="callout" data-st="pending"><b>Until registration clears,</b> every text draft is held and delivered by email instead. The queue says so on each one.</div>
+  </div>
+</div>
+
+<!-- ═══ 8 · AGENT RUN ═══ -->
+<div class="screen" data-sc="run" data-states="running,found,zero">
+  <div class="bar"><span class="t">Sporv</span><span class="r"><span class="mono" id="runClock">00:00</span></span></div>
+  <div class="pad">
+    <h1 data-st="running">Reading your club</h1><h1 data-st="found">Done</h1><h1 data-st="zero">Nothing found yet</h1>
+    <p class="sub" data-st="running">Under a minute. Everything it drafts waits for you — nothing is sent from this screen.</p>
+    <p class="sub" data-st="found">13 items are in your queue. All of them are drafts.</p>
+    <p class="sub" data-st="zero">The run finished with no findings, which usually means there isn't enough connected yet.</p>
+    <div class="phase" id="phase">
+      <div data-p="0"><i></i>Extract</div><div data-p="1"><i></i>Scan</div><div data-p="2"><i></i>Read</div><div data-p="3"><i></i>Write</div>
+    </div>
+    <div class="term"><div class="th"><b>First run</b><span>Northside Flight</span><span class="st" id="runT">00:00</span></div><div class="tb" id="tb"></div></div>
+    <div data-st="found">
+      <div class="result"><div><div class="l">Families behind on dues</div><div class="v">11 · $4,290</div></div><div><div class="l">Waivers to request</div><div class="v">62</div></div><div><div class="l">Needs you</div><div class="v">2</div></div></div>
+      <div class="sticky"><button class="btn pri full">Open the review queue</button></div>
+    </div>
+    <div data-st="zero">
+      <div class="callout"><b>Nothing sent, nothing to approve.</b> The run scanned what was connected and found no dues, waivers, or conflicts to act on.</div>
+      <div class="card" style="margin-top:var(--s3)">
+        <div class="row"><div class="lab"><b>Connect Gmail</b><small>Finds families and past threads; most first-run findings come from here.</small></div><div class="ctl"><button class="btn sm">Connect</button></div></div>
+        <div class="row"><div class="lab"><b>Add a roster</b><small>Upload, paste, or an invite link. Zero families means zero findings.</small></div><div class="ctl"><button class="btn sm">Add</button></div></div>
+        <div class="row"><div class="lab"><b>Run again</b><small>Same visual, from Settings → Automation, any time.</small></div><div class="ctl"><button class="btn sm ghost">Run</button></div></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ 9 · CONNECT ═══ -->
+<div class="screen" data-sc="connect" data-states="fresh,viagoogle,stripe">
+  <div class="bar"><span class="t">Settings · Connectors</span><span class="r"><span class="mono" id="connCount">1 of 6 connected</span></span></div>
+  <div class="pad">
+    <h1>Connect what you already use</h1><p class="sub">One tap each. Each tile says what it lets the agent read. Disconnect any time; the token is revoked, not just hidden.</p>
+    <div class="conn" id="conn">
+      <button class="cn" data-c="gmail"><span class="ic">GM</span><span class="b"><b>Gmail</b><small>Reads: threads with families, tournament PDFs. Writes: drafts to your Drafts folder only.</small></span><span class="st"><span class="btn sm">Connect</span><span class="meta">Not connected</span></span></button>
+      <button class="cn" data-c="gcal"><span class="ic">GC</span><span class="b"><b>Google Calendar</b><small>Reads: events and conflicts. Writes: sessions you approve, two-way.</small></span><span class="st"><span class="btn sm">Connect</span><span class="meta">Not connected</span></span></button>
+      <button class="cn" data-c="drive"><span class="ic">DR</span><span class="b"><b>Drive and Sheets</b><small>Reads: waivers, past rosters, a live roster sheet if that's where it lives.</small></span><span class="st"><span class="btn sm">Connect</span><span class="meta">Not connected</span></span></button>
+      <button class="cn" data-c="contacts"><span class="ic">CT</span><span class="b"><b>Google Contacts</b><small>Reads: names and numbers to match families. Never writes.</small></span><span class="st"><span class="btn sm">Connect</span><span class="meta">Not connected</span></span></button>
+      <button class="cn" data-c="stripe"><span class="ic">ST</span><span class="b"><b>Stripe</b><small>Reads: payments, failures, refunds. Writes: nothing without an approval.</small></span><span class="st" id="stripeSt"><span class="btn sm">Connect</span><span class="meta">Not started</span></span></button>
+      <button class="cn on" data-c="web"><span class="ic">WB</span><span class="b"><b>Website</b><small>northsideflight.org · Reads: teams, fees, dates. Watches for stale dates after.</small></span><span class="st"><span class="btn sm">Disconnect</span><span class="meta">Synced 2h ago</span></span></button>
+    </div>
+    <div class="fix"><span>Website read <span class="mono" style="color:var(--ink)">4 teams · 3 fees · season dates</span> · <span class="mono" style="color:var(--attn)">1 fee unreadable</span> — 10U says "contact us".</span><button class="btn sm">Add fee</button><button class="btn sm ghost">Ignore</button></div>
+    <div class="callout" data-st="viagoogle"><b>Signed in with Google.</b> Gmail, Calendar, Drive, and Contacts share that sign-in; they're connected without another prompt. Each can be disconnected on its own.</div>
+    <div class="callout" data-st="stripe"><b>Stripe has five states,</b> and the tile shows the real one: Not started → In progress (you left their form) → In review (Stripe is checking) → Restricted (they need something) → Active. Only Active can collect a charge.</div>
+  </div>
+</div>
+
+</div>
+<div class="note" id="note"></div>
+</div>
+
+<script>
+(function(){
+  const $=s=>document.querySelector(s), $$=s=>[...document.querySelectorAll(s)];
+  const NOTES={
+    staffq:"<b>Placement:</b> step 3 of the wizard, right after identity and before Connect, because the treasurer often owns the Stripe login. Skip is a first-class state, not a hidden link. Invites don't send until setup completes.",
+    staff:"<b>v1 roles:</b> Owner, Admin, Treasurer, Coach — fixed, no custom roles. Money (ledger, payouts, refunds) is Owner + Treasurer only. A coach with no recorded check shows it inline and can't be assigned to a fixture. Revoke is immediate and never deletes history.",
+    accept:"<b>The accept screen states who invited, which org, which role, and what the role can and can't see</b> — before any button. Accepting joins; it can't create a new org. Expired invites say so and create nothing.",
+    sms:"<b>One inbox, channel chips.</b> Each message carries Email or SMS on its sender line; the thread doesn't split by channel. SMS drafts show a mono char/segment counter and 'This sends as a text'. STOP is shown honestly as a carrier rule with the date, and the composer degrades to email.",
+    smsset:"<b>Decision:</b> one Sporv number per org, shown in Settings → Messaging with the carrier registration state. Own-number display is not v1. Until registration is Active, text drafts deliver by email and say so.",
+    run:"<b>Full-screen during onboarding; a card in the queue afterwards; re-runnable from Settings with the same visual.</b> Skipped sources print a skip line, never a fake result. The final count comes from the run, and the zero state offers the three things that produce findings.",
+    connect:"<b>Six tiles,</b> each with what it reads and what it writes, a text state, and last-synced in mono. Google tiles inherit a Google sign-in. Stripe shows its true five-state status. The website extraction result gets one fix-or-ignore row."
+  };
+  let screen="staffq", state=null;
+  function paintStates(){ const sc=$(`.screen[data-sc="${screen}"]`), sts=sc.dataset.states.split(","); state=sts[0];
+    const h=$("#states"); h.innerHTML='<span class="lab">State</span>'+sts.map((s,i)=>`<button class="${i?"":"on"}" data-st="${s}">${s}</button>`).join("");
+    h.querySelectorAll("button").forEach(b=>b.onclick=()=>{state=b.dataset.st;h.querySelectorAll("button").forEach(x=>x.classList.toggle("on",x===b));apply();}); apply(); }
+  function apply(){ const sc=$(`.screen[data-sc="${screen}"]`); sc.querySelectorAll("[data-st]").forEach(el=>el.classList.toggle("hidden",!el.dataset.st.split(",").includes(state))); $("#note").innerHTML=NOTES[screen];
+    if(screen==="run") runAgent(); if(screen==="connect") paintConn(); }
+  $$(".kit [data-sc]").forEach(b=>b.onclick=()=>{ screen=b.dataset.sc; $$(".kit [data-sc]").forEach(x=>x.classList.toggle("on",x===b)); $$(".screen").forEach(s=>s.classList.toggle("on",s.dataset.sc===screen)); paintStates(); });
+  $$(".kit [data-w]").forEach(b=>b.onclick=()=>{ $$(".kit [data-w]").forEach(x=>x.classList.toggle("on",x===b)); $("#stage").classList.toggle("m",b.dataset.w==="m"); });
+  $$("[data-go]").forEach(b=>b.onclick=()=>{ state=b.dataset.go; $$("#states button").forEach(x=>x.classList.toggle("on",x.dataset.st===state)); apply(); });
+
+  /* sms counter */
+  const ta=$("#smsTa"); function cnt(){ const n=ta.value.length, seg=n<=160?1:Math.ceil(n/153); $("#smsCnt").textContent=`${n} / ${seg===1?160:seg*153} · ${seg} segment${seg>1?"s":""}`; $("#smsCnt").classList.toggle("over",seg>1); } ta.addEventListener("input",cnt); cnt();
+
+  /* agent run */
+  let runTimer=null, runTick=null;
+  const fmt=ms=>{const s=Math.floor(ms/1000);return String(Math.floor(s/60)).padStart(2,"0")+":"+String(s%60).padStart(2,"0")};
+  function runAgent(){
+    clearTimeout(runTimer); clearInterval(runTick); const tb=$("#tb"); tb.innerHTML=""; const ph=$$("#phase div");
+    ph.forEach(d=>d.className="");
+    const L = state==="zero" ? [
+      [0,"Extract · no website on file · skipped","sk"],[0,"Roster · 0 families · nothing to read","sk"],
+      [1,"Gmail not connected · skipped","sk"],[1,"Calendar not connected · skipped","sk"],[1,"Stripe not connected · skipped","sk"],
+      [2,"Read pass · 0 families · 0 findings","hi"],[3,"Write pass · nothing to draft","hi"],[3,"Done. 0 items.","ok"]
+    ] : [
+      [0,"Reading northsideflight.org · 4 teams, 3 fees, season dates · 1 fee unreadable",""],[0,"Roster · 62 families · 4 teams · 6 rows held for review",""],
+      [1,"Gmail · 1,204 threads · 12 months · 3 tournament PDFs",""],[1,"Calendar · 38 events matched · 2 conflicts",""],[1,"Stripe not connected · billing drafts will be held","sk"],
+      [2,"Families behind on dues per site schedule: 11 · $4,290","hi"],[2,"Waivers signed: 0 of 62","hi"],[2,"Staff checks on file: 0 of 3 coaches","at"],
+      [3,"Drafted 11 dues reminders · Friendly · none sent",""],[3,"Drafted 1 waiver request to 62 guardians · none sent",""],[3,"Drafted 1 note to you · 2 calendar conflicts",""],[3,"Done. 13 items in your queue.","ok"]
+    ];
+    const t0=Date.now(); runTick=setInterval(()=>{const t=fmt(Date.now()-t0);$("#runT").textContent=t;$("#runClock").textContent=t;},250);
+    let i=0; (function next(){
+      if(i>=L.length){ clearInterval(runTick); ph.forEach((d,k)=>{ d.classList.remove("run"); d.classList.add(state==="zero"&&k<2?"skip":"done"); }); return; }
+      const [pi,txt,cls]=L[i]; ph.forEach((d,k)=>{ d.classList.toggle("run",k===pi); if(k<pi){d.classList.remove("run");d.classList.add("done");} });
+      const el=document.createElement("div"); el.className="ln"; el.innerHTML=`<span class="ts">${fmt(Date.now()-t0)}</span><span class="${cls}">${txt}</span>`; tb.appendChild(el); requestAnimationFrame(()=>el.classList.add("in")); i++;
+      runTimer=setTimeout(next, state==="running"?450+Math.random()*350:120);
+    })();
+  }
+
+  /* connect */
+  const CONN={web:"on"};
+  function paintConn(){
+    if(state==="viagoogle"){ ["gmail","gcal","drive","contacts"].forEach(c=>CONN[c]="on"); }
+    if(state==="fresh"){ ["gmail","gcal","drive","contacts"].forEach(c=>delete CONN[c]); delete CONN.stripe; }
+    $$("#conn .cn").forEach(t=>{ const c=t.dataset.c, on=CONN[c]==="on"; t.classList.toggle("on",on); t.classList.remove("busy");
+      const btn=t.querySelector(".btn"), meta=t.querySelector(".meta");
+      if(c==="stripe"){ const st=state==="stripe"?"review":(CONN.stripe||"none"); const M={none:["Connect","Not started"],progress:["Resume","In progress"],review:["View","In review"],restricted:["Fix","Restricted"],active:["Disconnect","Active"]}[st]; btn.textContent=M[0]; meta.textContent=M[1]; t.classList.toggle("on",st==="active"); t.classList.toggle("busy",st==="review"||st==="progress"); meta.style.color= st==="restricted"?"var(--attn)": st==="active"?"var(--ok)":""; return; }
+      btn.textContent=on?"Disconnect":"Connect"; meta.textContent=on?(c==="web"?"Synced 2h ago":"Synced just now"):"Not connected"; });
+    const n=$$("#conn .cn.on").length; $("#connCount").textContent=`${n} of 6 connected`;
+  }
+  $$("#conn .cn").forEach(t=>t.onclick=()=>{ const c=t.dataset.c;
+    if(c==="stripe"){ const seq=["none","progress","review","active"]; const cur=CONN.stripe||"none"; CONN.stripe=seq[(seq.indexOf(cur)+1)%seq.length]; paintConn(); return; }
+    if(CONN[c]==="on"){ delete CONN[c]; paintConn(); return; }
+    t.classList.add("busy"); t.querySelector(".btn").textContent="Signing in…"; setTimeout(()=>{ CONN[c]="on"; if(["gmail","gcal","drive","contacts"].includes(c)) ["gmail","gcal","drive","contacts"].forEach(x=>CONN[x]="on"); paintConn(); },800); });
+
+  paintStates();
+})();
+</script>
+</body>
+</html>
