@@ -74,6 +74,19 @@ wrong here — lives in **`src/design-rules.md`**. Rules 3–5 below are the fro
 subset that `smoke.sh` enforces; read `design-rules.md` before building or
 restyling any screen.
 
+**CURRENT 2026-09-08 (owner design kits, batches 1–3, archived verbatim in
+`docs/prototypes/sporve-design-batch{1,2,3}.html`) — SUPERSEDES every
+typography paragraph below for the B2B club-ops product.** Headers and
+buttons are **Roboto Condensed 700, uppercase**; body is **Inter**; numbers
+are **JetBrains Mono**. Type tokens: `--text-sm` 10, `--text-base` 12.5,
+`--text-md` 13.5, `--text-lg` clamp; coach base 15.5; the sign-up gate runs
+`.coachgate{--text-base:15.5px;--text-md:15.5px}` after the owner ruled the
+smaller sizes unreadable. No icons, no emoji. Honesty rules: never render a
+state the server did not confirm; every agent action is draft-first with an
+Approve click. The STYLE FREEZE, COMPACT-SERIF SWEEP, Syne/Plus-Jakarta and
+Instrument-Serif paragraphs below are **lineage only** — the marketplace
+product they describe was superseded by the club-ops pivot.
+
 **STYLE FREEZE (WF-9, owner decision 2026-08-21 — active until the first
 test-mode booking charge clears).** Typography, nav, logo, and colour commits are
 capped at **zero** until then, except defects (contrast failures, overflow,
@@ -398,6 +411,15 @@ encoding and cannot see a byte that changes without changing length.
   What it does buy is clickjacking, object, base-uri and form-action
   protection. Emitting per-script sha256 hashes from `build.py` is the change
   that would make `script-src` meaningful.
+
+**Corrected 2026-09-08.** The "honest limit" above is closed: `build.py`
+(`# ── CSP script hashes`) now emits a sha256 per inline `<script>` and
+`vercel.json` serves `script-src 'self' 'sha256-…'` with **no**
+`'unsafe-inline'` on scripts — an injected inline script is blocked. Only
+`style-src` still allows `'unsafe-inline'` (inline `style=` attributes in the
+templates). The launch-readiness list of 2026-09-08 and `docs/incident-runbook.md`
+are the current operational references; `docs/red-drafts/` holds every
+migration the owner still has to apply by hand.
 
 ---
 

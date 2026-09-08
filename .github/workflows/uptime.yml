@@ -1,0 +1,42 @@
+name: uptime
+# Launch item 16: the first alerting that exists. Every 15 minutes, prove the
+# things a director depends on are alive. A failing run emails the repo
+# owner (GitHub's default on workflow failure) — no third-party service.
+on:
+  schedule:
+    - cron: "*/15 * * * *"
+  workflow_dispatch:
+
+permissions: {}
+
+concurrency:
+  group: ${{ github.workflow }}
+  cancel-in-progress: false
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: sporv.ai answers 200 and serves the built app with a build stamp
+        run: |
+          response=$(curl -sS --connect-timeout 10 --max-time 20 -w '\n%{http_code}' https://sporv.ai)
+          code=${response##*$'\n'}
+          body=${response%$'\n'*}
+          [ "$code" = "200" ] || { echo "HTTP $code — site unhealthy"; exit 1; }
+          echo "$body" | grep -q 'name="sporve-build"' || { echo "NO BUILD STAMP — site misdeployed"; exit 1; }
+      - name: stripe-webhook function answers (unsigned POST must be refused, not 5xx)
+        run: |
+          code=$(curl -s -o /dev/null -w '%{http_code}' --connect-timeout 10 --max-time 20 -X POST https://tseszaprvtvqrkfpditu.supabase.co/functions/v1/stripe-webhook -d '{}')
+          echo "stripe-webhook=$code"; [ "$code" = "401" ] || [ "$code" = "400" ] || { echo "WEBHOOK UNHEALTHY"; exit 1; }
+      - name: ai-gateway function is reachable (preflight)
+        run: |
+          code=$(curl -s -o /dev/null -w '%{http_code}' --connect-timeout 10 --max-time 20 -X OPTIONS https://tseszaprvtvqrkfpditu.supabase.co/functions/v1/ai-gateway)
+          echo "ai-gateway=$code"; [ "$code" = "200" ] || { echo "AI GATEWAY UNREACHABLE"; exit 1; }
+      - name: database answers through PostgREST (anon read of a public table)
+        env:
+          # the publishable key is public by design (it ships in the page); the secret is optional
+          SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY || 'sb_publishable_CLawpS61QZDONSyy8ZdhTQ_rjCBLYBW' }}
+        run: |
+          code=$(curl -s -o /dev/null -w '%{http_code}' --connect-timeout 10 --max-time 20 "https://tseszaprvtvqrkfpditu.supabase.co/rest/v1/programs?select=id&status=eq.published&limit=1" -H "apikey: ${SUPABASE_ANON_KEY}")
+          echo "postgrest=$code"; [ "$code" = "200" ] || { echo "DATABASE/POSTGREST UNHEALTHY"; exit 1; }
