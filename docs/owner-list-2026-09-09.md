@@ -67,6 +67,22 @@ needs your hands, your account, or your decision. Exact clicks; nothing vague.
 17. **GitHub branch protection is now ON for `main`** (set today): every change
     needs a PR and green `smoke` + `security-regressions`. If you ever need to
     push straight to `main` yourself, tell me and I lift it for that push.
+18. **Site reader (club-site-extract v13) — two optional keys and one ruling.**
+    The reader now crawls a club's public site (landing + up to 5 pages that look
+    like teams / fees / registration / schedule), renders JavaScript-only pages
+    through Jina Reader, and returns teams, programs, fees with evidence quotes,
+    contact, and a "gaps" list. It works today with no keys.
+    - Optional: a **Jina API key** (https://jina.ai → API key) raises the
+      renderer's rate limit — send it and I set `JINA_API_KEY` on the function.
+    - Optional, stronger: a **Firecrawl key** (https://firecrawl.dev) if pilots
+      hit sites Jina cannot render — I would add it as a second renderer.
+    - **Ruling needed — pages behind a login.** I will not build anything that
+      reads pages a user is not authorized to see; that is unlawful access, not
+      scraping. For a director's OWN portal (TeamSnap, SportsEngine, LeagueApps)
+      the legitimate paths are: their CSV export → the roster import wizard
+      (exists today), or an official API connection they authorize (TeamSnap
+      has OAuth). Tell me which portals the first pilots use and I build that
+      connector first.
 
 ## F. The Codex prompt (verbatim copy of `docs/codex-prompts/2026-09-08-stripe-fifth-state.md`)
 

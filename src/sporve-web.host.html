@@ -16740,13 +16740,20 @@ document.querySelectorAll('.sig-ai-coach').forEach(sigAiCoachWire);
     window.SporveAPI.fn("club-site-extract",pasted?{text:pasted}:{url}).then(r=>{
       w.busy=false;
       const d=(r&&r.draft)||{};
+      /* v12 extractor reads the whole site: teams for clubs; when a site lists
+         programs instead (a trainer's lessons, a gym's camps) those become
+         the rows, so a solo/facility door is not left with an empty form. */
+      const teams=Array.isArray(d.teams)&&d.teams.length?d.teams:
+        (Array.isArray(d.programs)?d.programs.map(p=>({name:p.name,age_group:p.age_range||"",fee_cents:p.fee_cents,fee_text:p.fee_text,evidence:p.evidence})):[]);
       w.draft={club_name:d.club_name||null,sport:d.sport||null,
-        teams:Array.isArray(d.teams)?d.teams:[],season:d.season||{},
-        confidence:d.confidence||null};
+        teams:teams,season:d.season||{},
+        confidence:d.confidence||null,gaps:Array.isArray(d.gaps)?d.gaps:[],
+        pages:Array.isArray(r.pages)?r.pages.length:0};
       w.extracted=true;w.step=2;render();
-      const n=(w.draft.teams||[]).length;
-      toast(n?("Drafted "+n+" team"+(n===1?"":"s")+" — confirm or edit each line."):
-             "That page listed no team structure — enter it by hand below.");
+      const n=(w.draft.teams||[]).length,pg=w.draft.pages;
+      const read=pg>0?(" from "+pg+" page"+(pg===1?"":"s")):"";
+      toast(n?("Drafted "+n+" line"+(n===1?"":"s")+read+" — confirm or edit each one."):
+             ("That site listed no team or program structure"+read+" — enter it by hand below."));
     }).catch(er=>{w.busy=false;w.err=(er&&er.message)||"Could not read that site.";render();});
   };
 

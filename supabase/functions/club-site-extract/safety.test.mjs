@@ -4,7 +4,7 @@ import {readFile} from 'node:fs/promises';
 import {stripTypeScriptTypes} from 'node:module';
 import vm from 'node:vm';
 import * as safety from './safety.ts';
-import {boundedText, extractClubDraft, LIMITS, publicAddress, publicUrl, sanitizeDraft, stripHtml, withDeadline} from './safety.ts';
+import {boundedText, extractClubDraft, extractLinks, LIMITS, needsRender, publicAddress, publicUrl, rankLinks, sanitizeDraft, stripHtml, withDeadline} from './safety.ts';
 
 const facts = {club_name:'Fixture Club', sport:'Dance', teams:[], season:{}, coach_names:['Fixture Coach'], location:'Public Hall', confidence:'high'};
 const ai = value => new Response(JSON.stringify({content:[{type:'text',text:JSON.stringify(value)}]}), {headers:{'content-type':'application/json'}});
@@ -58,6 +58,20 @@ test('same-domain relative redirect is allowed, off-domain/subdomain/downgrade r
     return urls.length===1 ? new Response(null,{status:302,headers:{location:'/season'}}) : urls.length===2 ? page() : ai(facts);
   }));
   assert.deepEqual(urls,['https://example.com/','https://example.com/season','https://api.anthropic.com/v1/messages']);
+});
+
+test('www ↔ bare-domain redirects are the same site; an off-domain redirect names the new host; a dead host fails fast',async()=>{
+  const urls=[];
+  const result=await extractClubDraft({url:'https://www.example.com'},deps(async url=>{
+    urls.push(url);
+    return urls.length===1 ? new Response(null,{status:301,headers:{location:'https://example.com/'}}) : urls.length===2 ? page() : ai(facts);
+  }));
+  assert.deepEqual(urls,['https://www.example.com/','https://example.com/','https://api.anthropic.com/v1/messages']);
+  assert.equal(result.source_url,'https://www.example.com/');
+  await assert.rejects(extractClubDraft({url:'https://example.com'},deps(async()=>new Response(null,{status:301,headers:{location:'https://newname.example/'}}))),
+    e=>e.status===422&&/newname\.example/.test(e.message));
+  const dead=await extractClubDraft({url:'https://example.com'},{...deps(()=>new Promise(()=>{})),timeoutMs:LIMITS.fetchMs+3000}).catch(e=>e);
+  assert.equal(dead.status,504);assert.match(dead.message,/did not answer/);
 });
 
 test('redirect loop is bounded',async()=>{
@@ -116,8 +130,88 @@ test('pasted text fetches no site, strips scripts and returns allowlisted data d
   }));
   assert.deepEqual(calls,['https://api.anthropic.com/v1/messages']);
   assert.equal(result.source_url,null);
-  assert.deepEqual(Object.keys(result.draft),['club_name','sport','teams','season','coach_names','location','confidence']);
+  assert.deepEqual(Object.keys(result.draft),['club_name','sport','sports','org_type','teams','programs','season','registration_url','contact','coach_names','location','schedule_notes','gaps','confidence']);
   assert.equal(result.draft.action,undefined);
+  assert.deepEqual(result.pages,[]);
+});
+
+test('site crawl: only keyword-scored same-host links are read, capped at LIMITS.pages, never files or other hosts',async()=>{
+  const calls=[];
+  const landing='<p>'+'Welcome to Fixture FC youth soccer club. '.repeat(20)+'</p>'+
+    '<a href="/teams">Our Teams</a><a href="/fees">Fees &amp; Tuition</a><a href="/register">Register</a><a href="/schedule">Season schedule</a>'+
+    '<a href="/programs/camps">Summer camps</a><a href="/coaches">Coaches</a><a href="/about">About</a>'+
+    '<a href="/blog">Blog</a><a href="/other">Other</a><a href="https://evil.example/fees">Fees elsewhere</a>'+
+    '<a href="/fees.pdf">Fee sheet</a><a href="mailto:x@y.z">Email</a><a href="/fees#top">Fees again</a>';
+  const result=await extractClubDraft({url:'https://example.com'},deps(async(url,options)=>{
+    calls.push(url);
+    if(url==='https://api.anthropic.com/v1/messages'){
+      const body=JSON.parse(options.body);
+      assert.match(body.messages[0].content,/# Page: https:\/\/example\.com\/\n/);
+      assert.match(body.messages[0].content,/# Page: https:\/\/example\.com\/fees\n/);
+      assert.doesNotMatch(body.messages[0].content,/evil\.example|\/blog|\/other/);
+      return ai({...facts,teams:[{name:'U10 Blue',fee_cents:125000,fee_kind:'season',evidence:'U10 Blue — $1,250 per season'}]});
+    }
+    if(url==='https://example.com/') return page(landing);
+    return page('<h1>'+url+'</h1><p>'+'U10 Blue — $1,250 per season. '.repeat(15)+'</p>');
+  }));
+  const site=calls.filter(u=>u.startsWith('https://example.com'));
+  assert.equal(site[0],'https://example.com/');
+  assert.equal(site.length,LIMITS.pages,'landing + 5 ranked pages');
+  assert.ok(site.includes('https://example.com/fees')&&site.includes('https://example.com/teams')&&site.includes('https://example.com/register'));
+  assert.ok(!site.some(u=>/blog|other|\.pdf|evil/.test(u)));
+  assert.equal(result.pages.length,LIMITS.pages);
+  assert.equal(result.pages[0].via,'fetch');
+  assert.equal(result.draft.teams[0].fee_kind,'season');
+  assert.equal(result.draft.teams[0].evidence,'U10 Blue — $1,250 per season');
+});
+
+test('a slow discovered page is skipped, not fatal; the landing page still drives the draft',async()=>{
+  const result=await extractClubDraft({url:'https://example.com'},{...deps(async url=>{
+    if(url==='https://api.anthropic.com/v1/messages') return ai(facts);
+    if(url==='https://example.com/') return page('<p>'+'Club info. '.repeat(40)+'</p><a href="/fees">Fees</a>');
+    return new Promise(()=>{});
+  }),timeoutMs:LIMITS.pageMs+2000});
+  assert.equal(result.pages.length,1);
+  assert.equal(result.draft.club_name,'Fixture Club');
+});
+
+test('app-shell landing page is re-read through the renderer; a text-rich page is not',async()=>{
+  const rendered=[];
+  const shell='<!doctype html><div id="root"></div><p>Please enable JavaScript.</p>';
+  const result=await extractClubDraft({url:'https://example.com'},{...deps(async url=>url==='https://example.com/'?page(shell):ai(facts)),
+    render:async url=>{rendered.push(url);return 'Rendered Fixture Club season page. '.repeat(20);}});
+  assert.deepEqual(rendered,['https://example.com/']);
+  assert.equal(result.pages[0].via,'render');
+  assert.ok(result.pages[0].chars>200);
+  rendered.length=0;
+  await extractClubDraft({url:'https://example.com'},{...deps(async url=>url==='https://example.com/'?page():ai(facts)),
+    render:async url=>{rendered.push(url);return 'x';}});
+  assert.deepEqual(rendered,[]);
+  // renderer failure falls back to the thin page → honest 422, never a fabricated draft
+  await assert.rejects(extractClubDraft({url:'https://example.com'},{...deps(async url=>url==='https://example.com/'?page(shell):ai(facts)),
+    render:async()=>null}),status(422));
+});
+
+test('link ranking and html stripping keep structure',()=>{
+  const base=new URL('https://example.com/');
+  const links=extractLinks('<a href="/x/fees-and-dues">Costs</a><a href="/news">News</a><a href="/teams/">Teams</a><a href="/teams">Teams dup</a>',base);
+  assert.equal(links.length,3,'trailing-slash duplicate collapsed');
+  const ranked=rankLinks(links,base);
+  assert.deepEqual(ranked.map(l=>new URL(l.url).pathname),['/x/fees-and-dues','/teams/']);
+  assert.equal(stripHtml('<table><tr><td>U10</td><td>$500</td></tr><tr><td>U12</td><td>$600</td></tr></table>'),'U10 | $500 |\nU12 | $600 |');
+  assert.equal(needsRender('<div id="root"></div>','short'),true);
+  assert.equal(needsRender('<p>x</p>','y'.repeat(3000)),false);
+});
+
+test('new draft fields are bounded and typed',()=>{
+  const d=sanitizeDraft({...facts,org_type:'cartel',registration_url:'javascript:alert(1)',contact:{email:'Bad',phone:'call me'},
+    programs:[{name:'Summer camp',kind:'camp',fee_cents:12.5,fee_kind:'weekly',evidence:'e'.repeat(500),action:'charge'},{kind:'camp'}],
+    gaps:Array.from({length:30},()=>'gap'),sports:['Soccer',7]});
+  assert.equal(d.org_type,null);assert.equal(d.registration_url,null);assert.deepEqual(d.contact,{email:null,phone:null});
+  assert.equal(d.programs.length,1);assert.equal(d.programs[0].fee_cents,null);assert.equal(d.programs[0].fee_kind,null);
+  assert.equal(d.programs[0].evidence.length,160);assert.equal(d.programs[0].action,undefined);
+  assert.equal(d.gaps.length,12);assert.deepEqual(d.sports,['Soccer']);
+  assert.equal(sanitizeDraft({...facts,registration_url:'https://example.com/register',contact:{email:'A@B.co',phone:'(312) 555-0100'}}).contact.email,'a@b.co');
 });
 
 test('output bounds lists/text, removes nested execution fields and rejects invalid dates/fees',()=>{

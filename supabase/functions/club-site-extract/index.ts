@@ -41,6 +41,17 @@ Deno.serve(async req => {
     if (!quota.data) return json({error: 'Too many extractions. Wait a minute and try again.'}, 429);
 
     return json(await extractClubDraft(input, {fetch, apiKey,
+      // JS renderer for app-shell pages: Jina Reader fetches the (already
+      // screened, public) URL with a real browser and returns plain text.
+      // Optional JINA_API_KEY raises its rate limit; without it the free tier is used.
+      render: async (pageUrl, signal) => {
+        const jinaKey = Deno.env.get('JINA_API_KEY');
+        const r = await fetch('https://r.jina.ai/' + pageUrl, {redirect: 'error', credentials: 'omit', signal,
+          headers: {'Accept': 'text/plain', 'X-Return-Format': 'text', 'X-Timeout': '8',
+            ...(jinaKey ? {Authorization: 'Bearer ' + jinaKey} : {})}});
+        if (!r.ok) { void r.body?.cancel().catch(() => {}); return null; }
+        return await boundedText(r, LIMITS.pageBytes, signal);
+      },
       resolveHost: async hostname => {
         const results = await Promise.allSettled([
           Deno.resolveDns(hostname, 'A'), Deno.resolveDns(hostname, 'AAAA'),
