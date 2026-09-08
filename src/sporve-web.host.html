@@ -12163,13 +12163,23 @@ function sportField(){
   return SPORT_FIELD[sp]||{key:"jersey",label:"Jersey"};
 }
 function setJobMode(k){return (S.setPrefs&&S.setPrefs[k]&&S.setPrefs[k].mode)||"draft";}
+function loadOrgPeople(){
+  if(S.orgPeopleLoading||S.orgPeopleLoaded) return;
+  if(!(window.SporveAPI&&window.SporveAPI.isSignedIn&&window.SporveAPI.isSignedIn())) {S.orgPeopleLoaded=true;S.orgPeople=[];return;}
+  S.orgPeopleLoading=true;
+  window.SporveAPI.from("organization_members",
+    "select=id,organization_id,trainer_profile,member_user_id,role,background_check_status,background_check_completed_at,is_active,created_at&order=created_at")
+    .then(rows=>{S.orgPeople=Array.isArray(rows)?rows:[];S.orgPeopleLoaded=true;render();})
+    .catch(()=>{S.orgPeople=[];S.orgPeopleLoaded=true;render();})
+    .finally(()=>{S.orgPeopleLoading=false;});
+}
 function coachSettingsPage(){
   loadOrgSettings();
   const pv=S.coachProvider||{};
   const tab=S.setTab||"automation";
   const live=!!S.setLoaded;
   const rail=[["Account",[["profile","Profile"]]],
-    ["Organization",[["automation","Automation"],["money","Money"],["documents","Documents"],["org","Organization"],["plan","Plan & billing"]]]];
+    ["Organization",[["automation","Automation"],["money","Money"],["documents","Documents"],["org","Organization"],["people","People"],["plan","Plan & billing"]]]];
   const seg=(k,allowAuto)=>{const m=setJobMode(k);
     return `<span class="stseg" data-stjob="${k}">
       ${["off","draft"].concat(allowAuto?["auto"]:[]).map(v=>
@@ -12263,6 +12273,35 @@ function coachSettingsPage(){
       ${row("Calendar shape","Seasonal orgs roll over by season; continuous orgs bill and check credentials on a rolling 12 months.",
         `<span class="stchips">${[["seasonal","Seasonal"],["continuous","Continuous"]].map(([v,l])=>`<button class="stchip ${((setKVget("calendar_shape",{})||{}).shape||"seasonal")===v?"on":""}" data-stcal="${v}">${l}</button>`).join("")}</span>`)}
       ${row("","",`<button class="btn sm" data-stsave="org">Save organization</button>`)}
+    </div>`;
+  }
+  if(tab==="people"){
+    /* Batch 3 kit 7, the GREEN half: LIVE organization_members read, honest
+       three-role truth (owner|admin|trainer — Treasurer arrives with its own
+       RED policy work), background-check state inline, revoke keeps history.
+       Invites are NOT rendered as a button because no issuance/redemption
+       primitive exists yet — a control that does nothing is banned. */
+    loadOrgPeople();
+    const ppl=S.orgPeople||[];
+    const nameOf=m=>{const tp=m.trainer_profile||{};
+      return tp.name||[tp.first_name,tp.last_name].filter(Boolean).join(" ")||tp.email||(m.member_user_id?("Member "+String(m.member_user_id).slice(0,8)):"Pending member");};
+    const bg=m=>m.background_check_status==="verified"
+      ?("background check on file"+(m.background_check_completed_at?" · "+String(m.background_check_completed_at).slice(0,10):""))
+      :`<span style="color:var(--slate-ink)">no background check recorded</span>`;
+    const act=ppl.filter(m=>m.is_active), rev=ppl.filter(m=>!m.is_active);
+    body=`<div class="sthead"><h2>People</h2><p>Who can get into this organization. Roles are fixed — Owner, Admin, Trainer${""} — and money stays with the owner until the Treasurer role ships.</p></div>
+    <div class="stcard">
+      ${S.orgPeopleLoaded
+        ?(act.length?act.map(m=>row(esc(nameOf(m)),bg(m),
+            `<span class="pill">${esc(m.role)}</span>${m.role==="owner"?"":`<button class="btn sm" data-people-revoke="${esc(m.id)}">Revoke</button>`}`)).join("")
+          :`<p style="color:var(--muted);font-size:var(--text-sm);padding:8px 0">Just you so far. Staff invites arrive with the Treasurer role work.</p>`)
+        :`<p style="color:var(--muted);font-size:var(--text-sm);padding:8px 0">Loading people…</p>`}
+    </div>
+    ${rev.length?`<div class="sthead" style="margin-top:14px"><h2>Revoked</h2></div><div class="stcard">
+      ${rev.map(m=>row(esc(nameOf(m)),"Access ended — approvals stay in the audit log under their name.",
+        `<button class="btn sm" data-people-restore="${esc(m.id)}">Restore</button>`)).join("")}</div>`:""}
+    <div class="stcard" style="margin-top:14px">
+      ${row("What each role can do","The real permissions, not aspirations: Admin manages staff but touches no money, queue, or family records — those stay with the Owner until the Treasurer role lands.","")}
     </div>`;
   }
   if(tab==="plan"){
@@ -17012,6 +17051,22 @@ document.querySelectorAll('.sig-ai-coach').forEach(sigAiCoachWire);
   if(stEx) stEx.onchange=()=>{if(!stEx.value)return;
     const cur=(setKVget("auto_exclude_guardians",[])||[]).concat([stEx.value]);
     kvSave("auto_exclude_guardians",cur,"This family will always get drafts, never auto-sends.");};
+  $("[data-people-revoke]").forEach(b=>b.onclick=()=>{
+    const id=b.dataset.peopleRevoke;
+    const m=(S.orgPeople||[]).find(x=>x.id===id); if(!m) return;
+    m.is_active=false;render();
+    window.SporveAPI.from("organization_members","id=eq."+id,{method:"PATCH",body:{is_active:false}})
+      .then(()=>toast("Revoked — their access ends now; nothing they did is deleted."))
+      .catch(e=>{m.is_active=true;render();toast((e&&e.message)||"Could not revoke.");});
+  });
+  $("[data-people-restore]").forEach(b=>b.onclick=()=>{
+    const id=b.dataset.peopleRestore;
+    const m=(S.orgPeople||[]).find(x=>x.id===id); if(!m) return;
+    m.is_active=true;render();
+    window.SporveAPI.from("organization_members","id=eq."+id,{method:"PATCH",body:{is_active:true}})
+      .then(()=>toast("Restored."))
+      .catch(e=>{m.is_active=false;render();toast((e&&e.message)||"Could not restore.");});
+  });
   $("[data-sttone]").forEach(c=>c.onclick=()=>kvSave("tone",{level:c.dataset.sttone},
     "Tone saved — new drafts are written "+c.dataset.sttone+"."));
   $("[data-stshape]").forEach(c=>c.onclick=()=>kvSave("org_shape",{shape:c.dataset.stshape},
