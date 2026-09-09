@@ -1,5 +1,11 @@
 # the-sporve-web — standing rules
 
+> **Read `CONTEXT.md` before any work. Sections 3, 6, 7, 8 are binding
+> constraints, not suggestions.** (Owner's build constitution, saved
+> 2026-09-09.) It outranks every rule below it and every other doc in this
+> repo. Where a rule here contradicts it — most of the historical typography
+> and colour sections do — `CONTEXT.md` wins and the older text is lineage.
+
 > **Codex handoff (2026-08-27).** `AGENTS.md` now owns shared prompt intake,
 > coordination, critical-path, and release rules. Claude must read and follow it
 > before working; this file remains the detailed product/design history. When

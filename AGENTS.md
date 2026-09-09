@@ -1,5 +1,13 @@
 # Codex collaboration rules
 
+> **Read `CONTEXT.md` before any work. Sections 3, 6, 7, 8 are binding
+> constraints, not suggestions.** That file is the owner's build constitution
+> (saved 2026-09-09) and is the highest authority in this repo: what Sporv is,
+> the twelve invariants, the subscription-only payment model, the design
+> system, and the voice. This file remains the coordination and release
+> contract. Where the two disagree on product, pricing, design or copy,
+> `CONTEXT.md` wins.
+
 Claude Code may edit this repository concurrently. Use Clo's local coordination
 ledger to avoid stale reads and overwritten work.
 
