@@ -25,7 +25,7 @@
 <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16.png">
 <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
 <link rel="manifest" href="/site.webmanifest">
-<meta name="sporve-build" content="ff2c9dc14de39a6c">
+<meta name="sporve-build" content="e409cf4971e3728e">
 </head>
 <body>
 <noscript><h1>Sporv — Every sport. One app.</h1><p>Sporv connects families and athletes with coaches, trainers, camps, and teams across more than 20 sports. Please enable JavaScript to use the app.</p></noscript>
@@ -8558,9 +8558,9 @@ function pricingHTML(){
      claim, one table, one line of small print. The only number on it is
      FEE_PCT, which is the number the checkout actually charges. */
   const rows=[
-    ["Finding a coach",
-     "Group-chat threads, a friend of a friend, a flyer at the gym.",
-     "Browse every coach free. No membership, no booking fee."],
+    ["Finding clients",
+     "Flyers, group chats, a friend of a friend.",
+     "The agent sources them for you — it scrapes public leagues and rosters and reads inbound email, then drafts the outreach. Nothing sends until you approve it."],
     ["Knowing who you're hiring",
      "A business vouches for its own staff.",
      "Each person clears their own background check before they can be booked."],
@@ -8588,7 +8588,7 @@ function pricingHTML(){
     <div class="pr-head pr-head-compact">
       <p class="eyebrow" data-rev>Pricing</p>
       <h1 class="display pr-h1c" data-rev data-rev-d="1">Pick the plan that fits your stage.</h1>
-      <p class="lede pr-ledec" data-rev data-rev-d="2">A flat subscription for the software and the agent — Sporv takes ${FEE_PCT}% of dues. Card processing (2.9% + 30¢) runs on your club's own Stripe account.</p>
+      <p class="lede pr-ledec" data-rev data-rev-d="2">A flat subscription for the software and the agent. Nothing per booking, nothing per family, no percentage of dues — Sporv takes ${FEE_PCT}% of what families pay.</p>
       <div class="pr-cycle" data-rev data-rev-d="3" role="group" aria-label="Billing period">
         <button class="pr-cyc${S.priceYearly?"":" on"}" data-pricecycle="monthly">Monthly</button>
         <button class="pr-cyc${S.priceYearly?" on":""}" data-pricecycle="yearly">Yearly <em>−20%</em></button>
@@ -8651,7 +8651,7 @@ function pricingHTML(){
       <p class="pp-addon" data-rev>Camp add-on — run seasonal camps and clinics on any plan, priced per camp. <a href="mailto:support@sporv.ai?subject=Camp%20add-on">Ask us</a>.</p>`;
     })()}
     <div class="pr-stats" role="list" aria-label="In every plan">
-      <div role="listitem" data-rev><b class="num">2.9% + 30¢</b><span>per card transaction — standard processing on your club's own Stripe account</span></div>
+      <div role="listitem" data-rev><b class="num">1</b><span>subscription — the only thing Sporv ever charges your club</span></div>
       <div role="listitem" data-rev data-rev-d="1"><b class="num">${FEE_PCT}%</b><span>added by Sporv — coaches and clubs keep 100% of what families pay</span></div>
       <div role="listitem" data-rev data-rev-d="2"><b class="num">$0</b><span>to join — no per-team price, no annual contract required</span></div>
     </div>
@@ -8686,17 +8686,14 @@ function pricingHTML(){
         <tbody>${rows.map(([a,b,c])=>`<tr><th scope="row">${esc(a)}</th><td>${esc(b)}</td><td>${c}</td></tr>`).join("")}</tbody>
       </table>
     </div>
-    <p class="cmp-fine" data-rev>Joining, listing, browsing and messaging are free on both sides.
-      The 2.9% + 30¢ is Stripe's standard card-processing rate, charged on your
-      club's own account — Sporv adds ${FEE_PCT}% and takes no seat, team, or
-      monthly fee.</p>
+    <p class="cmp-fine" data-rev>Sporv charges a subscription and nothing else — it adds ${FEE_PCT}% to dues and takes no seat, team, or per-family fee. Card processing is Stripe's, on your club's own Stripe account, at Stripe's published rate, as with any processor.</p>
 
     ${/* FAQ (spec §2): native <details>, revealed with data-rev-d = i%3.
          Copy states only what the config and shipped code make true. */""}
     ${(()=>{const C=PRICING_CFG;const QA=[
       ["How does yearly billing work?","Pay for a year up front and every plan drops "+Math.round(C.yearlyDiscount*100)+"% — Solo comes to $"+(C.monthly.solo*(1-C.yearlyDiscount)).toFixed(2)+"/mo, Club to $"+(C.monthly.club*(1-C.yearlyDiscount)).toFixed(2)+"/mo, and Organization to $"+(C.monthly.organization*(1-C.yearlyDiscount)).toFixed(2)+"/mo, billed once."],
       ["Is there a nonprofit discount?","Yes — registered nonprofits get "+Math.round(C.nonprofitDiscount*100)+"% off any paid plan. Email support@sporv.ai from your organization's address and we apply it to your subscription."],
-      ["What does Sporv take from dues?",FEE_PCT+"%. Families pay your price; card processing (2.9% + 30¢, Stripe's standard rate) runs on your club's own Stripe account, and payouts go straight to you."],
+      ["What does Sporv take from dues?",FEE_PCT+"%. Sporv is a subscription. Families pay your price, payouts go straight to your club's own Stripe account, and Stripe's own card-processing rate applies there as it would with any processor."],
       ["Can I change plans later?","Anytime. Upgrades apply immediately; downgrades apply at the end of the current billing period. Your roster, records and history carry over untouched."],
       ["Can I start without paying?","Yes — Solo and Club start free: set up, import your roster, and see the agent's drafts before any billing begins. No card required to start."],
       ["Do families need a paid account?","No. Parents and guardians never pay Sporv anything — plans are for the club side only."],
@@ -9119,12 +9116,12 @@ function landingHTML(){
     <div class="wrap price">
       <div data-rev>
         <p class="k">Pricing</p>
-        <div class="big">2.9%<span> + 30¢</span></div>
-        <div class="no">No monthly fee</div>
+        <div class="big">One<span> subscription</span></div>
+        <div class="no">Nothing per booking, nothing per family, no cut of dues</div>
       </div>
       <div data-rev data-rev-d="1">
-        <p>A percentage of what actually flows through the platform. If a season doesn't get billed, you don't pay us. No seat count, no per-team price, no annual contract.</p>
-        <p style="margin-top:16px">Most clubs are already paying more than this to a processor that doesn't chase anything.</p>
+        <p>A flat subscription for the software and the agent. It is the only thing Sporv charges — not a cut of dues, not a per-team price, not a seat count, no annual contract.</p>
+        <p style="margin-top:16px">Most clubs already pay more than this for software that chases nobody.</p>
       </div>
     </div>
   </section>
@@ -12473,7 +12470,7 @@ function coachSettingsPage(){
     body=`<div class="sthead"><h2>Plan & billing</h2><p>What your club pays Sporv. Separate from what families pay you.</p></div>
     <div class="stcard">
       ${row("Plan",pv.plan?"":"No subscription on record.",`<span class="stro">${esc(pv.plan||"—")}${pv.plan_status?" · "+esc(pv.plan_status):""}</span>`)}
-      ${row("Card processing","Runs on your club's own Stripe account.",`<span class="stro num">2.9% + 30¢ per card transaction</span>`)}
+      ${row("Card processing","Stripe's own rate, on your club's own Stripe account — not a Sporv charge.",`<span class="stro">Stripe's published rate</span>`)}
       ${row("Sporv platform fee","",`<span class="stro num">$0 per booking — flat subscription model</span>`)}
     </div>`;
   }
