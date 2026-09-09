@@ -5,6 +5,12 @@ needs your hands, your account, or your decision. Exact clicks; nothing vague.
 
 ## A. Say the word and I run it
 
+0. **"apply the ledger fix"** — FIRST, before anything with money. Robin found
+   (and I confirmed in prod) that the append-only ledger trigger I applied on
+   2026-09-07 blocks the payment RPCs' own status promotion, so today any Stripe
+   payment event would fail and retry for 3 days. No customer hit it (no events
+   since 09-01). The fix is `docs/red-drafts/2026-09-08-ledger-promotion-fix.sql`;
+   verdict and proof in `docs/robin-2026-09-08.md`.
 1. **"apply the red drafts"** — seven SQL files in `docs/red-drafts/2026-09-08-*.sql`.
    I apply each through the Supabase migration ledger, run the verification
    written at the top of each file, and mirror it into `supabase/migrations/`.
