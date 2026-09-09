@@ -111,6 +111,23 @@ test('API translates authentication, staff and monthly quota denials without con
   }
 });
 
+test('catalog quota denial returns402 and never spends on the model',async()=>{
+  const verdict={allowed:false,reason:'quota_exhausted',plan:'free',used:25,quota:25,
+    contract_version:2,current_plan:'free',upgrade_to:'individual',limit:25,current:25};
+  const e=await entry({quota:()=>json(verdict)});const r=await invoke(e);
+  assert.equal(r.statusCode,402);
+  for(const key of ['reason','current_plan','upgrade_to','limit','current']) assert.equal(r.payload[key],verdict[key]);
+  assert.equal(e.modelCalls.length,0);
+  for(const patch of [{contract_version:3},{current_plan:undefined},{upgrade_to:undefined},
+    {upgrade_to:'<script>'},{limit:24},{current:26},{quota:'25'}]) {
+    const bad=await entry({quota:()=>json({...verdict,...patch})});
+    assert.equal((await invoke(bad)).statusCode,503);
+    assert.equal(bad.modelCalls.length,0);
+  }
+  const noUpgrade=await entry({quota:()=>json({...verdict,upgrade_to:null})});
+  assert.equal((await invoke(noUpgrade)).statusCode,402);
+});
+
 test('explicit unavailable quota verdict is valid but returns503 without model spend',async()=>{
   const verdict={allowed:false,reason:'quota_unavailable'};
   assert.equal(boundary.validQuota(verdict),true);

@@ -241,7 +241,8 @@ export default async function handler(req, res) {
      only forwards the caller's bearer token and translates the verdict:
        - no/invalid token  -> 401 (client refreshes once and retries)
        - not a coach       -> 403 (the command bar is a coach surface)
-       - over quota        -> 429 with a message written to be read
+       - over quota        -> 402 with catalog limits after DB cutover
+                              (legacy RPC remains 429 during staged rollout)
      Runs AFTER body validation (malformed input should not cost a DB round
      trip) and BEFORE the model call (an unauthenticated curl spends nothing). */
   const bearer = String(req.headers.authorization || "");
@@ -286,13 +287,21 @@ export default async function handler(req, res) {
         message: `Too many requests. Try again in ${quota.retry_after} seconds.` });
     }
     if (quota?.reason === "quota_exhausted") {
+      if (quota.contract_version === 2) {
+        return res.status(402).json({
+          error: "quota_exhausted", reason: quota.reason,
+          current_plan: quota.current_plan, upgrade_to: quota.upgrade_to,
+          limit: quota.limit, current: quota.current, used: quota.used, quota: quota.quota,
+          message: `You've used all ${quota.limit} Ask messages this month. ` +
+            (quota.upgrade_to ? "See plans for a higher limit." : "Your allowance resets next month."),
+        });
+      }
       return res.status(429).json({
         error: "quota_exhausted",
         used: quota.used,
         quota: quota.quota,
         message:
-          `You've used your ${quota.quota} free AI actions this month — ` +
-          "upgrade to Pro for unlimited.",
+          `You've used your ${quota.quota} AI actions this month. See plans for available limits.`,
       });
     }
     if (quota?.reason === "not_a_coach") {

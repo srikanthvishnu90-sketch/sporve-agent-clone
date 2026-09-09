@@ -188,7 +188,7 @@ try {
     });
     assert.equal(res.statusCode, 429);
     assert.equal(res.payload.error, "quota_exhausted");
-    assert.match(res.payload.message, /upgrade to Pro/);
+    assert.match(res.payload.message, /See plans/);
   } finally {
     globalThis.fetch = realFetch;
   }

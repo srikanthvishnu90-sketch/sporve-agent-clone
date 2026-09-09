@@ -16,16 +16,21 @@ Updated 2026-09-08. **Prompt 1 active; 0 of 6 prompts complete.** One prompt per
 - [ ] Pricing exactly Free / Individual / Enterprise, correct prices, no retired tier comparisons.
 - [ ] All ten acceptance checks recorded in the requested commit; reviewed release and live verification.
 
-Current findings: checked-in baseline uses `free|pro|enterprise`, while supplied live schema is `free|solo|organization`; a fresh Supabase read failed OAuth token refresh, so current live keys remain unverified. Subscription events currently share `stripe-webhook` and dues-ledger receipts. Source pricing still includes Club. Two policy conflicts await owner clarification: hard-stop versus visible overflow drafts, and immediate versus period-end cancellation.
+Current findings: fresh Supabase reads confirm live keys `free|pro|enterprise`, contradicting the prompt's starting premise; all 21 providers are Free. Access works as `supabase_read_only_user` on ref `tseszaprvtvqrkfpditu`; named branch mapping still needs confirmation. Stripe exposes only the live `sporv.ai` account and its active-price search returned zero rows. Subscription events still share `stripe-webhook` and dues-ledger receipts; source pricing still includes Club. Robin recommends a generation hard stop with an honest overflow finding, and period-end cancellation; the original Prompt 5 demand for five actual overflow drafts remains a specification discrepancy, not a passed check.
 
 Supporting work (does not complete a launch acceptance check):
 
 - [x] ~~Record the full prompt and its per-prompt breakdown.~~ Internal intake has all six prompts and 61 individually tracked asks.
 - [x] ~~Review the current billing execution path.~~ Repository review found plan-key drift, mixed subscription/dues receipt handling and absent enforcement.
 - [x] ~~Test the independent billing webhook handler's failure boundaries.~~ Eleven mocked-handler tests pass, including exact applied-receipt matching; actual Stripe verification and database projection remain unverified.
-- [ ] Execute and review the catalog/trial SQL fixture — draft prepared; local PostgreSQL startup denied by sandbox.
+- [x] ~~Obtain independent execution of the original catalog fixture.~~ Robin reports exit 0 in PR #381; this does not verify subsequent SQL edits.
+- [x] ~~Add staged Ask 402 API handling and regression coverage.~~ Version-2 catalog denial returns all five required fields; malformed verdicts fail closed; legacy DB keeps its existing 429 during rollout. 27 Node tests and 34 contract assertions pass.
+- [ ] Execute revised catalog, entitlement-aware Ask and platform billing SQL fixtures; PostgreSQL startup remains denied in this session.
+- [ ] Complete platform projection review, remaining legacy caller corrections and actual API acceptance; drafts are not deployed.
+- [x] ~~Add invoice-finding receipt validation to the billing handler.~~ New regression failed before (200 instead of 503), now combined Node suite passes 28/28; this is mocked-handler evidence, not live billing acceptance.
+- [ ] Execute the expanded SQL fixture proving transactional failure finding, tenant-bound receipt, dismissed replay and complete rollback; implement revision-based snapshot ordering and safe subscription replacement before deployment.
 
-Detailed evidence and remaining integration work: [Prompt 1 billing record](launch-prompt-1-billing.md). Required smoke currently exits 1 at Chromium startup; Stripe and Supabase token refresh both fail. No release or production change from this session.
+Detailed evidence and remaining integration work: [Prompt 1 billing record](launch-prompt-1-billing.md). Required fresh smoke exits 1 at Chromium startup. Supabase/Stripe reads now work, but deployment/testing capabilities remain limited. Robin confirmed there is no separate `sporv` branch: the connected project is production. He acknowledged the handoff and reports PR #383 deployed the separately owned payer-lookup/error-response fixes; Codex's entitlement/API slice has not been released or applied.
 
 ## Prompt 2 — Grand feature review (queued)
 

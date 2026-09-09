@@ -85,6 +85,58 @@ through the new legacy-sync trigger; `plan_entitlements` still grants `anon` and
 `authenticated` table-level writes. Post the revised draft plus the caller diffs
 in one pull request and robin reviews them as one transaction.
 
+## Round two — your fixtures executed, the API slice reviewed, ledger objection accepted
+
+**All three SQL fixtures pass here.** Run on a disposable cluster (roles are
+cluster-wide, so they are dropped between fixtures; the ai-quota file must run
+from `docs/red-drafts/` so its `\ir` include resolves):
+
+| fixture | exit | assertion groups |
+|---|---|---|
+| `2026-09-08-plan-entitlements.test.sql` | 0 | 4 — catalog/prices/legacy preservation/trial expiry; owner read, cross-org and self-upgrade denial; active vs inactive staff; JWT-free cron resolver |
+| `2026-09-08-entitlement-ai-quota.test.sql` | 0 | 6 — the four above plus Ask 25/26 and the 500 cap, unlimited, data-only changes, trial expiry, burst preservation; and missing usage receipt fails loudly |
+| `2026-09-08-platform-billing.test.sql` | 0 | 5 — platform projection, idempotency, malformed/null rejection, customer-bound duplicate, fail-closed unknown price, dunning, cancellation, stale event; invoice-finding rollback; composite tenant identity; receipt trigger blocks owner mutation; RLS and service-only surface |
+
+`node --test scripts/ai-security-test.mjs supabase/functions/billing-webhook/handler.test.mjs`
+→ 28/28. `node scripts/ai-contract-test.mjs` → 34 assertions. `bash src/smoke.sh`
+→ exit 0, 79 assertions, browser routes included.
+
+**API slice reviewed and released.** `api/ai.js`, `lib/ai-request-boundary.js`
+and both test scripts are backward compatible in fact, not just in intent: the
+402 branch is gated on `quota.contract_version === 2`, and the deployed
+`consume_ai_quota` contains no `contract_version` at all (verified against
+production), so the new path is unreachable until the catalog cutover lands. The
+boundary validator fails closed on any malformed v2 payload, and the copy change
+drops the last "upgrade to Pro" plan-name promise, which is Prompt 1 acceptance
+item 2 moving in the right direction.
+
+**Your ledger objection is accepted; robin's first draft was the weaker fix.**
+Relaxing `trg_ledger_append_only` did fail the "all ledger UPDATE and DELETE
+denied, rows byte-identical" requirement, and reclassifying it as passing would
+have been dishonest. `docs/red-drafts/2026-09-08-ledger-promotion-fix.sql` is
+marked SUPERSEDED and must not be applied.
+
+The replacement is `docs/red-drafts/2026-09-09-ledger-insert-once.sql`, and it
+closes the half your note did not address: today's insert-first row **is** the
+concurrency guard — two concurrent deliveries of one event id serialize on the
+unique index — so moving the insert to the end alone would let both do the work.
+The draft replaces that guard with `pg_advisory_xact_lock(hashtextextended(event_id, 0))`,
+checks existence inside the lock, runs the work, then inserts one row with the
+outcome already decided. Every early exit still records the event as seen, so
+'stale' and 'ignored_*' verdicts behave exactly as before. It also drops the
+legacy 9-argument `apply_stripe_booking_event` overload, which the webhook never
+calls and which makes any positional call ambiguous.
+
+Proven in production inside a rolled-back block on 2026-09-09: first delivery
+`applied:pro/active`, redelivery `duplicate`, exactly one ledger row, provider
+plan projected then undone, and the strict trigger never fired because no UPDATE
+was attempted. The same call against the currently deployed RPC raises 55000.
+
+Your remaining ordering blocker is well posed and robin agrees with the shape:
+pre-fetch revision, atomic compare-and-set, refetch on conflict, and prove
+subscription-replacement identity rather than trusting `event.created`. That is
+yours; robin will review it the same way.
+
 ## What robin changed while you worked (nothing you had claimed)
 
 Three items from the 2026-09-08 audit, all outside your claimed files, all

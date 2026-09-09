@@ -5,6 +5,10 @@
 -- Exact canonical migration number is assigned only after live parity review.
 -- Unlimited integer limits use -1 (never NULL); all requested fields populated.
 -- This establishes the data layer; caller/cron enforcement is a separate step.
+-- DEPLOYMENT HOLD: old apply_stripe_billing_event and production-invariant
+-- callers must cut over in the same release; this draft is NOT standalone.
+-- Inverse: restore reviewed prior functions/plan mappings transactionally; retain
+-- all provider, assignment and usage history. Never roll back by deleting rows.
 begin;
 
 lock table public.plan_entitlements, public.providers in share row exclusive mode;
@@ -153,6 +157,12 @@ alter table public.plan_entitlements
   add constraint entitlement_public_slug_unique unique(public_slug),
   add constraint entitlement_sort_order_unique unique(sort_order);
 
+-- RLS is not a substitute for least-privilege grants on the price/limit catalog.
+-- Preserve SELECT for the public pricing page; only trusted server administration
+-- may change limits, even if a future policy accidentally becomes permissive.
+revoke insert,update,delete,truncate,references,trigger
+  on public.plan_entitlements from public,anon,authenticated;
+
 create table public.billing_policy (
   singleton boolean primary key default true check(singleton),
   free_plan_key text not null references public.plan_entitlements(plan),
@@ -202,8 +212,21 @@ create function public.resolve_provider_entitlements_internal(p_provider uuid)
 returns jsonb language plpgsql security definer set search_path='' as $$
 declare assignment public.provider_entitlement_assignments%rowtype; result jsonb;
 begin
-  select * into strict assignment from public.provider_entitlement_assignments
+  perform 1 from public.providers where id=p_provider;
+  if not found then raise no_data_found using message='Provider not found'; end if;
+  select * into assignment from public.provider_entitlement_assignments
     where provider_id=p_provider;
+  if not found then
+    -- A missing assignment on a real provider is a thin Free product, not a
+    -- server error or an unlimited plan. Keep the missing receipt visible.
+    select to_jsonb(e) into strict result from public.plan_entitlements e
+      join public.billing_policy policy on policy.free_plan_key=e.plan
+      where policy.singleton;
+    return result || jsonb_build_object('provider_id',p_provider,
+      'assignment_revision',null,'entitlement_source','missing_assignment',
+      'assigned_plan',null,'effective_plan',result->>'plan',
+      'assignment_expired',false,'entitlement_ends_at',null);
+  end if;
   select to_jsonb(e) into strict result from public.plan_entitlements e
     where e.plan=case when assignment.ends_at is not null and assignment.ends_at<=now()
       then assignment.fallback_plan_key else assignment.plan_key end;

@@ -28,6 +28,11 @@ create table public.plan_entitlements(
   price_usd_month numeric(6,2),updated_at timestamptz not null default now()
 );
 insert into public.plan_entitlements(plan) values('free'),('pro'),('enterprise');
+-- Match the live table's broad legacy grants: the draft must revoke them,
+-- not merely rely on today's SELECT-only policy to prevent catalog changes.
+grant all on public.plan_entitlements to anon,authenticated;
+alter table public.plan_entitlements enable row level security;
+create policy catalog_read on public.plan_entitlements for select to anon,authenticated using(true);
 create table public.providers(
   id uuid primary key,owner_id uuid not null,
   plan text not null default 'free' check(plan in ('free','pro','enterprise'))
@@ -99,9 +104,22 @@ begin
   if has_function_privilege('authenticated','public.resolve_provider_entitlements_internal(uuid)','EXECUTE')
     or has_function_privilege('anon','public.resolve_provider_entitlements_internal(uuid)','EXECUTE') then
     raise exception 'FAIL: internal resolver exposed'; end if;
+  if has_table_privilege('anon','public.plan_entitlements','INSERT,UPDATE,DELETE,TRUNCATE,REFERENCES,TRIGGER')
+    or has_table_privilege('authenticated','public.plan_entitlements','INSERT,UPDATE,DELETE,TRUNCATE,REFERENCES,TRIGGER') then
+    raise exception 'FAIL: client catalog mutation privileges retained'; end if;
+  if not has_table_privilege('anon','public.plan_entitlements','SELECT') then
+    raise exception 'FAIL: public pricing reads removed'; end if;
+  -- An existing provider missing its assignment gets the catalog's Free policy,
+  -- never unlimited, a fabricated revision, or a retroactive trial.
+  delete from public.provider_entitlement_assignments
+    where provider_id='10000000-0000-4000-8000-000000000002';
+  e:=public.get_provider_entitlements('10000000-0000-4000-8000-000000000002');
+  if e->>'plan'<>'free' or e->>'entitlement_source'<>'missing_assignment'
+    or e->'assignment_revision'<>'null'::jsonb or (e->>'ask_quota_month')::int<>25 then
+    raise exception 'FAIL: missing assignment must resolve to explicit Free fallback'; end if;
   begin
     perform public.get_provider_entitlements('10000000-0000-4000-8000-000000000099');
-    raise exception 'FAIL: missing assignment accepted';
+    raise exception 'FAIL: nonexistent provider accepted';
   exception when no_data_found then null; end;
   insert into public.organization_members values
     ('10000000-0000-4000-8000-000000000001','30000000-0000-4000-8000-000000000001',true),

@@ -9,8 +9,14 @@ needs your hands, your account, or your decision. Exact clicks; nothing vague.
    (and I confirmed in prod) that the append-only ledger trigger I applied on
    2026-09-07 blocks the payment RPCs' own status promotion, so today any Stripe
    payment event would fail and retry for 3 days. No customer hit it (no events
-   since 09-01). The fix is `docs/red-drafts/2026-09-08-ledger-promotion-fix.sql`;
-   verdict and proof in `docs/robin-2026-09-08.md`.
+   since 09-01). Verdict and proof in `docs/robin-2026-09-08.md`.
+   **Updated 2026-09-09:** apply `docs/red-drafts/2026-09-09-ledger-insert-once.sql`,
+   not the earlier promotion fix. Codex objected that loosening the trigger
+   breaks the "no ledger UPDATE at all" rule, and it was right; the new draft
+   leaves the trigger untouched and makes the two payment RPCs write their row
+   once, with the outcome already decided. Proven in production inside a
+   rolled-back block: first delivery applied, redelivery ignored as a duplicate,
+   exactly one row, no update attempted.
 1. **"apply the red drafts"** — seven SQL files in `docs/red-drafts/2026-09-08-*.sql`.
    I apply each through the Supabase migration ledger, run the verification
    written at the top of each file, and mirror it into `supabase/migrations/`.

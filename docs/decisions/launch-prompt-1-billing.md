@@ -26,7 +26,124 @@ The Node tests inject signature verification, Stripe retrieval and database proj
 
 Read-only council review found and corrected three draft defects: provider deletion now cascades only the non-financial assignment; cron has an ungranted internal resolver behind the authenticated wrapper; applied webhook receipts must echo the exact subscription snapshot, payload hash, effective plan and positive assignment revision. Duplicate receipts must match the stored payload hash. The resolver explicitly distinguishes assigned/effective plan and expiry. SQL fixtures additionally check RLS, internal RPC grants, missing assignments, active/inactive staff and JWT-free cron resolution. A worker that persists trial expiry/revision and reconciliation of all existing Stripe subscriptions remain open before caller cutover.
 
-## Executed evidence
+## Continuation — fresh evidence and staged changes
+
+Owner authorization for specific reviewed production/Stripe changes and beta
+testing is recorded in the internal intake. Authorization does not establish the
+target branch, test mode, or successful deployment. Robin acknowledged the
+shared review handoff at 22:39:07; no manual owner relay was needed.
+
+Fresh Supabase query result on `tseszaprvtvqrkfpditu`:
+
+```json
+{"role":"supabase_read_only_user","database":"postgres","plans":[{"plan":"free","count":21}],"catalog":[{"plan":"enterprise","seat_limit":null,"ai_monthly_quota":null},{"plan":"free","seat_limit":1,"ai_monthly_quota":3},{"plan":"pro","seat_limit":3,"ai_monthly_quota":null}]}
+```
+
+Stripe account inventory: `sporv.ai`, `acct_1U40BiRr7ZgOkD69`, `livemode:true`;
+no test account exposed. Active-price search: `data:[]`, `has_more:false`.
+Named Supabase branch mapping is still unverified; no production writes attempted.
+
+Subsequent Robin evidence in `docs/robin-review-2026-09-09-codex-handoff.md`
+reports `list_branches=[]` for this project: there is no separate `sporv` branch,
+so this target is production. Robin also cites a historical genuine test-mode
+Checkout event; that proves past test-mode use, not current test credentials or
+a separate sandbox connection in this session. No writes were attempted by Codex.
+Robin's 22:43:48 ledger entry records PR #383 and independent deployments:
+`stripe-provider-payouts` v32 (fixed error response), `installment-checkout` v10
+(caller-specific guardian payer lookup), plus 17 self-authenticating functions'
+JWT settings pinned in `supabase/config.toml`; his report records 200/401/404
+probes. Those are Robin's distinct changes, not evidence that this new billing
+projection or its SQL tests passed.
+
+Revised entitlement draft revokes catalog mutation privileges while preserving
+pricing reads, and resolves a missing assignment on a real provider to explicit
+Free access with no fabricated assignment revision. A nonexistent provider still
+fails. Regression assertions were added to the actual-migration fixture.
+
+New entitlement-aware Ask RPC draft reads `ask_quota_month` from the effective
+assignment/catalog, keeps the 12/minute burst guard and atomic usage receipt,
+and emits catalog-derived upgrade metadata. API supports this versioned verdict
+with 402; legacy verdicts remain 429 until the coordinated DB cutover. This is
+staged compatibility, **not** completion of the all-endpoints 402 acceptance.
+
+Independent platform projection and fixture are being reviewed in
+`docs/red-drafts/2026-09-08-platform-billing.sql` and its `.test.sql`; they are
+not applied and not yet deployment-ready. Ordering/reconciliation, modes, receipt
+integrity, trial status persistence and legacy caller cutover remain release gates.
+Read-only review also found the Ask RPC remains owner-only, as its existing
+caller contract was; multi-admin org Ask requires explicit authorized org context
+before claiming the full Enterprise surface. The upgrade query now requires a
+higher catalog sort order, so a data-only quota edit cannot suggest a downgrade.
+
+```text
+node --test scripts/ai-security-test.mjs supabase/functions/billing-webhook/handler.test.mjs
+tests 27; pass 27; fail 0; skipped 0; exit 0
+node scripts/ai-contract-test.mjs
+AI contract: 34 assertions passed; exit 0
+git diff --check
+exit 0
+initdb -D /private/tmp/sporv-p1.3xs5BD/data -U postgres --auth=trust
+  -c shared_memory_type=mmap -c dynamic_shared_memory_type=posix
+FATAL: could not create shared memory segment: Operation not permitted
+DETAIL: Failed system call was shmget(...); exit 1
+bash ./src/smoke.sh
+build and AI/repository/data/getting-started contracts PASS
+Chromium startup SIGTRAP, process kill EPERM; exit 1
+```
+
+Robin's original SQL fixture and smoke results in PR #381 are supporting
+historical evidence; they do not validate the new edits. Revised SQL assertions
+remain unexecuted. No commit/release may claim this continuation passed smoke.
+
+## Continuation: invoice-failure finding receipt
+
+Fresh read-only Supabase inspection confirmed the live `agent_findings` columns,
+severity/status constraints and partial unique `(provider_id,source_ref)` index.
+The queue reads open findings by provider in `src/sporve-web.host.html:11961`
+and renders their title/detail without a code allowlist. Actual live visibility
+and its cached refresh behavior are not tested by this source inspection.
+
+The platform draft now inserts a `money/subscription_payment_failed` finding
+with event/subscription identity and observed status, before inserting its final
+billing receipt in the same transaction. It names no invented amount or recipient
+and cannot send mail or create a charge. Receipt/finding provider identity is
+enforced with a composite foreign key; direct service-role receipt INSERT is
+revoked. Replays return the stored finding ID, including after dismissal.
+
+The SQL fixture now covers the failure finding, dismissal/replay, stale invoice,
+cross-org foreign-key rejection, direct service insert denial and a suppressed
+finding INSERT. That suppression case compares all provider, assignment,
+subscription, cursor, finding and receipt rows before/after the exception.
+These SQL assertions remain **unexecuted**, not a claimed pass.
+
+```text
+Before handler fix:
+node --test supabase/functions/billing-webhook/handler.test.mjs
+tests 12; pass 11; fail 1; exit 1
+invoice finding regression: actual HTTP 200, expected 503
+
+After handler fix:
+node --test supabase/functions/billing-webhook/handler.test.mjs scripts/ai-security-test.mjs
+tests 28; pass 28; fail 0; skipped 0; exit 0
+git diff --check: exit 0
+bash ./src/smoke.sh: build and four contracts PASS; Chromium SIGTRAP/kill EPERM; exit 1
+```
+
+Independent review found the timestamp cursor can acknowledge an unprojected
+fresher snapshot when Stripe event timestamps tie. Deployment remains held for
+a pre-fetch revision/CAS/refetch protocol plus safe subscription-replacement
+identity. Duplicate receipts must ultimately return their immutable original
+revision/projection, not today's assignment. A periodic job with invented later
+event timestamps is not an acceptable fix.
+
+Robin's ledger-promotion draft also conflicts with the explicit no-UPDATE launch
+check: it permits `ignored → applied`. The shared handoff requests an insert-once
+payment-RPC repair while retaining the strict append-only trigger; his file is
+untouched. Owner production/test authorization is recorded, so this is a
+technical review issue rather than a missing blanket approval. No new SQL,
+Stripe mutation, commit or deployment was performed by Codex in this slice.
+
+## Earlier executed evidence (superseded access errors retained as history)
 
 ```text
 node --test supabase/functions/billing-webhook/handler.test.mjs

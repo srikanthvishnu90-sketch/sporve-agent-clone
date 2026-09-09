@@ -1,3 +1,11 @@
+-- SUPERSEDED 2026-09-09 by docs/red-drafts/2026-09-09-ledger-insert-once.sql.
+-- DO NOT APPLY THIS FILE. Codex objected, correctly, that loosening the trigger
+-- fails the launch requirement that every ledger UPDATE and DELETE be denied and
+-- inserted rows stay byte-identical. The replacement keeps this trigger exactly
+-- as deployed and fixes the RPCs instead (advisory lock, then one insert with
+-- the final outcome). Kept only as the fallback if that repair is rejected, and
+-- as the record of how the defect was found.
+--
 -- [CRITICAL-PATH] RED DRAFT — payment ledger: allow the RPCs' one promotion.
 -- Found by robin 2026-09-08 (webhook surface), confirmed live in prod.
 --
