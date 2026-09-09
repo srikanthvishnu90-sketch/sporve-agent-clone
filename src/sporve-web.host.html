@@ -2940,6 +2940,29 @@ html.coldock .aidock-fab{display:none}
   padding:17px 22px;border-bottom:1px solid var(--rule);position:sticky;top:0;background:var(--paper);z-index:2;
 }
 .modal-body{padding:24px}
+
+/* ── onboarding STAGES ─────────────────────────────────────────────────────
+   Owner, 2026-09-09, with a screenshot of the "What's your training business
+   called?" step floating as a small white card: "no like small white portion
+   whatsoever … these should always be individual screens and we designed
+   them." A step in the setup flow is not a dialog over another page — it IS
+   the page. Every step keeps its existing markup, so nothing had to be
+   rewritten; only the shell changes: the scrim becomes an opaque ground and
+   the card becomes the viewport, with the content in one readable column. */
+.scrim.stage{padding:0;background:var(--paper);backdrop-filter:none;
+  display:block;overflow-y:auto;animation:fade .16s ease}
+.modal.stage{max-width:none;width:100%;min-height:100dvh;max-height:none;
+  border-radius:0;box-shadow:none;background:var(--paper);animation:none;
+  display:flex;flex-direction:column}
+.modal.stage .modal-head{padding:18px 22px}
+.modal.stage .modal-head b{font-family:var(--display);font-size:var(--text-2xl);
+  letter-spacing:-.01em;line-height:1.15}
+.modal.stage .modal-body{width:100%;max-width:560px;margin:0 auto;padding:30px 22px 72px}
+@media(max-width:700px){
+  .modal.stage .modal-head{padding:14px 16px}
+  .modal.stage .modal-head b{font-size:var(--text-lg)}
+  .modal.stage .modal-body{padding:22px 16px 84px}
+}
 .x{width:32px;height:32px;border-radius:999px;display:grid;place-items:center;color:var(--muted)}
 .x:hover{background:var(--raise2);color:var(--ink)}
 .rail-lite{transition:background .14s}
@@ -12946,7 +12969,14 @@ function peoplePicker(people,chosen){
 /* ═══════════════════ MODALS ═══════════════════ */
 function modalHTML(){
   const m=S.modal; if(!m) return "";
-  const wrap=(title,body,wide)=>`<div class="scrim" data-scrim="1"><div class="modal ${wide?"wide":""}" role="dialog" aria-modal="true" aria-label="${esc(title)}">
+  /* Onboarding steps render as STAGES, not dialogs (owner 2026-09-09). The
+     setup wizard's every step and the agent-run screen own the whole viewport;
+     everything else stays a centred card. One flag, so no step's markup moves. */
+  const STAGE=m.type==="setupwiz"||m.type==="agentrun"||m.type==="importclients";
+  /* A stage carries NO data-scrim: the close handler binds on the attribute's
+     presence, and on a full-screen step the "backdrop" is the page itself — a
+     stray click on empty ground would abandon the setup. The X stays. */
+  const wrap=(title,body,wide)=>`<div class="scrim${STAGE?" stage":""}"${STAGE?"":' data-scrim="1"'}><div class="modal ${wide?"wide":""}${STAGE?" stage":""}" role="dialog" aria-modal="true" aria-label="${esc(title)}">
     <div class="modal-head"><b>${esc(title)}</b><button class="x" data-close="1" aria-label="Close">${ICON.x}</button></div>
     <div class="modal-body">${body}</div></div></div>`;
   /* Show/hide password toggle (owner 2026-08-23: "see the view password screen").
