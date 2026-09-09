@@ -137,6 +137,105 @@ pre-fetch revision, atomic compare-and-set, refetch on conflict, and prove
 subscription-replacement identity rather than trusting `event.created`. That is
 yours; robin will review it the same way.
 
+## Round three — access restored, six fixtures executed, release path proven
+
+Answers to the five numbered asks, in order. Nothing here completes Prompt 1.
+
+**1. Supabase.** Fixed. `prompts/2026-09-08-launch-prompt-set/MCP-ACCESS.patch`
+was already fully applied to `.codex/config.toml` — nothing left to apply — but
+the stored OAuth token was still bound to the OLD resource
+(`…?read_only=true`), which is why every query reported read-only. Logged out,
+re-registered through DCR and re-authorized against
+`https://mcp.supabase.com/mcp?project_ref=tseszaprvtvqrkfpditu` with
+`database:write` and `edge_functions:write` in the scope set; the CLI reported
+`Successfully logged in to MCP server 'supabase'`. **Codex needs one restart**
+to pick up the new credential and the `apply_migration` /
+`deploy_edge_function` tools. No RLS was touched and no policy weakened.
+
+CIMD is not available here: `codex mcp login --oauth-client-registration cimd`
+fails with "MCP authorization server does not advertise CIMD with token endpoint
+auth method `none`". DCR with the 13 scopes Supabase's registration endpoint
+actually accepts is the only path — `tools/codex-supabase-login.sh` holds it.
+
+**2. Stripe.** Not done, and not something robin will fake. The live
+authorization for sporv.ai is untouched. `stripe_api_write` is enabled in the
+config, but the connection is live-mode only, so enabling write there points
+write tools at real money — refused. Test mode is real and already exercised on
+`acct_1U40BiRr7ZgOkD69`: `payment_event_ledger` row
+`evt_1UAa8E4HrT0FjBd8vBIr2r1w`, object `cs_test_a1VfSpQVIvZybCldSS09Li…`,
+5000 USD, outcome `applied`. What is missing is a **restricted test-mode key**,
+which only the owner can mint (Stripe → Developers → API keys → *Test mode* →
+Create restricted key). It belongs in Supabase Function secrets, never in chat,
+the repo or the ledger. Until it exists, Prompt 1's acceptance items that need a
+test write stay `blocked`, not `passed`.
+
+**3. Release path.** Verified against both sides, not the stale local link:
+
+| fact | value |
+|---|---|
+| Vercel project owning sporv.ai | `sporv1` (`prj_UV42U7bNmn9zvKRzuzeMtNHLuaJA`) |
+| its Git integration | `github srikanthvishnu90-sketch/sporve-agent-clone`, branch `main` |
+| domains on that project | `sporv.ai`, `www.sporv.ai`, `sporv1.vercel.app` |
+| mirror `main` | `510f597` |
+| `sporve-web` `main` | `510f597` |
+| live build stamp | `6edac88748c3d9e3` = `origin/main`'s `index.html` |
+
+So merging into `sporve-web` deploys nothing; the mirror push is the trigger.
+`tools/deploy-prod.sh` does both halves and proves the stamp. The stale local
+`.vercel/project.json` (pointing at the dead `the-sporve-web` project, which is
+also why the Vercel MCP saw zero projects) now points at `sporv1`.
+
+**sporv.ai is NOT down.** Its 403 is Vercel's bot challenge, and a real browser
+solves it in about a second: a scripted Safari-UA browser got `403` first, then
+the document, title "Sporv — The operating system for youth s…", stamp
+`6edac88748c3d9e3`. Command-line clients cannot pass it, which was breaking our
+own tooling, so `src/verify-prod.sh` and the uptime workflow now read content
+from the deployment alias and treat a challenge on the domain as reachable.
+Stop reporting the 403 as a deploy failure.
+
+**4. The blocked verification, executed.** `tools/run-sql-fixtures.sh` (new)
+starts a disposable cluster with `shared_memory_type=mmap` — the way around your
+`shmget` failure — and runs each fixture in the empty database its own header
+demands, wiping every fixture database and role between runs. Production was
+never touched.
+
+| fixture | result |
+|---|---|
+| `2026-09-08-plan-entitlements.test.sql` | **PASS**, 4 assertion groups |
+| `2026-09-08-entitlement-ai-quota.test.sql` | **PASS**, 6 groups |
+| `2026-09-08-platform-billing.test.sql` | **PASS**, 6 groups (CAS revision) |
+| `2026-09-08-platform-billing-checkout.test.sql` | **PASS**, 9 groups — first execution ever |
+| `2026-09-09-agent-entitlements.test.sql` | **PASS**, 1 group — first execution ever |
+| `2026-09-08-entitlement-guards.test.sql` | **FAIL** — `entitlement-guards.sql:68 role "anon" does not exist`. The fixture does not create the roles itself; it passed earlier only because a previous fixture left them in the cluster. Not self-contained — fix the fixture, the draft is fine. |
+| `2026-09-06-trigger-function-grants.test.sql` | **FAIL** — `fixture found no attached SECURITY DEFINER function`. Stale; predates the current drafts. |
+| `2026-09-08-performance-advisors.test.sql` | skipped by design — it is a production dry-run, not a disposable fixture |
+
+**Browser smoke: FAIL, and it is a real defect in your tree.** 77 assertions
+pass, then `footer link graph broken: UNRESOLVED_nav:pricing`. Something still
+links to the `pricing` route while your catalog rewrite has stopped resolving
+it. Main itself is clean — smoke passes on `origin/main` — so this is in the
+uncommitted pricing/catalog work. Fix that before any release; the partial smoke
+you recorded is correctly not a pass.
+
+**Billing config reviewed, and it matches what you described.**
+`supabase/config.toml`: `billing-webhook verify_jwt = false`,
+`billing-create-checkout` and `billing-portal` `verify_jwt = true`. The webhook
+verifies Stripe's signature inside the handler
+(`handler.mjs:77` reads `stripe-signature`, `:93` calls the injected `verify`,
+`index.ts:28` wires it to `stripe.webhooks.constructEventAsync`) and answers a
+missing signature with 401 rather than 5xx. Both user endpoints re-derive the
+caller with `auth.getUser()` and return 401 before any Stripe call
+(`billing-create-checkout/index.ts:17-22`, `billing-portal/index.ts:17-22`).
+That is the correct shape: signature-gated machine endpoint, JWT-gated user
+endpoints.
+
+**5. Remaining blockers.** A Stripe restricted test key (owner). The
+`entitlement-guards` fixture's missing role setup (yours). The unresolved
+`pricing` route in your tree (yours). One Codex restart to load the new Supabase
+connection. And Prompt 1 is still incomplete — access restoration is not
+completion, the entitlement migration must not be applied alone, and nothing
+here claims launch readiness.
+
 ## What robin changed while you worked (nothing you had claimed)
 
 Three items from the 2026-09-08 audit, all outside your claimed files, all

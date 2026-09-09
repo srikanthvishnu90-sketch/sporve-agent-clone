@@ -25,13 +25,30 @@ EXPECT=$(grep -o 'name="sporve-build" content="[a-f0-9]*"' index.html | grep -o 
 [ -n "$EXPECT" ] || { fail "no build stamp in local index.html — run build.py first"; exit 1; }
 echo "── waiting for $EXPECT ─────────────────────────────"
 
-# Vercel builds take time, and a push-triggered check will always arrive first.
+# CHALLENGE-AWARE (2026-09-09). Vercel's bot mitigation answers command-line
+# clients on sporv.ai with HTTP 403 and an x-vercel-challenge-token header. A
+# real browser solves that challenge in about a second and lands on the page —
+# verified with a scripted Safari-UA browser: first response 403, then the real
+# document with the correct stamp. So a 403 here means "not a browser", NOT
+# "site down", and reading the stamp over curl on the custom domain is
+# impossible by design. The deployment alias serves the identical build without
+# the challenge, so the stamp is read there and the custom domain is checked
+# for reachability instead of content.
+ALIAS="${PROD_ALIAS:-https://sporv1.vercel.app}"
 LIVE=""
 for i in $(seq 1 60); do
-  LIVE=$(curl -sL --compressed "$URL" | grep -o 'name="sporve-build" content="[a-f0-9]*"' | grep -o '[a-f0-9]\{16\}')
+  LIVE=$(curl -sL --compressed "$ALIAS" | grep -o 'name="sporve-build" content="[a-f0-9]*"' | grep -o '[a-f0-9]\{16\}')
   [ "$LIVE" = "$EXPECT" ] && break
   sleep 10
 done
+DOM_CODE=$(curl -s -o /dev/null -w '%{http_code}' --max-time 25 "$URL")
+if [ "$DOM_CODE" = "200" ]; then
+  pass "$URL reachable (200)"
+elif [ "$DOM_CODE" = "403" ] && curl -sI --max-time 25 "$URL" | grep -qi 'x-vercel-challenge-token'; then
+  pass "$URL answering with Vercel's bot challenge (browsers pass it; scripts cannot)"
+else
+  fail "$URL returned $DOM_CODE"
+fi
 if [ "$LIVE" = "$EXPECT" ]; then
   pass "production serving build $EXPECT"
 else
@@ -40,7 +57,9 @@ else
 fi
 
 echo "── headers ─────────────────────────────────────────"
-H=$(curl -sI "$URL")
+# Headers come from the alias for the same reason as the stamp: the challenge
+# response on the custom domain carries Vercel's own headers, not the app's.
+H=$(curl -sI "$ALIAS")
 for h in "content-security-policy" "x-frame-options" "x-content-type-options" \
          "referrer-policy" "permissions-policy" "strict-transport-security"; do
   printf '%s' "$H" | grep -qi "^$h:" && pass "$h present" || fail "$h MISSING in production"
@@ -53,7 +72,7 @@ done
 # a plain GET does not already have. The header that would matter is on
 # /api/ai, which spends money — and that endpoint must emit none at all, so a
 # browser refuses to hand a cross-origin caller its response.
-API_CORS=$(curl -sI -X POST "$URL/api/ai" | grep -ci "^access-control-allow-origin:")
+API_CORS=$(curl -sI -X POST "$ALIAS/api/ai" | grep -ci "^access-control-allow-origin:")
 [ "$API_CORS" -eq 0 ] && pass "/api/ai emits no CORS headers" \
   || fail "/api/ai is emitting CORS headers — cross-origin callers can read it"
 
@@ -61,7 +80,7 @@ API_CORS=$(curl -sI -X POST "$URL/api/ai" | grep -ci "^access-control-allow-orig
 # does not match the scripts production serves, every script is blocked and the
 # site is blank — with a 200 and all the right headers, so every other check
 # here would still pass. Compare the two as production actually serves them.
-csp_live=$(python3 - "$URL" <<'PY'
+csp_live=$(python3 - "$ALIAS" <<'PY'
 import base64, hashlib, re, subprocess, sys
 url = sys.argv[1]
 page = subprocess.run(["curl", "-sL", "--compressed", url],
@@ -89,7 +108,7 @@ esac
 
 echo "── /api/ai gates ───────────────────────────────────"
 code(){ curl -s -o /dev/null -w "%{http_code}" "$@"; }
-A="$URL/api/ai"
+A="$ALIAS/api/ai"
 [ "$(code "$A")" = "405" ] && pass "GET rejected (405)" || fail "GET not rejected"
 [ "$(code -X POST "$A" -H 'content-type: text/plain' -d x)" = "415" ] \
   && pass "non-JSON rejected (415)" || fail "non-JSON not rejected"
@@ -98,7 +117,7 @@ A="$URL/api/ai"
 # Same-origin WITHOUT a bearer token is 401 with a key configured (the
 # entitlements gate charges nobody anonymous) and 503 without one. A 200 here
 # would mean the auth gate fell off and any same-origin curl spends money.
-SO=$(code -X POST "$A" -H 'content-type: application/json' -H "origin: $URL" -d '{"text":"open my earnings"}')
+SO=$(code -X POST "$A" -H 'content-type: application/json' -H "origin: $ALIAS" -d '{"text":"open my earnings"}')
 case "$SO" in
   401) pass "same-origin unauthenticated rejected (401 — entitlements gate live)";;
   503) pass "same-origin gates pass (503 — no key set yet)";;

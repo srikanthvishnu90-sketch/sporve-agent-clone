@@ -18,13 +18,28 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
-      - name: sporv.ai answers 200 and serves the built app with a build stamp
+      - name: sporv.ai answers, and the deployment serves a built app
+        # CHALLENGE-AWARE (2026-09-09). Vercel's bot mitigation answers
+        # command-line clients on the custom domain with 403 plus an
+        # x-vercel-challenge-token header; a real browser solves it in about a
+        # second and gets the page (proven with a scripted Safari-UA browser).
+        # So a bare 403 here means "you are not a browser", not "site down" —
+        # treating it as an outage made this monitor cry wolf and, worse, its
+        # own 15-minute cadence is the kind of traffic that provokes the
+        # challenge. Reachability is checked on the domain; the page itself is
+        # checked on the deployment alias, which serves the identical build.
         run: |
-          response=$(curl -sS --connect-timeout 10 --max-time 20 -w '\n%{http_code}' https://sporv.ai)
-          code=${response##*$'\n'}
-          body=${response%$'\n'*}
-          [ "$code" = "200" ] || { echo "HTTP $code — site unhealthy"; exit 1; }
-          echo "$body" | grep -q 'name="sporve-build"' || { echo "NO BUILD STAMP — site misdeployed"; exit 1; }
+          head=$(curl -sS -I --connect-timeout 10 --max-time 20 https://sporv.ai)
+          code=$(printf '%s' "$head" | head -1 | awk '{print $2}')
+          if [ "$code" = "200" ]; then
+            echo "sporv.ai=200"
+          elif [ "$code" = "403" ] && printf '%s' "$head" | grep -qi 'x-vercel-challenge-token'; then
+            echo "sporv.ai=403 (Vercel bot challenge — browsers pass this)"
+          else
+            echo "sporv.ai=$code — UNHEALTHY"; exit 1
+          fi
+          body=$(curl -sS --connect-timeout 10 --max-time 25 https://sporv1.vercel.app)
+          echo "$body" | grep -q 'name="sporve-build"' || { echo "NO BUILD STAMP on the deployment — misdeployed"; exit 1; }
       - name: stripe-webhook function answers (unsigned POST must be refused, not 5xx)
         run: |
           code=$(curl -s -o /dev/null -w '%{http_code}' --connect-timeout 10 --max-time 20 -X POST https://tseszaprvtvqrkfpditu.supabase.co/functions/v1/stripe-webhook -d '{}')
