@@ -25,7 +25,7 @@
 <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16.png">
 <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
 <link rel="manifest" href="/site.webmanifest">
-<meta name="sporve-build" content="3f099d4cbaf54f1d">
+<meta name="sporve-build" content="6edac88748c3d9e3">
 </head>
 <body>
 <noscript><h1>Sporv — Every sport. One app.</h1><p>Sporv connects families and athletes with coaches, trainers, camps, and teams across more than 20 sports. Please enable JavaScript to use the app.</p></noscript>
@@ -2981,11 +2981,52 @@ html.coldock .aidock-fab{display:none}
    the page. Every step keeps its existing markup, so nothing had to be
    rewritten; only the shell changes: the scrim becomes an opaque ground and
    the card becomes the viewport, with the content in one readable column. */
-.scrim.stage{padding:0;background:var(--paper);backdrop-filter:none;
+/* DARK, not white (owner 2026-09-09, second pass, with the reference
+   implementation attached: "there shoy should always be the black screen
+   process similar to this html interms of design … these are the design
+   feelings we wanred"). The palette below is that file's, to the value:
+   ground #0B0D0F, panels #121417/#171A1E, hairlines #202429/#2A3037, ink
+   #EDEFF2 over #9BA3AD over #6B7480, steel #6B7F9E with #9DB0CB as its
+   on-dark text. It is applied as a TOKEN OVERRIDE on the stage root, so every
+   input, button, card, pill and hairline inside each step re-resolves to dark
+   without one step's markup being touched. --line is also defined here: it is
+   used by the wizard's progress dots but was never declared at :root, so those
+   dots were rendering transparent. Explicit background and color sit on the
+   root too, because a custom property alone cannot repaint an element that
+   inherits its colour from <body>. */
+.scrim.stage{
+  --paper:#0B0D0F; --canvas-dark:#0B0D0F; --raise:#121417; --raise2:#171A1E;
+  --ink:#EDEFF2; --ink-2:#9BA3AD; --muted:#9BA3AD; --faint:#6B7480;
+  --rule:#202429; --rule-strong:#2A3037; --line:#202429;
+  --slate:#6B7F9E; --slate-ink:#9DB0CB; --slate-deep:#9DB0CB;
+  --slate-tint:rgba(107,127,158,.12); --slate-ring:rgba(107,127,158,.34);
+  --accent:#6B7F9E; --accent-ink:#9DB0CB; --accent-tint:rgba(107,127,158,.12);
+  --warn:#8EC5E8; --warn-tint:rgba(142,197,232,.10);
+  --good-tint:rgba(111,169,130,.12); --ok:#6FA982;
+  padding:0;background:#0B0D0F;color:#EDEFF2;backdrop-filter:none;
   display:block;overflow-y:auto;animation:fade .16s ease}
 .modal.stage{max-width:none;width:100%;min-height:100dvh;max-height:none;
-  border-radius:0;box-shadow:none;background:var(--paper);animation:none;
+  border-radius:0;box-shadow:none;background:#0B0D0F;color:#EDEFF2;animation:none;
   display:flex;flex-direction:column}
+/* Uppercase condensed screen title, as the reference sets it. */
+.modal.stage .modal-head{background:#0B0D0F;border-bottom-color:#202429}
+.modal.stage .modal-head b{text-transform:uppercase;letter-spacing:.035em}
+.modal.stage .x{color:#6B7480}
+.modal.stage .x:hover{background:#171A1E;color:#EDEFF2}
+/* The filled CTA is steel; its label is white, as the reference sets it.
+   Without this the label inherits --paper, which is now near-black. */
+.modal.stage .btn:not(.ghost):not(.lnk){color:#FFFFFF}
+/* A door is a stacked option row (title over description), not a row of two
+   flex items — .btn is inline-flex, so the step's display:block on the title
+   could never stack them and every door title wrapped mid-phrase. */
+.modal.stage [data-suw-door]{display:flex;flex-direction:column;align-items:flex-start;
+  gap:3px;height:auto;text-align:left}
+/* Autofill paints its own near-white; force the dark ground back. */
+.modal.stage input:-webkit-autofill,
+.modal.stage input:-webkit-autofill:hover,
+.modal.stage input:-webkit-autofill:focus{
+  -webkit-box-shadow:0 0 0 1000px #0B0D0F inset;-webkit-text-fill-color:#EDEFF2;
+  caret-color:#EDEFF2;transition:background-color 9999s ease-out 0s}
 .modal.stage .modal-head{padding:18px 22px}
 .modal.stage .modal-head b{font-family:var(--display);font-size:var(--text-2xl);
   letter-spacing:-.01em;line-height:1.15}
@@ -13020,7 +13061,8 @@ function modalHTML(){
   /* Onboarding steps render as STAGES, not dialogs (owner 2026-09-09). The
      setup wizard's every step and the agent-run screen own the whole viewport;
      everything else stays a centred card. One flag, so no step's markup moves. */
-  const STAGE=m.type==="setupwiz"||m.type==="agentrun"||m.type==="importclients";
+  const STAGE=m.type==="setupwiz"||m.type==="agentrun"||m.type==="importclients"
+    ||m.type==="account"||m.type==="authsheet"||m.type==="signup";
   /* A stage carries NO data-scrim: the close handler binds on the attribute's
      presence, and on a full-screen step the "backdrop" is the page itself — a
      stray click on empty ground would abandon the setup. The X stays. */
