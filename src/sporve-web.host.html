@@ -12240,6 +12240,39 @@ const SET_JOBS=[
     ["agent_a2","Failed payment recovery","A2 · sends the recovery message only",true]]],
   ["clients","Clients","Medium risk — outbound to people who may not expect it.",[
     ["agent_d1","Reactivation of lapsed members","D1",true]]]];
+/* Ask the SERVER which connectors this deployment can actually offer, and
+   which this org has connected. Without this the tiles are a hardcoded list,
+   and a hardcoded list is wrong in both directions: it offers Connect when no
+   OAuth client is configured (a lie the customer finds by clicking it), and it
+   says "Not yet" for weeks after the client is wired up.
+
+   Failure is silent and honest: S.cxStatus stays null, every tile falls back
+   to its derived state, and nothing claims to be connected. */
+function loadConnectors(){
+  if(S.cxLoading||S.cxStatus) return;
+  if(!(window.SporveAPI&&window.SporveAPI.isSignedIn&&window.SporveAPI.isSignedIn())) return;
+  S.cxLoading=true;
+  window.SporveAPI.fn("connectors-available",{}).then(r=>{
+    S.cxLoading=false;
+    S.cxStatus={available:Array.isArray(r&&r.available)?r.available:[],
+                connected:Array.isArray(r&&r.connected)?r.connected:[]};
+    render();
+  },()=>{S.cxLoading=false;S.cxStatus={available:[],connected:[],failed:true};render();});
+}
+/* One connector's truth, in the order the UI should trust it:
+   the server's own record first, then the derived signals, then nothing. */
+function cxServer(kind){
+  const st=S.cxStatus;if(!st)return null;
+  return (st.connected||[]).find(c=>c.kind===kind)||null;
+}
+function cxOffered(kind){
+  const st=S.cxStatus;
+  /* Before the probe answers, only the three connectors that need no
+     per-deployment credentials are offered. Guessing the others would be the
+     hardcoded list this function exists to remove. */
+  if(!st) return kind==="stripe"||kind==="website"||kind==="file_import";
+  return (st.available||[]).includes(kind);
+}
 function loadOrgSettings(){
   const pv=S.coachProvider;
   if(S.setLoading||S.setLoaded) return;
@@ -12380,6 +12413,12 @@ function coachSettingsPage(){
      rather than inventing a sync time. When the tables land, only cxState
      changes. */
   if(tab==="connectors"){
+    loadConnectors();
+    /* Google tiles read the server's own record, never a local guess. Three
+       states fall out of it: a connected row (green, with the mailbox it is
+       actually reading), the connector offered but not connected (a real
+       Connect button), or not offered by this deployment at all (Not yet). */
+    const gmailOn=cxServer("gmail"), calOn=cxServer("google_calendar");
     const batches=(S.importBatches||[]).filter(x=>!x.undone);
     /* An import batch records `at` as epoch milliseconds, not an ISO string —
        checked against where S.importBatches is written, not assumed. */
@@ -12412,9 +12451,21 @@ function coachSettingsPage(){
         tile({name:"CSV or export file",on:batches.length>0,last:day(lastImport),attr:'data-cximport="1"',cta:"Import",
           desc:batches.length?`${batches.length} import${batches.length===1?"":"s"} on record. We never ask for your password to TeamSnap or SportsEngine and never sign in as you.`
             :"Reads a roster export from SportsEngine, TeamSnap, LeagueApps, Spond or a plain sheet. We never ask for your password to those tools."})])}
-      ${group("Email and calendar","Not yet available on any plan. When these land, the write side is drafts only.",[
-        tile({name:"Gmail",soon:1,desc:"Will read inbound parent email, tournament PDFs and league notices, and draft the replies. It can never send."}),
-        tile({name:"Google Calendar",soon:1,desc:"Will read practices, games and conflicts, and draft schedule changes for you to apply."}),
+      ${group("Email and calendar",gmailOn||calOn
+          ?"Sporv reads these and drafts from them. It can never send."
+          :"Not yet available on this deployment. When these land, the write side is drafts only.",[
+        tile({name:"Gmail",on:!!gmailOn,soon:!gmailOn&&!cxOffered("gmail"),
+          last:day(gmailOn&&gmailOn.connected_at),
+          attr:'data-cxgoogle="gmail"',cta:S.cxBusy==="gmail"?"Opening Google…":"Connect Gmail",
+          desc:gmailOn
+            ?`Reading ${esc(gmailOn.external_account||"your mailbox")} for parent email, tournament PDFs and league notices, and drafting the replies. It cannot send — Sporv never asked Google for permission to.`
+            :"Reads inbound parent email, tournament PDFs and league notices, and drafts the replies. Drafts only — it can never send."}),
+        tile({name:"Google Calendar",on:!!calOn,soon:!calOn&&!cxOffered("google_calendar"),
+          last:day(calOn&&calOn.connected_at),
+          attr:'data-cxgoogle="google_calendar"',cta:S.cxBusy==="google_calendar"?"Opening Google…":"Connect Calendar",
+          desc:calOn
+            ?`Reading ${esc(calOn.external_account||"your calendar")} for practices, games and conflicts. Changes are drafted as proposals you apply.`
+            :"Reads practices, games and conflicts, and drafts schedule changes for you to apply."}),
         tile({name:"Outlook and Microsoft 365",soon:1,desc:"Mail and calendar together, same rules."}),
         tile({name:"Text messages",soon:1,desc:"Will read what families text your Sporv number and draft the reply."})])}
       ${group("Records","Read-only when they land. Sporv never writes into your files.",[
@@ -13907,6 +13958,11 @@ function modalHTML(){
        control that would do nothing. Skipping is always allowed: nothing here
        blocks setup. */
     if(w.step==="connect"){
+      loadConnectors();
+      /* Same server truth as Settings → Connectors: a Google tile is offered
+         only if this deployment has an OAuth client, and reads Connected only
+         from the database. Signup must not promise more than settings does. */
+      const gmailOn=cxServer("gmail"), calOn=cxServer("google_calendar");
       const stripeOn=!!(pv&&pv.stripe_charges_enabled);
       const siteOn=!!w.extracted;
       const rosterOn=(S.importBatches||[]).some(x=>!x.undone);
@@ -13932,10 +13988,16 @@ function modalHTML(){
           tile({name:"CSV or export file",on:rosterOn,attr:'data-suw-import="1"',cta:"Import",
             desc:"Reads a roster export from SportsEngine, TeamSnap, LeagueApps, Spond or a plain sheet. We never ask for your password to those tools and never sign in as you."})])}
         ${group("Email and calendar",[
-          tile({name:"Gmail",soon:1,
-            desc:"Will read inbound parent email, tournament PDFs and league notices, and draft the replies. Drafts only — it can never send."}),
-          tile({name:"Google Calendar",soon:1,
-            desc:"Will read practices, games and conflicts, and draft schedule changes for you to apply."}),
+          tile({name:"Gmail",on:!!gmailOn,soon:!gmailOn&&!cxOffered("gmail"),
+            attr:'data-cxgoogle="gmail"',cta:S.cxBusy==="gmail"?"Opening Google…":"Connect",
+            desc:gmailOn
+              ?`Reading ${esc(gmailOn.external_account||"your mailbox")} and drafting the replies. It cannot send — Sporv never asked Google for permission to.`
+              :"Reads inbound parent email, tournament PDFs and league notices, and drafts the replies. Drafts only — it can never send."}),
+          tile({name:"Google Calendar",on:!!calOn,soon:!calOn&&!cxOffered("google_calendar"),
+            attr:'data-cxgoogle="google_calendar"',cta:S.cxBusy==="google_calendar"?"Opening Google…":"Connect",
+            desc:calOn
+              ?`Reading ${esc(calOn.external_account||"your calendar")} for practices, games and conflicts. Changes are drafted for you to apply.`
+              :"Reads practices, games and conflicts, and drafts schedule changes for you to apply."}),
           tile({name:"Outlook and Microsoft 365",soon:1,
             desc:"Mail and calendar together, same rules. Organization plan."}),
           tile({name:"Text messages",soon:1,
@@ -16687,6 +16749,26 @@ document.querySelectorAll('.sig-ai-coach').forEach(sigAiCoachWire);
      tile reopens the setup wizard at its URL step. Nothing new to maintain. */
   $("[data-cximport]").forEach(b=>b.onclick=()=>{
     S.importWiz={step:1,people:[]};S.modal={type:"importclients"};render();});
+  /* Google connect. The server mints the consent URL — the client never holds
+     a client id, a scope list, or anything else worth tampering with. Every
+     refusal is printed as the server worded it, because "your plan does not
+     include this connector" and "Google connections are not available yet"
+     are different problems and a generic failure hides which one you have. */
+  $("[data-cxgoogle]").forEach(b=>b.onclick=()=>{
+    const kind=b.dataset.cxgoogle;
+    if(S.cxBusy) return;
+    if(!(window.SporveAPI&&window.SporveAPI.isSignedIn&&window.SporveAPI.isSignedIn())){
+      S.connectError="Sign in first.";render();return;}
+    S.cxBusy=kind;S.connectError=null;render();
+    window.SporveAPI.fn("google-oauth-start",{kind,redirect_to:location.origin+"/"}).then(r=>{
+      if(r&&r.url){ location.href=r.url; return; }
+      S.cxBusy=null;S.connectError="Could not start the Google connection.";render();
+    },err=>{
+      S.cxBusy=null;
+      S.connectError=(err&&err.message)||"Could not start the Google connection.";
+      render();
+    });
+  });
   $("[data-cxsite]").forEach(b=>b.onclick=()=>{
     S.setupWiz={step:1,orgShape:(S.setupWiz&&S.setupWiz.orgShape)||"club"};
     S.modal={type:"setupwiz"};render();});
@@ -19738,6 +19820,37 @@ function hydrateReturn(){
        seed crashes this render used to trip are fixed at their source
        (seedSlots/seedNotes/seedWaitlist/roster now seed empty, never throw). */
     S.route={name:"orgpage",arg:orgId};render();
+    return;
+  }
+  /* Back from Google's consent screen. google-oauth-callback redirects here
+     with the outcome it already committed; this only reports it. The tile's
+     Connected state comes from connectors-available reading the database, not
+     from this parameter — a URL a visitor can edit must never be able to say
+     "connected", the same rule the paid=1 read below follows. */
+  var cxKind = q.get("connector");
+  if(cxKind){
+    var cxStatus = q.get("status"), cxReason = q.get("reason");
+    scrub();
+    var label = {gmail:"Gmail",google_calendar:"Google Calendar"}[cxKind]||"That connector";
+    if(cxStatus==="connected"){
+      /* Drop any cached probe so the tile re-reads the server rather than
+         showing the state it had before the round trip. */
+      S.cxStatus=null;S.cxBusy=null;
+      toast(label+" is connected. Sporv will read it and draft — it cannot send.");
+    } else {
+      S.cxBusy=null;
+      S.connectError={
+        cancelled:"You cancelled the Google sign-in. Nothing was connected.",
+        missing_scope:label+" needs the read permission to be useful. Try again and leave both boxes ticked.",
+        no_refresh_token:"Google did not return a lasting permission. Try again from the Connectors page.",
+        not_configured:"Google connections are not switched on for this site yet.",
+        expired:"That connection attempt expired. Start it again.",
+        not_stored:"We could not store the connection safely, so nothing was connected.",
+        not_recorded:"We could not record the connection, so nothing was connected."
+      }[cxReason]||("Could not connect "+label+".");
+    }
+    S.portal="coach";S.coachTab="settings";S.setTab="connectors";
+    S.route={name:"coach",arg:null};render();
     return;
   }
   var invite    = q.get("invite");
