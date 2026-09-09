@@ -66,7 +66,17 @@ jobs:
         run: npm install --no-save --package-lock=false --ignore-scripts --no-audit --no-fund playwright@1.62.1
 
       - name: Install Chromium
-        run: npx playwright install --with-deps chromium
+        # `--with-deps` runs apt-get, which pulls Google's Debian index. On
+        # 2026-09-09 that index served a corrupt Packages.gz ("Hash Sum
+        # mismatch") and every PR's smoke job died at exit 100 before a single
+        # assertion ran — an outage on Google's side failing our gate. Playwright
+        # ships its own Chromium build and the ubuntu-latest image already
+        # carries the shared libraries it needs, so try the dependency-free
+        # install first and only fall back to apt if that browser cannot launch.
+        run: |
+          npx playwright install chromium
+          node -e "require('playwright').chromium.launch().then(b=>b.close()).then(()=>console.log('chromium launches'))" \
+            || { echo "falling back to --with-deps"; npx playwright install --with-deps chromium; }
 
       - name: Build
         run: python3 src/build.py
