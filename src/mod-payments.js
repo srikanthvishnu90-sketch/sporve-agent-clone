@@ -1136,11 +1136,15 @@
     if (!modal || modal.querySelector("[data-pm-walletrow]")) return;
     const anchor = modal.querySelector('[data-nav="notifications"]');
     if (!anchor || !anchor.parentNode) return;
+    /* The account screen became grouped 46px rows (.acr) on 2026-09-09. A
+       .rail-lite button injected into one of those cards rendered as a bare
+       heading mid-card, breaking the group. Match the row shape instead. */
     const btn = document.createElement("button");
-    btn.className = "rail-lite";
+    btn.className = "acr";
     btn.setAttribute("data-pm-walletrow", "1");
-    btn.style.cssText = "text-align:left;padding:11px 12px;border-radius:var(--r-m);font-weight:600";
-    btn.textContent = "Payments & wallet";
+    btn.innerHTML = '<span class="acr-l"><b>Payments</b>'
+      + '<small>Balance, installments, receipts</small></span>'
+      + '<span class="acr-chev" aria-hidden="true"></span>';
     btn.onclick = goWallet;
     anchor.parentNode.insertBefore(btn, anchor);
   }
