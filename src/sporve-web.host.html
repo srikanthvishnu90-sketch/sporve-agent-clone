@@ -12318,7 +12318,7 @@ function coachSettingsPage(){
   const tab=S.setTab||"automation";
   const live=!!S.setLoaded;
   const rail=[["Account",[["profile","Profile"]]],
-    ["Organization",[["automation","Automation"],["money","Money"],["documents","Documents"],["org","Organization"],["people","People"],["plan","Plan & billing"]]]];
+    ["Organization",[["automation","Automation"],["connectors","Connectors"],["money","Money"],["documents","Documents"],["org","Organization"],["people","People"],["plan","Plan & billing"]]]];
   const seg=(k,allowAuto)=>{const m=setJobMode(k);
     return `<span class="stseg" data-stjob="${k}">
       ${["off","draft"].concat(allowAuto?["auto"]:[]).map(v=>
@@ -12367,6 +12367,65 @@ function coachSettingsPage(){
     <div class="stcard">${live?((S.setAudit||[]).slice(0,6).map(a=>
       row(esc(a.key)+" · "+esc(typeof a.new_value==="string"?a.new_value:JSON.stringify(a.new_value)).slice(0,40),"",
         `<span class="stmut num">${esc((a.changed_at||"").slice(0,10))}</span>`)).join("")||row("No changes yet","","")):row("Loading…","","")}</div>`;
+  }
+  /* CONNECTORS tab (owner 2026-09-09). The same eleven tiles as the signup
+     Connect step, in the place a director comes back to. Two differences that
+     only matter here: a connected tile can carry a LAST-READ line, and a
+     failing one carries a DATED failure — a connector that broke on Tuesday
+     and says nothing is worse than no connector at all.
+
+     State is still derived, not stored: org_connectors does not exist in
+     production yet (it is staged as a red draft). So this reads the same three
+     real signals the signup step reads, and everything else says "Not yet"
+     rather than inventing a sync time. When the tables land, only cxState
+     changes. */
+  if(tab==="connectors"){
+    const batches=(S.importBatches||[]).filter(x=>!x.undone);
+    /* An import batch records `at` as epoch milliseconds, not an ISO string —
+       checked against where S.importBatches is written, not assumed. */
+    const lastImport=batches.map(b=>b.at).filter(Boolean).sort((a,b)=>b-a)[0];
+    const site=(setKVget("site_extraction",{})||{});
+    const day=v=>{if(!v)return null;
+      const d=typeof v==="number"?new Date(v):new Date(String(v));
+      return isNaN(d)?null:d.toISOString().slice(0,10);};
+    const tile=(o)=>`<div class="cxr${o.on?" on":""}${o.soon?" soon":""}">
+      <div class="cxr-l"><b>${esc(o.name)}</b><small>${o.desc}</small>
+        ${o.on&&o.last?`<small class="num">Last read ${esc(o.last)}</small>`:""}
+        ${o.err?`<small style="color:var(--danger,#C4685E)">Stopped ${esc(o.errAt||"")} — ${esc(o.err)}</small>`:""}</div>
+      <div class="cxr-r">${o.on
+        ?`<span class="cxr-st">Connected</span>${o.manage?` <a class="btn ghost sm" href="${o.manage}" target="_blank" rel="noopener">Manage</a>`:""}`
+        :(o.soon?`<span class="cxr-st">Not yet</span>`
+          :`<button class="btn sm" ${o.attr||""}${S.connectBusy&&o.attr&&o.attr.indexOf("connectpayouts")>-1?" disabled":""}>${esc(o.cta||"Connect")}</button>`)}</div></div>`;
+    const group=(h,d,tiles)=>`<div class="sthead" style="margin-top:22px"><h2>${esc(h)}</h2><p>${d}</p></div>
+      <div class="stcard">${tiles.join("")}</div>`;
+    body=`<div class="sthead"><h2>Connectors</h2><p>What Sporv reads from, and what it is allowed to write back.
+        Nothing here can send on its own — the strongest write any connector holds is a draft you approve.</p></div>
+      ${group("Money","Where dues actually move.",[
+        tile({name:"Stripe",on:!!pv.stripe_charges_enabled,attr:'data-connectpayouts="1"',
+          manage:"https://dashboard.stripe.com",
+          cta:pv.stripe_onboarding_started?"Finish setup":"Connect with Stripe",
+          desc:"Reads charges, refunds, failed payments, card expiry and payouts. Writes charges and invoices you approve. Dues land in your own Stripe account."})])}
+      ${group("Where your roster lives","How members got here, and how to bring more.",[
+        tile({name:"Your website",on:!!site.url,last:day(site.extracted_at),attr:'data-cxsite="1"',cta:"Add site",
+          desc:site.url?`Reading ${esc(site.url)} for programs, prices, schedule and staff. Writes nothing back.`
+            :"Reads your programs, prices, schedule and staff from your public pages. Writes nothing back."}),
+        tile({name:"CSV or export file",on:batches.length>0,last:day(lastImport),attr:'data-cximport="1"',cta:"Import",
+          desc:batches.length?`${batches.length} import${batches.length===1?"":"s"} on record. We never ask for your password to TeamSnap or SportsEngine and never sign in as you.`
+            :"Reads a roster export from SportsEngine, TeamSnap, LeagueApps, Spond or a plain sheet. We never ask for your password to those tools."})])}
+      ${group("Email and calendar","Not yet available on any plan. When these land, the write side is drafts only.",[
+        tile({name:"Gmail",soon:1,desc:"Will read inbound parent email, tournament PDFs and league notices, and draft the replies. It can never send."}),
+        tile({name:"Google Calendar",soon:1,desc:"Will read practices, games and conflicts, and draft schedule changes for you to apply."}),
+        tile({name:"Outlook and Microsoft 365",soon:1,desc:"Mail and calendar together, same rules."}),
+        tile({name:"Text messages",soon:1,desc:"Will read what families text your Sporv number and draft the reply."})])}
+      ${group("Records","Read-only when they land. Sporv never writes into your files.",[
+        tile({name:"Google Sheets",soon:1,desc:"The spreadsheet your club actually runs on."}),
+        tile({name:"Google Drive",soon:1,desc:"Waivers, forms and PDFs you already store."}),
+        tile({name:"QuickBooks",soon:1,desc:"What your treasurer needs to reconcile."}),
+        tile({name:"Google Business Profile",soon:1,desc:"Your listing and reviews. Drafts the corrections."})])}
+      ${S.connectError?`<div class="err" style="margin-top:10px">${esc(S.connectError)}</div>`:""}
+      <div class="stnote" style="margin-top:18px"><b>We never hold your login to another tool.</b>
+        Sporv does not ask for your TeamSnap or SportsEngine password and does not sign in as you.
+        Roster migration happens through an export you download, or a supervised import we do with you.</div>`;
   }
   if(tab==="money"){
     const pol=pv.refund_policy||"prorate_weeks";
@@ -16623,6 +16682,14 @@ document.querySelectorAll('.sig-ai-coach').forEach(sigAiCoachWire);
     S.portal="coach";setCoachTab(b.dataset.coachtab);go("dashboard");});
   /* ── coach dashboard wiring ── */
   $("[data-import]").forEach(b=>b.onclick=()=>{S.importWiz={step:1,people:[]};S.modal={type:"importclients"};render();});
+  /* Settings → Connectors reuses the two flows that already exist rather than
+     growing its own: the roster tile opens the import wizard, and the website
+     tile reopens the setup wizard at its URL step. Nothing new to maintain. */
+  $("[data-cximport]").forEach(b=>b.onclick=()=>{
+    S.importWiz={step:1,people:[]};S.modal={type:"importclients"};render();});
+  $("[data-cxsite]").forEach(b=>b.onclick=()=>{
+    S.setupWiz={step:1,orgShape:(S.setupWiz&&S.setupWiz.orgShape)||"club"};
+    S.modal={type:"setupwiz"};render();});
   /* data-viewas removed (spec 01: no family portal to view as). */
   $("[data-share]").forEach(b=>b.onclick=()=>{S.coachTab="dashboard";render();
     toast("Your booking link is in the Share card below");});
@@ -17029,6 +17096,19 @@ document.querySelectorAll('.sig-ai-coach').forEach(sigAiCoachWire);
         confidence:d.confidence||null,gaps:Array.isArray(d.gaps)?d.gaps:[],
         pages:Array.isArray(r.pages)?r.pages.length:0};
       w.extracted=true;w.step=2;render();
+      /* Record the extraction so Settings → Connectors can say WHICH site is
+         connected and WHEN it was last read. Without this the website tile
+         could only ever say "Add site", because w.extracted lives in the
+         wizard's in-memory state and dies with the tab. Fire-and-forget: a
+         failed write costs a last-read line, never the extraction itself. */
+      if(window.SporveAPI&&S.coachProvider&&S.coachProvider.id&&(url||pasted)){
+        const val={url:url||null,source:pasted?"pasted":"url",
+          extracted_at:new Date().toISOString(),pages:w.draft.pages||0};
+        window.SporveAPI.from("provider_settings","on_conflict=provider_id,key",{
+          method:"POST",headers:{Prefer:"resolution=merge-duplicates"},
+          body:{provider_id:S.coachProvider.id,key:"site_extraction",value:val}})
+          .then(()=>{S.setKV=S.setKV||{};S.setKV.site_extraction={value:val};},()=>{});
+      }
       const n=(w.draft.teams||[]).length,pg=w.draft.pages;
       const read=pg>0?(" from "+pg+" page"+(pg===1?"":"s")):"";
       toast(n?("Drafted "+n+" line"+(n===1?"":"s")+read+" — confirm or edit each one."):
