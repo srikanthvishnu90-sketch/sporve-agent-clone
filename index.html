@@ -25,7 +25,7 @@
 <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16.png">
 <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
 <link rel="manifest" href="/site.webmanifest">
-<meta name="sporve-build" content="e409cf4971e3728e">
+<meta name="sporve-build" content="9e2f3425db52edcf">
 </head>
 <body>
 <noscript><h1>Sporv — Every sport. One app.</h1><p>Sporv connects families and athletes with coaches, trainers, camps, and teams across more than 20 sports. Please enable JavaScript to use the app.</p></noscript>
@@ -3063,6 +3063,31 @@ html.coldock .aidock-fab{display:none}
 .acout{display:block;width:100%;text-align:center;padding:14px;color:var(--faint);
   font-size:var(--text-sm);margin-top:8px}
 .acout:hover{color:var(--ink)}
+
+/* ── connector tiles (owner 2026-09-09, "the connectors need to be in the
+   sign up"). Constitution §5.1: ingestion IS the product, and every tile must
+   state what it reads and what it writes. Three states, and only three, so a
+   tile can never imply a connection the server has not confirmed:
+     .on      — the server says this is connected (green, state-carrying)
+     (plain)  — available now, carries a real Connect control
+     .soon    — built but not yet enabled; no control, no promise of a date
+   Colours are literals, not tokens: this block only ever renders inside
+   .modal.stage / .coachdark, where a token that inverts has already produced
+   near-black-on-black once. */
+.cxr{display:flex;align-items:flex-start;gap:12px;width:100%;text-align:left;
+  padding:13px 16px;border-bottom:1px solid var(--rule)}
+.cxr:last-child{border-bottom:0}
+.cxr-l{flex:1;min-width:0}
+.cxr-l b{display:block;font-size:var(--text-base);font-weight:600;color:var(--ink)}
+.cxr-l small{display:block;color:var(--faint);font-size:var(--text-xs);
+  line-height:1.45;margin-top:2px}
+.cxr-r{flex:none;display:flex;align-items:center;gap:8px;padding-top:1px}
+.cxr-st{font-family:var(--mono);font-size:var(--text-xs);text-transform:uppercase;
+  letter-spacing:.07em;color:#6B7480}
+.cxr.on .cxr-l b{color:#EDEFF2}
+.cxr.on .cxr-st{color:#6FA982}
+.cxr.soon{opacity:.62}
+.cxr .btn.sm{white-space:nowrap}
 
 /* ── mobile top bar (owner 2026-09-09): the tabs and the Log in / Get started
    pair cannot fit beside the logo on a phone, so below 760px they leave the bar
@@ -13707,8 +13732,12 @@ function modalHTML(){
        checkout links. State lives in S.setupWiz so re-renders survive. */
     const w=S.setupWiz||(S.setupWiz={step:-1});
     const pv=S.coachProvider;
+    /* w.step is a number for the numbered steps and a string for the two named
+       ones ("name", "connect"). A string compared with <= is always false, so
+       the bar has to run off a numeric progress value, not off w.step itself. */
+    const prog=typeof w.step==="number"?w.step:(w.step==="connect"?2:0);
     const dots=`<div style="display:flex;gap:6px;margin-bottom:14px">${[0,1,2,3,4,5].map(n=>
-      `<span style="width:26px;height:4px;border-radius:2px;background:${n<=w.step?"var(--slate-ink)":"var(--line)"}"></span>`).join("")}</div>`;
+      `<span style="width:26px;height:4px;border-radius:2px;background:${n<=prog?"var(--slate-ink)":"var(--line)"}"></span>`).join("")}</div>`;
     const wrapS=(t,body)=>wrap(t,dots+body);
     /* DOC 12 Part A — step −1, the three doors. One question, and each door
        presets the pack (calendar shape, grouping noun, billing shape) so
@@ -13853,6 +13882,62 @@ function modalHTML(){
           <button class="btn ghost sm" type="button" data-suw-back="1">Back</button>
           <button class="btn" type="submit" ${w.busy?"disabled":""}>${w.busy?"Saving…":"Confirm & create"}</button></div>
         </form>`);
+    }
+    /* CONNECT step (owner 2026-09-09: "the connectors need to be in the sign
+       up"). Constitution §5.1 — ingestion is the product, so this sits between
+       confirming the club and importing the roster, where the club has a name
+       to attach a connection to but has not yet done any manual data entry.
+
+       Every tile states what it READS and what it WRITES, and the write side
+       of anything that talks to a family says "drafts" — invariant I1, the
+       agent never sends. A tile shows CONNECTED only when the server said so
+       (Stripe's charges_enabled, a saved extraction, a real import batch);
+       the twelve unbuilt connectors say so plainly rather than showing a
+       control that would do nothing. Skipping is always allowed: nothing here
+       blocks setup. */
+    if(w.step==="connect"){
+      const stripeOn=!!(pv&&pv.stripe_charges_enabled);
+      const siteOn=!!w.extracted;
+      const rosterOn=(S.importBatches||[]).some(x=>!x.undone);
+      const nOn=[stripeOn,siteOn,rosterOn].filter(Boolean).length;
+      const tile=(o)=>`<div class="cxr${o.on?" on":""}${o.soon?" soon":""}">
+        <div class="cxr-l"><b>${esc(o.name)}</b><small>${o.desc}</small></div>
+        <div class="cxr-r">${o.on
+          ?`<span class="cxr-st">Connected</span>`
+          :(o.soon?`<span class="cxr-st">Not yet</span>`
+            :`<button class="btn sm" ${o.attr||""}${o.busy?" disabled":""}>${esc(o.busy||o.cta||"Connect")}</button>`)}</div></div>`;
+      const group=(h,tiles)=>`<div class="acg"><h2>${esc(h)}</h2><div class="acard">${tiles.join("")}</div></div>`;
+      return wrapS("Connect what you already use",`
+        <p class="imp-sub">Sporv reads from the tools you already run on, then drafts the
+          work that comes out of them. ${nOn?`<b style="color:var(--ink)">${nOn} connected.</b> `:""}Connect
+          what you can now — the rest is in Settings, and none of it blocks setup.</p>
+        ${group("Money",[
+          tile({name:"Stripe",on:stripeOn,attr:'data-connectpayouts="1"',
+            busy:S.connectBusy?"Opening Stripe…":"",cta:"Connect",
+            desc:"Reads charges, refunds, failed payments, card expiry and payouts. Writes charges and invoices you approve. Dues land in your own Stripe account — Sporv never holds your money."})])}
+        ${group("Where your roster lives",[
+          tile({name:"Your website",on:siteOn,attr:'data-suw-next="1"',cta:siteOn?"Redo":"Add site",
+            desc:"Reads your programs, prices, schedule and staff from your public pages. Writes nothing back."}),
+          tile({name:"CSV or export file",on:rosterOn,attr:'data-suw-import="1"',cta:"Import",
+            desc:"Reads a roster export from SportsEngine, TeamSnap, LeagueApps, Spond or a plain sheet. We never ask for your password to those tools and never sign in as you."})])}
+        ${group("Email and calendar",[
+          tile({name:"Gmail",soon:1,
+            desc:"Will read inbound parent email, tournament PDFs and league notices, and draft the replies. Drafts only — it can never send."}),
+          tile({name:"Google Calendar",soon:1,
+            desc:"Will read practices, games and conflicts, and draft schedule changes for you to apply."}),
+          tile({name:"Outlook and Microsoft 365",soon:1,
+            desc:"Mail and calendar together, same rules. Organization plan."}),
+          tile({name:"Text messages",soon:1,
+            desc:"Will read what families text your Sporv number and draft the reply."})])}
+        ${group("Records",[
+          tile({name:"Google Sheets",soon:1,desc:"Reads the spreadsheet your club actually runs on. Read-only."}),
+          tile({name:"Google Drive",soon:1,desc:"Reads waivers, forms and PDFs you already store. Read-only."}),
+          tile({name:"QuickBooks",soon:1,desc:"Reads what your treasurer needs to reconcile. Read-only."}),
+          tile({name:"Google Business Profile",soon:1,desc:"Reads your listing and reviews, drafts the corrections."})])}
+        ${S.connectError?`<div class="err" style="margin-top:8px">${esc(S.connectError)}</div>`:""}
+        <div class="imp-actions" style="margin-top:4px">
+          <button class="btn ghost sm" type="button" data-suw-next="2">Back</button>
+          <button class="btn" data-suw-next="3">Continue</button></div>`);
     }
     if(w.step===3) return wrapS("Bring your roster",`
       <p class="imp-sub">Import your members from a CSV export (SportsEngine, TeamSnap,
@@ -17019,7 +17104,7 @@ document.querySelectorAll('.sig-ai-coach').forEach(sigAiCoachWire);
     const d=Object.fromEntries(new FormData(suwP));
     if(!d.club||!d.sport){w.err="Business name and sport are required.";render();return;}
     w.busy=true;w.err=null;render();
-    const done=()=>{w.busy=false;w.draft={club_name:d.club,sport:d.sport};w.step=3;render();};
+    const done=()=>{w.busy=false;w.draft={club_name:d.club,sport:d.sport};w.step="connect";render();};
     if(window.SporveCoach&&window.SporveCoach.save){
       window.SporveCoach.save({business_name:d.club,sports:[d.sport]}).then(done,()=>{
         w.busy=false;w.err="Could not save — try again.";render();});
@@ -17089,7 +17174,7 @@ document.querySelectorAll('.sig-ai-coach').forEach(sigAiCoachWire);
       }
       w.confirmed={season_id:seasonId,teams:out.filter(t=>t.program_id)};
       w.seasonStart=d.season.start_date;
-      w.busy=false;w.step=3;render();
+      w.busy=false;w.step="connect";render();
       toast("Season, "+out.length+" team"+(out.length===1?"":"s")+" created — nothing billed yet.");
     }catch(er){w.busy=false;w.err=(er&&er.message)||"Could not save — try again.";render();}})();
   };
