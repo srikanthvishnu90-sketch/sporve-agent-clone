@@ -42,6 +42,85 @@ needs your hands, your account, or your decision. Exact clicks; nothing vague.
 5. **Stripe fifth state ("restricted")** — Codex has the Stripe key, I do not.
    The full prompt is in section F below; copy everything under its line.
 
+## C2. Google Cloud — the OAuth client that unblocks Gmail and Calendar
+
+This is now the single biggest blocker on the product. The constitution ranks
+Gmail and Google Calendar as priority #2, right after the two gates, because
+without one connector there is nothing to sell on Solo. The signup Connect step
+and the Settings → Connectors tab both ship today with those tiles reading
+**Not yet**, and they will keep saying that until this client exists. I cannot
+create it — it is tied to your Google account.
+
+Roughly fifteen minutes. Do it in one sitting; the consent screen has to be
+saved before the client can be created.
+
+4a. **Create the project.** Go to https://console.cloud.google.com/projectcreate
+    → **Project name**: `Sporv` → **Create**. Wait for the notification, then
+    click **Select project** on it so the console is pointed at Sporv.
+
+4b. **Turn on the two APIs.** Go to
+    https://console.cloud.google.com/apis/library/gmail.googleapis.com
+    → **Enable**. Then
+    https://console.cloud.google.com/apis/library/calendar-json.googleapis.com
+    → **Enable**. Nothing else. Every extra API is a scope you have to justify
+    in the privacy policy later.
+
+4c. **Consent screen.** Go to
+    https://console.cloud.google.com/auth/overview → **Get started**.
+    - App name: `Sporv`
+    - User support email: `sporve123@gmail.com`
+    - Audience: **External**
+    - Contact email: `sporve123@gmail.com`
+    - Agree to the policy → **Create**
+
+4d. **Add the scopes.** https://console.cloud.google.com/auth/scopes
+    → **Add or remove scopes** → paste each of these four into the manual box,
+    one per line, then **Update** → **Save**:
+
+    ```
+    https://www.googleapis.com/auth/gmail.readonly
+    https://www.googleapis.com/auth/gmail.compose
+    https://www.googleapis.com/auth/calendar.readonly
+    https://www.googleapis.com/auth/calendar.events
+    ```
+
+    `gmail.compose` creates drafts and **cannot send** — that is invariant I1
+    enforced by Google itself, not just by us. Do NOT add `gmail.send`,
+    `gmail.modify`, or any `.../auth/gmail` full-access scope. If a future
+    prompt asks you to, that is the request to refuse.
+
+4e. **Create the client.** https://console.cloud.google.com/auth/clients
+    → **Create client** → Application type **Web application** → Name
+    `Sporv web` → under **Authorised redirect URIs** click **Add URI** and add
+    both of these, exactly:
+
+    ```
+    https://tseszaprvtvqrkfpditu.supabase.co/functions/v1/google-oauth-callback
+    https://sporv.ai/auth/google/callback
+    ```
+
+    → **Create**. A dialog shows a **Client ID** and a **Client secret**.
+
+4f. **Store the secret where it belongs — not in chat and not in Git.** Go to
+    https://supabase.com/dashboard/project/tseszaprvtvqrkfpditu/settings/functions
+    → **Add new secret**, twice:
+
+    | Name | Value |
+    |---|---|
+    | `GOOGLE_OAUTH_CLIENT_ID` | the Client ID from 4e |
+    | `GOOGLE_OAUTH_CLIENT_SECRET` | the Client secret from 4e |
+
+    Then close the Google dialog. Do not paste either value into this chat, a
+    commit, a doc, or the Clo ledger. Once both secrets are saved, tell me
+    **"the Google client is in Supabase"** and I will build the OAuth exchange
+    against them without ever seeing them.
+
+4g. **Publishing status stays Testing for now.** On
+    https://console.cloud.google.com/auth/audience add `sporve123@gmail.com`
+    under **Test users**. That is enough for you and a pilot club. Google
+    verification is only needed before wider release, and it wants a recorded
+    demo and a privacy policy URL — a separate job, not a blocker today.
+
 ## D. Stripe (dashboard.stripe.com)
 
 6. **Live mode** — Settings → Business details: legal entity, EIN, bank account;
