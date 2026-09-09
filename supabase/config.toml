@@ -66,3 +66,10 @@ verify_jwt = false
 
 [functions.waitlist-offer-draft]
 verify_jwt = false
+
+# Google redirects the customer's browser here with no Authorization header,
+# so the platform gateway must not reject it. The function authenticates the
+# round trip itself: a single-use, ten-minute state row minted by
+# google-oauth-start. Without a matching state it does nothing at all.
+[functions.google-oauth-callback]
+verify_jwt = false
