@@ -404,7 +404,15 @@ if curl -sI "http://127.0.0.1:$CSPPORT/index.html" | grep -qi "^content-security
 
   ping=$($B js "window.SporveAPI.ping().then(r=>'OK:'+r.programs).catch(e=>'ERR:'+e.status+':'+e.message)" 2>/dev/null | tr -d '\r')
   case "$(printf '%s' "$ping" | tr -d '[:space:]')" in
-    OK:0)  fail "api: reached the backend but zero published programs — the marketplace has no inventory" ;;
+    # An empty marketplace used to fail here, on the assumption that production
+    # always holds inventory. That assumption was seeded demo data: twenty fake
+    # Chicago clubs sitting in the production database. They were deleted on
+    # 2026-09-09 for launch readiness, and this assertion immediately turned red
+    # on every pull request — the gate was testing our own fixtures, not the
+    # product. What it must prove is that the browser reaches Supabase under the
+    # real CSP and gets a well-formed answer; zero rows is the correct answer
+    # before the first real club signs up.
+    OK:0)  pass "api: reached Supabase under the real CSP; no published programs yet (expected pre-launch)" ;;
     OK:*)  pass "api: reached Supabase under the real CSP and read live programs" ;;
     ERR:0:*) fail "api: request blocked before leaving the browser — connect-src does not allow the Supabase origin" ;;
     ERR:*) fail "api: backend rejected the request — $ping" ;;
