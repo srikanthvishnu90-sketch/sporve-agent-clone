@@ -82,14 +82,23 @@ Deno.serve(async (req) => {
     // AUTH: owner, or a claimed payer-guardian of this member
     const isOwner = fs.providers.owner_id === uid;
     if (!isOwner) {
-      const { data: link } = await admin
+      // robin 2026-09-08: filter by the CALLER's guardian row rather than
+      // fetching "the" payer link. guardian_links is unique on
+      // (guardian_id, member_id), so a member with two payer-flagged guardians
+      // made maybeSingle() error and locked out a legitimate payer with a 403.
+      const { data: link, error: linkErr } = await admin
         .from("guardian_links")
         .select("id, guardians!inner(user_id)")
         .eq("member_id", inst.member_id)
         .eq("is_payer", true)
+        .eq("guardians.user_id", uid)
+        .limit(1)
         .maybeSingle();
-      const gUser = (link as Record<string, unknown> | null)?.guardians as { user_id?: string } | undefined;
-      if (!link || gUser?.user_id !== uid) {
+      if (linkErr) {
+        console.error("installment-checkout payer lookup failed", linkErr.code ?? "unknown");
+        return json({ error: "Could not verify who pays this plan. Try again." }, 503);
+      }
+      if (!link) {
         return json({ error: "Not authorized for this installment." }, 403);
       }
     }

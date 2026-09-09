@@ -76,7 +76,12 @@ Deno.serve(async (req) => {
       .select("id, owner_id, stripe_account_id, stripe_charges_enabled")
       .eq("owner_id", uid)
       .maybeSingle();
-    if (provErr) return json({ error: provErr.message }, 400);
+    // robin 2026-09-08: never echo a raw PostgREST message to the client — it
+    // names columns and constraints. Log it, return a fixed string.
+    if (provErr) {
+      console.error("stripe-provider-payouts provider lookup failed", provErr.code ?? "unknown");
+      return json({ error: "Payout history is temporarily unavailable." }, 503);
+    }
     if (!provider) return json({ error: "No provider profile for this user" }, 404);
 
     const accountId = provider.stripe_account_id as string | null;

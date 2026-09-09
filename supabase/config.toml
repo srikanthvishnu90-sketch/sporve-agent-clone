@@ -1,0 +1,68 @@
+# Supabase CLI configuration — functions only, on purpose.
+#
+# WHY THIS FILE EXISTS (robin audit 2026-09-08): every function listed below is
+# deployed with verify_jwt = false because it authenticates its callers itself
+# (a Stripe or Resend signature, an HMAC, an internal cron secret, or its own
+# auth.getUser() check that returns 401). Until this file existed, that setting
+# lived only in whoever remembered to type --no-verify-jwt at deploy time. One
+# deploy without the flag would turn every Stripe webhook POST into a 401 and
+# stop payments confirming, silently.
+#
+# Generated from the live deployment state of project tseszaprvtvqrkfpditu on
+# 2026-09-08 (17 of 43 functions). Every other function keeps the platform
+# default, verify_jwt = true, and is therefore not listed.
+#
+# If you add a function that verifies its own callers, add it here in the same
+# pull request as the function.
+project_id = "tseszaprvtvqrkfpditu"
+
+[functions.AI-Chat]
+verify_jwt = false
+
+[functions.Join-Waitlist]
+verify_jwt = false
+
+[functions.camp-broadcast]
+verify_jwt = false
+
+[functions.camp-recap]
+verify_jwt = false
+
+[functions.draft-recap]
+verify_jwt = false
+
+[functions.draft-reply]
+verify_jwt = false
+
+[functions.join-waitlist]
+verify_jwt = false
+
+[functions.lifecycle-process]
+verify_jwt = false
+
+[functions.resend-webhook]
+verify_jwt = false
+
+[functions.setup-interview]
+verify_jwt = false
+
+[functions.staff-cert-webhook]
+verify_jwt = false
+
+[functions.stripe-connect-onboarding]
+verify_jwt = false
+
+[functions.stripe-create-checkout]
+verify_jwt = false
+
+[functions.stripe-provider-payouts]
+verify_jwt = false
+
+[functions.stripe-webhook]
+verify_jwt = false
+
+[functions.unsubscribe]
+verify_jwt = false
+
+[functions.waitlist-offer-draft]
+verify_jwt = false
