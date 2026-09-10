@@ -25,7 +25,7 @@
 <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16.png">
 <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
 <link rel="manifest" href="/site.webmanifest">
-<meta name="sporve-build" content="cd93af0d8d556464">
+<meta name="sporve-build" content="46f5b6a663b5f17e">
 </head>
 <body>
 <noscript><h1>Sporv — Every sport. One app.</h1><p>Sporv connects families and athletes with coaches, trainers, camps, and teams across more than 20 sports. Please enable JavaScript to use the app.</p></noscript>
@@ -12506,8 +12506,8 @@ function coachSettingsPage(){
           last:day(gmailOn&&gmailOn.connected_at),
           attr:'data-cxgoogle="gmail"',cta:S.cxBusy==="gmail"?"Opening Google…":"Connect Gmail",
           desc:gmailOn
-            ?`Reading ${esc(gmailOn.external_account||"your mailbox")} for parent email, tournament PDFs and league notices, and drafting the replies. It cannot send — Sporv never asked Google for permission to.`
-            :"Reads inbound parent email, tournament PDFs and league notices, and drafts the replies. Drafts only — it can never send."}),
+            ?`Reading ${esc(gmailOn.external_account||"your mailbox")} for parent email, tournament PDFs and league notices. Replies are drafted in your Sporv queue, not your mailbox — the access is read-only, so Sporv holds no permission to send.`
+            :"Reads inbound parent email, tournament PDFs and league notices, then drafts the replies in your Sporv queue. Read-only access — Sporv is never granted permission to send from your mailbox."}),
         tile({name:"Google Calendar",on:!!calOn,soon:!calOn&&!cxOffered("google_calendar"),
           last:day(calOn&&calOn.connected_at),
           attr:'data-cxgoogle="google_calendar"',cta:S.cxBusy==="google_calendar"?"Opening Google…":"Connect Calendar",
@@ -14039,8 +14039,8 @@ function modalHTML(){
           tile({name:"Gmail",on:!!gmailOn,soon:!gmailOn&&!cxOffered("gmail"),
             attr:'data-cxgoogle="gmail"',cta:S.cxBusy==="gmail"?"Opening Google…":"Connect",
             desc:gmailOn
-              ?`Reading ${esc(gmailOn.external_account||"your mailbox")} and drafting the replies. It cannot send — Sporv never asked Google for permission to.`
-              :"Reads inbound parent email, tournament PDFs and league notices, and drafts the replies. Drafts only — it can never send."}),
+              ?`Reading ${esc(gmailOn.external_account||"your mailbox")}. Replies are drafted in your Sporv queue, not your mailbox — read-only access, so Sporv holds no permission to send.`
+              :"Reads inbound parent email, tournament PDFs and league notices, then drafts the replies in your Sporv queue. Read-only access — Sporv is never granted permission to send from your mailbox."}),
           tile({name:"Google Calendar",on:!!calOn,soon:!calOn&&!cxOffered("google_calendar"),
             attr:'data-cxgoogle="google_calendar"',cta:S.cxBusy==="google_calendar"?"Opening Google…":"Connect",
             desc:calOn

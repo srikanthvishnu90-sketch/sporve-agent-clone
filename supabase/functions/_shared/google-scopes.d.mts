@@ -22,4 +22,4 @@ export declare function grantedScopes(
   requested: string[],
 ): string[];
 export declare function hasRequiredRead(kind: GoogleKind, granted: string[]): boolean;
-export declare function writeModeFor(kind: GoogleKind): 'draft' | 'apply';
+export declare function writeModeFor(kind: GoogleKind): 'none' | 'apply';

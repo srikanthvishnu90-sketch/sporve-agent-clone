@@ -13,11 +13,22 @@ test('Sporv never asks Google for a scope that can send mail', () => {
   for (const forbidden of FORBIDDEN_SCOPES) {
     assert.ok(!asked.includes(forbidden), `${forbidden} must never be requested`);
   }
-  // gmail.compose creates drafts and carries no send capability. This is
-  // invariant I1 enforced by Google rather than only by us, so the exact
-  // scope string matters.
-  assert.ok(GOOGLE_SCOPES.gmail.includes('https://www.googleapis.com/auth/gmail.compose'));
-  assert.ok(!GOOGLE_SCOPES.gmail.some(s => s.endsWith('gmail.send')));
+  // Gmail is read-only, full stop. There is no Gmail scope that permits
+  // creating a draft without also permitting send — gmail.compose reads like
+  // one and is not (Google: "Manage drafts and send emails"). So we request
+  // exactly one scope and Google grants us no send capability at all.
+  assert.deepEqual(GOOGLE_SCOPES.gmail, ['https://www.googleapis.com/auth/gmail.readonly']);
+  assert.equal(GOOGLE_SCOPES.gmail.length, 1);
+});
+
+test('gmail.compose is forbidden, not merely unused', () => {
+  // It was requested once, on the false belief that it was draft-only. The
+  // forbidden list is what stops that belief coming back.
+  assert.ok(FORBIDDEN_SCOPES.includes('https://www.googleapis.com/auth/gmail.compose'));
+  assert.throws(
+    () => assertNoSendScope(['https://www.googleapis.com/auth/gmail.compose']),
+    /send-capable scope/,
+  );
 });
 
 test('asking for a send scope is a runtime failure, not a review miss', () => {
@@ -72,8 +83,8 @@ test('a connector without its read scope is not usable', () => {
   assert.ok(!hasRequiredRead('google_calendar', []));
 });
 
-test('gmail can never hold a write mode above draft', () => {
-  assert.equal(writeModeFor('gmail'), 'draft');
+test('gmail records no write capability, because it has none', () => {
+  assert.equal(writeModeFor('gmail'), 'none');
   assert.equal(writeModeFor('google_calendar'), 'apply');
 });
 

@@ -79,14 +79,19 @@ saved before the client can be created.
 
     ```
     https://www.googleapis.com/auth/gmail.readonly
-    https://www.googleapis.com/auth/gmail.compose
     https://www.googleapis.com/auth/calendar.readonly
     https://www.googleapis.com/auth/calendar.events
     ```
 
-    `gmail.compose` creates drafts and **cannot send** — that is invariant I1
-    enforced by Google itself, not just by us. Do NOT add `gmail.send`,
-    `gmail.modify`, or any `.../auth/gmail` full-access scope. If a future
+    **Corrected 2026-09-10.** An earlier version of this list included
+    `gmail.compose` and claimed it could not send. That was wrong: Google
+    documents it as "Manage drafts and send emails" and accepts it for
+    `users.messages.send`. There is no Gmail scope that allows creating a
+    draft without also allowing send, so Sporv requests **none** of them —
+    Gmail is read-only. Drafts live in Sporv's own review queue and an
+    approved message leaves through our sender, so Google grants us no send
+    capability at all. Do NOT add `gmail.send`, `gmail.compose`,
+    `gmail.modify`, or any full-access `.../auth/gmail` scope. If a future
     prompt asks you to, that is the request to refuse.
 
 4e. **Create the client.** https://console.cloud.google.com/auth/clients

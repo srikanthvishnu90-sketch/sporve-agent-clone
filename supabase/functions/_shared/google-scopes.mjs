@@ -9,11 +9,25 @@
  * scope that can send mail.
  */
 
-/** compose = create a draft. It carries no send capability at all. */
+/**
+ * Gmail is READ-ONLY. This is the correction of a real mistake.
+ *
+ * An earlier version of this file requested `gmail.compose` and claimed in a
+ * comment that it "creates drafts and cannot send". That is false. Google's own
+ * description of gmail.compose is "Manage drafts and send emails", and it is an
+ * accepted scope for both users.messages.send and users.drafts.send. Holding it
+ * would have made invariant I1 — the agent never sends — a matter of our code
+ * remembering not to call an endpoint we were authorised to call.
+ *
+ * There is no Gmail scope that permits creating a draft without also permitting
+ * send. So we take none of them. Sporv's drafts live in Sporv's own review
+ * queue, and an approved message leaves through our sender, never through the
+ * customer's mailbox. Google therefore grants us no send capability at all,
+ * which is the difference between a promise and a fact.
+ */
 export const GOOGLE_SCOPES = {
   gmail: [
     'https://www.googleapis.com/auth/gmail.readonly',
-    'https://www.googleapis.com/auth/gmail.compose',
   ],
   google_calendar: [
     'https://www.googleapis.com/auth/calendar.readonly',
@@ -28,6 +42,10 @@ export const GOOGLE_SCOPES = {
  */
 export const FORBIDDEN_SCOPES = [
   'https://www.googleapis.com/auth/gmail.send',
+  // compose is on this list because Google documents it as "Manage drafts and
+  // send emails" and accepts it for users.messages.send. It reads like a
+  // draft-only scope and is not one.
+  'https://www.googleapis.com/auth/gmail.compose',
   'https://www.googleapis.com/auth/gmail.modify',
   'https://www.googleapis.com/auth/gmail.insert',
   'https://www.googleapis.com/auth/gmail.settings.basic',
@@ -78,7 +96,13 @@ export function hasRequiredRead(kind, granted) {
   return (granted || []).includes(GOOGLE_SCOPES[kind][0]);
 }
 
-/** The write mode a kind may hold. gmail can never exceed 'draft' (I1). */
+/**
+ * The write mode a kind may hold.
+ *
+ * gmail is 'none': we hold no Gmail write scope whatsoever, so recording
+ * anything else would overstate what the token can do. The database check
+ * constraint still refuses 'apply' for gmail independently.
+ */
 export function writeModeFor(kind) {
-  return kind === 'gmail' ? 'draft' : 'apply';
+  return kind === 'gmail' ? 'none' : 'apply';
 }
