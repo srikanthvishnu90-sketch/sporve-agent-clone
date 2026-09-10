@@ -3,6 +3,10 @@
 -- was executed, is the record. See 20260910_001042 for the same note and the
 -- `supabase migration repair` command if you want the ledger to match.
 -- Every statement is idempotent, so a replay reproduces the same end state.
+--
+-- CORRECTED 2026-09-10: the first applied version omitted first_name, which
+-- is NOT NULL, so every redemption raised 23502 and unwound the function.
+-- This file is the corrected SQL, re-applied to production the same day.
 
 -- [CRITICAL-PATH] RED DRAFT — redeem_coach_invite() must actually join the family.
 -- Launch item 13. Today the RPC flips coach_invites.status to 'accepted' and
@@ -59,8 +63,17 @@ begin
        where provider_id = v_inv.provider_id and user_id is null
          and lower(email) = lower(coalesce(v_inv.invited_email, v_email));
     else
-      insert into public.guardians (provider_id, user_id, email, email_status)
-      values (v_inv.provider_id, auth.uid(), coalesce(v_inv.invited_email, v_email), 'ok')
+      -- first_name is NOT NULL with no default (checked in production, not
+      -- assumed). Omitting it made this INSERT raise 23502, and because there
+      -- is no exception handler here the whole function unwound — so the
+      -- `status='accepted'` write below never ran either. The result was that
+      -- a family invited by email could no longer accept the invite AT ALL,
+      -- which is strictly worse than the bug this draft set out to fix.
+      -- Caught by a clo audit before any real invite existed.
+      insert into public.guardians (provider_id, user_id, first_name, email, email_status)
+      values (v_inv.provider_id, auth.uid(),
+              coalesce(nullif(split_part(coalesce(v_inv.invited_email, v_email), '@', 1), ''), 'Guardian'),
+              coalesce(v_inv.invited_email, v_email), 'ok')
       on conflict (provider_id, user_id) where user_id is not null do nothing;
     end if;
   end if;
