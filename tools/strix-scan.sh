@@ -90,11 +90,27 @@ if ! command -v strix >/dev/null 2>&1; then
   note "  FIX: pipx install strix-agent   (or: pip3 install --user strix-agent)"
   missing=1
 fi
+# The key can come from the environment OR from a gitignored local file. The
+# file exists so the owner never has to paste a key into a chat transcript or
+# a shell command that gets logged: write it once, it works forever, and
+# .gitignore's `.env*` rule keeps it out of every commit.
+STRIX_ENV_FILE="${STRIX_ENV_FILE:-$WEB_ROOT/.env.strix}"
+if [ -z "${LLM_API_KEY:-}" ] && [ -f "$STRIX_ENV_FILE" ]; then
+  # Read it without echoing it. `set -a` exports what the file assigns.
+  set -a; . "$STRIX_ENV_FILE"; set +a
+fi
+: "${STRIX_LLM:=anthropic/claude-opus-4-8}"; export STRIX_LLM
+
 if [ -z "${LLM_API_KEY:-}" ]; then
   note "✗ No LLM key. Strix needs its OWN key (separate from the service-role"
   note "  ai-gateway key, which is never handed to a client-side tool)."
-  note "  FIX: export STRIX_LLM='anthropic/claude-opus-4-8'"
-  note "       export LLM_API_KEY='sk-ant-...'   (an Anthropic key you control)"
+  note "  FIX, once, and never in a chat window or a shell command:"
+  note "    printf 'LLM_API_KEY=sk-ant-REPLACE\\n' > $STRIX_ENV_FILE"
+  note "    chmod 600 $STRIX_ENV_FILE"
+  note "  then open that file and paste the real key. .gitignore already"
+  note "  covers .env* so it can never be committed."
+  note "  (An export in your own terminal also works, but does not reach a"
+  note "  separate agent shell — the file does.)"
   missing=1
 fi
 if [ "$missing" -ne 0 ]; then
