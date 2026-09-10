@@ -66,15 +66,10 @@ Deno.serve(async req => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: cors });
   if (req.method !== 'POST') return json({ error: 'Method not allowed.' }, 405);
 
-  // service_role only. A customer's browser has no business running this.
-  const auth = req.headers.get('Authorization') ?? '';
-  const serviceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
-  if (auth.replace(/^Bearer\s+/i, '') !== serviceKey) {
-    return json({ error: 'Not authorised.' }, 401);
-  }
-
   const cfg = googleConfig();
   if (!cfg) return json({ error: 'Google is not configured.', code: 'not_configured' }, 503);
+
+  const serviceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
 
   try {
     return await withHttpDeadline(async signal => {
@@ -82,6 +77,30 @@ Deno.serve(async req => {
         global: { fetch: (i, init) => fetch(i, { ...init, signal }) },
         auth: { persistSession: false, autoRefreshToken: false },
       });
+
+      // Server-only, and deliberately the same two paths lifecycle-process
+      // uses. Its comment records why: this function previously accepted only
+      // the service-role key, pg_cron sent a COPY of that key from Vault, the
+      // key rotated, the copy did not, and every tick 403'd for six weeks
+      // while pg_cron cheerfully reported success 63,321 times.
+      //
+      // My first version of this made the same mistake — a plain string
+      // comparison against SUPABASE_SERVICE_ROLE_KEY — and it failed
+      // immediately in production against a legitimately-issued service key,
+      // because this project has since migrated key generations. Two copies of
+      // one secret is the bug. cron_secret lives in exactly one place and is
+      // verified by asking Postgres.
+      const bearer = (req.headers.get('Authorization') ?? '').replace(/^Bearer\s+/i, '');
+      let authorized = bearer.length > 0 && bearer === serviceKey;
+      if (!authorized && bearer.length > 0) {
+        const { data: ok, error: vErr } = await admin
+          .rpc('verify_cron_secret', { p_token: bearer });
+        // Fail CLOSED: a verifier error is a rejection, never a pass.
+        authorized = !vErr && ok === true;
+      }
+      if (!authorized) {
+        return json({ error: 'Forbidden (service role or cron secret only).' }, 403);
+      }
 
       const { data: connectors, error: cErr } = await admin
         .from('org_connectors')
