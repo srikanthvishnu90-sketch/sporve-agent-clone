@@ -73,3 +73,8 @@ verify_jwt = false
 # google-oauth-start. Without a matching state it does nothing at all.
 [functions.google-oauth-callback]
 verify_jwt = false
+
+# service_role only, invoked by the cron runner. It checks the bearer token
+# against the service key itself, so the gateway check is belt-and-braces.
+[functions.gmail-scan]
+verify_jwt = false

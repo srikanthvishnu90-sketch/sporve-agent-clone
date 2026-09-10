@@ -33,6 +33,7 @@ jobs:
           node --test supabase/functions/billing-webhook/handler.test.mjs
           node --test supabase/functions/_shared/entitlements.test.mjs
           node --test supabase/functions/_shared/google-scopes.test.mjs
+          node --test supabase/functions/_shared/gmail-read.test.mjs
           node scripts/ai-contract-test.mjs
           node --test scripts/ai-security-test.mjs
 
