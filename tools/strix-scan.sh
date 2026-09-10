@@ -122,8 +122,21 @@ fi
 
 # ── Run (headless, findings only) ───────────────────────────────────────────
 mkdir -p "$OUT_DIR"
-echo "▶ strix -n --target $TARGET  (run: $RUN_NAME)"
-strix -n --target "$TARGET" --run-name "$RUN_NAME" 2>&1 | tee "$OUT_DIR/${RUN_NAME}.log"
+# strix 1.5.3 has no --run-name: run naming is internal, and --resume takes
+# one. Passing it made every invocation die with "unrecognized arguments"
+# before a single agent started — which is why this pass reported STAGED for
+# days without anyone noticing the flag was the real blocker.
+#
+# --max-budget is not optional here. Strix bills the owner's own Anthropic key
+# per token; an unbounded deep pass over a Flutter client plus a Supabase
+# schema can run a long way. STRIX_BUDGET overrides it for a deliberate
+# deeper run.
+STRIX_BUDGET="${STRIX_BUDGET:-10}"
+STRIX_MODE="${STRIX_MODE:-deep}"
+echo "▶ strix -n -m $STRIX_MODE --max-budget $STRIX_BUDGET --target $TARGET"
+echo "  (log: $OUT_DIR/${RUN_NAME}.log)"
+strix -n -m "$STRIX_MODE" --max-budget "$STRIX_BUDGET" --target "$TARGET" \
+  2>&1 | tee "$OUT_DIR/${RUN_NAME}.log"
 
 # ── Summarise into the shared ledger (one line, observable only) ────────────
 FIND_JSON=$(ls -t "$OUT_DIR/${RUN_NAME}"*/findings.json 2>/dev/null | head -1 || true)
