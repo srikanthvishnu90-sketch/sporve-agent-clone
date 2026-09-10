@@ -35,7 +35,24 @@ a proven bounce path.
 
 ### G2 — FIRST REAL PAYMENT
 
-**OPEN, and worse than open — a payment today would fail.**
+**OPEN, but no longer broken. Fixed at 12:0x on 10 September.**
+
+~~A payment today would fail.~~ `20260910_001040_ledger_insert_once` is applied.
+`apply_stripe_booking_event` is down to **one** overload (was two), both money
+RPCs now take a transaction-scoped advisory lock on the event id, check for a
+duplicate before any write, and insert the ledger row **once** with its final
+outcome. `trg_ledger_append_only` is untouched and still armed.
+
+Proved in production inside a block that rolled itself back: first delivery
+returned `applied:pro/active`, the redelivery returned `duplicate`, exactly one
+ledger row was written, and no UPDATE was attempted so the strict trigger never
+fired. Nothing survived the rollback — ledger still holds its original 5 rows,
+zero proof rows, zero proof subscriptions.
+
+What remains for G2 is no longer software: a live `acct_`, `ch_` and `re_`, one
+live decline, one live refund, ledger reconciled to zero drift.
+
+**The original defect, for the record:**
 
 `trg_ledger_append_only` is live and raises on every UPDATE of
 `payment_event_ledger`, but both money RPCs insert a ledger row and then update
@@ -66,6 +83,14 @@ which leaves the trigger untouched and fixes the callers — and is **unapplied*
 | `google-oauth-start` | **deployed** | refuses an unauthenticated caller with 401 |
 | `google-oauth-callback` | **deployed** | a forged state redirects to `status=failed&reason=expired`, connects nothing |
 | Google OAuth client | **live pair** | token endpoint returns `invalid_grant` for a bogus code, not `invalid_client` — and not `redirect_uri_mismatch`, so the redirect URI has already propagated |
+
+### The gap nobody had written down
+
+**Nothing reads a connected mailbox.** The only file in the repository
+referencing `connector_read_secret` or the Gmail API is the scope list itself,
+and no scheduled job picks up a connector. Connecting Gmail today stores a
+refresh token in Vault and produces zero findings. The connector is a door with
+no room behind it — building the reader is the next real piece of product.
 
 ### The scope correction
 
@@ -144,13 +169,25 @@ Nothing has been renamed unilaterally.
 | Connectors connected | **0** |
 
 Two facts worth stating plainly. **No organization has completed onboarding**
-(`onboarding_completed` is false on all three). And **`sporve123@gmail.com` owns
-no organization at all** — the three orgs belong to `sporve123+goldeneval@`,
-`srikanthvishnu90@` and `vishnusrikanth8@`. Signing in as yourself and clicking
-Connect returns "Set up your organization first," not a Google consent screen.
+(`onboarding_completed` is false on all three). And **`sporve123@gmail.com` has no account at all** — it has never signed up.
+The only `sporve123` address in `auth.users` is `sporve123+goldeneval@`, the
+eval fixture. The three orgs belong to that fixture, `srikanthvishnu90@` and
+`vishnusrikanth8@`, all confirmed and all last seen 9 September. Signing in as
+`sporve123@gmail.com` is not possible today; the account has to be created
+first.
 
-The eval org `ae9f8097-fa09-4f5e-8019-c5ea76aefa8a` is an approved provider
-visible to anyone listing approved providers. It must be deleted before pilots.
+**Correction (same day).** An earlier version of this file repeated a claim
+from the 8 September owner list: that the eval org
+`ae9f8097-fa09-4f5e-8019-c5ea76aefa8a` is "an approved provider visible to
+anyone listing approved providers". Checked directly: its `status` is
+**`rejected`**, and an unauthenticated REST query for providers returns **zero
+rows**. It is not publicly visible and never was under the current policy.
+
+Ruling: **leave it in place.** It holds 42 queue rows and a program the
+golden-set evaluation depends on, it is explicitly labelled do-not-touch, and
+deleting it would destroy a testing asset to solve an exposure that does not
+exist. Revisit only if the public-read policy ever widens beyond
+`status = 'approved'`.
 
 ---
 
@@ -177,10 +214,10 @@ waves; eleven of the twenty-four files there are already applied or dead.
 
 | | why it cannot be automated |
 |---|---|
-| Say "apply the ledger fix" | RED set; one migration; unblocks G2 |
+| ~~Say "apply the ledger fix"~~ | **Done 10 Sep.** Applied and proved. |
 | Sign in as `srikanthvishnu90@` or `vishnusrikanth8@` and connect Gmail | both orgs are now on `pro`, so Gmail is entitled; the first real connection needs a human at a consent screen |
 | Rotate the Google client secret | it passed through a chat transcript on 9 September |
-| Confirm Solo and Organization prices | the entitlement draft refuses Checkout for an unconfirmed price |
+| ~~Confirm Solo and Organization prices~~ | **Done 10 Sep: Solo $49/mo ($490/yr), Organization from $199/mo ($1,990/yr), annual = two months free.** `billing-pricing.json` is Codex's uncommitted file, so the `"confirmed": false → true` flip is left to Codex; the confirmation is recorded in the Clo ledger. |
 | Delete the eval org before pilots | it is publicly listed |
 | Leaked-password check, PITR | dashboard toggles; the API call was blocked by the permission classifier |
 | Docker + an Anthropic key for Strix | the deep security pass has been staged, not run, for days |
@@ -189,11 +226,16 @@ waves; eleven of the twenty-four files there are already applied or dead.
 
 ## Honest summary
 
-The connector spine is real, tested in production, and the first honest paywall
-in the product runs through it. Nothing else moved: both gates are exactly where
-they were, and the highest-value action available is a single unapplied
-migration that would make payments work again.
+Payments can succeed again. The ledger defect that would have failed and retried
+every Stripe event for three days is fixed, applied, and proved in production —
+that is the one thing today that actually mattered.
 
-Per `GATES.md`, today's grade is **NOTHING MOVED** on G1–G4. The connector work
-is infrastructure for priority #2 in the constitution, and it is genuinely done
-— but a gate is a gate.
+The connector spine is real, tested in production, and the first honest paywall
+in the product runs through it. But the connector has nothing behind it yet: no
+worker reads a connected mailbox, so a connection produces no findings. And no
+message has ever left this system.
+
+Per `GATES.md`, today's grade is still **NOTHING MOVED** on G1–G4: a fixed
+defect is not a passing gate, and neither gate has its evidence. G2 is now
+blocked only on a real transaction rather than on broken code, which is a
+materially better place to be standing.
