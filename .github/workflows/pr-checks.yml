@@ -23,7 +23,9 @@ jobs:
           # Same runtime used for the local TypeScript-stripping handler tests.
           node-version: "24.16.0"
       - name: Implant tripwire (folderOpen RCE removed 2026-09-12)
-        run: node scripts/no-implant-check.mjs
+        run: |
+          node --test scripts/no-implant-check.test.mjs
+          node scripts/no-implant-check.mjs
       - name: Install locked SDK for intercepted API integration test
         run: npm ci --ignore-scripts --no-audit --no-fund
       - name: Extraction and webhook security boundaries (no external services)
