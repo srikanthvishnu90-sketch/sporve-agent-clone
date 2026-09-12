@@ -3,7 +3,6 @@ node_modules/
 *.log
 .clo-sync/
 .gstack/
-.vscode/
 .vercel
 .env*
 backup/
@@ -13,6 +12,7 @@ skills-lock.json
 
 # Owner prompt intake — internal working material, never in this PUBLIC repo
 prompts/
+temp_auto_push.bat
 
 # Internal security/roadmap docs — never in this PUBLIC repo
 docs/security/
@@ -28,3 +28,5 @@ docs/coach-portal-spec.md
 # Strix pentest run artifacts (PoC detail stays local)
 strix_runs/
 backups/
+.gitignore
+branch_structure.json

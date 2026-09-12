@@ -28,6 +28,22 @@ MIRROR_REMOTE="${MIRROR_REMOTE:-sporve-agent-clone}"
 MIRROR_URL="https://github.com/srikanthvishnu90-sketch/sporve-agent-clone.git"
 SCRATCH="${TMPDIR:-/tmp}/sporv-deploy.$$"
 VERCEL="./node_modules/.bin/vercel"
+
+# ── A conflict worth knowing about before it costs an hour ──────────────────
+# Installing Docker (for Strix) changes how `supabase functions deploy` works:
+# the CLI starts bundling INSIDE a container. colima does not mount /private/tmp
+# into its VM, so a deploy run from a git worktree under the scratch directory
+# fails with "entrypoint path does not exist" while the file is plainly there.
+#
+# Two ways out, in order of preference:
+#   1. Deploy from a path under $HOME (this repo, or ~/sporv-deploy). The VM
+#      mounts $HOME, so the bundler can see the file.
+#   2. `colima stop`, deploy, `colima start`. Only if 1 is impossible —
+#      it silently disables Strix until someone starts it again.
+#
+# This does not affect THIS script, which deploys the built static site through
+# the Vercel CLI and never touches the Supabase function bundler. It is
+# recorded here because this is the file people read when a deploy misbehaves.
 # The same production deployment, reachable without the bot challenge.
 ALIAS="${PROD_ALIAS:-https://sporv1.vercel.app}"
 
