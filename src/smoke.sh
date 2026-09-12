@@ -1006,7 +1006,12 @@ he=$($B js "
 # [spec-01 completion · 2026-08-31] recipe/KX gate — the product pages are deleted; these gates measured them.
 # 100-point #88 — the <head> is finished (title in head, OG image, favicon).
 head=$(awk 'BEGIN{p=1} /<\/head>/{print; exit} p' index.html)
-{ printf '%s' "$head" | grep -q '<title>Sporv' && printf '%s' "$head" | grep -q 'og:image' && printf '%s' "$head" | grep -q 'rel="icon"'; } \
+# Matched in-shell rather than piped into `grep -q`. grep -q exits the instant
+# it matches, which closes the pipe while printf is still writing, and printf
+# then dies with "write error: Broken pipe" and takes the whole script's exit
+# code with it. It only shows when $head is big enough for printf not to have
+# finished — so it passed locally for weeks and failed intermittently in CI.
+{ [[ "$head" == *'<title>Sporv'* && "$head" == *'og:image'* && "$head" == *'rel="icon"'* ]]; } \
   && pass "#88 head finished (title · og:image · favicon)" || fail "#88 head incomplete"
 # 100-point #58 — zero exclamation marks in rendered copy across routes + pages.
 ex=$($B js "
