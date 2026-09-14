@@ -1,0 +1,43 @@
+# Upload only the served site and its Vercel function runtime.
+# Output Directory "." remains a project setting; no build/source changes here.
+/*
+!/.vercelignore
+!/index.html
+!/vercel.json
+!/package.json
+!/package-lock.json
+!/site.webmanifest
+!/favicon.ico
+!/favicon-16.png
+!/favicon-32.png
+!/apple-touch-icon.png
+!/icon-192.png
+!/icon-512.png
+!/og.png
+!/og.svg
+!/robots.txt
+!/sitemap.xml
+!/assets/
+!/public/
+!/video/
+!/api/
+!/lib/
+
+# Reject development, backup, and evidence trees even inside allowed folders.
+**/node_modules/
+**/strix_runs/
+**/backup/
+**/backups/
+**/.git/
+**/*.git/
+**/evidence/
+**/evidence-clones/
+**/evidence_clones/
+**/.vscode/
+**/.vercel/
+**/.env*
+**/*.pem
+**/*.key
+**/.DS_Store
+**/*.log
+**/README.md
