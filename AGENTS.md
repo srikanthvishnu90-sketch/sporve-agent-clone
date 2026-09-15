@@ -41,14 +41,15 @@ Read `GATES.md` before proposing, evaluating, or reporting work. It is the sole
 definition of business progress for every agent, session, audit, and scheduled
 watcher in this repository.
 
-- Name the G1–G4 gate a proposal advances before describing the work. If none
-  advances, lead with `NOTHING MOVED` and label the work cosmetic, diagnostic,
-  governance, or maintenance as appropriate.
+- Name the gate a proposal advances before describing the work, by number from
+  `GATES.md` (G1-G10 since 2026-09-15; it is the only file that defines them).
+  If none advances, lead with `NOTHING MOVED` and label the work cosmetic,
+  diagnostic, governance, or maintenance as appropriate.
 - A gate moves only when every item in its exact **Done looks like** clause has
   observable evidence. Partial exercises, passing tests, feature scores,
   commits, and analysis are supporting evidence; none is a passing gate.
 - Keep feature audits as detector evidence, never as the progress score.
-- Do not propose or add a new AI tool until G4 is `TRUE`.
+- Do not propose or add a new AI tool until G6 (WRITES ARE SAFE) is `TRUE`.
 
 ## Analytical Codex council
 
