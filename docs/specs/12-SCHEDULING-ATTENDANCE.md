@@ -79,7 +79,34 @@ create table if not exists public.blackout_window (id uuid primary key default g
 **DoD:** `tests/scheduling/conflicts.spec.ts` — fixture org, two teams, one shared field, one shared coach, one dual-rostered athlete; all four classes fire; override records a reason.
 
 ## 12.4 Cancellation and weather
-`cancelEvent(event_id, reason, notify)`: sets cancelled+reason; emits cancellation via spec 13 channels; updates ICS; writes audit row; releases facility slot. Target <15s field-phone → parent SMS. **DoD:** `tests/scheduling/cancel-propagation.spec.ts` — all five effects + wall-clock latency to a delivery receipt.
+The single most common urgent action in youth sports.
+
+One action, `cancelEvent(event_id, reason, notify: boolean)`, which:
+1. Sets `status = 'cancelled'` and the reason
+2. **Drafts** a cancellation to every affected family through spec 13 channels
+3. Updates the ICS feed so subscribed calendars reflect it
+4. Writes an audit row
+5. Releases the facility slot for conflict purposes
+
+**Amended 2026-09-15 (ruling R5): a cancellation always drafts. No auto-send, no
+exception.** The "under 15 seconds from a coach's phone to a parent's SMS" target
+stands, but it is measured **approval to delivery**, not approval removal.
+Draft-first is not negotiable for the one message class most likely to be sent in
+a panic, from a field, in the rain.
+
+The optimisation target is therefore **two taps from a cold home-screen launch to
+a sent cancellation**, with the message already written:
+- the draft is generated when `status` flips to cancelled, *before* the coach
+  reaches for the phone — never on approval;
+- it is first in the agent rail and is the destination of the push/SMS deep link,
+  so it is never something to go and find;
+- Approve is one tap, and the 8-second hold with Undo stays: it costs nothing
+  against a 15-second budget and it is the only thing between a mis-tap and 60
+  families being told practice is off.
+
+**DoD:** `tests/scheduling/cancel-propagation.spec.ts` asserts all five effects,
+asserts **zero sends without an approval**, measures wall-clock approve-to-
+delivery-receipt, and asserts the tap count from a cold launch.
 
 ## 12.5 Calendar feed (ICS)
 Per-family signed ICS URL, one per guardian, covering every athlete via `guardian_links`. VEVENT per published event, stable UID=event.id, SEQUENCE incremented on change, STATUS:CANCELLED on cancel. X-WR-CALNAME=org; LOCATION=facility address; DESCRIPTION has arrival time + RSVP link. X-PUBLISHED-TTL:PT1H; ICS is a convenience layer, never the only notification path. Token rotates on guardian removal. **DoD:** `tests/scheduling/ics-feed.spec.ts` — RFC 5545 parser; cancel emits STATUS:CANCELLED with incremented SEQUENCE.
