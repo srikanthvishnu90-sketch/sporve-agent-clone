@@ -25,7 +25,7 @@
 <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16.png">
 <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
 <link rel="manifest" href="/site.webmanifest">
-<meta name="sporve-build" content="ec630fc3456a3454">
+<meta name="sporve-build" content="d51c403221d4477b">
 </head>
 <body>
 <noscript><h1>Sporv — Every sport. One app.</h1><p>Sporv connects families and athletes with coaches, trainers, camps, and teams across more than 20 sports. Please enable JavaScript to use the app.</p></noscript>
@@ -8778,10 +8778,11 @@ function productMenuHTML(){
     "payouts":"What you get and when",
     "what-is":"Two minutes, no jargon",
     "background-checks":"What's checked and what we never see",
+    "security":"What's enforced, and what isn't yet",
   };
   const groups=[["Run your club",["roster","scheduling","waivers","agent"]],
     ["Money",["payments","payouts"]],
-    ["About",["what-is","background-checks"]]];
+    ["About",["what-is","background-checks","security"]]];
   const row=(id)=>{const m=PAGE_META[id];return m?`<button class="pmrow2" role="menuitem" data-pdest="page:${id}">${esc(m.t)}<small>${esc(SUB[id]||"")}</small></button>`:"";};
   return `<div class="productmenu on glassmenu" role="menu" aria-label="Product pages"><div class="shell pmglass">
     <div class="pmcol"><div class="eyebrow">Overview</div><span class="hov" aria-hidden="true"></span>
@@ -14681,6 +14682,7 @@ function closeZoneHTML(){
 const PAGE_META={
   "what-is":{t:"What is Sporv?",d:"The marketplace — search, book, and pay for youth coaching in one account.",sport:"Soccer",cta:"explore",ctaL:"Find a coach"},
   "background-checks":{t:"How background checks work",d:"Per-person checks with a dated record — no one takes a booking unverified.",sport:"Swimming",cta:"trust",ctaL:"See the trust center"},
+  "security":{t:"Security",d:"What protects a family's data — enforced in the database and the browser — and what is not done yet.",sport:"Wrestling",cta:"trust",ctaL:"See the trust center"},
   "search":{t:"Search by sport & age",d:"Filter by sport, age, level, and budget — results only from the real catalogue.",sport:"Basketball",cta:"explore",ctaL:"Start searching"},
   "map-search":{t:"Map search",d:"See coaches as places — distance is part of every family's decision.",sport:"Cycling",cta:"map",ctaL:"Open the map"},
   "instant-booking":{t:"Instant booking",d:"Real open slots, with the seat count enforced at the database.",sport:"Baseball",cta:"explore",ctaL:"Find an open slot"},
@@ -28273,6 +28275,10 @@ window.MOD_NOTES = {
     "scheduling", "payments", "roster", "session-notes",
     "media-consent", "insights",
     "waivers", "agent", "payouts",
+    /* External-dependency item 11 / spec 18.4: the written security overview
+       a club's board asks for before signing. Every sentence is a fact of the
+       shipped product or an explicit "not yet". */
+    "security",
     
     // For organizations — the Enterprise ($149/mo, in development) showcase.
     // These are SALES/DESIGN artifacts: every one frames the tier as "in
@@ -28688,6 +28694,40 @@ window.MOD_NOTES = {
       questionSection(questions, { layout: "compact-parent-questions", className: "pg-check-questions" }));
   }
 
+  function securityPage(meta) {
+    var controls = [
+      ["Nothing sends without a person", "The agent drafts; a director approves. The database enforces the order: a trigger on the message table refuses any client that tries to mark a message sent, and a second holds every obligation to draft, approved, done or void. There is no setting that turns approval off."],
+      ["Your rows are your rows", "Every table carries the organization it belongs to, and row-level security policies decide what a signed-in session can read. The check runs in Postgres on every query; a bug in the page cannot widen it."],
+      ["Card numbers never touch Sporv", "Stripe holds the card. Sporv sees an event that says a payment happened, writes it to a ledger that a trigger makes append-only, and files anything it cannot apply in a dead-letter table it reviews rather than drops."],
+      ["The page cannot be tampered with in flight", "Every inline script on sporv.ai is listed by hash in the Content-Security-Policy, so an injected script does not run. The site is HTTPS-only for two years by header, cannot be framed, and sends no referrer to other sites."],
+      ["Checks belong to a person, with a date", "A background check is stored against the named coach and the day it cleared. It is read again when a booking is written. It does not transfer to a colleague or survive expiry."]
+    ];
+    var others = [
+      ["Supabase", "Database, authentication and the functions that run the agent. Postgres, with row-level security on."],
+      ["Stripe", "Payments, dues and payouts. Sporv never stores a card number."],
+      ["Resend", "Email delivery for messages a director has approved. Bounces feed a suppression list."],
+      ["Anthropic and OpenAI", "The assistant runs on Anthropic models through a server gateway; the page never holds a model key. OpenAI produces the search embeddings. Neither trains on your data."],
+      ["Google, if you connect it", "Gmail is read-only — the scope cannot compose or send. Calendar changes you approve are written back. The scopes are declared in one registry that refuses any send-capable scope."],
+      ["Vercel", "Hosts the site as static files behind the headers above."]
+    ];
+    var board = [
+      ["Has an outside firm tested this?", "Not yet. An annual third-party penetration test is planned and will be published here when it has happened. Until then, the enforcement above is what stands, and it lives in the database rather than in a document."],
+      ["What happens after an incident?", "Every incident gets a written review with a timeline, the cause, and the change made. Ask for it and it is sent. Nothing is edited out to look better."],
+      ["How do I report a problem?", "Write to security@sporv.ai. A person reads it. A confirmed report is fixed before it is discussed anywhere else."]
+    ];
+    return wrap("security", "S01", "threshold-head-definitions-ledger-honesty-questions", "D-L-L-D-L", hero(meta,
+      "Built so a mistake <em>cannot reach a family.</em>",
+      "Security here is not a promise in a policy. It is a set of rules the database and the browser enforce on every request, whoever wrote the code that made it. This page lists those rules, names every company that touches the data, and says plainly which protections are not in place yet, so a club's board decides on facts rather than adjectives.",
+      { tone: "dark", layout: "check-threshold", eyebrow: "SECURITY" }) +
+      definitionSection(controls, { tone: "white", layout: "definition-rows", className: "pg-security-controls" }) +
+      questionSection(others, { tone: "slate", layout: "compact-parent-questions", className: "pg-security-others" }) +
+      "<section class='pgband dark pg-check-honesty' data-section='honesty-panel' data-layout='two-paragraph-honesty'><div class='shell'><h2>What is not done yet</h2><div>" +
+      "<p data-prose>There has been no outside penetration test, there is no SOC 2 report, and the parent registration form that will collect medical and emergency details is not built. When it is, sensitive fields will live in their own table the agent cannot select from.</p>" +
+      "<p data-prose>A data-processing agreement and a certificate of insurance are being prepared for clubs and associations that require them. Until they exist, do not sign on the assumption that they do; ask, and you will get a date.</p>" +
+      "</div></div></section>" +
+      questionSection(board, { layout: "compact-parent-questions", className: "pg-security-board" }));
+  }
+
   function mediaConsentPage(meta) {
     var questions = [
       ["Who can grant consent?",
@@ -28920,6 +28960,7 @@ window.MOD_NOTES = {
     if (id === "messaging") return messagingPage(meta);
     if (id === "session-notes") return sessionNotesPage(meta);
     if (id === "background-checks") return backgroundChecksPage(meta);
+    if (id === "security") return securityPage(meta);
     if (id === "media-consent") return mediaConsentPage(meta);
     if (id === "enterprise") return enterprisePage(meta);
     if (id === "waivers") return waiversPage(meta);

@@ -8730,10 +8730,11 @@ function productMenuHTML(){
     "payouts":"What you get and when",
     "what-is":"Two minutes, no jargon",
     "background-checks":"What's checked and what we never see",
+    "security":"What's enforced, and what isn't yet",
   };
   const groups=[["Run your club",["roster","scheduling","waivers","agent"]],
     ["Money",["payments","payouts"]],
-    ["About",["what-is","background-checks"]]];
+    ["About",["what-is","background-checks","security"]]];
   const row=(id)=>{const m=PAGE_META[id];return m?`<button class="pmrow2" role="menuitem" data-pdest="page:${id}">${esc(m.t)}<small>${esc(SUB[id]||"")}</small></button>`:"";};
   return `<div class="productmenu on glassmenu" role="menu" aria-label="Product pages"><div class="shell pmglass">
     <div class="pmcol"><div class="eyebrow">Overview</div><span class="hov" aria-hidden="true"></span>
@@ -14633,6 +14634,7 @@ function closeZoneHTML(){
 const PAGE_META={
   "what-is":{t:"What is Sporv?",d:"The marketplace — search, book, and pay for youth coaching in one account.",sport:"Soccer",cta:"explore",ctaL:"Find a coach"},
   "background-checks":{t:"How background checks work",d:"Per-person checks with a dated record — no one takes a booking unverified.",sport:"Swimming",cta:"trust",ctaL:"See the trust center"},
+  "security":{t:"Security",d:"What protects a family's data — enforced in the database and the browser — and what is not done yet.",sport:"Wrestling",cta:"trust",ctaL:"See the trust center"},
   "search":{t:"Search by sport & age",d:"Filter by sport, age, level, and budget — results only from the real catalogue.",sport:"Basketball",cta:"explore",ctaL:"Start searching"},
   "map-search":{t:"Map search",d:"See coaches as places — distance is part of every family's decision.",sport:"Cycling",cta:"map",ctaL:"Open the map"},
   "instant-booking":{t:"Instant booking",d:"Real open slots, with the seat count enforced at the database.",sport:"Baseball",cta:"explore",ctaL:"Find an open slot"},
