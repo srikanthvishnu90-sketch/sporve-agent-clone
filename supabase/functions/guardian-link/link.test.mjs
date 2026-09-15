@@ -58,3 +58,21 @@ test('rate-limited client gets 429 before any token work', async () => {
 test('a non-rsvp scope renders a holding page, not a form', async () => {
   const r = await run(GET(good), { redeem: [{ ...grant, scope: 'pay' }] }); assert.equal(r.status, 200); assert.ok(!/name="response"/.test(r.body));
 });
+
+test('the page meets the WCAG 2.1 AA basics a parent phone needs (item 11)', async () => {
+  const r = await run(GET(good));
+  assert.match(r.body, /<html lang="en">/, 'language declared (3.1.1)');
+  assert.match(r.body, /<meta name="viewport" content="width=device-width,initial-scale=1">/, 'pinch-zoom not disabled (1.4.4)');
+  assert.match(r.body, /<main id="main">/, 'one main landmark (1.3.1)');
+  assert.match(r.body, /<h1 id="q">/, 'a heading names the question (2.4.6)');
+  assert.match(r.body, /<form [^>]*aria-labelledby="q"/, 'the form is labelled by the question (1.3.1 / 4.1.2)');
+  assert.match(r.body, /button:focus-visible\{outline:3px solid/, 'keyboard focus is visible (2.4.7)');
+  assert.ok(!/user-scalable=no|maximum-scale=1/.test(r.body), 'zoom is never blocked');
+  assert.ok(!/<[^>]+\bonclick=/.test(r.body), 'every control is a real button — no click handlers on non-controls');
+  // 1.4.3 contrast: body copy #B4BBC5 on #0B0D0F ≈ 9.9:1, small #9BA3AD ≈ 7.2:1, primary button #fff on #4F6A85 ≈ 5.6:1 (#6B7F9E measured 4.07:1 and was replaced)
+  for (const [fg, bg, min] of [['B4BBC5', '0B0D0F', 4.5], ['9BA3AD', '0B0D0F', 4.5], ['FFFFFF', '4F6A85', 4.5], ['EDEFF2', '131519', 4.5]]) {
+    const L = (hex) => { const c = [0, 2, 4].map((i) => parseInt(hex.slice(i, i + 2), 16) / 255).map((v) => (v <= 0.03928 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4)); return 0.2126 * c[0] + 0.7152 * c[1] + 0.0722 * c[2]; };
+    const ratio = (L(fg) + 0.05) / (L(bg) + 0.05);
+    assert.ok(ratio >= min, `${fg} on ${bg} is ${ratio.toFixed(2)}:1, below ${min}`);
+  }
+});

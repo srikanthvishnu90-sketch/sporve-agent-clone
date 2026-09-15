@@ -19,9 +19,10 @@ const HDR = { 'Content-Type': 'text/html; charset=utf-8', 'Cache-Control': 'no-s
   'Content-Security-Policy': "default-src 'none'; style-src 'unsafe-inline'; form-action 'self'; base-uri 'none'" };
 const esc = (s: unknown) => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]!));
 const page = (title: string, body: string, status = 200) => new Response(
-  `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${esc(title)}</title>
-<style>body{margin:0;background:#0B0D0F;color:#EDEFF2;font:16px/1.5 -apple-system,system-ui,sans-serif;padding:24px}main{max-width:480px;margin:0 auto}h1{font-size:20px;margin:0 0 6px}p{color:#9BA3AD;margin:0 0 18px}
-form{display:grid;gap:10px}button{height:52px;border:1px solid #2A3037;border-radius:10px;background:#131519;color:#EDEFF2;font:inherit;font-size:17px}button.pri{background:#6B7F9E;border-color:#6B7F9E;color:#fff}small{color:#6B7480}</style></head><body><main>${body}</main></body></html>`,
+  `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="color-scheme" content="dark"><title>${esc(title)}</title>
+<style>body{margin:0;background:#0B0D0F;color:#EDEFF2;font:16px/1.5 -apple-system,system-ui,sans-serif;padding:24px}main{max-width:480px;margin:0 auto}h1{font-size:20px;margin:0 0 6px}p{color:#B4BBC5;margin:0 0 18px}
+form{display:grid;gap:10px}button{height:52px;border:1px solid #2A3037;border-radius:10px;background:#131519;color:#EDEFF2;font:inherit;font-size:17px;cursor:pointer}button.pri{background:#4F6A85;border-color:#4F6A85;color:#fff}small{color:#9BA3AD}
+button:focus-visible{outline:3px solid #9DB0CB;outline-offset:3px}@media(prefers-reduced-motion:no-preference){button{transition:background .12s}}</style></head><body><main id="main">${body}</main></body></html>`,
   { status, headers: HDR });
 const notFound = () => page('Link not found', '<h1>This link is no longer valid.</h1><p>It may have expired or already been used. Ask your club for a new one.</p>', 404);
 
@@ -45,8 +46,8 @@ Deno.serve(async (req) => {
     const g = (data ?? [])[0] as Record<string, unknown> | undefined;
     if (!g) return notFound();
     if (g.scope !== 'rsvp') return page('Not yet', '<h1>This link is for something we do not handle yet.</h1>', 200);
-    return page('Are you coming?', `<h1>${esc(g.subject_label)}</h1><p>${esc(when(g.subject_at, g.subject_tz))}${g.guardian_first_name ? ` · Hi ${esc(g.guardian_first_name)}` : ''}</p>
-<form method="post" action="/functions/v1/guardian-link"><input type="hidden" name="t" value="${esc(t)}">
+    return page('Are you coming?', `<h1 id="q">${esc(g.subject_label)}</h1><p>${esc(when(g.subject_at, g.subject_tz))}${g.guardian_first_name ? ` · Hi ${esc(g.guardian_first_name)}` : ''}</p>
+<form method="post" action="/functions/v1/guardian-link" aria-labelledby="q"><input type="hidden" name="t" value="${esc(t)}">
 <button class="pri" name="response" value="yes">Yes, we'll be there</button>
 <button name="response" value="no">No, can't make it</button>
 <button name="response" value="maybe">Not sure yet</button></form><p><small>One tap. No app, no account.</small></p>`);
