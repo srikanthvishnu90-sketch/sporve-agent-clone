@@ -25,7 +25,7 @@
 <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16.png">
 <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
 <link rel="manifest" href="/site.webmanifest">
-<meta name="sporve-build" content="ec630fc3456a3454">
+<meta name="sporve-build" content="ff47d234b80e57e7">
 </head>
 <body>
 <noscript><h1>Sporv — Every sport. One app.</h1><p>Sporv connects families and athletes with coaches, trainers, camps, and teams across more than 20 sports. Please enable JavaScript to use the app.</p></noscript>
@@ -3675,6 +3675,58 @@ h2.ctr{margin-bottom:10px}
 .gsbar i{display:block;height:100%;background:var(--slate);border-radius:999px}
 .gsbar.big{height:8px}
 .dash{width:100%;max-width:none;grid-template-columns:232px minmax(0,1fr);gap:0;padding:0;align-items:start}
+/* Spec 11.2 — the AGENT RAIL. The canvas (centre) is the org's real state; the
+   rail is what the agent noticed, drafted, and is waiting on. It sits IN the
+   grid, not fixed — owner 2026-08-27: the coach dashboard must not follow the
+   scroll. Nothing in it sends or mutates on its own: every button is the same
+   draft-first handler the Queue page uses (one click per action).
+   LAYOUT: the AI dock (constitution) already owns the right/bottom edge and can
+   take 576px of a 1440 screen, so the rail's column is keyed on the width the
+   grid ACTUALLY has (a container query), not the viewport: ≥1000px of grid →
+   third column; narrower → a collapsible strip ABOVE the canvas. (The spec's
+   bottom sheet would sit under the dock's pill and be unreachable — measured.)
+   `:has()` keys everything off the rail's presence so no other markup changes. */
+#app.coachdark{container-type:inline-size}   /* the query below must read an ANCESTOR of .dash */
+#app.coachdark .dash:has(> .agentrail){grid-template-columns:232px minmax(0,1fr) 300px}
+#app.coachdark .agentrail{border-left:1px solid var(--rule);padding:18px 14px 24px;background:var(--raise);min-width:0}
+.agentrail .arl-head b{font-size:var(--text-base);font-weight:600}
+.agentrail .arl-head .arl-meta{margin-top:4px}
+.agentrail .arl-sec{margin-top:16px}
+.agentrail .arl-card{border:1px solid var(--rule);border-radius:8px;padding:10px 11px;margin-top:8px;background:var(--paper)}
+.agentrail .arl-title{font-size:var(--text-base);font-weight:600;overflow-wrap:anywhere}
+.agentrail .arl-meta{font-size:var(--text-sm);color:var(--faint);margin-top:2px}
+.agentrail .arl-why{font-size:var(--text-sm);color:var(--muted);margin-top:4px}
+.agentrail .arl-acts{display:flex;gap:6px;margin-top:8px;flex-wrap:wrap}
+.agentrail .arl-empty{font-size:var(--text-sm);color:var(--muted);margin-top:6px}
+.agentrail .arl-toggle{display:none}
+@container (max-width:999px){
+  #app.coachdark .dash:has(> .agentrail){grid-template-columns:232px minmax(0,1fr)}
+  #app.coachdark .dash:has(> .agentrail)>.rail{grid-column:1;grid-row:1/span 2}
+  #app.coachdark .dash:has(> .agentrail)>.agentrail{grid-column:2;grid-row:1;border-left:0;border-bottom:1px solid var(--rule);padding:0 14px}
+  #app.coachdark .dash:has(> .agentrail)>div:nth-child(2){grid-column:2;grid-row:2}
+  /* An OPEN strip must not eat the canvas: it is a peek, not a takeover. Cap it
+     and scroll inside, so the grid's 1fr row keeps real height underneath.
+     (Without the cap the open strip sized its row to the full content height and
+     collapsed the canvas to 0px — measured at 1440 and 390.) */
+  #app.coachdark .agentrail.open{padding-bottom:16px;max-height:min(50vh,420px);overflow:auto;overscroll-behavior:contain}
+  #app.coachdark .agentrail:not(.open) .arl-head,#app.coachdark .agentrail:not(.open) .arl-sec,
+  #app.coachdark .agentrail:not(.open) [data-ctab]{display:none}
+  .agentrail .arl-toggle{display:flex;width:100%;height:48px;align-items:center;justify-content:space-between;
+    background:none;border:0;color:inherit;font:inherit;font-size:var(--text-base);font-weight:600;cursor:pointer;padding:0}
+}
+@media (max-width:900px){
+  /* one column: let auto-placement flow nav → strip → canvas via `order`.
+     (Explicit grid-row placement here sized the strip's row to 0px in Chromium —
+     measured — while the same placement is fine in the two-column strip mode.) */
+  /* the existing one-column template is `auto 1fr` in a definite-height grid;
+     without a third explicit row the strip takes the 1fr row and the canvas
+     spills into an implicit one, collapsing 1fr to 0px (measured). */
+  #app.coachdark .dash:has(> .agentrail){grid-template-columns:1fr;grid-template-rows:auto auto 1fr;grid-auto-flow:row}
+  #app.coachdark .dash:has(> .agentrail)>.rail{grid-column:1;grid-row:auto;order:0}
+  #app.coachdark .dash:has(> .agentrail)>.agentrail{grid-column:1;grid-row:auto;order:1}
+  #app.coachdark .dash:has(> .agentrail)>div:nth-child(2){grid-column:1;grid-row:auto;order:2}
+  #app.coachdark .agentrail.open{max-height:min(55vh,440px)}
+}
 .dash>.rail{
   /* Owner 2026-08-27: the coach dashboard must NOT follow the scroll. The rail
      was position:fixed (pinned, tracking every scroll); now it sits in the grid
@@ -11105,6 +11157,7 @@ function coachHTML(){
       <span><b>Preview.</b> This is a sample coach workspace with example data — sign in to set up your own.</span>
       <span class="previewbar-acts"><button class="navlink" data-signin="1">Sign in</button><button class="btn ghost sm" data-getpro="1">Get Pro</button></span>
     </div>`:""}${coachBody(t)}</div>
+    <aside class="agentrail${S.railOpen?" open":""}" aria-label="Agent">${agentRail(t)}</aside>
   </main>`;
 }
 
@@ -12714,6 +12767,44 @@ function coachQueuePage(){
     </div>
     ${approved.length?`<div style="margin-top:18px"><div class="sec-head" style="margin:0"><h3>Approved · ${approved.length}</h3></div>${approved.map(card).join("")}</div>`:""}
     ${done.length?`<div style="margin-top:18px"><div class="sec-head" style="margin:0"><h3>Done · ${done.length}</h3></div>${done.map(card).join("")}</div>`:""}`;
+}
+/* Spec 11.2 — the agent rail: three stacked sections beside the canvas.
+   Noticed = open agent_findings. Drafted = obligations still in draft (the
+   agent's proposals; approving one queues ONE outbound message behind
+   trg_outbound_freeze). Waiting on you = items blocked on a human decision,
+   each with its blocking reason. Reuses the Queue page's data and handlers —
+   one source of truth, two views. On the Queue tab itself the rail collapses
+   to a count so the canvas is not duplicated beside itself. */
+function agentRail(t){
+  const q=obligationQueue();
+  const findings=S.findings||[];
+  const drafts=q.filter(o=>o.status==="draft");
+  const hold=S.obligHold||[];
+  const waiting=[]
+    .concat(q.filter(o=>o.status==="approved").map(o=>({o,why:"Approved — mark it done once it's handled."})))
+    .concat(drafts.filter(o=>hold.includes(o.id)).map(o=>({o,why:"Sending in a moment — undo is in the queue."})))
+    .concat(drafts.filter(o=>{const a=obligAttempt(o);return a!=null&&a>capMax();}).map(o=>({o,why:"Tone is above your cap — read it before approving."})));
+  const liveOrg=!!(S.obligLive&&S.coachProvider&&S.coachProvider.id);
+  const n=findings.length+drafts.length+waiting.length;
+  const toggle=`<button class="arl-toggle" data-railtoggle="1" aria-expanded="${!!S.railOpen}">Agent <span class="num">${n}</span></button>`;
+  if(t==="queue") return `${toggle}<div class="arl-head"><b>You're in the queue</b>
+    <p class="arl-meta">${n?`${n} item${n===1?"":"s"} across noticed, drafted and waiting on you.`:"Nothing waiting."}</p></div>`;
+  const card=(o,why)=>`<div class="arl-card">
+    <div class="arl-title">${esc(o.guardianName||o.title)}</div>
+    <div class="arl-meta">${esc((OBLIG_META[o.kind]||OBLIG_META.message).label)}${o.amountCents!=null?` · <span class="num">$${(o.amountCents/100).toFixed(o.amountCents%100?2:0)}</span>`:""}</div>
+    ${why?`<div class="arl-why">${esc(why)}</div>`:""}
+    <div class="arl-acts">${o.status==="draft"?`<button class="btn sm" data-oblig-approve="${esc(o.id)}">Approve</button><button class="btn ghost sm" data-oblig-dismiss="${esc(o.id)}">Dismiss</button>`
+      :o.status==="approved"?`<button class="btn sm" data-oblig-done="${esc(o.id)}">Mark done</button>`:""}</div></div>`;
+  const sec=(label,count,body,empty)=>`<div class="arl-sec"><div class="railgroup">${label}${count?` · <span class="num">${count}</span>`:""}</div>${body||`<p class="arl-empty">${empty}</p>`}</div>`;
+  return `${toggle}<div class="arl-head"><b>Agent</b>
+    <p class="arl-meta">Nothing here sends, charges or changes anything on its own — one click per action.${liveOrg?"":` <span class="pill gold">Sample</span>`}</p></div>
+    ${sec("Noticed",findings.length,findings.slice(0,6).map(f=>`<div class="arl-card"><div class="arl-title">${esc(f.title)}</div>
+      <div class="arl-meta">${esc(f.kind)} · ${esc(f.severity)}</div>
+      <div class="arl-acts"><button class="btn ghost sm" data-find-dismiss="${esc(f.id)}">Dismiss</button></div></div>`).join(""),
+      S.findLoaded?"Nothing flagged.":"Sign in to see what the agent noticed.")}
+    ${sec("Drafted",drafts.length,drafts.slice(0,6).map(o=>card(o)).join(""),"No drafts waiting.")}
+    ${sec("Waiting on you",waiting.length,waiting.slice(0,6).map(w=>card(w.o,w.why)).join(""),"Nothing is blocked on you.")}
+    ${n>6?`<button class="btn ghost sm" data-ctab="queue" style="margin-top:14px;width:100%">Open the queue</button>`:""}`;
 }
 function coachBody(t){
   const mine=coachListings();
@@ -16452,6 +16543,7 @@ document.querySelectorAll('.sig-ai-coach').forEach(sigAiCoachWire);
      command bar renders only inside dashboardHTML(), so an unconfirmed AI
      broadcast left behind on tab change has no UI to approve or cancel it and
      would ambush the coach on their next visit to the dashboard. */
+  $("[data-railtoggle]").forEach(b=>b.onclick=()=>{S.railOpen=!S.railOpen;render();});
   $("[data-ctab]").forEach(b=>b.onclick=()=>{
     S.cmdPending=null;S.cmdError="";
     setCoachTab(b.dataset.ctab);window.scrollTo(0,0);render();});
@@ -17380,7 +17472,7 @@ document.querySelectorAll('.sig-ai-coach').forEach(sigAiCoachWire);
   /* Review-queue (obligations) handlers — draft -> approved -> done, undoable.
      Demo store S.obligations; real drafts arrive from the ingest/agent backend.
      Approving/finishing sends or charges nothing here — it advances the row. */
-  if(S.portal==="coach"&&S.coachTab==="queue"){
+  if(S.portal==="coach"){   /* spec 11.2: the rail is on every coach tab */
     loadLiveObligations();
     loadLiveFindings();
     /* the queue is current when you look at it: refresh on focus and on a 20s
@@ -17388,11 +17480,11 @@ document.querySelectorAll('.sig-ai-coach').forEach(sigAiCoachWire);
        stale row approved twice is a no-op, never a double-send. */
     if(!S._queuePoll){
       S._queuePoll=setInterval(()=>{
-        if(S.portal==="coach"&&S.coachTab==="queue"&&!document.hidden){
+        if(S.portal==="coach"&&!document.hidden){
           S.obligLive=false;loadLiveObligations();
         }},20000);
       window.addEventListener("focus",()=>{
-        if(S.portal==="coach"&&S.coachTab==="queue"){S.obligLive=false;loadLiveObligations();}});
+        if(S.portal==="coach"){S.obligLive=false;loadLiveObligations();}});
     }
   }
   const obligBy=id=>obligationQueue().find(o=>o.id===id);
