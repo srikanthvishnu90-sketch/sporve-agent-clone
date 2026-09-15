@@ -25,7 +25,7 @@
 <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16.png">
 <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
 <link rel="manifest" href="/site.webmanifest">
-<meta name="sporve-build" content="ec630fc3456a3454">
+<meta name="sporve-build" content="6d307c83799d409a">
 </head>
 <body>
 <noscript><h1>Sporv — Every sport. One app.</h1><p>Sporv connects families and athletes with coaches, trainers, camps, and teams across more than 20 sports. Please enable JavaScript to use the app.</p></noscript>
@@ -11612,21 +11612,21 @@ function importDryRun(w){
     const get=k=>map[k]>=0?String(r[map[k]]||"").trim():"";
     const name=map.name>=0?get("name"):[get("first"),get("last")].filter(Boolean).join(" ");
     const email=get("email"), dobRaw=get("dob"), jersey=get("jersey")||"—", ref=get("ref");
-    if(!norm(name)){out.rejected.push({row:idx+2,name:"(blank)",why:"missing athlete name"});return;}
+    if(!norm(name)){out.rejected.push({row:idx+2,raw:r,name:"(blank)",why:"missing athlete name"});return;}
     let dob=null;
     if(map.dob>=0&&dobRaw){ dob=parseDob(dobRaw,fmt);
-      if(!dob){out.rejected.push({row:idx+2,name,why:"unreadable date of birth “"+dobRaw+"”"});return;} }
-    if(map.email>=0&&email&&!rx.test(email)){out.rejected.push({row:idx+2,name,why:"invalid guardian email “"+email+"”"});return;}
+      if(!dob){out.rejected.push({row:idx+2,raw:r,name,why:"unreadable date of birth “"+dobRaw+"”"});return;} }
+    if(map.email>=0&&email&&!rx.test(email)){out.rejected.push({row:idx+2,raw:r,name,why:"invalid guardian email “"+email+"”"});return;}
     const key=norm(name)+"|"+(dob||"");
-    if(seen.has(key)){out.matched.push({name,why:"duplicate row in this file"});return;}
+    if(seen.has(key)){out.matched.push({row:idx+2,raw:r,name,why:"duplicate row in this file"});return;}
     seen.add(key);
     if(ref&&existing.some(e=>e.externalRef&&e.externalRef===ref)){
-      out.matched.push({name,why:"already imported (external ID "+ref+")"});return;}
+      out.matched.push({row:idx+2,raw:r,name,why:"already imported (external ID "+ref+")"});return;}
     const sameName=existing.filter(e=>norm(e.name)===norm(name));
     if(sameName.length){
-      if(dob&&sameName.some(e=>e.dob===dob)){out.matched.push({name,why:"already on the roster (name + DOB)"});return;}
-      out.review.push({name,why:dob?"same name, different or missing DOB on roster":"same name, no DOB to compare — never auto-merged"});return;}
-    out.create.push({name,jersey,dob,email,externalRef:ref});
+      if(dob&&sameName.some(e=>e.dob===dob)){out.matched.push({row:idx+2,raw:r,name,why:"already on the roster (name + DOB)"});return;}
+      out.review.push({row:idx+2,raw:r,name,why:dob?"same name, different or missing DOB on roster":"same name, no DOB to compare — never auto-merged"});return;}
+    out.create.push({row:idx+2,raw:r,name,jersey,dob,email,externalRef:ref});
   });
   return out;
 }
@@ -17012,6 +17012,21 @@ document.querySelectorAll('.sig-ai-coach').forEach(sigAiCoachWire);
           toast("This exact file was already imported — nothing was created twice.");return;}
         const batchId=b[0].id; w.serverBatchId=batchId; w.serverBatchAt=Date.now();
         S.importBatches=(S.importBatches||[]).map(x=>x.id===batch?{...x,serverId:batchId,serverAt:Date.now()}:x);
+        /* SPEC 17.3 (2026-09-15): every parsed row is filed as an import_row
+           with what became of it — BEFORE any member is written. A rejected
+           row used to live for one render; now "41 rows unusable" is a query
+           (import_batch_stats) the director can re-open tomorrow. The hash is
+           per source row, so a re-run cannot file the same row twice. */
+        const rowHash=async cells=>{const d=await crypto.subtle.digest("SHA-256",new TextEncoder().encode(JSON.stringify(cells)));
+          return Array.from(new Uint8Array(d)).map(x=>x.toString(16).padStart(2,"0")).join("");};
+        const file=async(list,state)=>{const rows=[];for(const it of list){
+            rows.push({batch_id:batchId,provider_id:pv.id,row_no:it.row||null,source_row_hash:await rowHash(it.raw||[it.name]),
+              raw:{cells:it.raw||[],name:it.name||null},target:"member",state,problem:it.why||null});}
+          return rows;};
+        const filed=[].concat(await file(w.dry.create,"mapped"),await file(w.dry.rejected,"quarantined"),
+          await file(w.dry.matched,"skipped"),await file(w.dry.review,"conflict"));
+        if(filed.length) await window.SporveAPI.from("import_row","",{method:"POST",
+          headers:{Prefer:"resolution=ignore-duplicates"},body:filed}).catch(()=>{});
         const members=[];
         for(const c of created){
           const parts=String(c.name||"").trim().split(/\s+/);
@@ -17024,6 +17039,13 @@ document.querySelectorAll('.sig-ai-coach').forEach(sigAiCoachWire);
         const mrows=await window.SporveAPI.from("team_athletes","",{method:"POST",
           headers:{Prefer:"return=representation,resolution=ignore-duplicates"},body:members})
           .catch(()=>[]);
+        /* the created rows are now imported, each pointing at its member row;
+           the batch carries the counts the director saw, computed server-side */
+        for(let i=0;i<(mrows||[]).length;i++){const c=created[i], src=w.dry.create[i]; if(!c||!src||!mrows[i]) continue;
+          await window.SporveAPI.from("import_row","batch_id=eq."+batchId+"&source_row_hash=eq."+encodeURIComponent(await rowHash(src.raw||[src.name])),
+            {method:"PATCH",body:{state:"imported",resolved_id:mrows[i].id}}).catch(()=>{});}
+        const stats=await window.SporveAPI.rpc("import_batch_stats",{p_batch:batchId}).catch(()=>null);
+        if(stats) await window.SporveAPI.from("import_batches","id=eq."+batchId,{method:"PATCH",body:{stats}}).catch(()=>{});
         /* guardians: one per distinct email, payer link per member */
         const byEmail={};
         (mrows||[]).forEach((m,i)=>{const em=(created[i]&&created[i].contact||"").toLowerCase();
@@ -17048,7 +17070,7 @@ document.querySelectorAll('.sig-ai-coach').forEach(sigAiCoachWire);
     }
     w.step="done"; w.committed={batch,created};
     render();
-    toast(created.length+" athlete"+(created.length===1?"":"s")+" imported as shadow records — nothing was sent to any family.");
+    toast(created.length+" athlete"+(created.length===1?"":"s")+" imported as shadow records"+(w.dry.rejected.length?", "+w.dry.rejected.length+" row"+(w.dry.rejected.length===1?"":"s")+" quarantined for review":"")+" — nothing was sent to any family.");
   });
   $("[data-imp-undo]").forEach(b=>b.onclick=()=>{
     const id=b.dataset.impUndo; if(!id) return;
