@@ -1380,7 +1380,7 @@
       const req = {
         id: "split_" + Date.now(),
         bookingId: b.id, email, token,
-        shareUrl: `https://sporve.app/split/${token}`,
+        shareUrl: `https://sporv.ai/split/${token}`,   /* placeholder path on the real domain; sporve.app was never ours */
         totalCents: ch.total, requesterCents: mine, guardianCents: half,
         status: "pending", createdAt: TODAY, expiresAt: addDays(SPLIT_VALID_DAYS),
       };

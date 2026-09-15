@@ -1,0 +1,23 @@
+name: mail-dns
+# External-dependency item 6: the mail-authentication records for sporv.ai are
+# owner-edited at the registrar and have already drifted once (a document said
+# p=quarantine; DNS said p=none). This re-reads them weekly and fails — which
+# emails the repo owner — until DMARC is enforcing and every record we send
+# with is present. It never edits anything.
+on:
+  schedule:
+    - cron: "0 9 * * 1"
+  workflow_dispatch:
+
+permissions: {}
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: node tools/check-mail-dns.mjs --require quarantine
