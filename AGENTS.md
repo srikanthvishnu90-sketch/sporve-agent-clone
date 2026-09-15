@@ -141,7 +141,9 @@ required review.
 - `docs/decisions/2026-09-15-decisions.md` is binding. Do not re-litigate.
 - Fable migration block: 20260915_001050-001099.
 - Codex migration block: 20260915_001100-001149. Never use another range.
-- Never edit: GATES.md, docs/specs/00-MASTER.md, docs/specs/README.md.
+- Never edit GATES.md, docs/specs/00-MASTER.md, or docs/specs/README.md as a
+  side effect of implementation work. Edit them only when the human names the
+  file and the change in the task itself.
 - Never touch files outside the assigned spec's surface. If you believe you
   must, stop and report instead.
 - Every PR produces the migrations AND every test file named in the spec's DoD.
