@@ -1,14 +1,14 @@
 // ============================================================================
 // generate-embedding  (Supabase Edge Function)
 // ============================================================================
-// One internal function: embedText(text) -> number[1536]. The provider is chosen
-// by the EMBEDDING_PROVIDER env var (default "openai"), so switching providers
-// later is a config change, not a code change. Keys come from secrets — never
+// One internal function: embedText(text) -> number[1536]. OpenAI only —
+// decision D4 (2026-09-15). The earlier EMBEDDING_PROVIDER switch and its
+// stubbed second-provider path were dead config (checklist item 8):
+// a second provider that threw "not implemented" bought nothing but a secret
+// name to rotate and a branch to audit. The key comes from a secret — never
 // hardcoded, never shipped to the client.
 //
-//   EMBEDDING_PROVIDER = "openai" (default) | "voyage"
-//   OPENAI_API_KEY     = sk-...        (required for the openai path)
-//   VOYAGE_API_KEY     = pa-...        (for the voyage path — TODO, stubbed)
+//   OPENAI_API_KEY     = sk-...        (required)
 //
 // Auth: callable by a signed-in user (JWT validated) OR internally with the
 // service-role key (used by backfill-embeddings). No anon access.
@@ -33,14 +33,13 @@ const json = (body: unknown, status = 200) =>
   });
 
 const EMBED_DIM = 1536;
-const EMBEDDING_PROVIDER = (Deno.env.get("EMBEDDING_PROVIDER") ?? "openai").toLowerCase();
+const EMBEDDING_PROVIDER = "openai";
 const OPENAI_API_KEY = Deno.env.get("OPENAI_API_KEY");
-const VOYAGE_API_KEY = Deno.env.get("VOYAGE_API_KEY");
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const ANON_KEY = Deno.env.get("SUPABASE_ANON_KEY")!;
 const SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
 
-// ── Provider implementations (same interface: string -> number[1536]) ────────
+// ── The provider (string -> number[1536]) ────────────────────────────────────
 
 async function embedTextOpenAI(text: string): Promise<number[]> {
   if (!OPENAI_API_KEY) throw new Error("OPENAI_API_KEY is not set");
@@ -63,27 +62,11 @@ async function embedTextOpenAI(text: string): Promise<number[]> {
   return vec;
 }
 
-// TODO(voyage): implement Voyage AI embeddings behind this same signature so the
-// provider becomes a config flip (EMBEDDING_PROVIDER=voyage). Sketch:
-//   POST https://api.voyageai.com/v1/embeddings
-//   headers: Authorization: Bearer ${VOYAGE_API_KEY}
-//   body: { model: "<a 1536-d model>", input: [text], input_type: "document" }
-//   -> data[0].embedding  (must be length 1536 to match the column / index)
-// Keep the 1536-d assertion below so a dimension mismatch fails loudly.
-async function embedTextVoyage(_text: string): Promise<number[]> {
-  void VOYAGE_API_KEY;
-  throw new Error("EMBEDDING_PROVIDER=voyage is not implemented yet (TODO). Use openai.");
-}
-
 /** The single internal embedding entry point. Returns a 1536-length vector. */
 async function embedText(text: string): Promise<number[]> {
   const t = (text ?? "").toString().trim();
   if (!t) throw new Error("embedText: empty text");
-  switch (EMBEDDING_PROVIDER) {
-    case "openai": return embedTextOpenAI(t);
-    case "voyage": return embedTextVoyage(t);
-    default: throw new Error(`Unknown EMBEDDING_PROVIDER: "${EMBEDDING_PROVIDER}"`);
-  }
+  return embedTextOpenAI(t);
 }
 
 Deno.serve(async (req) => {

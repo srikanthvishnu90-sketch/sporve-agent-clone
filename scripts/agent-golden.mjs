@@ -10,8 +10,15 @@
 // Exit 0 only when every assertion passes. Re-runnable: rows are get-or-create.
 const SB = process.env.SUPABASE_URL || "https://tseszaprvtvqrkfpditu.supabase.co";
 const ANON = process.env.SUPABASE_ANON_KEY || "sb_publishable_CLawpS61QZDONSyy8ZdhTQ_rjCBLYBW";
-const EMAIL = process.env.GOLDEN_EMAIL || "sporve123+goldeneval@gmail.com";
-const PW = process.env.GOLDEN_PW || "GoldenSetEval-2026-Sporv!";
+// The eval account's credentials come from the environment only. A literal
+// password in a public repo is a credential, whatever the account is for
+// (external-dependency checklist item 8, 2026-09-15). Rotate the old one.
+const EMAIL = process.env.GOLDEN_EMAIL;
+const PW = process.env.GOLDEN_PW;
+if (!EMAIL || !PW) {
+  console.error("agent-golden: set GOLDEN_EMAIL and GOLDEN_PW in the environment (never in the repo).");
+  process.exit(2);
+}
 const day = n => new Date(Date.now() + n * 864e5).toISOString().slice(0, 10);
 
 let token = null;
