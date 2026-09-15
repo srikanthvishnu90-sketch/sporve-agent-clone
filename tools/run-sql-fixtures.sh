@@ -19,7 +19,11 @@ cd "$(git rev-parse --show-toplevel)"
 FILTER="${1:-}"
 
 PGDATA="${TMPDIR:-/tmp}/sporv-fixture-pg.$$"
-SOCK="$HOME/.sporv-pgsock"          # short path: the socket name must fit 103 bytes
+# Short path (the socket name must fit 103 bytes) AND unique per process: two
+# fixtures running at once — which is exactly what `node --test` does when two
+# spec files each shell out to this script — would otherwise fight over one
+# socket directory and one of them would fail to connect.
+SOCK="$HOME/.sporv-pgsock.$$"
 trap 'pg_ctl -D "$PGDATA" stop -m fast >/dev/null 2>&1; rm -rf "$PGDATA" "$SOCK"' EXIT
 
 command -v initdb >/dev/null || { echo "initdb not found — brew install postgresql@17"; exit 2; }
