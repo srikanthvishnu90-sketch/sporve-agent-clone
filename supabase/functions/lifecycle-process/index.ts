@@ -24,7 +24,6 @@
 // ============================================================================
 
 import { createClient } from "npm:@supabase/supabase-js@2";
-import { deliverPush } from "../_shared/push.ts";
 import { buildCoachVoiceProfile } from "../_shared/coach_voice.ts";
 import { withHttpDeadline, readBoundedJson } from "../_shared/http.ts";
 import {
@@ -385,7 +384,6 @@ Deno.serve(async (req) => {
             }).eq("id", er.id);
             emailSummary.emailFailed++;
           } else {
-            await deliverPush(admin, claimedUser, c.subject || "Message from your club", c.body.slice(0, 280));
             await admin.from("outbound_messages").update({
               status: "sent", sent_at: new Date().toISOString(), provider: "in-app", last_error: null,
             }).eq("id", er.id).is("sent_at", null);

@@ -18,7 +18,6 @@
 // ============================================================================
 
 import { createClient } from "npm:@supabase/supabase-js@2";
-import { deliverPush } from "../_shared/push.ts";
 
 const cors = {
   "Access-Control-Allow-Origin": "*",
@@ -108,10 +107,6 @@ Deno.serve(async (req) => {
     const { error: notifErr } = await admin.from("notifications").insert(rows);
     if (notifErr) return json({ error: `Could not deliver: ${notifErr.message}` }, 500);
 
-    // Fan out a push to each guardian (best-effort; the inbox row already sent).
-    for (const gid of guardianIds) {
-      await deliverPush(admin, gid, `New progress update for ${firstName}`, preview);
-    }
 
     // 2) Mark the record sent (deterministic state transition).
     const { data: updated, error: updErr } = await admin

@@ -15,7 +15,6 @@
 
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { enforceLifecycleDraft } from "../lifecycle-process/policy.ts";
-import { deliverPush } from "../_shared/push.ts";
 
 const cors = {
   "Access-Control-Allow-Origin": "*",
@@ -173,8 +172,6 @@ Deno.serve(async (req) => {
     const { error: notifErr } = await admin.from("notifications")
       .insert([{ user_id: guardianId, title, message: cleanBody.slice(0, 280) }]);
     if (notifErr) return json({ error: `Marked sent but delivery failed: ${notifErr.message}` }, 500);
-
-    await deliverPush(admin, guardianId, title, cleanBody.slice(0, 280));
 
     return json({ ok: true, status: "sent", sent_at: sentAt, removed });
   } catch (e) {

@@ -69,7 +69,6 @@ async function invoke(options={}) {
     buildCoachVoiceProfile:options.voiceProfile ?? (async()=>[]),
     readBoundedJson,
     withHttpDeadline:(work,ms)=>{deadlines.push(ms);return deadline(work,options.deadlineMs ?? Math.min(ms,80));},
-    deliverPush:async()=>{external.push({kind:'push'});},
     fetch:async(url,init)=>{
       if(url==='https://fixture.invalid/functions/v1/ai-gateway') {
         models.push(JSON.parse(init.body));
@@ -173,7 +172,9 @@ test('claimed guardian keeps the in-app path when email is unavailable',async()=
   const r=await invoke({noEmailKey:true,override:c=>c.table==='guardians'
     ? {data:{...guardian,user_id:'claimed-user',email:null,email_status:'unsubscribed'},error:null}:undefined});
   assert.equal(r.status,200);assert.equal(r.body.inApp,1);
-  assert.deepEqual(r.external.map(e=>e.kind),['notification','push']);
+  // D1 (2026-09-15): the Flutter/FCM push surface is retired — an in-app
+  // notification is the whole delivery; nothing else fans out.
+  assert.deepEqual(r.external.map(e=>e.kind),['notification']);
 });
 test('existing direct-email approved drafts still pass through suppression checks',async()=>{
   const r=await invoke({rows:[{...message,content:{body:'Fixture message',to_email:'direct@example.invalid'}}]});
