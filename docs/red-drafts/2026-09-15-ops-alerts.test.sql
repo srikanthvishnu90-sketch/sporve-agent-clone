@@ -102,4 +102,10 @@ begin
   end if;
   if not has_function_privilege('service_role', 'public.ops_alerts()', 'execute') then raise exception 'FAIL H: service_role cannot call ops_alerts()'; end if;
   raise notice 'PASS H: ops_alerts() is service_role only';
+
+  -- I ── the function inventory lists this schema's own functions, not extension ones, and is service_role only
+  if not exists (select 1 from public.ops_function_inventory() f where f.name = 'ops_alerts') then raise exception 'FAIL I: inventory misses ops_alerts'; end if;
+  if exists (select 1 from public.ops_function_inventory() f where f.name in ('gen_random_uuid','digest','crypt')) then raise exception 'FAIL I: inventory lists extension functions'; end if;
+  if has_function_privilege('authenticated', 'public.ops_function_inventory()', 'execute') then raise exception 'FAIL I: inventory callable by clients'; end if;
+  raise notice 'PASS I: ops_function_inventory() lists own functions only, service_role only';
 end $$;

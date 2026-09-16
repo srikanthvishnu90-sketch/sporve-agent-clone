@@ -90,3 +90,25 @@ revoke all on function public.ops_alerts() from public, anon, authenticated;
 grant execute on function public.ops_alerts() to service_role;
 comment on function public.ops_alerts() is
   'Spec 18.3 alert feed: counts + static detail only. Page on critical, digest high. Read by the ops-health edge function.';
+
+-- ── 7. the function inventory, so CI can catch repo/prod drift ─────────────
+-- #414 was the first occurrence of the repo/prod drift class; a 2026-09-15
+-- report of three more (generate_treasurer_summary, generate_idle_capacity_
+-- offers, enqueue_rebook_nudges) turned out to be a case-sensitive grep miss —
+-- all three are in migrations. The owner ruled the class needs a guard, not
+-- another fix: tools/check-migration-drift.mjs compares this list with
+-- every `create function public.X(` in supabase/migrations and fails on any
+-- live function the repo does not hold. Names and argument types only —
+-- extension-owned functions excluded. service_role only, read by ops-health.
+create or replace function public.ops_function_inventory()
+returns table(name text, args text)
+language sql stable security definer set search_path to '' as $$
+  select p.proname::text, pg_get_function_identity_arguments(p.oid)
+    from pg_proc p
+    join pg_namespace n on n.oid = p.pronamespace
+    left join pg_depend d on d.objid = p.oid and d.deptype = 'e'
+   where n.nspname = 'public' and d.objid is null
+   order by 1, 2
+$$;
+revoke all on function public.ops_function_inventory() from public, anon, authenticated;
+grant execute on function public.ops_function_inventory() to service_role;

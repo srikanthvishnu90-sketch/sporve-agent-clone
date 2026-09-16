@@ -1,0 +1,28 @@
+name: migration-drift
+# Every production function must exist in a migration. Weekly, and on demand.
+# Reads the live inventory through ops-health (token only — no database
+# credential in CI) and compares it with supabase/migrations. Fails on any
+# live function the repo does not hold. No-op with a notice until
+# OPS_HEALTH_TOKEN is set.
+on:
+  schedule:
+    - cron: "30 9 * * 1"
+  workflow_dispatch:
+
+permissions: {}
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - env:
+          OPS_HEALTH_TOKEN: ${{ secrets.OPS_HEALTH_TOKEN }}
+          OPS_HEALTH_URL: https://tseszaprvtvqrkfpditu.supabase.co/functions/v1/ops-health
+        run: |
+          if [ -z "$OPS_HEALTH_TOKEN" ]; then echo "::notice::OPS_HEALTH_TOKEN not set — migration-drift is not armed"; exit 0; fi
+          node tools/check-migration-drift.mjs

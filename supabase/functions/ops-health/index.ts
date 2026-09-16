@@ -1,6 +1,7 @@
 // ops-health — the alert feed for a solo founder (spec 18.3, checklist item 7).
 //
 // GET with `Authorization: Bearer <OPS_HEALTH_TOKEN>` → { ok, critical, high,
+// ... }; GET ?view=functions → { ok, functions:[{name,args}] } (drift guard).
 // checks:[{severity, check_name, failing_count, detail}] }. Counts and static
 // strings only; nothing in the response identifies a person, a booking or a
 // message. The database work is public.ops_alerts() (migration 001061),
@@ -32,6 +33,12 @@ Deno.serve(async (req) => {
   if (!sameToken(bearer, OPS_HEALTH_TOKEN)) return json({ error: "Forbidden" }, 403);
 
   const admin = createClient(SUPABASE_URL, SERVICE_ROLE_KEY, { auth: { persistSession: false } });
+  // ?view=functions — the live function inventory for tools/check-migration-drift.mjs
+  if (new URL(req.url).searchParams.get("view") === "functions") {
+    const inv = await admin.rpc("ops_function_inventory");
+    if (inv.error) return json({ ok: false, error: "inventory unavailable" }, 503);
+    return json({ ok: true, functions: (inv.data ?? []).map((r: { name: string; args: string }) => ({ name: String(r.name), args: String(r.args ?? "") })) });
+  }
   const { data, error } = await admin.rpc("ops_alerts");
   if (error) return json({ ok: false, error: "ops_alerts unavailable", critical: 1, high: 0, checks: [
     { severity: "critical", check_name: "ops_alerts_unavailable", failing_count: 1, detail: "The alert query itself failed. Treat as an outage of the monitor." }] }, 503);

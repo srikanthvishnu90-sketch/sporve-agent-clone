@@ -11,7 +11,7 @@ const TOKEN = 'ops_' + 'x'.repeat(40);
 async function run(req, { token = TOKEN, rows = [], rpcError = null } = {}) {
   let handler; const calls = [];
   vm.runInNewContext(source, { Response, Request, URL, Date, String, Number, console,
-    createClient: () => ({ rpc: async (name) => { calls.push(name); return rpcError ? { data: null, error: rpcError } : { data: rows, error: null }; } }),
+    createClient: () => ({ rpc: async (name) => { calls.push(name); if (name === 'ops_function_inventory') return { data: [{ name: 'ops_alerts', args: '' }], error: null }; return rpcError ? { data: null, error: rpcError } : { data: rows, error: null }; } }),
     Deno: { serve(fn) { handler = fn; }, env: { get: (k) => (k === 'OPS_HEALTH_TOKEN' ? token : 'fixture') } } });
   const res = await handler(req); return { status: res.status, body: JSON.parse(await res.text()), calls, h: res.headers };
 }
@@ -43,4 +43,10 @@ test('a critical alert flips ok=false and is counted; high is counted separately
 test('the monitor failing is itself a critical, not a silent 200', async () => {
   const r = await run(GET(TOKEN), { rpcError: { message: 'boom' } }); assert.equal(r.status, 503); assert.equal(r.body.ok, false); assert.equal(r.body.critical, 1);
   assert.ok(!JSON.stringify(r.body).includes('boom'), 'database error text is not echoed');
+});
+
+test('?view=functions returns the inventory and nothing else, token still required', async () => {
+  const r = await run(new Request('https://x.invalid/functions/v1/ops-health?view=functions', { headers: { Authorization: `Bearer ${TOKEN}` } }));
+  assert.equal(r.status, 200); assert.deepEqual(r.calls, ['ops_function_inventory']); assert.deepEqual(r.body.functions, [{ name: 'ops_alerts', args: '' }]);
+  const denied = await run(new Request('https://x.invalid/functions/v1/ops-health?view=functions')); assert.equal(denied.status, 403); assert.deepEqual(denied.calls, []);
 });

@@ -1,0 +1,3 @@
+{
+  "_": "Each entry is a live function with no migration, accepted with a reason. Every entry is debt. Remove it when the function is snapshotted into a migration or dropped. Empty on 2026-09-16: the three suspected (generate_treasurer_summary, generate_idle_capacity_offers, enqueue_rebook_nudges) turned out to be in migrations 20260905_001026, 20260902_001020 and the baseline — the 09-15 finding was a case-sensitive grep miss, not drift."
+}
