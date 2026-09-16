@@ -4,22 +4,14 @@ Launch item 11. The sending domain was verified on 2026-09-06 (SPF + DKIM +
 MX at Resend). It has **zero sending reputation**. Blasting a full club's dues
 reminders on day one lands them in spam and can poison the domain for weeks.
 
-## Records (owner-verified)
+## Records
 
-| record | state |
-|---|---|
-| SPF `send.sporv.ai` | verified |
-| DKIM `resend._domainkey.sporv.ai` | verified |
-| MX `send.sporv.ai` | verified |
-| DMARC `_dmarc.sporv.ai` | present: `v=DMARC1; p=quarantine; adkim=r; aspf=r; rua=mailto:dmarc_rua@onsecureserver.net` (GoDaddy default) |
-
-DMARC is already **enforcing (quarantine)** with relaxed alignment; Resend's
-DKIM signs as `sporv.ai`, so aligned mail passes. Optional improvement — edit
-the existing record at GoDaddy so reports also reach us:
-
-```
-Type: TXT   Name: _dmarc   Value: v=DMARC1; p=quarantine; adkim=r; aspf=r; rua=mailto:dmarc_rua@onsecureserver.net,mailto:sporve123@gmail.com
-```
+**Corrected 2026-09-15.** The table this section used to carry said DMARC was
+`p=quarantine`. On 2026-09-15 the live record read
+`v=DMARC1; p=none; rua=mailto:sporve123@gmail.com` — monitoring only, not
+enforcing. The authoritative, machine-checked state now lives in
+`docs/dns-records.md` (`node tools/check-mail-dns.mjs`; weekly
+`.github/workflows/mail-dns.yml`). Do not restate DNS values here.
 
 ## Volume ramp (per sending domain, all orgs combined)
 
