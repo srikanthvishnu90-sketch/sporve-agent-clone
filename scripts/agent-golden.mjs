@@ -8,7 +8,15 @@
 //   • copy rules (no exclamation marks, no demo names, guardian addressed)
 //   • owner gate: another org's id must be refused
 // Exit 0 only when every assertion passes. Re-runnable: rows are get-or-create.
-const SB = process.env.SUPABASE_URL || "https://tseszaprvtvqrkfpditu.supabase.co";
+// NO DEMO DATA IN PRODUCTION (owner rule 3, audit C3, 2026-09-16). This script
+// writes fixture people. It never defaults to a project, and it refuses the
+// production ref unless SPORV_ALLOW_PROD_SEED=1 is set on purpose.
+const SB = process.env.SUPABASE_URL || "";
+if (!SB) { console.error("Set SUPABASE_URL to a NON-production project. This script seeds fixture data."); process.exit(2); }
+if (/tseszaprvtvqrkfpditu/.test(SB) && process.env.SPORV_ALLOW_PROD_SEED !== "1") {
+  console.error("Refusing to seed the production project. The audit found the last seed org readable anonymously. Set SPORV_ALLOW_PROD_SEED=1 only with the owner's explicit say-so.");
+  process.exit(2);
+}
 const ANON = process.env.SUPABASE_ANON_KEY || "sb_publishable_CLawpS61QZDONSyy8ZdhTQ_rjCBLYBW";
 const EMAIL = process.env.GOLDEN_EMAIL || "sporve123+goldeneval@gmail.com";
 const PW = process.env.GOLDEN_PW || "GoldenSetEval-2026-Sporv!";

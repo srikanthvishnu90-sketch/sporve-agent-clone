@@ -24,7 +24,15 @@
 
 import { readFileSync } from "node:fs";
 
-const SB   = process.env.SUPABASE_URL || "https://tseszaprvtvqrkfpditu.supabase.co";
+// NO DEMO DATA IN PRODUCTION (owner rule 3, audit C3, 2026-09-16). This script
+// writes fixture people. It never defaults to a project, and it refuses the
+// production ref unless SPORV_ALLOW_PROD_SEED=1 is set on purpose.
+const SB = process.env.SUPABASE_URL || "";
+if (!SB) { console.error("Set SUPABASE_URL to a NON-production project. This script seeds fixture data."); process.exit(2); }
+if (/tseszaprvtvqrkfpditu/.test(SB) && process.env.SPORV_ALLOW_PROD_SEED !== "1") {
+  console.error("Refusing to seed the production project. The audit found the last seed org readable anonymously. Set SPORV_ALLOW_PROD_SEED=1 only with the owner's explicit say-so.");
+  process.exit(2);
+}
 // The publishable key is not a secret — it is compiled into index.html and
 // served to every visitor, and RLS is what actually protects the data. But
 // gitleaks cannot tell a publishable key from a real one by looking, and it is
