@@ -72,3 +72,8 @@ test('Approve, Mark done and Dismiss flip a live row only after the server confi
 test('the demo "Turn into drafts" parser is not offered to a live queue', () => {
   assert.match(host, /\$\("\[data-oblig-parse\]"\)\.forEach\(b=>b\.onclick=\(\)=>\{\s*if\(queueIsLive\(\)\)\{toast/);
 });
+test('Approvals drafts and the demo roster gate on the signed-in state too, not on a provider row that may not have loaded', () => {
+  assert.ok(!/coachState\(\)\.isReal\?\[\]:approvalDrafts\(\)/.test(host), 'Approvals still seeds on isReal');
+  assert.ok(!/coachState\(\)\.isReal\?\[\]:JSON\.parse\(JSON\.stringify\(SEED\.teams/.test(host), 'roster still seeds on isReal');
+  assert.match(host, /queueIsLive\(\)\?\[\]:approvalDrafts\(\)/);
+});

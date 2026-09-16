@@ -25,7 +25,7 @@
 <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16.png">
 <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
 <link rel="manifest" href="/site.webmanifest">
-<meta name="sporve-build" content="4f8ab50f04a9dfc5">
+<meta name="sporve-build" content="3cda0b81ba0437b8">
 </head>
 <body>
 <noscript><h1>Sporv — Every sport. One app.</h1><p>Sporv connects families and athletes with coaches, trainers, camps, and teams across more than 20 sports. Please enable JavaScript to use the app.</p></noscript>
@@ -11557,7 +11557,7 @@ function teamRoster(){
   /* NO DEMO DATA for a real org (owner 2026-09-16): a signed-in organization
      starts with an empty roster; the sample roster exists only for the
      signed-out preview. */
-  if(!S.teamRoster) S.teamRoster=coachState().isReal?[]:JSON.parse(JSON.stringify(SEED.teams[0].roster));
+  if(!S.teamRoster) S.teamRoster=queueIsLive()?[]:JSON.parse(JSON.stringify(SEED.teams[0].roster));
   return S.teamRoster;
 }
 /* ── SPEC-01 CSV roster import (client-side slice, 2026-08-29) ─────────────
@@ -11997,7 +11997,7 @@ function coachEarningsPage(){
 function coachApprovalsPage(){
   const ui=window.COACH_UI;
   const live=(S.coachQueue||[]).slice();
-  const drafts=coachState().isReal?[]:approvalDrafts();
+  const drafts=queueIsLive()?[]:approvalDrafts();
   const sent=S.approvalSent||[];
   const label={booking_confirmed:"Booking confirmed",reminder_24h:"24-hour reminder",post_session:"Post-session recap",no_show_followup:"No-show follow-up",rebook_nudge:"Rebooking nudge"};
   let queue;
@@ -13034,7 +13034,7 @@ function coachBody(t){
       rebook_nudge:"Rebooking nudge"};
     /* Real accounts NEVER see the seeded demo drafts (honesty rule: no
        fabricated queue rows) — same guard as the queue tab above. */
-    const drafts=coachState().isReal?[]:approvalDrafts();
+    const drafts=queueIsLive()?[]:approvalDrafts();
     const sent=S.approvalSent||[];
     const eb="font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--faint)";
     const demoRows=drafts.length?`

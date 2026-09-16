@@ -11509,7 +11509,7 @@ function teamRoster(){
   /* NO DEMO DATA for a real org (owner 2026-09-16): a signed-in organization
      starts with an empty roster; the sample roster exists only for the
      signed-out preview. */
-  if(!S.teamRoster) S.teamRoster=coachState().isReal?[]:JSON.parse(JSON.stringify(SEED.teams[0].roster));
+  if(!S.teamRoster) S.teamRoster=queueIsLive()?[]:JSON.parse(JSON.stringify(SEED.teams[0].roster));
   return S.teamRoster;
 }
 /* ── SPEC-01 CSV roster import (client-side slice, 2026-08-29) ─────────────
@@ -11949,7 +11949,7 @@ function coachEarningsPage(){
 function coachApprovalsPage(){
   const ui=window.COACH_UI;
   const live=(S.coachQueue||[]).slice();
-  const drafts=coachState().isReal?[]:approvalDrafts();
+  const drafts=queueIsLive()?[]:approvalDrafts();
   const sent=S.approvalSent||[];
   const label={booking_confirmed:"Booking confirmed",reminder_24h:"24-hour reminder",post_session:"Post-session recap",no_show_followup:"No-show follow-up",rebook_nudge:"Rebooking nudge"};
   let queue;
@@ -12986,7 +12986,7 @@ function coachBody(t){
       rebook_nudge:"Rebooking nudge"};
     /* Real accounts NEVER see the seeded demo drafts (honesty rule: no
        fabricated queue rows) — same guard as the queue tab above. */
-    const drafts=coachState().isReal?[]:approvalDrafts();
+    const drafts=queueIsLive()?[]:approvalDrafts();
     const sent=S.approvalSent||[];
     const eb="font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--faint)";
     const demoRows=drafts.length?`
