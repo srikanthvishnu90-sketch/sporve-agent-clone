@@ -78,3 +78,7 @@ verify_jwt = false
 # against the service key itself, so the gateway check is belt-and-braces.
 [functions.gmail-scan]
 verify_jwt = false
+
+# ncsi-webhook authenticates the vendor with NCSI_WEBHOOK_SECRET (constant-time), not a JWT; fails closed when unset.
+[functions.ncsi-webhook]
+verify_jwt = false
