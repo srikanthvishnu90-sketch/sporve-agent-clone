@@ -41,7 +41,16 @@ test('2. emits the cancellation as one DRAFT per rostered family over the draft-
   assert.match(mig, /on conflict \(source_ref\) where source_kind = 'agent' and status <> 'void'/, 'one draft per family, re-cancel does not duplicate');
   assert.match(fixture, /draft-first violated/, 'the fixture asserts zero outbound rows after a cancel');
 });
-test.todo('2b. delivery over spec 13 channels (SMS / magic link) — spec 13 slice 1 is not on main (PR #12); latency to a delivery receipt is measured there');
+test('2b. delivery over spec 13 channels: an approved cancellation becomes a sendable schedule_change; a reminder or change carries the one-tap RSVP link', () => {
+  const deliver = read('supabase/migrations/20260915_001071_event_drafts_deliverable.sql');
+  const send = read('supabase/functions/lifecycle-process/index.ts');
+  assert.match(deliver, /when o\.source_ref like 'event:%:cancel:%'   then 'schedule_change'/, 'a cancellation draft maps to a real outbound event_type');
+  assert.ok(!/cancel:%'[^;]*issue_guardian_token/.test(deliver), 'a cancellation carries no RSVP link — nothing to answer');
+  assert.match(deliver, /if o\.source_ref like 'event:%:reminder:%' or o\.source_ref like 'event:%:change:%' then[\s\S]*?issue_guardian_token\(o\.guardian_id, 'rsvp', 'event', v_event_id, 'email'\)/);
+  assert.match(send, /\$\{PARENT_BASE_URL\}\/r\?t=\$\{c\.rsvp_token\}/, 'the email carries the sporv.ai page link, never the function URL');
+  assert.match(send, /https:\/\/api\.resend\.com\/emails/, 'email is the live channel');
+});
+test.todo('2c. SMS delivery and wall-clock latency to a delivery receipt — no SMS vendor exists; A2P 10DLC registration is an owner action (external checklist 0.1)');
 
 test('3. updates ICS: the status change bumps SEQUENCE through trg_event_guard, and the receipt carries it', () => {
   assert.match(event, /new\.sequence := old\.sequence \+ 1;/);
