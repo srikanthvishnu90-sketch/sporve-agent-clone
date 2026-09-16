@@ -12080,7 +12080,17 @@ const OBLIG_META={
   message:  {label:"Message",  tone:"good"},
 };
 const OBLIG_SRC={email:"forwarded email",pdf:"attached PDF",sms:"text message",agent:"weekend sweep",manual:"added by you"};
+/* C4 (audit 2026-09-15, owner order #4): a signed-in account NEVER sees the
+   demo seed below, not even for the frame before its provider row loads.
+   Real accounts read server rows only (`live:true`, set by
+   loadLiveObligations); anything else that reached S.obligations — a guest
+   seed carried across sign-in, a demo parse — is dropped, not rendered. The
+   seed exists for the disclosed guest preview alone. */
+function queueIsLive(){
+  return !!(coachState().isReal||(window.SporveAPI&&window.SporveAPI.isSignedIn&&window.SporveAPI.isSignedIn()));
+}
 function obligationQueue(){
+  if(queueIsLive()) return (S.obligations||[]).filter(o=>o&&o.live===true);
   if(!S.obligations) S.obligations=[
     {id:"ob_1",kind:"fee",status:"draft",title:"Collect $150 Fall Classic entry — 8 families",
      detail:"Tournament operator's email lists a $150 entry fee per athlete, due Sept 12. Drafted a charge for the 8 rostered families.",
@@ -12130,9 +12140,12 @@ function loadLiveObligations(){
         amountCents:r.amount_cents!=null?+r.amount_cents:null,
         guardianName:r.guardian?((r.guardian.first_name||"")+" "+(r.guardian.last_name||"")).trim():null,
         whyTitle:(r.why&&r.why.title)||null,draftType:r.draft_type||null,createdAt:r.created_at||null,live:true}));
-      S.obligLive=true;render();
+      S.obligLive=true;S.obligLoaded=true;S.obligError=null;render();
     })
-    .catch(()=>{/* table not applied yet or offline: demo stands, honestly labelled */})
+    .catch(e=>{
+      /* A failed read is rendered AS a failure (C4). The old branch swallowed
+         it and let the demo seed stand in for a real club's queue. */
+      S.obligError=(e&&e.message)||"Could not reach the server.";render();})
     .finally(()=>{S.obligLoading=false;});
   if(S.agentAutodraft===undefined){
     S.agentAutodraft=true;   // server default is 'draft' (on)
@@ -12615,9 +12628,9 @@ function coachQueuePage(){
         ${o.status==="draft"&&(o.guardianId||o.sourceKind==="agent")?`<span class="ob2tone">Tone <span class="pill${aboveCap?" warn":""}">${esc(tone[0].toUpperCase()+tone.slice(1))}${aboveCap?" · above your auto cap":""}</span></span>`:""}
       </div>
       <div class="obacts">
-        ${o.status==="draft"?`<button class="btn sm" data-oblig-approve="${esc(o.id)}">Approve</button>
-          <button class="btn ghost sm" data-oblig-dismiss="${esc(o.id)}">Dismiss</button>`:""}
-        ${o.status==="approved"?`<button class="btn sm" data-oblig-done="${esc(o.id)}">Mark done</button>
+        ${o.status==="draft"?`<button class="btn sm" data-oblig-approve="${esc(o.id)}"${o.busy?" disabled":""}>${o.busy?"Approving…":"Approve"}</button>
+          <button class="btn ghost sm" data-oblig-dismiss="${esc(o.id)}"${o.busy?" disabled":""}>Dismiss</button>`:""}
+        ${o.status==="approved"?`<button class="btn sm" data-oblig-done="${esc(o.id)}"${o.busy?" disabled":""}>${o.busy?"Saving…":"Mark done"}</button>
           <button class="btn ghost sm" data-oblig-undo="${esc(o.id)}">Undo approval</button>`:""}
         ${o.status==="done"?`<span class="pill good">Done</span>
           <button class="btn ghost sm" data-oblig-undo="${esc(o.id)}">Undo</button>`:""}
@@ -12625,6 +12638,17 @@ function coachQueuePage(){
     </div>`;};
   const liveOrg=!!(S.obligLive&&S.coachProvider&&S.coachProvider.id);
   const bulkN=drafts.filter(o=>o.live&&o.sourceKind==="agent").length;
+  const liveQ=queueIsLive();
+  /* C4: until the server has answered once, the queue says so — it never
+     shows rows it has not read. A failed read shows the failure and a retry. */
+  const queueState=liveQ&&!S.obligLoaded
+    ?(S.obligError
+      ?`<div class="panel" role="alert" style="margin-top:14px"><h3>Couldn't load your queue</h3>
+          <p style="color:var(--muted);font-size:var(--text-sm);margin-top:4px">${esc(S.obligError)} Nothing below is shown until it loads — no draft is invented in its place.</p>
+          <div class="imp-addrow" style="margin-top:8px"><button class="btn sm" data-oblig-retry="1">Try again</button></div></div>`
+      :`<div class="panel" role="status" style="margin-top:14px"><h3>Loading your queue…</h3>
+          <p style="color:var(--muted);font-size:var(--text-sm);margin-top:4px">Reading what the agent drafted for your organization.</p></div>`)
+    :"";
   return `<div class="sec-head" style="margin-top:18px"><div>
       <h1>Queue</h1>
       <p style="color:var(--muted);margin-top:5px;font-size:var(--text-base)">The work Sporv already did for you — review and approve. Nothing is sent or charged until you say so.</p>
@@ -12645,13 +12669,14 @@ function coachQueuePage(){
         </div>`).join("")}
       </div></div>`:(S.findLoaded?`<div class="panel" style="margin-top:14px"><h3>What the agent noticed</h3>
       <p style="color:var(--muted);font-size:var(--text-sm);margin-top:4px">Nothing flagged — dues, documents, credentials and rosters are all current.</p></div>`:"")}
-    <div class="panel">
+    ${queueState}
+    ${liveQ?"":`<div class="panel">
       <h3>Forward something to turn it into work</h3>
       <p style="color:var(--muted);font-size:var(--text-sm);margin-top:4px">Paste a tournament email, a gym's schedule text, a registration deadline — Sporv drafts the fee, deadline, waiver check or message. (Demo parse; the real per-file read runs on the ingest backend.)</p>
       <textarea id="obligIn" rows="3" style="width:100%;margin-top:10px;resize:vertical" placeholder="Fwd: Fall Classic — $150 entry per player, deadline Sept 12, waivers required at check-in..."></textarea>
       <div class="imp-addrow" style="margin-top:8px"><button class="btn sm" data-oblig-parse="1">Turn into drafts</button></div>
-    </div>
-    <div style="margin-top:18px">
+    </div>`}
+    ${queueState?"":`<div style="margin-top:18px">
       <div class="sec-head" style="margin:0"><h3>Waiting for you${drafts.length?` · ${drafts.length}`:""}</h3></div>
       ${drafts.length?(()=>{
         /* grouped by job (design batch 1): each group header carries its own
@@ -12671,7 +12696,7 @@ function coachQueuePage(){
         <button class="btn sm" data-oblig-holdundo="1">Undo</button></div>`:""}
     </div>
     ${approved.length?`<div style="margin-top:18px"><div class="sec-head" style="margin:0"><h3>Approved · ${approved.length}</h3></div>${approved.map(card).join("")}</div>`:""}
-    ${done.length?`<div style="margin-top:18px"><div class="sec-head" style="margin:0"><h3>Done · ${done.length}</h3></div>${done.map(card).join("")}</div>`:""}`;
+    ${done.length?`<div style="margin-top:18px"><div class="sec-head" style="margin:0"><h3>Done · ${done.length}</h3></div>${done.map(card).join("")}</div>`:""}`}`;
 }
 function coachBody(t){
   const mine=coachListings();
@@ -17366,8 +17391,25 @@ document.querySelectorAll('.sig-ai-coach').forEach(sigAiCoachWire);
   /* Live rows PATCH the obligations table; the 000200 lifecycle trigger is the
      authority (draft→approved→done, void from any non-done). The local update
      is optimistic; a trigger rejection would surface on the next load. */
-  const obligPatch=(o,status)=>{if(o.live&&window.SporveAPI)
-    window.SporveAPI.from("obligations","id=eq."+o.id,{method:"PATCH",body:{status:status}}).catch(()=>{});};
+  /* C4: a live row changes state only after the server says it did. The
+     PATCH asks PostgREST to return the row; a 204 with no row (RLS hid it,
+     or the lifecycle trigger refused) is a failure, not a success. Demo rows
+     (guest preview only) keep the local walk. */
+  const obligPatch=(o,status)=>{
+    if(!o.live) return Promise.resolve(true);
+    if(!window.SporveAPI) return Promise.reject(new Error("Not connected."));
+    return window.SporveAPI.from("obligations","id=eq."+o.id+"&select=id,status",
+      {method:"PATCH",headers:{Prefer:"return=representation"},body:{status:status}})
+      .then(rows=>{
+        if(!(Array.isArray(rows)&&rows[0]&&rows[0].status===status)) throw new Error("The server did not record that change.");
+        return true;});
+  };
+  const obligSet=(o,status,okMsg)=>{
+    if(o.busy) return;
+    o.busy=true;render();
+    obligPatch(o,status).then(()=>{o.status=status;o.busy=false;render();toast(okMsg);})
+      .catch(e=>{o.busy=false;render();toast("Could not update: "+((e&&e.message)||"try again."));});
+  };
   $("[data-oblig-approve]").forEach(b=>b.onclick=()=>{const o=obligBy(b.dataset.obligApprove);
     if(!o) return;
     /* Spec 05: approving a recipient-addressed AGENT draft sends. The RPC
@@ -17376,9 +17418,11 @@ document.querySelectorAll('.sig-ai-coach').forEach(sigAiCoachWire);
        honestly when the guardian hasn't joined yet. Rows with no recipient
        keep the plain status walk. */
     if(o.live&&(o.guardianId||o.sourceKind==="agent")&&window.SporveAPI){
-      o.status="approved";render();
+      if(o.busy) return;
+      o.busy=true;render();
       window.SporveAPI.rpc("approve_obligation_and_queue",{p_obligation_id:o.id})
         .then(msgId=>{
+          o.status="approved";o.busy=false;render();
           if(!msgId){toast(/^eligibility:/.test(o.sourceRef)
             ?"Approved — this report is for you; nothing goes to families."
             :"Approved — no recipient on this one, nothing to send.");return;}
@@ -17390,10 +17434,10 @@ document.querySelectorAll('.sig-ai-coach').forEach(sigAiCoachWire);
               ?"Approved, but this guardian's email bounced — fix the address on their record."
               :"Approved, but sending failed: "+((e&&e.message)||"try again from Approvals.")));
         })
-        .catch(e=>{o.status="draft";render();toast((e&&e.message)||"Could not approve.");});
+        .catch(e=>{o.busy=false;render();toast((e&&e.message)||"Could not approve.");});
       return;
     }
-    o.status="approved";obligPatch(o,"approved");render();toast("Approved. It moves out of your queue — nothing was sent or charged.");});
+    obligSet(o,"approved","Approved. It moves out of your queue — nothing was sent or charged.");});
   /* Approve-all per group, with an HONEST hold (design batch 1): rows are
      marked and an undo bar runs for 8s; the approve RPC and the send fire
      only after it expires. Undo before that costs nothing because nothing
@@ -17411,14 +17455,14 @@ document.querySelectorAll('.sig-ai-coach').forEach(sigAiCoachWire);
       let sent=0,held=0,failed=0;
       for(const o of goRows){
         try{
-          o.status="approved";render();
           const msgId=await window.SporveAPI.rpc("approve_obligation_and_queue",{p_obligation_id:o.id});
+          o.status="approved";render();
           if(msgId){
             try{const r=await window.SporveAPI.fn("lifecycle-approve",{id:msgId});
                 if(r&&r.queuedEmail)held++;else sent++;}
             catch(e){failed++;}
           }
-        }catch(_){o.status="draft";failed++;}
+        }catch(_){failed++;}
       }
       render();
       toast("Approved "+goRows.length+" — "+sent+" sent"+(held?", "+held+" queued for email":"")+(failed?", "+failed+" failed":"")+".");
@@ -17439,14 +17483,14 @@ document.querySelectorAll('.sig-ai-coach').forEach(sigAiCoachWire);
     let sent=0,held=0,failed=0;
     for(const o of rows){
       try{
-        o.status="approved";
         const msgId=await window.SporveAPI.rpc("approve_obligation_and_queue",{p_obligation_id:o.id});
+        o.status="approved";
         if(msgId){
           try{const r=await window.SporveAPI.fn("lifecycle-approve",{id:msgId});
               if(r&&r.queuedEmail)held++;else sent++;}
           catch(e){failed++;}
         }
-      }catch(_){o.status="draft";failed++;}
+      }catch(_){failed++;}
     }
     S.bulkApproving=false;render();
     toast("Approved "+rows.length+" — "+sent+" sent in-app"+(held?", "+held+" queued for email":"")+(failed?", "+failed+" failed":"")+".");
@@ -17615,15 +17659,21 @@ document.querySelectorAll('.sig-ai-coach').forEach(sigAiCoachWire);
   });
   $("[data-oblig-dismiss]").forEach(b=>b.onclick=()=>{
     const o=obligBy(b.dataset.obligDismiss);
-    if(o&&o.live){o.status="void";obligPatch(o,"void");
-      S.obligations=obligationQueue().filter(x=>x.id!==o.id);render();toast("Dismissed (voided on the record).");return;}
+    if(o&&o.live){
+      if(o.busy) return;
+      o.busy=true;render();
+      obligPatch(o,"void").then(()=>{S.obligations=(S.obligations||[]).filter(x=>x.id!==o.id);render();toast("Dismissed (voided on the record).");})
+        .catch(e=>{o.busy=false;render();toast("Could not dismiss: "+((e&&e.message)||"try again."));});
+      return;}
     S.obligations=obligationQueue().filter(x=>x.id!==b.dataset.obligDismiss);render();toast("Dismissed.");});
   $("[data-oblig-done]").forEach(b=>b.onclick=()=>{const o=obligBy(b.dataset.obligDone);
-    if(o){o.status="done";obligPatch(o,"done");render();toast("Marked done.");}});
+    if(o) obligSet(o,"done","Marked done.");});
   $("[data-oblig-undo]").forEach(b=>b.onclick=()=>{const o=obligBy(b.dataset.obligUndo);
     if(o&&o.live){toast("A live approval can't move backwards — Dismiss voids it instead (the record keeps its history).");return;}
     if(o){o.status="draft";render();toast("Back in your queue.");}});
+  $("[data-oblig-retry]").forEach(b=>b.onclick=()=>{S.obligError=null;S.obligLive=false;loadLiveObligations();render();});
   $("[data-oblig-parse]").forEach(b=>b.onclick=()=>{
+    if(queueIsLive()){toast("Forwarding is not live yet — the agent drafts from your connected inbox and roster.");return;}
     const el=document.getElementById("obligIn");const v=(el&&el.value||"").trim();
     if(!v){toast("Paste an email, text or note first.");return;}
     const drafts=parseObligations(v).map((d,i)=>({id:"ob_"+Date.now()+"_"+i,status:"draft",
