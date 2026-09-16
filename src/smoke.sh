@@ -134,7 +134,7 @@ boots=$($B js "typeof S==='object'&&typeof render==='function'" 2>/dev/null | tr
 [ "$boots" = "true" ] && pass "host script boots" || { fail "host script did not boot"; exit 1; }
 
 # Every route a visitor can reach without auth.
-ROUTES="home explore product trust companies pricing coachinfo map assistant saved bookings messages timeline"
+ROUTES="home explore product trust companies pricing coachinfo map assistant saved bookings messages timeline setup"
 # A JS error is a code defect and fails the build. A failed external resource
 # is an architecture problem (this page is meant to survive a CSP that blocks
 # every external request) but it is pre-existing and environmental, so it warns

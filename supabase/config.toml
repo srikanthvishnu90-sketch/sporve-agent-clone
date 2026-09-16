@@ -82,3 +82,16 @@ verify_jwt = false
 # ncsi-webhook authenticates the vendor with NCSI_WEBHOOK_SECRET (constant-time), not a JWT; fails closed when unset.
 [functions.ncsi-webhook]
 verify_jwt = false
+
+# ── auth (owner 2026-09-16: sessions persist 90 days with silent refresh) ──
+# The client (src/mod-auth.js) stores the session in localStorage and refreshes
+# the access token 5 minutes before expiry, sharing one in-flight refresh.
+# Access tokens are short; the REFRESH token is what makes a session last.
+# In the hosted project these two are dashboard settings — set them there to
+# the same values: Authentication → Sessions → "Time-box user sessions" OFF
+# (or 90 days) and "Inactivity timeout" OFF; refresh-token rotation ON.
+[auth]
+jwt_expiry = 3600
+enable_refresh_token_rotation = true
+refresh_token_reuse_interval = 10
+enable_signup = true

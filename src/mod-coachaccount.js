@@ -276,8 +276,13 @@
           return ACCOUNT.save(patch);
         });
       }
+      /* KNOWN BUG "name cannot be saved" (owner 2026-09-16) — root cause: this
+         PATCH had no select=, so return=representation implied SELECT * and
+         the column-level grant on providers refused the whole write with
+         42501. The INSERT twin in ensure() already carried the fix. */
       return API.from("providers",
-        "id=eq." + encodeURIComponent(provider.id),
+        "id=eq." + encodeURIComponent(provider.id) +
+        "&select=id,business_name,bio,sports,location,provider_type,status,onboarding_completed,stripe_onboarding_started,stripe_charges_enabled",
         { method: "PATCH", headers: { Prefer: "return=representation" }, body: body }
       ).then(function (rows) {
         provider = (rows && rows[0]) || provider;

@@ -25,7 +25,7 @@
 <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16.png">
 <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
 <link rel="manifest" href="/site.webmanifest">
-<meta name="sporve-build" content="ec630fc3456a3454">
+<meta name="sporve-build" content="ebd5ee913df20785">
 </head>
 <body>
 <noscript><h1>Sporv — Every sport. One app.</h1><p>Sporv connects families and athletes with coaches, trainers, camps, and teams across more than 20 sports. Please enable JavaScript to use the app.</p></noscript>
@@ -7532,11 +7532,7 @@ function enterCoachWorkspace(){
       S.coachTab="queue";  /* home = the review queue (doc 04) */
       /* Not-yet-onboarded: the wizard is the only door (spec 04). The render
          gate keeps it open; this just seeds it and asks the DB for the step. */
-      if(p && p.onboarding_completed===false){
-        S.setupWiz=S.setupWiz&&S.setupWiz.step?S.setupWiz:{step:-1};
-        S.modal={type:"setupwiz"};
-        suwResume(p);
-      }
+      if(p && p.onboarding_completed===false){ go("setup"); return; }
       go("dashboard");
     })
     .catch(()=>{
@@ -11551,7 +11547,10 @@ function actionQueue(){
    like S.trainers. The seed is cloned on first touch so a demo coach can add,
    send a payment link, and mark paid without a backend. */
 function teamRoster(){
-  if(!S.teamRoster) S.teamRoster=JSON.parse(JSON.stringify(SEED.teams[0].roster));
+  /* NO DEMO DATA for a real org (owner 2026-09-16): a signed-in organization
+     starts with an empty roster; the sample roster exists only for the
+     signed-out preview. */
+  if(!S.teamRoster) S.teamRoster=coachState().isReal?[]:JSON.parse(JSON.stringify(SEED.teams[0].roster));
   return S.teamRoster;
 }
 /* ── SPEC-01 CSV roster import (client-side slice, 2026-08-29) ─────────────
@@ -13303,15 +13302,13 @@ function modalHTML(){
     <div class="au-head">
       <span class="au-logo"><img src="data:image/png;base64,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" alt="Sporv" width="99" height="24"></span>
       <h2>Log in or sign up</h2>
-      <p>${S.portal==="coach"
-        ? "Publish listings, take bookings, and get paid through Sporv."
-        : "Book sessions, message coaches, and manage your athletes."}</p>
+      <p>Sporv is for the people who run the program. Staff sign in with an email link — no password to set.</p>
     </div>
     <form id="authIdForm" class="au-form">
       <div class="field" style="margin-bottom:12px">
-        <label for="authId">Phone number or email</label>
-        <input id="authId" name="identifier" autocomplete="username"
-               placeholder="you@example.com" required>
+        <label for="authId">Email</label>
+        <input id="authId" name="identifier" type="email" inputmode="email" autocomplete="email"
+               placeholder="you@yourclub.org" required>
       </div>
       <button class="btn wide dark" type="submit">Continue</button>
     </form>
@@ -13327,9 +13324,7 @@ function modalHTML(){
     ${/* An explicit way out. The X and the scrim already dismiss, but a guest
          being asked to sign in for the second or third time should be able to
          SEE that declining is allowed rather than having to guess it. */""}
-    <button class="au-guest" data-close="1">Continue as a guest</button>
-    <p class="au-fine">Browsing is free — an account is only needed to book, message, or publish.
-      <button class="au-link" data-demoacct="1">Use the demo account</button></p>`);
+    ${/* STAFF-ONLY (owner 2026-09-16): no guest path, no demo account. */""}`);
 
   if(m.type==="signup") return wrap("Create your account",`
     <p class="eyebrow" style="margin-bottom:16px">${S.signupRole==="coach"?"Your organization":"Athlete &amp; family · Step 1 of 2"}</p>
@@ -16001,7 +15996,15 @@ function render(){
      2. `info` routes survive the portal, so "? Support" is no longer dead.
      3. Everything else in the portal still renders the dashboard, which is
         what the coach rail expects. */
-  if(r.name==="coachgate"){body=coachGateHTML();}
+  /* LOGIN + ONBOARDING (owner 2026-09-16): a signed-in org that has not
+     finished setup is routed to the fullscreen onboarding surface — every
+     tab is behind it, and the surface itself resumes from provider_settings.
+     Replaces the forced setupwiz modal. */
+  if(r.name!=="setup"&&r.name!=="info"&&typeof coachGateActive==="function"&&coachGateActive()){
+    S.route={name:"setup",arg:null}; return render();
+  }
+  if(r.name==="setup"){body=window.MOD_ONBOARD?window.MOD_ONBOARD.html():"";}
+  else if(r.name==="coachgate"){body=coachGateHTML();}
   else if(S.portal==="coach"){
     /* THE SETUP GATE (2026-09-04, router-level so no tab can forget it). A
        signed-in, not-yet-onboarded org gets the setup wizard forced open on
@@ -16009,10 +16012,7 @@ function render(){
        coach tab (dashboard, roster, money, staff, settings) is reachable
        until step 5 writes onboarding_completed=true. The import wizard and
        Stripe-connect confirm are the wizard's own sub-flows, so they pass. */
-    if(coachGateActive()){
-      const pass=S.modal&&(S.modal.type==="setupwiz"||S.modal.type==="importclients"||S.modal.type==="confirm");
-      if(!pass){ S.setupWiz=S.setupWiz&&S.setupWiz.step!=null?S.setupWiz:{step:-1}; S.modal={type:"setupwiz"}; }
-    }
+    /* setup gate now lives at the top of render(): route "onboard". */
     /* A guest now browses the provider side rather than being bounced to the
        marketing page — the auth sheet invites, it does not wall. Mutating
        actions inside are individually gated with requireAuth(); see the
@@ -16091,19 +16091,19 @@ function render(){
      gets the same dark ground a signed-in coach does, otherwise dismissing the
      sheet dropped them onto a half-inverted page. */
   app.classList.toggle("coachdark",
-    S.portal==="coach"&&r.name!=="coachgate");
+    S.portal==="coach"&&r.name!=="coachgate"&&r.name!=="setup");
   /* The coach UI register rides the same switch as the dark ground — but on
      <body>, so the #layer surfaces (assistant panel, modals, toasts) inherit
      it too. #app alone would miss the chat. */
   document.body.classList.toggle("reg-coach",
-    S.portal==="coach"&&r.name!=="coachgate");
+    S.portal==="coach"&&r.name!=="coachgate"&&r.name!=="setup");
   app.classList.toggle("noorange", NO_ORANGE_ACTIVE);
 
 
   /* The light footer band is gone at the owner's request, so no route appends a
      global footer any more. The landing keeps its own dark .close-zone, which is
      rendered inside landingHTML() rather than here. */
-  app.innerHTML=(r.name==="coachgate"?"":topbarHTML())+body;
+  app.innerHTML=((r.name==="coachgate"||r.name==="setup")?"":topbarHTML())+body;
   /* The dock mounts into #layer so it outlives every route change — #app's
      innerHTML is replaced wholesale on each render, #layer is rebuilt alongside
      it, and neither the coach dark ground nor a page's own layout can affect a
@@ -16779,7 +16779,7 @@ document.querySelectorAll('.sig-ai-coach').forEach(sigAiCoachWire);
      around the coach portal without creating a real provider record. It is
      labelled as such in the markup, and it is the one place completeAuth() is
      still called with seed data on purpose. */
-  $("[data-cg-demo]").forEach(b=>b.onclick=()=>{S.pendingIntent={kind:"coachOnboard"};completeAuth({...SEED.user,role:"provider"});});
+  /* data-cg-demo removed (owner 2026-09-16: no demo accounts). */
   $("[data-cg-proceed]").forEach(b=>b.onclick=()=>startCoachOnboarding());
   $("[data-cg-signout]").forEach(b=>b.onclick=()=>{
     /* Drop the pending intent with the identity. Keeping it means the action
@@ -17693,7 +17693,7 @@ document.querySelectorAll('.sig-ai-coach').forEach(sigAiCoachWire);
      data-onboard, which is the family sports picker — a marketplace screen
      on the front door of a club-ops product. */
   $("[data-orgsignup]").forEach(b=>b.onclick=()=>{
-    S.signupRole="coach";S.modal={type:"signup"};render();});
+    S.signupRole="coach";S.modal=null;go("setup");});
 
   /* PART 7 — one identifier field, then branch. An address we've seen goes to
      the password step; anything else creates an account. */
@@ -17703,6 +17703,9 @@ document.querySelectorAll('.sig-ai-coach').forEach(sigAiCoachWire);
     const id=String(new FormData(aif).get("identifier")||"").trim();
     if(!id) return;
     S.authIdentifier=id;
+    /* STAFF-ONLY, PASSWORDLESS (owner 2026-09-16): the identifier goes to the
+       onboarding surface, which sends the magic link. */
+    if(window.MOD_ONBOARD){ S.modal=null; S.ob=null; S.route={name:"setup",arg:null}; render(); S.ob.email=id; render(); return; }
     /* Always the password step. This used to branch on whether the typed
        address equalled ONE hardcoded demo address (SEED.user.email), so every
        real account was sent to sign-UP and then told "User already
@@ -17844,7 +17847,8 @@ document.querySelectorAll('.sig-ai-coach').forEach(sigAiCoachWire);
     go("coachinfo");
   });
   $("[data-soon]").forEach(b=>b.onclick=()=>toast(b.dataset.soon+" isn't wired up yet"));
-  $("[data-demoacct]").forEach(b=>b.onclick=()=>{completeAuth({...SEED.user});toast("Signed in to the demo account");});
+  /* data-demoacct removed (owner 2026-09-16: no demo accounts). */
+  $("[data-demoacct-removed]").forEach(b=>b.onclick=()=>{toast("");});
   $("[data-onbnext]").forEach(b=>b.onclick=()=>{S.onboardStep=Math.min(1,S.onboardStep+1);render();});
   $("[data-onbback]").forEach(b=>b.onclick=()=>{
     if(S.onboardStep===0){S.modal={type:"authsheet"};} else S.onboardStep--; render();});
@@ -18065,9 +18069,7 @@ document.querySelectorAll('.sig-ai-coach').forEach(sigAiCoachWire);
          2026-09-04: sign-in never creates). */
       try{ sessionStorage.setItem("sporv:oauth-intent","signin"); }catch(e){}
       window.location.href=window.SporveAuth.oauthUrl("google", oauthReturnUrl()); return; }
-    completeAuth({...SEED.user,role:S.signupRole==="coach"?"provider":"searcher"});
-    if(S.signupRole==="coach") S.portal="coach";
-    toast("Signed in with Google");
+    authFail("Google sign-in is unavailable right now. Reload the page and try again.");
   });
 
   // T2 — single-field hero search: parse the raw string, set the existing filter
@@ -20517,12 +20519,21 @@ window.MOD_COACHUI = { css:CSS, wire:wire };
        verifyMagicCode() exchanges the code for a session for anyone whose mail
        client mangles links. Resolves identically for unknown addresses — same
        anti-enumeration stance as recover(). */
-    magicLink: function (email, redirectTo) {
+    magicLink: function (email, redirectTo, meta) {
+      /* STAFF-ONLY (owner 2026-09-16): a link is the only way in; a brand-new
+         address becomes a provider (staff) account with its own EMPTY org —
+         handle_new_user() (migration 001065) ignores any other role. The
+         request resolves identically for unknown addresses (anti-enumeration);
+         a transport failure rejects so the screen can say so. */
       return post("/auth/v1/otp", {
         email: String(email || "").trim(),
         create_user: true,
+        data: Object.assign({ role: "provider" }, meta || {}),
         options: { email_redirect_to: redirectTo || window.location.origin },
-      }).then(function () { return true; }).catch(function () { return true; });
+      }).then(function () { return true; }).catch(function (e) {
+        if (e && e.status && e.status < 500 && e.status !== 429) return true;   // per-address outcomes are never revealed
+        throw e;
+      });
     },
 
     verifyMagicCode: function (email, token) {
@@ -20915,8 +20926,13 @@ window.MOD_COACHUI = { css:CSS, wire:wire };
           return ACCOUNT.save(patch);
         });
       }
+      /* KNOWN BUG "name cannot be saved" (owner 2026-09-16) — root cause: this
+         PATCH had no select=, so return=representation implied SELECT * and
+         the column-level grant on providers refused the whole write with
+         42501. The INSERT twin in ensure() already carried the fix. */
       return API.from("providers",
-        "id=eq." + encodeURIComponent(provider.id),
+        "id=eq." + encodeURIComponent(provider.id) +
+        "&select=id,business_name,bio,sports,location,provider_type,status,onboarding_completed,stripe_onboarding_started,stripe_charges_enabled",
         { method: "PATCH", headers: { Prefer: "return=representation" }, body: body }
       ).then(function (rows) {
         provider = (rows && rows[0]) || provider;
@@ -21513,6 +21529,365 @@ window.MOD_COACHUI = { css:CSS, wire:wire };
     views: { billing: billingView },
     wire: wireBilling,
   };
+})();
+
+</script>
+<script>
+/* ---- mod-onboard.js ---- */
+/* MOD_ONBOARD — login and onboarding, staff-only, passwordless. Route: setup.
+   Colour deviation from the prototype, on purpose: --ink-3 #6B7480 (4.11:1 on
+   the ground) and the #7E8BA2 wordmark (3.90:1) fail AA and the repo's
+   dark-ground gate; #8C95A3 and #93A1B8 are the nearest tints that pass.
+   Owner prototype 2026-09-15 ("the login process should be like this and
+   look exactly like this"): a split screen for the account step, fullscreen
+   after; magic link OR Google/Apple; no password field; six numbered steps
+   (what you run · who you are · connect · roster · first run · queue).
+   Rules (owner 2026-09-16): everyone who logs in is staff; a new account
+   starts EMPTY (its own org and nothing else); every step is advanceable —
+   soft blocks say why and offer "finish later"; exactly two hard blocks:
+   legal consent (step 2) and identity for payment (enforced at charge time
+   by Stripe, never here); progress persists server-side in
+   provider_settings['onboarding'] so closing the tab loses nothing; every
+   error says what went wrong and what to do next. */
+(function () {
+  "use strict";
+  const HARD_BLOCKS = ["legal_consent", "payment_identity"];   // the only two; payment_identity lives at checkout, not in this flow
+  const CONSENT_VERSION = "2026-09-16";
+  const PACK = {
+    private: { cal: "Continuous", group: "Client", groups: "Clients", sess: "Session", member: "Athlete", bill: "Per session", org: false },
+    team:    { cal: "Seasonal", group: "Team", groups: "Teams", sess: "Practice", member: "Player", bill: "Installments", org: true },
+    camp:    { cal: "Date block", group: "Camp", groups: "Camps", sess: "Day", member: "Camper", bill: "One charge", org: true },
+    blank:   { cal: "You choose", group: "Group", groups: "Groups", sess: "Session", member: "Member", bill: "You choose", org: true } };
+  const SPORT_NOUN = { Swimming: { sess: "Swim" }, Tennis: { sess: "Lesson" }, Track: { sess: "Workout" } };
+  const SPORTS = ["Basketball", "Soccer", "Baseball", "Softball", "Volleyball", "Football", "Lacrosse", "Hockey", "Swimming", "Tennis", "Track", "Wrestling", "Gymnastics"];
+  const ORDER = ["1", "2", "3", "4", "5", "6", "7"];
+  const LBL = { "1": "01 / 06", "1b": "01 / 06", "2": "02 / 06", "3": "03 / 06", "4": "04 / 06", "5": "05 / 06", "6": "06 / 06", "7": "COMPLETE" };
+  const PCT = { "1": 6, "1b": 10, "2": 22, "3": 38, "4": 56, "5": 72, "6": 90, "7": 100 };
+  const SKIP = { "3": "Finish later", "4": "Skip for now", "5": "Skip for now" };
+  const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+  const EMAIL_RX = /^[^@\s]+@[^@\s]+\.[^@\s]+$/;
+  const API = () => window.SporveAPI, AUTH = () => window.SporveAuth;
+  const signedIn = () => !!(AUTH() && AUTH().isSignedIn && AUTH().isSignedIn());
+  const pv = () => (window.S && S.coachProvider) || null;
+
+  function ob() {
+    if (!S.ob) S.ob = { step: "1", email: "", sent: false, code: false, type: null, name: "", org: "", sport: null, area: "",
+      tz: (Intl.DateTimeFormat().resolvedOptions().timeZone || "America/Chicago"), web: "", consent: false, busy: false, err: null,
+      loaded: false, providers: null, t0: null, conn: {}, roster: null, loading: false };
+    return S.ob;
+  }
+  const fmt = (ms) => { const s = Math.floor(ms / 1000); return String(Math.floor(s / 60)).padStart(2, "0") + ":" + String(s % 60).padStart(2, "0"); };
+
+  /* ── persistence: provider_settings['onboarding'] is the resume point ── */
+  function settingsWrite(key, value) {
+    const p = pv(); if (!p || !API()) return Promise.resolve();
+    return API().from("provider_settings", "", { method: "POST", headers: { Prefer: "resolution=merge-duplicates" },
+      body: { provider_id: p.id, key, value } });
+  }
+  function snapshot() {
+    const o = ob();
+    return { v: 2, step: o.step, type: o.type, sport: o.sport, area: o.area, tz: o.tz, web: o.web, consent_at: o.consentAt || null,
+      consent_version: o.consentAt ? CONSENT_VERSION : null, t0: o.t0 };
+  }
+  function persist() { return settingsWrite("onboarding", snapshot()).catch(() => {}); }
+  function resume() {
+    const o = ob(), p = pv();
+    if (o.loaded || o.loading || !p || !API()) return;
+    o.loading = true;
+    Promise.all([
+      API().from("provider_settings", "select=key,value&provider_id=eq." + p.id + "&key=in.(onboarding,legal_consent)").catch(() => []),
+      API().from("team_athletes", "select=id&provider_id=eq." + p.id + "&limit=200").catch(() => []),
+      API().from("org_connectors", "select=kind,status&provider_id=eq." + p.id).catch(() => []),
+    ]).then(([rows, roster, conns]) => {
+      const st = (rows || []).find((r) => r.key === "onboarding"); const v = st && st.value || {};
+      if (v.type) o.type = v.type; if (v.sport) o.sport = v.sport; if (v.area) o.area = v.area; if (v.tz) o.tz = v.tz; if (v.web) o.web = v.web;
+      if (v.consent_at) { o.consent = true; o.consentAt = v.consent_at; }
+      if (v.t0) o.t0 = v.t0;
+      o.org = p.business_name && p.business_name !== "Your organization" ? p.business_name : "";
+      const u = S.auth && S.auth.user; o.name = u ? [u.firstName, u.lastName].filter(Boolean).join(" ") : "";
+      o.roster = (roster || []).length;
+      (conns || []).forEach((c) => { if (c.status === "connected" || c.status === "active") o.conn[c.kind] = true; });
+      const step = v.step && ORDER.includes(v.step) && v.step !== "1" ? v.step : "2";
+      o.step = p.onboarding_completed ? "7" : step;
+      o.loaded = true; o.loading = false; render();
+    }).catch(() => { o.loaded = true; o.loading = false; render(); });
+  }
+
+  /* ── which sign-in providers the project actually offers ── */
+  function loadProviders() {
+    const o = ob(); if (o.providers || o.providersLoading || !API()) return;
+    o.providersLoading = true;
+    fetch(API().url + "/auth/v1/settings", { headers: { apikey: API().anonKey } })
+      .then((r) => r.json()).then((d) => { o.providers = { google: !!(d.external && d.external.google), apple: !!(d.external && d.external.apple) }; })
+      .catch(() => { o.providers = { google: false, apple: false }; })
+      .then(() => { o.providersLoading = false; render(); });
+  }
+
+  /* ── validation: soft everywhere except the two hard blocks ── */
+  function why(step) {
+    const o = ob();
+    if (step === "2" && !o.consent) return { hard: true, msg: "Agree to the Terms and Privacy policy to continue. This is the one thing we cannot skip." };
+    if (step === "2" && !o.type) return { hard: false, msg: "Pick what you run so the calendar and billing are set up right — or finish later and start blank." };
+    if (step === "3") { const p = PACK[o.type || "blank"]; const miss = [];
+      if (o.name.trim().length < 2) miss.push("your name"); if (p.org && o.org.trim().length < 2) miss.push("the organization name"); if (!o.sport) miss.push("a sport");
+      if (miss.length) return { hard: false, msg: "Still needed: " + miss.join(", ") + ". You can finish this later from Settings." }; }
+    return null;
+  }
+  const canContinue = (step) => { const w = why(step); return !w || (!w.hard && false) ? !w : false; };
+
+  /* ── markup ── */
+  const logo = () => `<div class="logo"><svg viewBox="0 0 120 120" aria-hidden="true"><circle cx="60" cy="60" r="52" fill="none" stroke="#7E8BA2" stroke-width="10"/><path d="M38 78 L60 34 L82 78 Z" fill="#7E8BA2"/></svg><span>Sporv</span></div>`;
+  const G = '<svg viewBox="0 0 24 24" class="gi"><path fill="#4285F4" d="M22.6 12.3c0-.8-.1-1.5-.2-2.2H12v4.2h6a5.1 5.1 0 0 1-2.2 3.4v2.8h3.6c2.1-1.9 3.2-4.8 3.2-8.2z"/><path fill="#34A853" d="M12 23c3 0 5.5-1 7.3-2.7l-3.6-2.8c-1 .7-2.3 1.1-3.7 1.1-2.9 0-5.3-1.9-6.2-4.6H2.1v2.9A11 11 0 0 0 12 23z"/><path fill="#FBBC05" d="M5.8 14a6.6 6.6 0 0 1 0-4.2V6.9H2.1a11 11 0 0 0 0 9.9L5.8 14z"/><path fill="#EA4335" d="M12 5.4c1.6 0 3.1.6 4.2 1.7l3.2-3.2A11 11 0 0 0 2.1 6.9L5.8 9.8c.9-2.7 3.3-4.4 6.2-4.4z"/></svg>';
+  const A = '<svg viewBox="0 0 24 24" class="gi" fill="#000"><path d="M16.4 12.6c0-2.4 2-3.5 2-3.6-1.1-1.6-2.8-1.8-3.4-1.8-1.4-.1-2.8.9-3.5.9-.7 0-1.8-.8-3-.8-1.6 0-3 .9-3.8 2.3-1.6 2.8-.4 7 1.2 9.3.8 1.1 1.7 2.4 2.9 2.3 1.2 0 1.6-.7 3-.7s1.8.7 3 .7c1.3 0 2.1-1.1 2.8-2.3.9-1.3 1.3-2.6 1.3-2.7 0 0-2.5-1-2.5-3.6zM14.1 5.5c.6-.8 1.1-1.9.9-3-.9 0-2.1.6-2.7 1.4-.6.7-1.1 1.8-1 2.9 1 .1 2.1-.5 2.8-1.3z"/></svg>';
+
+  function step1() {
+    const o = ob(), pr = o.providers;
+    return `<section class="step on" data-s="1">${logo()}
+      <div class="f"><label class="l" for="obEm">Email</label><input type="email" id="obEm" placeholder="you@yourclub.org" autocomplete="email" inputmode="email" value="${esc(o.email)}"></div>
+      ${o.err ? `<p class="oberr" role="alert">${esc(o.err)}</p>` : ""}
+      <button class="btn pri full big" id="obSend" ${EMAIL_RX.test(o.email) && !o.busy ? "" : "disabled"}>${o.busy ? "Sending…" : "Continue"}</button>
+      ${pr && (pr.google || pr.apple) ? `<div class="or">or</div>` : ""}
+      ${pr && pr.google ? `<button class="btn google full big" data-oboauth="google">${G}Sign up with Google</button>` : ""}
+      ${pr && pr.apple ? `<button class="btn google full big" data-oboauth="apple">${A}Sign up with Apple</button>` : ""}
+      <p class="fine" style="margin-top:20px">By continuing you agree to the <a href="#" data-obfoot="info:terms">Terms</a> and <a href="#" data-obfoot="info:privacy">Privacy policy</a>.</p>
+      <p class="fine">Already have an account? <a href="#" data-oblogin="1">Log in</a> · <a href="#" data-obpw="1">Use a password instead</a></p>
+    </section>`;
+  }
+  function step1b() {
+    const o = ob();
+    return `<section class="step on" data-s="1b">
+      <h1 style="text-align:center">Check your inbox</h1>
+      <p class="sub" style="text-align:center;margin:0 auto 16px"><span class="mono" style="color:var(--steel-l)">${esc(o.email)}</span></p>
+      <p class="sub" style="text-align:center;margin:0 auto 18px;max-width:40ch">The link works for 15 minutes and signs you in on this device. No password to set.</p>
+      ${o.err ? `<p class="oberr" role="alert">${esc(o.err)}</p>` : ""}
+      ${o.code ? `<form id="obCode" class="f" style="max-width:280px;margin:0 auto 16px"><label class="l" for="obTok">6-digit code from the email</label><input type="text" id="obTok" inputmode="numeric" autocomplete="one-time-code" placeholder="123456"><button class="btn pri full" style="margin-top:8px" type="submit">Sign in</button></form>` : ""}
+      <div style="display:flex;gap:6px;justify-content:center;flex-wrap:wrap"><button class="btn ghost" data-obresend="1">${o.resent ? "Sent again" : "Resend link"}</button><button class="btn ghost" data-obwrong="1">Use a different email</button>${o.code ? "" : `<button class="btn ghost" data-obcode="1">Enter the code instead</button>`}</div>
+    </section>`;
+  }
+  function step2() {
+    const o = ob();
+    return `<section class="step on" data-s="2"><h1>What are you running?</h1>
+      <p class="sub">Sets what things are called, how the calendar works, and how families pay. All of it can change later.</p>
+      <div class="opts" id="obOpts">${[["private", "Private training", "One-on-one or small group sessions, billed as they happen.", "PER SESSION"], ["team", "Team or club", "Rosters, a season with a start and end, dues in installments.", "INSTALLMENTS"], ["camp", "Camp", "A block of days with a roster cap and one charge at registration.", "ONE CHARGE"], ["blank", "Start blank", "Set the calendar, nouns, and billing yourself.", "MANUAL"]]
+        .map(([t, b, s, k]) => `<button class="opt ${o.type === t ? "on" : ""}" data-obtype="${t}"><span><b>${b}</b><small>${s}</small></span><span class="k">${k}</span></button>`).join("")}</div>
+      <p class="hint">Run more than one? Pick the one most families use. Add the others from Settings.</p>
+      <label class="consent ${o.consent ? "on" : ""}"><input type="checkbox" id="obConsent" ${o.consent ? "checked" : ""}> <span>I agree to the <a href="#" data-obfoot="info:terms">Terms</a> and the <a href="#" data-obfoot="info:privacy">Privacy policy</a>, including how families' data is handled.</span></label>
+    </section>`;
+  }
+  function step3() {
+    const o = ob(), p = PACK[o.type || "blank"], sn = (o.sport && SPORT_NOUN[o.sport]) || {};
+    const h = { private: "Tell us who you are", team: "Tell us about the club", camp: "Tell us about the camp", blank: "Tell us who you are" }[o.type || "blank"];
+    return `<section class="step on" data-s="3"><h1>${h}</h1>
+      <p class="sub">These pick your sport pack, calendar shape, and the words families see.</p>
+      <div class="row2"><div class="f"><label class="l" for="obNm">Your name</label><input type="text" id="obNm" placeholder="Marcus Reed" autocomplete="name" value="${esc(o.name)}"></div>
+        <div class="f" ${p.org ? "" : "hidden"}><label class="l" for="obOg">Organization</label><input type="text" id="obOg" placeholder="Northside Flight" value="${esc(o.org)}"></div></div>
+      <div class="f"><label class="l">Sport</label><div class="chips" id="obSports">${SPORTS.map((s) => `<button class="chip ${o.sport === s ? "on" : ""}" data-obsport="${s}">${s}</button>`).join("")}${o.sport && !SPORTS.includes(o.sport) ? `<button class="chip on" data-obsport="${esc(o.sport)}">${esc(o.sport)}</button>` : ""}<input type="text" class="chip more" id="obSportOther" placeholder="Other…" size="8"></div></div>
+      <div class="row2"><div class="f"><label class="l" for="obAr">Area</label><input type="text" id="obAr" placeholder="City or ZIP" autocomplete="postal-code" value="${esc(o.area)}"></div>
+        <div class="f"><label class="l" for="obTz">Timezone</label><select id="obTz">${["America/Chicago", "America/New_York", "America/Denver", "America/Los_Angeles", "America/Phoenix", "America/Anchorage", "Pacific/Honolulu"].concat(["America/Chicago", "America/New_York", "America/Denver", "America/Los_Angeles", "America/Phoenix", "America/Anchorage", "Pacific/Honolulu"].includes(o.tz) ? [] : [o.tz]).map((z) => `<option ${o.tz === z ? "selected" : ""}>${esc(z)}</option>`).join("")}</select></div></div>
+      <div class="f"><label class="l" for="obWeb">Website <span style="color:var(--ink-3);font-weight:400">· optional</span></label><input type="url" id="obWeb" placeholder="northsideflight.org" inputmode="url" value="${esc(o.web)}"><div class="hint">${p.org ? "We read your teams, fees, and dates from it while you keep going. Nothing on your site changes." : "We read your services and rates from it while you keep going."}</div></div>
+      <div class="derived"><div class="h"><i></i>What these answers set</div>
+        <div class="r"><span>Sport pack</span><span>${esc(o.sport || "—")}</span></div><div class="r"><span>Calendar</span><span>${p.cal}</span></div>
+        <div class="r"><span>A group is a</span><span>${p.group}</span></div><div class="r"><span>A session is a</span><span>${sn.sess || p.sess}</span></div>
+        <div class="r"><span>Families pay</span><span>${p.bill}</span></div><div class="r"><span>Send window</span><span>8:00–20:00 ${esc(o.tz.split("/")[1] || o.tz).replace(/_/g, " ")}</span></div></div>
+      ${o.err ? `<p class="oberr" role="alert">${esc(o.err)}</p>` : ""}
+    </section>`;
+  }
+  function step4() {
+    const o = ob();
+    const tile = (kind, ic, b, s, attr) => `<button class="cn ${o.conn[kind] ? "on" : ""} ${S.cxBusy === kind ? "busy" : ""}" ${attr}><span class="ic">${ic}</span><span class="b"><b>${b}</b><small>${s}</small></span><span class="st">${o.conn[kind] ? "Connected" : S.cxBusy === kind ? "Signing in…" : "Connect"}</span></button>`;
+    return `<section class="step on" data-s="4"><h1>Connect what you already use</h1>
+      <p class="sub">Read-only where it can be. Nothing is sent from any of these — Sporv drafts, you approve. Skip anything; add it later from Settings.</p>
+      <div class="conn">
+        ${tile("gmail", "GM", "Gmail", "Inbound parent email, tournament PDFs, league notices. Read-only scope — it cannot send.", 'data-cxgoogle="gmail"')}
+        ${tile("google_calendar", "GC", "Google Calendar", "Practices, games, conflicts. Changes you approve are written back.", 'data-cxgoogle="google_calendar"')}
+        ${tile("google_sheets", "SH", "Google Sheets", "The spreadsheet your club actually runs on. Read-only.", 'data-cxgoogle="google_sheets"')}
+        ${tile("google_drive", "DR", "Google Drive", "Waivers, forms and PDFs you already store. Read-only.", 'data-cxgoogle="google_drive"')}
+        <button class="cn" data-obgo="5"><span class="ic">CSV</span><span class="b"><b>A roster export or CSV</b><small>SportsEngine, TeamSnap, LeagueApps, Spond, or a plain sheet. Next step.</small></span><span class="st">Upload</span></button>
+      </div>
+      <p class="note"><b>Stripe</b> is connected from Money once you are in — identity checks for payouts take days, so start it early, but it never blocks setup.</p>
+      ${S.connectError ? `<p class="oberr" role="alert">${esc(S.connectError)}</p>` : ""}
+    </section>`;
+  }
+  function step5() {
+    const o = ob(), p = PACK[o.type || "blank"];
+    return `<section class="step on" data-s="5"><h1>Your roster</h1>
+      <p class="sub">${o.roster ? `${o.roster} ${p.member.toLowerCase()}${o.roster === 1 ? "" : "s"} on file.` : `No ${p.groups.toLowerCase()} yet.`} Upload an export and see exactly what will be created before anything is written — nothing is dropped, nothing merged silently, and a re-upload creates no duplicates.</p>
+      <div class="drop"><b>Drop a CSV or an export file</b>From SportsEngine, TeamSnap, LeagueApps, Spond or a plain sheet. Import sends zero emails.<div style="margin-top:14px"><button class="btn pri" data-import="1">Choose a file</button></div></div>
+      <p class="hint">Rows Sporv cannot read are held for review, counted, and shown to you — never discarded.</p>
+    </section>`;
+  }
+  function step6() {
+    const o = ob(), ar = S.agentRun;
+    return `<section class="step on" data-s="6"><h1>First run</h1>
+      <p class="sub">Sporv reads what you connected and drafts what it finds — dues to chase, waivers to request, conflicts to flag. Under a minute. Nothing is sent; everything waits for you.</p>
+      ${ar && ar.done ? `<div class="card"><div class="row"><span class="lab"><b>Done.</b><small>${ar.total} item${ar.total === 1 ? "" : "s"} in your queue — all drafts, none sent.</small></span><span class="pill ok">Ready</span></div></div>`
+        : `<button class="btn pri full big" data-obrun="1" ${o.busy ? "disabled" : ""}>${ar ? "Running…" : "Run Sporv"}</button>`}
+      ${o.err ? `<p class="oberr" role="alert">${esc(o.err)}</p>` : ""}
+    </section>`;
+  }
+  function step7() {
+    const o = ob(), ar = S.agentRun || {}, p = PACK[o.type || "blank"];
+    return `<section class="step on" data-s="7"><h1>You're set up</h1>
+      <p class="sub">${o.t0 ? "Set up in " + fmt(Date.now() - o.t0) + ". " : ""}${ar.total ? ar.total + " draft" + (ar.total === 1 ? "" : "s") + " waiting. " : ""}Approve what's right, edit what isn't, skip the rest. ${p.groups} and families can be added any time.</p>
+    </section>`;
+  }
+
+  function html() {
+    const o = ob(); if (signedIn() && !o.loaded) resume(); if (!signedIn() && !o.providers) loadProviders();
+    if (!signedIn() && o.step !== "1" && o.step !== "1b") o.step = "1";
+    const s = o.step, full = s !== "1";
+    const body = { "1": step1, "1b": step1b, "2": step2, "3": step3, "4": step4, "5": step5, "6": step6, "7": step7 }[s]();
+    const w = why(s), next = s === "5" ? "Run Sporv" : s === "7" ? "Open dashboard" : "Continue";
+    const showNext = !(s === "1" || s === "1b" || (s === "6" && !(S.agentRun && S.agentRun.done)));
+    return `<div class="ob ${full ? "full" : ""}"><div class="left">
+      <div class="top"><span class="brand">Sporv</span><span class="stp">${LBL[s]}</span><span class="clock mono">${o.t0 && full ? fmt(Date.now() - o.t0) : ""}</span>${signedIn() ? `<button class="btn ghost obout" data-obsignout="1">Sign out</button>` : ""}</div>
+      <div class="prog"><i style="width:${PCT[s]}%"></i></div>
+      <div class="body ${s === "1" || s === "1b" ? "center" : ""}"><div class="pad">${body}</div></div>
+      <div class="foot">
+        <button class="btn ghost" data-obback="1" style="visibility:${(s === "1" || s === "1b" || s === "2" || s === "6" || s === "7") ? "hidden" : "visible"}">Back</button>
+        ${showNext ? `<button class="btn pri" id="obNext" data-obnext="1" ${w ? "disabled" : ""} ${w ? `title="${esc(w.msg)}"` : ""}>${next}</button>` : ""}
+        ${SKIP[s] && !(s === "3" && !w) ? `<button class="btn ghost skip" data-obskip="1" style="display:inline-flex">${SKIP[s]}</button>` : ""}
+      </div>
+      ${w && showNext ? `<p class="obwhy ${w.hard ? "hard" : ""}">${esc(w.msg)}</p>` : ""}
+    </div>
+    <aside class="right" aria-hidden="true"><div class="ph"><svg viewBox="0 0 120 120" style="width:34%;height:auto;opacity:.9" aria-hidden="true"><circle cx="60" cy="60" r="52" fill="none" stroke="#7E8BA2" stroke-width="10"/><path d="M38 78 L60 34 L82 78 Z" fill="#7E8BA2"/></svg><div class="lab"><b>Welcome to Sporv</b>Your visual goes here · 4:5</div></div><div class="cap"><span>Sporv</span><span>Account</span></div></aside>
+    </div>`;
+  }
+
+  /* ── actions ── */
+  function fail(msg) { const o = ob(); o.busy = false; o.err = msg; render(); }
+  function sendLink() {
+    const o = ob(); if (!EMAIL_RX.test(o.email)) return fail("That email address is not valid. Check it and try again.");
+    if (!AUTH() || !AUTH().magicLink) return fail("Sign-in is unavailable right now. Reload the page; if it persists, write to security@sporv.ai.");
+    o.busy = true; o.err = null; render();
+    try { sessionStorage.setItem("sporv:oauth-intent", "signup"); } catch (e) { /* private mode: the return still works */ }
+    AUTH().magicLink(o.email, window.location.origin + "/", { role: "provider" })
+      .then(() => { o.busy = false; o.sent = true; o.step = "1b"; render(); })
+      .catch((e) => fail("The link could not be sent" + (e && e.message ? " — " + e.message : "") + ". Try again in a moment, or use a different email."));
+  }
+  function verifyCode(tok) {
+    const o = ob(); if (!/^\d{6}$/.test(tok)) return fail("The code is six digits. Copy it from the email.");
+    o.busy = true; o.err = null; render();
+    AUTH().verifyMagicCode(o.email, tok).then(() => AUTH().loadProfile()).then((p) => {
+      o.busy = false; if (typeof completeAuth === "function") completeAuth({ id: p && p.id, firstName: (p && p.first_name) || "", lastName: (p && p.last_name) || "", email: (p && p.email) || o.email, phone: "", role: (p && p.role) || "provider", preferredSports: [], img: typeof phAvatar === "function" ? phAvatar() : "" });
+    }).catch(() => fail("That code was not accepted. It may have expired (15 minutes) — send a new link."));
+  }
+  function saveStep(step) {
+    const o = ob(), p = pv();
+    if (!p) return Promise.resolve();
+    const jobs = [];
+    if (step === "2" && o.consent && !o.consentAt) { o.consentAt = new Date().toISOString(); jobs.push(settingsWrite("legal_consent", { version: CONSENT_VERSION, at: o.consentAt })); }
+    if (step === "3") {
+      const nm = o.name.trim().split(/\s+/); const first = nm[0] || null, last = nm.slice(1).join(" ") || null;
+      if (first && AUTH() && AUTH().userId) jobs.push(API().from("profiles", "id=eq." + AUTH().userId() + "&select=id", { method: "PATCH", headers: { Prefer: "return=representation" }, body: { first_name: first, last_name: last } }));
+      const patch = {}; if (o.org.trim()) patch.business_name = o.org.trim(); else if (!PACK[o.type || "blank"].org && first) patch.business_name = o.name.trim();
+      if (o.sport) patch.sports = [o.sport]; if (o.area.trim()) patch.location = o.area.trim();
+      if (Object.keys(patch).length && window.SporveCoach && window.SporveCoach.save) jobs.push(window.SporveCoach.save(patch).then((row) => { if (row) S.coachProvider = Object.assign({}, S.coachProvider, row); }));
+    }
+    jobs.push(persist());
+    return Promise.all(jobs);
+  }
+  function advance(skip) {
+    const o = ob(), s = o.step, i = ORDER.indexOf(s); if (i < 0) return;
+    const w = why(s); if (w && w.hard) return fail(w.msg);
+    if (w && !skip) return fail(w.msg);
+    if (s === "2" && skip && !o.type) o.type = "blank";
+    if (!o.t0) o.t0 = Date.now();
+    if (s === "7") return finish();
+    o.busy = true; o.err = null; render();
+    saveStep(s).then(() => { o.busy = false; o.step = ORDER[i + 1]; if (o.step === "6" && S.agentRun && S.agentRun.done) {} persist(); render(); })
+      .catch((e) => fail("Saved on this device, but not to Sporv" + (e && e.message ? " — " + e.message : "") + ". Check your connection and press Continue again; nothing you typed is lost."));
+  }
+  function finish() {
+    const o = ob(), p = pv(); o.busy = true; render();
+    const done = () => { o.busy = false; if (p) p.onboarding_completed = true; S.coachTab = "queue"; S.portal = "coach"; if (typeof go === "function") go("dashboard"); };
+    if (!p || !API()) return done();
+    API().from("providers", "id=eq." + p.id + "&select=id,onboarding_completed", { method: "PATCH", headers: { Prefer: "return=representation" }, body: { onboarding_completed: true } })
+      .then(() => settingsWrite("onboarding", Object.assign(snapshot(), { step: "done" })).catch(() => {})).then(done)
+      .catch((e) => fail("Could not mark setup complete" + (e && e.message ? " — " + e.message : "") + ". Press Open dashboard again."));
+  }
+
+  function wire() {
+    const root = document.querySelector(".ob"); if (!root) return;
+    const o = ob(), q = (sel) => Array.from(root.querySelectorAll(sel)), id = (x) => document.getElementById(x);
+    const em = id("obEm"); if (em) { em.oninput = () => { o.email = em.value.trim(); const b = id("obSend"); if (b) b.disabled = !EMAIL_RX.test(o.email) || o.busy; }; em.onkeydown = (e) => { if (e.key === "Enter" && EMAIL_RX.test(o.email)) sendLink(); }; if (o.step === "1" && !o.email) em.focus(); }
+    const send = id("obSend"); if (send) send.onclick = sendLink;
+    q("[data-oboauth]").forEach((b) => b.onclick = () => { if (!AUTH()) return fail("Sign-in is unavailable right now. Reload the page."); try { sessionStorage.setItem("sporv:oauth-intent", "signup"); if (typeof saveState === "function") saveState(); } catch (e) {} window.location.href = AUTH().oauthUrl(b.dataset.oboauth, window.location.origin + window.location.pathname); });
+    q("[data-oblogin]").forEach((a) => a.onclick = (e) => { e.preventDefault(); const el = id("obEm"); if (el) el.focus(); });
+    q("[data-obpw]").forEach((a) => a.onclick = (e) => { e.preventDefault(); S.authIdentifier = o.email; S.modal = { type: "login" }; render(); });
+    q("[data-obfoot]").forEach((a) => a.onclick = (e) => { e.preventDefault(); const [n, arg] = a.dataset.obfoot.split(":"); S.modal = null; window.open(location.origin + "/?page=" + encodeURIComponent(arg), "_blank", "noopener"); void n; });
+    q("[data-obresend]").forEach((b) => b.onclick = () => { o.resent = true; AUTH().magicLink(o.email, window.location.origin + "/", { role: "provider" }).catch(() => {}); render(); setTimeout(() => { o.resent = false; render(); }, 1800); });
+    q("[data-obwrong]").forEach((b) => b.onclick = () => { o.step = "1"; o.sent = false; o.err = null; o.code = false; render(); });
+    q("[data-obcode]").forEach((b) => b.onclick = () => { o.code = true; render(); });
+    const cf = id("obCode"); if (cf) cf.onsubmit = (e) => { e.preventDefault(); verifyCode((id("obTok").value || "").trim()); };
+    q("[data-obtype]").forEach((b) => b.onclick = () => { o.type = b.dataset.obtype; render(); });
+    const cs = id("obConsent"); if (cs) cs.onchange = () => { o.consent = cs.checked; render(); };
+    const bind = (elId, key) => { const el = id(elId); if (el) el.oninput = () => { o[key] = el.value; const n = id("obNext"); if (n) { const w = why(o.step); n.disabled = !!w; n.title = w ? w.msg : ""; } const wh = root.querySelector(".obwhy"); if (wh) wh.hidden = !why(o.step); }; };
+    bind("obNm", "name"); bind("obOg", "org"); bind("obAr", "area"); bind("obWeb", "web");
+    const tz = id("obTz"); if (tz) tz.onchange = () => { o.tz = tz.value; render(); };
+    q("[data-obsport]").forEach((c) => c.onclick = () => { o.sport = c.dataset.obsport; render(); });
+    const so = id("obSportOther"); if (so) so.onkeydown = (e) => { if (e.key === "Enter") { e.preventDefault(); const v = so.value.trim(); if (v) { o.sport = v; render(); } } };
+    q("[data-obgo]").forEach((b) => b.onclick = () => { o.step = b.dataset.obgo; persist(); render(); });
+    q("[data-obrun]").forEach((b) => b.onclick = () => { if (typeof startAgentRunScreen !== "function" || !startAgentRunScreen()) fail("The first run needs a saved organization and a session. Go back one step and press Continue, then try again."); });
+    q("[data-obnext]").forEach((b) => b.onclick = () => advance(false));
+    q("[data-obskip]").forEach((b) => b.onclick = () => advance(true));
+    q("[data-obback]").forEach((b) => b.onclick = () => { const i = ORDER.indexOf(o.step); if (i > 0) { o.step = ORDER[i - 1]; o.err = null; persist(); render(); } });
+    q("[data-obsignout]").forEach((b) => b.onclick = () => { S.ob = null; if (typeof doSignOut === "function") doSignOut(); else if (AUTH()) AUTH().signOut().then(() => location.reload()); });
+  }
+
+  const CSS = `
+  .ob{position:fixed;inset:0;z-index:60;height:100dvh;display:grid;grid-template-columns:1fr 1fr;background:#0B0D0F;color:#EDEFF2;font-family:Inter,-apple-system,system-ui,sans-serif;font-size:14px;line-height:1.5;letter-spacing:-.003em;-webkit-font-smoothing:antialiased;transition:grid-template-columns .45s cubic-bezier(.2,.7,.2,1);
+    --bg:#0B0D0F;--panel:#121417;--panel-2:#171A1E;--raise:#1C1F24;--line:#202429;--line-2:#2A3037;--line-3:#39424D;--ink:#EDEFF2;--ink-2:#9BA3AD;--ink-3:#8C95A3;--steel:#6B7F9E;--steel-l:#9DB0CB;--steel-bg:rgba(107,127,158,.12);--steel-br:rgba(107,127,158,.34);--ok:#6FA982;--ok-bg:rgba(111,169,130,.12);--ok-br:rgba(111,169,130,.28);--attn:#8EC5E8;--gutter:clamp(24px,6vw,96px);--col:600px;--col-wide:680px;--s-1:4px;--s-2:8px;--s-3:12px;--s-4:16px;--s-5:24px;--s-6:32px;--s-7:48px;--t-10:10.5px;--t-11:11.5px;--t-12:12.5px;--t-13:13.5px;--t-14:14px}
+  .ob *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}.ob button,.ob input,.ob select{font:inherit;color:inherit;background:none;border:0}.ob button{cursor:pointer}.ob :focus-visible{outline:2px solid var(--steel);outline-offset:2px}
+  .ob.full{grid-template-columns:1fr 0fr}.ob.full .right{opacity:0;pointer-events:none}
+  .ob .left{display:flex;flex-direction:column;min-width:0;min-height:0;height:100%}
+  .ob .top{flex:none;height:calc(env(safe-area-inset-top) + 64px);padding-top:env(safe-area-inset-top);display:flex;align-items:center;gap:var(--s-5);padding-left:var(--gutter);padding-right:var(--gutter)}
+  .ob .brand{font-family:"Roboto Condensed",sans-serif;font-weight:700;font-size:17px;letter-spacing:.04em;text-transform:uppercase}
+  .ob .stp,.ob .clock{font-family:"JetBrains Mono",monospace;font-size:var(--t-11);color:var(--ink-3);letter-spacing:.08em}.ob .clock{margin-left:auto}.ob .obout{margin-left:8px}
+  .ob .prog{flex:none;height:1px;background:var(--line);margin:0 var(--gutter)}.ob .prog i{display:block;height:100%;background:var(--steel);transition:width .5s cubic-bezier(.2,.7,.2,1)}
+  .ob .body{flex:1;min-height:0;overflow:auto;-webkit-overflow-scrolling:touch;display:flex;align-items:flex-start}.ob .body.center{align-items:center}
+  .ob .pad{padding:var(--s-6) var(--gutter);max-width:var(--col);width:100%;margin:0 auto}.ob.full .pad,.ob.full .foot{max-width:var(--col-wide)}
+  .ob .foot{flex:none;padding:var(--s-4) var(--gutter) calc(env(safe-area-inset-bottom) + var(--s-4));display:flex;gap:var(--s-3);align-items:center;max-width:var(--col);margin:0 auto;width:100%;border-top:1px solid var(--line)}
+  .ob .foot #obNext{flex:1;height:46px;font-size:var(--t-13)}.ob .foot .skip{flex:none;font-size:var(--t-12);color:var(--ink-3)}
+  .ob .right{position:relative;background:var(--panel);border-left:1px solid var(--line);display:grid;place-items:center;overflow:hidden;padding:var(--s-7);transition:opacity .3s}
+  .ob .ph{position:relative;width:min(560px,86%);aspect-ratio:4/5;border:1px dashed var(--line-3);border-radius:18px;display:grid;place-items:center;background:rgba(11,13,15,.45)}
+  .ob .ph .lab{position:absolute;bottom:22px;left:0;right:0;font-family:"JetBrains Mono",monospace;font-size:var(--t-10);letter-spacing:.14em;text-transform:uppercase;color:var(--ink-3);text-align:center;line-height:2}.ob .ph .lab b{display:block;font-family:Inter,sans-serif;text-transform:none;font-weight:600;font-size:var(--t-14);letter-spacing:0;color:var(--ink-2)}
+  .ob .cap{position:absolute;left:var(--s-7);bottom:var(--s-6);right:var(--s-7);display:flex;justify-content:space-between;font-family:"JetBrains Mono",monospace;font-size:var(--t-10);letter-spacing:.12em;text-transform:uppercase;color:var(--ink-3)}
+  @media(max-width:900px){.ob{grid-template-columns:1fr}.ob .right{display:none}.ob .body{align-items:flex-start}}
+  .ob h1{font-family:"Roboto Condensed",sans-serif;text-transform:uppercase;font-weight:700;font-size:17px;letter-spacing:.035em;margin:0 0 var(--s-2);line-height:1.15;color:var(--ink)}
+  .ob .sub{color:var(--ink-2);font-size:13px;margin:0 0 var(--s-5);max-width:56ch}
+  .ob label.l{display:block;font-family:"Roboto Condensed",sans-serif;text-transform:uppercase;font-weight:700;font-size:var(--t-11);letter-spacing:.08em;color:var(--ink-3);margin:0 0 var(--s-2)}
+  .ob .hint{color:var(--ink-3);font-size:var(--t-12);margin-top:var(--s-2);line-height:1.45}.ob .f{margin-bottom:var(--s-5)}.ob .row2{display:grid;grid-template-columns:1fr 1fr;gap:var(--s-4)}
+  .ob input[type=text],.ob input[type=email],.ob input[type=url],.ob select{width:100%;height:38px;padding:0 var(--s-3);background:var(--bg);border:1px solid var(--line-2);border-radius:7px;font-size:var(--t-14);color:var(--ink)}
+  @media(hover:none){.ob input[type=text],.ob input[type=email],.ob input[type=url],.ob select{font-size:16px}}
+  .ob input:focus,.ob select:focus{border-color:var(--steel);outline:0}.ob input::placeholder{color:var(--ink-3)}
+  .ob .btn{height:34px;padding:0 14px;border:1px solid var(--line-2);border-radius:7px;font-family:"Roboto Condensed",sans-serif;text-transform:uppercase;letter-spacing:.07em;font-weight:700;font-size:var(--t-12);display:inline-flex;align-items:center;justify-content:center;gap:8px;color:var(--ink);transition:transform .12s,background .15s}
+  .ob .btn:hover{background:var(--panel-2)}.ob .btn:active{transform:scale(.985)}.ob .btn.pri{background:var(--steel);color:#fff;border-color:var(--steel)}.ob .btn.pri:hover{background:#7A8FAE;border-color:#7A8FAE}.ob .btn.pri:disabled{opacity:.38;cursor:not-allowed;transform:none}
+  .ob .btn.full{width:100%}.ob .btn.big{height:44px;font-size:var(--t-13)}
+  .ob .btn.ghost{border-color:transparent;color:var(--ink-2);font-family:Inter,sans-serif;text-transform:none;letter-spacing:0;font-weight:500}.ob .btn.ghost:hover{color:var(--ink);background:var(--panel-2)}
+  .ob .btn.google{background:#fff;color:#0B0D0F;border-color:#fff;position:relative;font-family:Inter,sans-serif;text-transform:none;letter-spacing:0;font-weight:600}.ob .btn.google:hover{background:#E6E9EE}.ob .btn.google+.btn.google{margin-top:8px}.ob .gi{width:16px;height:16px;position:absolute;left:14px}
+  .ob .or{display:flex;align-items:center;gap:var(--s-3);color:var(--ink-3);font-size:var(--t-12);margin:var(--s-5) 0}.ob .or::before,.ob .or::after{content:'';flex:1;height:1px;background:var(--line)}
+  .ob .logo{display:flex;align-items:center;justify-content:center;gap:var(--s-3);margin:0 0 var(--s-7)}.ob .logo svg{width:34px;height:34px}.ob .logo span{font-family:"Roboto Condensed",sans-serif;font-weight:700;font-size:22px;letter-spacing:.03em;text-transform:uppercase;color:#93A1B8}
+  .ob .fine{font-size:var(--t-12);color:var(--ink-3);text-align:center;margin-top:var(--s-4)}.ob .fine a{color:var(--ink-2)}
+  .ob .oberr{margin:0 0 var(--s-4);padding:var(--s-2) var(--s-3);border-left:2px solid #C98A8A;color:#E6B8B8;font-size:var(--t-12);line-height:1.5}
+  .ob .obwhy{max-width:var(--col-wide);margin:0 auto;padding:0 var(--gutter) var(--s-3);font-size:var(--t-12);color:var(--ink-3)}.ob .obwhy.hard{color:var(--attn)}
+  .ob .opts{display:flex;flex-direction:column;gap:var(--s-2)}.ob .opt{display:grid;grid-template-columns:1fr auto;gap:var(--s-4);align-items:center;padding:var(--s-3) var(--s-4);border:1px solid var(--line-2);border-radius:9px;background:var(--bg);text-align:left;transition:transform .12s,border-color .15s}
+  .ob .opt:hover{border-color:var(--line-3)}.ob .opt.on{border-color:var(--steel);background:var(--steel-bg)}.ob .opt b{display:block;font-size:var(--t-13);font-weight:500}.ob .opt small{display:block;color:var(--ink-3);font-size:var(--t-12);margin-top:2px;line-height:1.45}
+  .ob .opt .k{font-family:"JetBrains Mono",monospace;font-size:var(--t-10);letter-spacing:.08em;color:var(--ink-3);white-space:nowrap}.ob .opt.on .k{color:var(--steel-l)}
+  .ob .consent{display:flex;gap:10px;align-items:flex-start;margin-top:var(--s-5);padding:var(--s-3) var(--s-4);border:1px solid var(--line-2);border-radius:9px;font-size:var(--t-12);color:var(--ink-2);cursor:pointer}.ob .consent.on{border-color:var(--steel)}.ob .consent input{width:16px;height:16px;margin-top:2px;accent-color:#6B7F9E}.ob .consent a{color:var(--ink)}
+  .ob .chips{display:flex;flex-wrap:wrap;gap:var(--s-2)}.ob .chip{height:28px;padding:0 11px;border:1px solid var(--line-2);border-radius:999px;font-size:var(--t-12);color:var(--ink-2);display:inline-flex;align-items:center}.ob .chip:hover{border-color:var(--line-3);color:var(--ink)}.ob .chip.on{background:var(--ink);color:var(--bg);border-color:var(--ink);font-weight:500}.ob input.chip.more{border-style:dashed;color:var(--ink-3);width:auto;height:28px;background:transparent}
+  .ob .derived{margin-top:var(--s-6);border:1px solid var(--line);border-radius:10px;overflow:hidden}.ob .derived .h{padding:8px 13px;border-bottom:1px solid var(--line);font-weight:600;font-size:var(--t-12);display:flex;align-items:center;gap:8px}.ob .derived .h i{width:6px;height:6px;border-radius:50%;background:var(--steel);display:inline-block}
+  .ob .derived .r{display:flex;justify-content:space-between;gap:14px;padding:8px 13px;border-bottom:1px solid var(--line);font-size:13px}.ob .derived .r:last-child{border-bottom:0}.ob .derived .r span:first-child{color:var(--ink-3)}.ob .derived .r span:last-child{font-family:"JetBrains Mono",monospace;font-size:var(--t-12);text-align:right}
+  .ob .conn{display:grid;grid-template-columns:1fr;gap:var(--s-2)}.ob .cn{display:flex;align-items:flex-start;gap:var(--s-3);padding:var(--s-3) var(--s-4);border:1px solid var(--line-2);border-radius:9px;background:var(--bg);text-align:left}.ob .cn:hover{border-color:var(--line-3)}.ob .cn.on{border-color:var(--ok-br);background:var(--ok-bg)}
+  .ob .cn .ic{width:28px;height:28px;border-radius:7px;background:var(--panel-2);border:1px solid var(--line);display:grid;place-items:center;font-family:"JetBrains Mono",monospace;font-size:var(--t-10);color:var(--ink-2);flex:none}.ob .cn.on .ic{border-color:var(--ok-br);color:var(--ok)}.ob .cn b{display:block;font-size:var(--t-13);font-weight:500}.ob .cn .b{flex:1;min-width:0}.ob .cn small{display:block;font-size:var(--t-11);color:var(--ink-3);line-height:1.45;margin-top:2px}
+  .ob .cn .st{margin-left:auto;font-size:var(--t-11);color:var(--ink-3);flex:none;padding-top:2px;white-space:nowrap}.ob .cn.on .st{color:var(--ok)}.ob .cn.busy .st{color:var(--steel-l)}
+  .ob .note{border-left:1px solid var(--steel);padding:var(--s-2) var(--s-4);color:var(--ink-2);font-size:var(--t-12);margin-top:var(--s-5);line-height:1.55}.ob .note b{color:var(--ink);font-weight:600}
+  .ob .card{background:var(--panel);border:1px solid var(--line);border-radius:10px;overflow:hidden}.ob .row{display:flex;align-items:center;gap:var(--s-4);padding:var(--s-3) var(--s-4)}.ob .row .lab{flex:1;min-width:0}.ob .row .lab b{display:block;font-size:var(--t-13);font-weight:500}.ob .row .lab small{display:block;font-size:var(--t-12);color:var(--ink-3);margin-top:1px}
+  .ob .pill{font-size:var(--t-11);font-weight:500;padding:2px 8px;border-radius:999px;border:1px solid var(--line-2);color:var(--ink-3);white-space:nowrap}.ob .pill.ok{color:var(--ok);background:var(--ok-bg);border-color:var(--ok-br)}
+  .ob .drop{border:1px dashed var(--line-3);border-radius:9px;padding:var(--s-6);text-align:center;color:var(--ink-3);font-size:var(--t-12)}.ob .drop b{display:block;color:var(--ink-2);font-weight:500;font-size:var(--t-13);margin-bottom:3px}
+  @media(max-width:520px){.ob .row2{grid-template-columns:1fr}.ob .foot{flex-wrap:wrap}}`;
+
+  window.MOD_ONBOARD = { css: CSS, html, wire, route: "setup", HARD_BLOCKS, CONSENT_VERSION, ORDER, SKIP, why };
 })();
 
 </script>

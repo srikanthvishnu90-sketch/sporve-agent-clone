@@ -1,0 +1,20 @@
+name: anon-surface
+# Owner rule 2 (2026-09-16): no route touching org, money or athlete data is
+# reachable without a session. Weekly + on demand, read-only, publishable key
+# only. Fails on any table that returns rows anonymously and is not excused by
+# an unapplied migration named in tools/anon-surface-pending.json.
+on:
+  schedule:
+    - cron: "15 9 * * 1"
+  workflow_dispatch:
+permissions: {}
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: node tools/check-anon-surface.mjs

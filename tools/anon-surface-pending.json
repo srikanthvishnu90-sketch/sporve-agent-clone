@@ -1,0 +1,4 @@
+{
+  "_": "Tables that still answer an anonymous read, each with the migration FILE that closes it. Allowed only while that migration is unapplied (D5). Delete the entry the day it is applied; the weekly workflow then fails if the read path is still open.",
+  "providers": "20260915_001065_staff_only_signup.sql"
+}
