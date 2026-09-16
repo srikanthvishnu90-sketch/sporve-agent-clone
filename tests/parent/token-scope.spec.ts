@@ -7,7 +7,7 @@
 //     event B, there is no profile scope at all, and an expired or revoked
 //     token redeems to zero rows — proved against a real Postgres by the
 //     fixture (groups B–E, executed at the end);
-//   · the page: a refused token is answered with a 404, not a 403 — on
+//   · the API (and so the page on sporv.ai): a refused token is answered with a 404, not a 403 — on
 //     purpose. A 403 tells a forwarded-link holder "this token is real, just
 //     not for this"; a 404 tells them nothing. The spec's intent (no access,
 //     nothing learned) is met more strictly than its literal status code.
@@ -30,13 +30,13 @@ const TOKEN = 'd'.repeat(64);
 type Rpc = (name: string, args: Record<string, unknown>) => Promise<{ data: unknown; error: { message: string } | null }>;
 async function call(req: Request, rpc: Rpc): Promise<{ status: number; body: string; names: string[] }> {
   let handler: ((r: Request) => Promise<Response>) | undefined; const names: string[] = [];
-  vm.runInNewContext(source, { Response, Request, URL, FormData, Intl, Date, String, console,
+  vm.runInNewContext(source, { Response, Request, URL, Intl, Date, String, JSON, console,
     createClient: () => ({ rpc: async (n: string, a: Record<string, unknown>) => { names.push(n); return rpc(n, a); } }),
     Deno: { serve(fn: typeof handler) { handler = fn; }, env: { get: () => 'fixture' } } });
   const res = await handler!(req); return { status: res.status, body: await res.text(), names };
 }
-const post = (response: string) => { const fd = new FormData(); fd.set('t', TOKEN); fd.set('response', response);
-  return new Request('https://x.invalid/functions/v1/guardian-link', { method: 'POST', body: fd }); };
+const post = (response: string) => new Request('https://x.invalid/functions/v1/guardian-link',
+  { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ t: TOKEN, response }) });
 const okLimit: Rpc = async (n) => n === 'consume_edge_rate_limit' ? { data: true, error: null } : { data: null, error: null };
 
 test('an rsvp token is bound to ONE event: the database refuses it on event B with 42501', () => {
@@ -61,14 +61,14 @@ test('after expiry (and after revocation, consumption, or a contact change) the 
   assert.match(fixture, /FAIL E: phone change did not rotate tokens/);
 });
 
-test('the page answers a refused token with 404 — never a 2xx, never a hint, nothing written', async () => {
+test('the API answers a refused token with 404 — never a 2xx, never a hint, nothing written', async () => {
   for (const why of ['link is not valid (42501)', 'this link cannot answer an RSVP (42501)', "none of your athletes is on this event's team (42501)"]) {
     const r = await call(post('yes'), async (n) => n === 'consume_edge_rate_limit' ? { data: true, error: null } : { data: null, error: { message: why } });
     assert.equal(r.status, 404, why); assert.ok(!/42501|athlete|scope/i.test(r.body), 'the body must not explain why');
     assert.deepEqual(r.names, ['consume_edge_rate_limit', 'guardian_token_rsvp']);
   }
   const expired = await call(new Request(`https://x.invalid/functions/v1/guardian-link?t=${TOKEN}`), async (n) => n === 'consume_edge_rate_limit' ? { data: true, error: null } : { data: [], error: null });
-  assert.equal(expired.status, 404); assert.match(expired.body, /no longer valid/);
+  assert.equal(expired.status, 404); assert.equal(JSON.parse(expired.body).error, 'not_found');
 });
 
 test('the only way a token is minted for a family is at approval, bound to the event the draft is about', () => {

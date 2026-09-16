@@ -47,6 +47,7 @@ const SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 const GATEWAY_FN = Deno.env.get("GATEWAY_FUNCTION_NAME") ?? "ai-gateway";
 const RESEND_API_KEY = Deno.env.get("RESEND_API_KEY") ?? "";
 const MAIL_DOMAIN = Deno.env.get("MAIL_DOMAIN") ?? "mail.sporv.ai";
+const PARENT_BASE_URL = (Deno.env.get("PARENT_BASE_URL") ?? "https://sporv.ai").replace(/\/+$/, "");
 const BATCH = Number(Deno.env.get("LIFECYCLE_BATCH") ?? 25);
 const GENERATION_DB_MS = 8_000;
 const GENERATION_MODEL_MS = 20_000;
@@ -325,8 +326,11 @@ Deno.serve(async (req) => {
         // 'rsvp' guardian token minted at approval (001071). It becomes the
         // one-tap answer link here, and only here — the token is the secret,
         // so a malformed value is dropped rather than interpolated.
+        // The page lives on sporv.ai (rsvp.html → /r); the function behind it is
+        // the API. The Supabase gateway rewrites HTML from a function to
+        // text/plain, so the link must never point at the function itself.
         const rsvpUrl = typeof c.rsvp_token === "string" && /^[0-9a-f]{64}$/.test(c.rsvp_token)
-          ? `${SUPABASE_URL}/functions/v1/guardian-link?t=${c.rsvp_token}` : null;
+          ? `${PARENT_BASE_URL}/r?t=${c.rsvp_token}` : null;
         const bodyWithLink = c.body + (rsvpUrl ? `\n\nAre you coming? Answer in one tap — no app, no account:\n${rsvpUrl}` : "");
 
         // send window from settings (default 8am-8pm org tz, blocked days)

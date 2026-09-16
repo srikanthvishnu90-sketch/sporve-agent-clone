@@ -1,0 +1,54 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="color-scheme" content="dark">
+<meta name="robots" content="noindex, nofollow">
+<meta name="referrer" content="no-referrer">
+<title>Are you coming? · Sporv</title>
+<!-- The page a family lands on from a magic link (spec 13, slice 1).
+     Served from sporv.ai because the Supabase gateway rewrites HTML from an
+     edge function to text/plain under a sandboxing CSP. This page holds no
+     data: everything comes from the guardian-link function, which answers
+     only for a live token. No login, no account, no app. -->
+<style>
+  :root{--bg:#0B0D0F;--panel:#131519;--line:#2A3037;--ink:#EDEFF2;--ink-2:#B4BBC5;--ink-3:#9BA3AD;--steel:#4F6A85;--steel-l:#9DB0CB;--ok:#6FA982}
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.5 -apple-system,system-ui,"Segoe UI",Roboto,sans-serif;padding:24px}
+  main{max-width:480px;margin:0 auto}
+  .brand{font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:#8FA3BC;font-size:13px;margin:0 0 24px}
+  h1{font-size:22px;line-height:1.2;margin:0 0 6px;letter-spacing:-.01em}
+  p{color:var(--ink-2);margin:0 0 18px}
+  small{color:var(--ink-3)}
+  form{display:grid;gap:10px}
+  button{height:52px;border:1px solid var(--line);border-radius:10px;background:var(--panel);color:var(--ink);font:inherit;font-size:17px;cursor:pointer}
+  button.pri{background:var(--steel);border-color:var(--steel);color:#fff}
+  button:disabled{opacity:.5;cursor:progress}
+  button:focus-visible{outline:3px solid var(--steel-l);outline-offset:3px}
+  .ok{color:var(--ok)}
+  [hidden]{display:none!important}
+  @media (prefers-reduced-motion:no-preference){button{transition:background .12s}}
+</style>
+</head>
+<body>
+<main id="main">
+  <p class="brand">Sporv</p>
+  <section id="loading" role="status"><h1>One moment…</h1><p>Opening your link.</p></section>
+  <section id="ask" hidden>
+    <h1 id="q"></h1>
+    <p id="when"></p>
+    <form id="f" aria-labelledby="q">
+      <button type="submit" class="pri" name="response" value="yes">Yes, we'll be there</button>
+      <button type="submit" name="response" value="no">No, can't make it</button>
+      <button type="submit" name="response" value="maybe">Not sure yet</button>
+    </form>
+    <p><small>One tap. No app, no account.</small></p>
+  </section>
+  <section id="done" hidden role="status"><h1 id="doneH" class="ok"></h1><p id="doneP"></p><p><small>You can change this from the same link until the event starts.</small></p></section>
+  <section id="invalid" hidden role="alert"><h1>This link is no longer valid.</h1><p>It may have expired or already been used. Ask your club for a new one.</p></section>
+  <section id="error" hidden role="alert"><h1>Something went wrong.</h1><p id="errP">Your answer was not saved. Please try again.</p><form id="retry"><button type="submit">Try again</button></form></section>
+</main>
+<script src="/rsvp.js"></script>
+</body>
+</html>

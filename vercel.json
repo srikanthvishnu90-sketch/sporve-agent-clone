@@ -64,5 +64,11 @@
       "destination": "https://tseszaprvtvqrkfpditu.supabase.co/functions/v1/unsubscribe",
       "permanent": false
     }
+  ],
+  "rewrites": [
+    {
+      "source": "/r",
+      "destination": "/rsvp.html"
+    }
   ]
 }

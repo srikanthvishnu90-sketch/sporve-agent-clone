@@ -657,7 +657,7 @@ test('a well-formed rsvp_token becomes the guardian-link URL in the email text, 
   const r=await invoke({rows:[{...message,content:{...message.content,rsvp_token:tok}}]});
   assert.equal(r.body.emailed,1);
   const mail=r.external.find(e=>e.kind==='email').payload;
-  const url=`https://fixture.invalid/functions/v1/guardian-link?t=${tok}`;
+  const url=`https://sporv.ai/r?t=${tok}`;   // the page on sporv.ai, never the function
   assert.equal(mail.text.split(url).length-1,1,'exactly one link');
   assert.match(mail.text,/Answer in one tap — no app, no account/);
   assert.ok(mail.text.indexOf('Fixture message')<mail.text.indexOf(url),'the body comes first, the link after');
@@ -668,6 +668,6 @@ for(const [name,tok] of [['absent',undefined],['malformed',"c'--"],['uppercase',
     const r=await invoke({rows:[{...message,content:{...message.content,...(tok===undefined?{}:{rsvp_token:tok})}}]});
     assert.equal(r.body.emailed,1);
     const mail=r.external.find(e=>e.kind==='email').payload;
-    assert.ok(!/guardian-link/.test(mail.text));
+    assert.ok(!/sporv\.ai\/r\?t=|guardian-link/.test(mail.text));
     if(tok) assert.ok(!mail.text.includes(tok),'a bad token must never reach the mail');
   });
