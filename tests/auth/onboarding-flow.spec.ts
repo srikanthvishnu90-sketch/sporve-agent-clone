@@ -10,6 +10,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync, existsSync } from 'node:fs';
 import { execSync } from 'node:child_process';
+import vm from 'node:vm';
 
 const root = new URL('../../', import.meta.url);
 const read = (p: string): string => readFileSync(new URL(p, root), 'utf8');
@@ -41,7 +42,37 @@ test('2. resume after abandonment: progress lives in provider_settings, not in t
 });
 
 test('3. every soft block is advanceable: a reason and a finish-later path, never a trap', () => {
-  assert.match(mod, /const SKIP = \{ "3": "Finish later", "4": "Skip for now", "5": "Skip for now" \}/);
+  // B16 (audit 2026-09-15): the old assertion pinned the SKIP list and so
+  // blessed the trap it should have caught — step 2 had no finish-later path.
+  // Render the footer for every soft-blocked step and demand a way past it.
+  const footer = (ob: Record<string, unknown>): string => {
+    const ctx: any = { window: {}, S: { ob: { email: '', sent: false, code: false, type: null, name: '', org: '', sport: null, area: '', tz: 'America/Chicago', web: '', consent: false, busy: false, err: null, loaded: true, providers: { google: false, apple: false }, t0: null, conn: {}, roster: 0, loading: false, ...ob } },
+      Intl, Date, Math, String, Object, Array, JSON, sessionStorage: { getItem: () => null, setItem: () => {} }, document: { querySelector: () => null }, fetch: () => new Promise(() => {}) };
+    ctx.window.S = ctx.S; ctx.window.SporveAuth = { isSignedIn: () => true, userId: () => 'u1' }; ctx.window.SporveAPI = null;
+    ctx.render = () => {};
+    vm.createContext(ctx);
+    vm.runInContext(mod, ctx);
+    return ctx.window.MOD_ONBOARD.html();
+  };
+  const softSteps: Array<[string, Record<string, unknown>]> = [
+    ['2 (consented, no type)', { step: '2', consent: true, type: null }],
+    ['3 (nothing filled)', { step: '3', consent: true, type: 'team' }],
+    ['4', { step: '4', consent: true, type: 'team' }],
+    ['5', { step: '5', consent: true, type: 'team' }],
+  ];
+  for (const [label, ob] of softSteps) {
+    const out = footer(ob);
+    assert.match(out, /data-obskip="1"/, `step ${label}: no finish-later control — the user is trapped`);
+  }
+  const hard = footer({ step: '2', consent: false, type: 'team' });
+  assert.ok(!/data-obskip="1"/.test(hard), 'the consent hard block must NOT be skippable');
+  assert.match(hard, /id="obNext"[^>]*disabled/, 'Continue is disabled until consent is given');
+  // B18: both placeholder names are "unset"
+  const ctx2: any = { window: {}, S: {}, Intl, document: { querySelector: () => null } }; ctx2.window.S = ctx2.S; vm.createContext(ctx2); vm.runInContext(mod, ctx2);
+  const ph = ctx2.window.MOD_ONBOARD.isPlaceholderOrg;
+  assert.equal(ph('My Academy'), true); assert.equal(ph('Your organization'), true); assert.equal(ph(''), true); assert.equal(ph('Northside Flight'), false);
+  assert.match(mod, /o\.org = isPlaceholderOrg\(p\.business_name\) \? "" : p\.business_name;/, 'resume() treats both placeholders as unset');
+  assert.match(mod, /if \(o\.org\.trim\(\) && !isPlaceholderOrg\(o\.org\)\) patch\.business_name/, 'a placeholder is never saved as the org name');
   assert.match(mod, /if \(s === "2" && skip && !o\.type\) o\.type = "blank";/, 'skipping "what you run" starts blank instead of blocking');
   assert.match(mod, /return \{ hard: false, msg: "Still needed: " \+ miss\.join\(", "\) \+ "\. You can finish this later from Settings\." \}/, 'the soft block says exactly what is missing and where to finish it');
   assert.match(mod, /data-obskip="1"[^>]*>\$\{SKIP\[s\]\}/, 'the finish-later control is rendered');

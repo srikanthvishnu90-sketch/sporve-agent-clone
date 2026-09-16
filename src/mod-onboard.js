@@ -27,7 +27,15 @@
   const ORDER = ["1", "2", "3", "4", "5", "6", "7"];
   const LBL = { "1": "01 / 06", "1b": "01 / 06", "2": "02 / 06", "3": "03 / 06", "4": "04 / 06", "5": "05 / 06", "6": "06 / 06", "7": "COMPLETE" };
   const PCT = { "1": 6, "1b": 10, "2": 22, "3": 38, "4": 56, "5": 72, "6": 90, "7": 100 };
-  const SKIP = { "3": "Finish later", "4": "Skip for now", "5": "Skip for now" };
+  /* B16 (audit 2026-09-15): every soft block offers a way past it. Step 2's
+     soft block (no type picked) had no control — SKIP started at 3 — so a
+     consenting user who had not picked a type was stuck. Step 2's skip
+     starts blank (advance() sets type "blank"). */
+  const SKIP = { "2": "Finish later — start blank", "3": "Finish later", "4": "Skip for now", "5": "Skip for now" };
+  /* B18: the baseline trigger named live orgs 'My Academy'; the current one
+     names them 'Your organization'. Both are placeholders, not names. */
+  const PLACEHOLDER_ORG = ["Your organization", "My Academy"];
+  const isPlaceholderOrg = (n) => !n || PLACEHOLDER_ORG.includes(String(n).trim());
   const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
   const EMAIL_RX = /^[^@\s]+@[^@\s]+\.[^@\s]+$/;
   const API = () => window.SporveAPI, AUTH = () => window.SporveAuth;
@@ -67,7 +75,7 @@
       if (v.type) o.type = v.type; if (v.sport) o.sport = v.sport; if (v.area) o.area = v.area; if (v.tz) o.tz = v.tz; if (v.web) o.web = v.web;
       if (v.consent_at) { o.consent = true; o.consentAt = v.consent_at; }
       if (v.t0) o.t0 = v.t0;
-      o.org = p.business_name && p.business_name !== "Your organization" ? p.business_name : "";
+      o.org = isPlaceholderOrg(p.business_name) ? "" : p.business_name;
       const u = S.auth && S.auth.user; o.name = u ? [u.firstName, u.lastName].filter(Boolean).join(" ") : "";
       o.roster = (roster || []).length;
       (conns || []).forEach((c) => { if (c.status === "connected" || c.status === "active") o.conn[c.kind] = true; });
@@ -93,7 +101,7 @@
     if (step === "2" && !o.consent) return { hard: true, msg: "Agree to the Terms and Privacy policy to continue. This is the one thing we cannot skip." };
     if (step === "2" && !o.type) return { hard: false, msg: "Pick what you run so the calendar and billing are set up right — or finish later and start blank." };
     if (step === "3") { const p = PACK[o.type || "blank"]; const miss = [];
-      if (o.name.trim().length < 2) miss.push("your name"); if (p.org && o.org.trim().length < 2) miss.push("the organization name"); if (!o.sport) miss.push("a sport");
+      if (o.name.trim().length < 2) miss.push("your name"); if (p.org && (o.org.trim().length < 2 || isPlaceholderOrg(o.org))) miss.push("the organization name"); if (!o.sport) miss.push("a sport");
       if (miss.length) return { hard: false, msg: "Still needed: " + miss.join(", ") + ". You can finish this later from Settings." }; }
     return null;
   }
@@ -210,7 +218,7 @@
       <div class="foot">
         <button class="btn ghost" data-obback="1" style="visibility:${(s === "1" || s === "1b" || s === "2" || s === "6" || s === "7") ? "hidden" : "visible"}">Back</button>
         ${showNext ? `<button class="btn pri" id="obNext" data-obnext="1" ${w ? "disabled" : ""} ${w ? `title="${esc(w.msg)}"` : ""}>${next}</button>` : ""}
-        ${SKIP[s] && !(s === "3" && !w) ? `<button class="btn ghost skip" data-obskip="1" style="display:inline-flex">${SKIP[s]}</button>` : ""}
+        ${SKIP[s] && (w ? !w.hard : (s === "4" || s === "5")) ? `<button class="btn ghost skip" data-obskip="1" style="display:inline-flex">${SKIP[s]}</button>` : ""}
       </div>
       ${w && showNext ? `<p class="obwhy ${w.hard ? "hard" : ""}">${esc(w.msg)}</p>` : ""}
     </div>
@@ -244,7 +252,7 @@
     if (step === "3") {
       const nm = o.name.trim().split(/\s+/); const first = nm[0] || null, last = nm.slice(1).join(" ") || null;
       if (first && AUTH() && AUTH().userId) jobs.push(API().from("profiles", "id=eq." + AUTH().userId() + "&select=id", { method: "PATCH", headers: { Prefer: "return=representation" }, body: { first_name: first, last_name: last } }));
-      const patch = {}; if (o.org.trim()) patch.business_name = o.org.trim(); else if (!PACK[o.type || "blank"].org && first) patch.business_name = o.name.trim();
+      const patch = {}; if (o.org.trim() && !isPlaceholderOrg(o.org)) patch.business_name = o.org.trim(); else if (!PACK[o.type || "blank"].org && first) patch.business_name = o.name.trim();
       if (o.sport) patch.sports = [o.sport]; if (o.area.trim()) patch.location = o.area.trim();
       if (Object.keys(patch).length && window.SporveCoach && window.SporveCoach.save) jobs.push(window.SporveCoach.save(patch).then((row) => { if (row) S.coachProvider = Object.assign({}, S.coachProvider, row); }));
     }
@@ -351,5 +359,5 @@
   .ob .drop{border:1px dashed var(--line-3);border-radius:9px;padding:var(--s-6);text-align:center;color:var(--ink-3);font-size:var(--t-12)}.ob .drop b{display:block;color:var(--ink-2);font-weight:500;font-size:var(--t-13);margin-bottom:3px}
   @media(max-width:520px){.ob .row2{grid-template-columns:1fr}.ob .foot{flex-wrap:wrap}}`;
 
-  window.MOD_ONBOARD = { css: CSS, html, wire, route: "setup", HARD_BLOCKS, CONSENT_VERSION, ORDER, SKIP, why };
+  window.MOD_ONBOARD = { css: CSS, html, wire, route: "setup", HARD_BLOCKS, CONSENT_VERSION, ORDER, SKIP, why, isPlaceholderOrg };
 })();
