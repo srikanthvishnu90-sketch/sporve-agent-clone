@@ -95,3 +95,8 @@ jwt_expiry = 3600
 enable_refresh_token_rotation = true
 refresh_token_reuse_interval = 10
 enable_signup = true
+
+[functions.calendar-feed]
+# spec 12.5: parents subscribe from Google/Apple Calendar with no session; the
+# 256-bit token in the URL is the credential and the DB is the only read path.
+verify_jwt = false

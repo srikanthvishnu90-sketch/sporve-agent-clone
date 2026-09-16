@@ -30,7 +30,7 @@ jobs:
         run: npm ci --ignore-scripts --no-audit --no-fund
       - name: Extraction and webhook security boundaries (no external services)
         run: |
-          node --test supabase/functions/club-site-extract/safety.test.mjs supabase/functions/stripe-webhook/signature.test.mjs supabase/functions/ncsi-webhook/webhook.test.mjs tests/trust/badge-provenance.spec.ts tests/trust/queue-provenance.spec.ts tests/auth/onboarding-flow.spec.ts tests/migration/sessions-to-event.spec.ts tests/scheduling/conflicts.spec.ts tests/scheduling/cancel-propagation.spec.ts
+          node --test supabase/functions/club-site-extract/safety.test.mjs supabase/functions/stripe-webhook/signature.test.mjs supabase/functions/ncsi-webhook/webhook.test.mjs tests/trust/badge-provenance.spec.ts tests/trust/queue-provenance.spec.ts tests/auth/onboarding-flow.spec.ts tests/migration/sessions-to-event.spec.ts tests/scheduling/conflicts.spec.ts tests/scheduling/cancel-propagation.spec.ts tests/scheduling/ics-feed.spec.ts supabase/functions/calendar-feed/feed.test.mjs
           node --test supabase/functions/Join-Waitlist/security.test.mjs
           node --test supabase/functions/unsubscribe/security.test.mjs
           node --test supabase/functions/lifecycle-process/security.test.mjs supabase/functions/lifecycle-process/policy.test.mjs
