@@ -1,0 +1,38 @@
+name: ops-alerts
+# Spec 18.3 / external-dependency item 7: page on webhook dead-letter growth,
+# payment reconciliation drift and delivery failure; digest the rest. Every
+# 15 minutes this asks the ops-health edge function, which reads
+# public.ops_alerts() with a key that never leaves Supabase. A `critical`
+# fails the run, which emails the repo owner — the same pager uptime.yml
+# already uses. Until OPS_HEALTH_TOKEN is set in this repo's secrets the run
+# is a no-op with a notice, so an unconfigured monitor never cries wolf.
+on:
+  schedule:
+    - cron: "*/15 * * * *"
+  workflow_dispatch:
+
+permissions: {}
+
+concurrency:
+  group: ${{ github.workflow }}
+  cancel-in-progress: false
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    steps:
+      - name: ask ops-health
+        env:
+          OPS_HEALTH_TOKEN: ${{ secrets.OPS_HEALTH_TOKEN }}
+          OPS_HEALTH_URL: https://tseszaprvtvqrkfpditu.supabase.co/functions/v1/ops-health
+        run: |
+          if [ -z "$OPS_HEALTH_TOKEN" ]; then
+            echo "::notice::OPS_HEALTH_TOKEN not set — ops-alerts is not armed (docs/incidents/README.md)"; exit 0
+          fi
+          body=$(curl -sS --connect-timeout 10 --max-time 25 -H "Authorization: Bearer $OPS_HEALTH_TOKEN" "$OPS_HEALTH_URL") || { echo "ops-health unreachable"; exit 1; }
+          echo "$body"
+          crit=$(printf '%s' "$body" | python3 -c 'import json,sys; d=json.load(sys.stdin); print(d.get("critical",1))')
+          high=$(printf '%s' "$body" | python3 -c 'import json,sys; d=json.load(sys.stdin); print(d.get("high",0))')
+          [ "$high" = "0" ] || echo "::warning::$high high-severity alert(s) — digest, do not page"
+          [ "$crit" = "0" ] || { echo "::error::$crit critical alert(s) — page"; exit 1; }
