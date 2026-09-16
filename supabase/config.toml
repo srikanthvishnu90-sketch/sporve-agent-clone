@@ -100,3 +100,8 @@ enable_signup = true
 # spec 12.5: parents subscribe from Google/Apple Calendar with no session; the
 # 256-bit token in the URL is the credential and the DB is the only read path.
 verify_jwt = false
+
+[functions.guardian-link]
+# spec 13 slice 1: the page a parent lands on from a magic link — no session,
+# the token in the URL is the credential and the DB is the only read path.
+verify_jwt = false

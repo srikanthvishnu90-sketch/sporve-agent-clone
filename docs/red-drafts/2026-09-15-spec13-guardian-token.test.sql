@@ -1,5 +1,5 @@
 -- Disposable-database fixture for spec 13 slice 1 (guardian tokens), migration
--- 20260915_001059 on top of spec 12's 001050-001058. Never runs against production.
+-- 20260915_001059 + 001071 on top of spec 12 as merged on main (001050–001055, 001066, 001069, 001070). Never runs against production.
 --
 --     createdb sporv_spec_token
 --     bash tools/run-sql-fixtures.sh 2026-09-15-spec12
@@ -45,7 +45,7 @@ create table public.program_fixtures (id uuid primary key default gen_random_uui
 create table public.obligations (id uuid primary key default gen_random_uuid(), provider_id uuid, kind text, status text, title text, detail text, due_at timestamptz,
   source_kind text, source_ref text, inverse jsonb, member_id uuid, guardian_id uuid, run_id uuid, draft_type text, updated_at timestamptz default now());
 create unique index uq_oblig_agent_source_ref on public.obligations (source_ref) where source_kind = 'agent' and status <> 'void';
-create table public.outbound_messages (id uuid primary key default gen_random_uuid(), status text);
+create table public.outbound_messages (id uuid primary key default gen_random_uuid(), provider_id uuid, event_type text, status text, scheduled_for timestamptz, obligation_id uuid, content jsonb, created_at timestamptz default now());
 create or replace function public.agent_autodraft_on(p uuid) returns boolean language sql as $$ select true $$;
 create table public.settings_audit (id uuid primary key default gen_random_uuid(), provider_id uuid, surface text, key text, old_value jsonb, new_value jsonb, changed_by uuid, changed_at timestamptz default now());
 grant select, insert, update, delete on all tables in schema public to authenticated;
@@ -68,16 +68,18 @@ begin
   return c <= p_limit;
 end $$;
 alter table public.guardians add column email text, add column phone text;
+create table public.provider_settings (provider_id uuid, key text, value jsonb);
 
 \ir ../../supabase/migrations/20260915_001050_venue_and_blackout.sql
 \ir ../../supabase/migrations/20260915_001051_event_series.sql
 \ir ../../supabase/migrations/20260915_001052_event.sql
 \ir ../../supabase/migrations/20260915_001053_migration_quarantine.sql
 \ir ../../supabase/migrations/20260915_001055_event_response_and_attendance.sql
-\ir ../../supabase/migrations/20260915_001056_event_notices_and_reminders.sql
-\ir ../../supabase/migrations/20260915_001057_series_materializer_and_conflicts.sql
-\ir ../../supabase/migrations/20260915_001058_calendar_feed_tokens.sql
+\ir ../../supabase/migrations/20260915_001066_series_materializer.sql
+\ir ../../supabase/migrations/20260915_001069_event_conflicts_and_cancellation.sql
+\ir ../../supabase/migrations/20260915_001070_publication_reminders_calendar_feed.sql
 \ir ../../supabase/migrations/20260915_001059_guardian_access_token.sql
+\ir ../../supabase/migrations/20260915_001071_event_drafts_deliverable.sql
 
 -- ── fixture: org A (owner uA); Maria is linked to Ava (14U); James to Ben (14U); Ava also on 16U ──
 insert into auth.users (id) values ('a0000000-0000-4000-8000-00000000000a'), ('b0000000-0000-4000-8000-00000000000b');
@@ -211,3 +213,44 @@ do $$ declare n int; begin
   raise notice 'PASS H2: token table is not readable by clients';
 end $$;
 reset role;
+
+-- I · delivery half (001071): approving an event REMINDER draft queues a
+--     practice_reminder that carries an rsvp token bound to that event; a
+--     CANCELLATION draft queues a schedule_change with no token; the token
+--     redeems for the right event and nothing else ─────────────────────────
+do $$ declare ob uuid; msg uuid; c jsonb; r record; n int; begin
+  perform set_config('request.jwt.claim.sub', 'a0000000-0000-4000-8000-00000000000a', true);
+  insert into public.obligations (provider_id, kind, status, title, detail, source_kind, source_ref, member_id, guardian_id, draft_type)
+  values ('0a000000-0000-4000-8000-000000000001','schedule','draft','Tomorrow — Tue practice','Hi Maria — reminder: Tue practice is tomorrow at 06:00 PM.',
+          'agent','event:8a000000-0000-4000-8000-00000000000a:reminder:member:3a000000-0000-4000-8000-000000000001',
+          '3a000000-0000-4000-8000-000000000001','4a000000-0000-4000-8000-000000000001','event_reminder') returning id into ob;
+  msg := public.approve_obligation_and_queue(ob);
+  select content into c from public.outbound_messages where id = msg;
+  if (select event_type from public.outbound_messages where id = msg) <> 'practice_reminder' then raise exception 'FAIL I: reminder mapped to %', (select event_type from public.outbound_messages where id = msg); end if;
+  if c->>'rsvp_token' !~ '^[0-9a-f]{64}$' then raise exception 'FAIL I: no rsvp token on the reminder (%)', c; end if;
+  select * into r from public.redeem_guardian_token(c->>'rsvp_token');
+  if r.scope <> 'rsvp' or r.subject_id <> '8a000000-0000-4000-8000-00000000000a' or r.guardian_id <> '4a000000-0000-4000-8000-000000000001'
+    then raise exception 'FAIL I: token resolves to the wrong grant (% % %)', r.scope, r.subject_id, r.guardian_id; end if;
+  if exists (select 1 from public.guardian_access_token where token_hash = c->>'rsvp_token') then raise exception 'FAIL I: raw token stored in the table'; end if;
+  if (select status from public.obligations where id = ob) <> 'approved' then raise exception 'FAIL I: draft not flipped'; end if;
+  begin perform public.approve_obligation_and_queue(ob); raise exception 'FAIL I: approved twice';
+  exception when others then if sqlerrm not like 'only a draft%' then raise; end if; end;
+  -- cancellation: sendable, no link
+  insert into public.obligations (provider_id, kind, status, title, detail, source_kind, source_ref, member_id, guardian_id, draft_type)
+  values ('0a000000-0000-4000-8000-000000000001','schedule','draft','Cancelled — Thu practice','Hi Maria — Thu practice is cancelled (Lightning).',
+          'agent','event:8a000000-0000-4000-8000-00000000000b:cancel:member:3a000000-0000-4000-8000-000000000001',
+          '3a000000-0000-4000-8000-000000000001','4a000000-0000-4000-8000-000000000001','schedule_cancellation') returning id into ob;
+  msg := public.approve_obligation_and_queue(ob);
+  select content into c from public.outbound_messages where id = msg;
+  if (select event_type from public.outbound_messages where id = msg) <> 'schedule_change' then raise exception 'FAIL I: cancel mapped wrong'; end if;
+  if c ? 'rsvp_token' then raise exception 'FAIL I: a cancellation carries an RSVP link'; end if;
+  -- the org owner of B cannot approve A's draft
+  insert into public.obligations (provider_id, kind, status, title, detail, source_kind, source_ref, member_id, guardian_id, draft_type)
+  values ('0a000000-0000-4000-8000-000000000001','schedule','draft','x','x','agent','event:8a000000-0000-4000-8000-00000000000a:change:member:3a000000-0000-4000-8000-000000000001',
+          '3a000000-0000-4000-8000-000000000001','4a000000-0000-4000-8000-000000000001','schedule_change_notice') returning id into ob;
+  perform set_config('request.jwt.claim.sub', 'b0000000-0000-4000-8000-00000000000b', true);
+  begin perform public.approve_obligation_and_queue(ob); raise exception 'FAIL I: org B approved org A''s draft';
+  exception when others then if sqlerrm not like 'only the org owner%' then raise; end if; end;
+  select count(*) into n from public.outbound_messages; if n <> 2 then raise exception 'FAIL I: % outbound rows, expected 2', n; end if;
+  raise notice 'PASS I: approved reminder → practice_reminder + event-bound rsvp token; cancel → schedule_change, no link; owner-only';
+end $$;

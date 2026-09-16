@@ -317,10 +317,17 @@ Deno.serve(async (req) => {
        // must never abort the tick for every other org. A row that keeps
        // throwing is retried at most 3 times, like the email-failure path.
        try {
-        const c = er.content as { body?: string; subject?: string; to_email?: string; guardian_id?: string } | null;
+        const c = er.content as { body?: string; subject?: string; to_email?: string; guardian_id?: string; rsvp_token?: string } | null;
         if (typeof c?.body !== "string" || !c.body.trim() || (!c.to_email && !c.guardian_id)) {
           throw new DeliveryPreconditionError("delivery_content_invalid");
         }
+        // Spec 13 slice 1: an approved reminder / schedule change carries an
+        // 'rsvp' guardian token minted at approval (001071). It becomes the
+        // one-tap answer link here, and only here — the token is the secret,
+        // so a malformed value is dropped rather than interpolated.
+        const rsvpUrl = typeof c.rsvp_token === "string" && /^[0-9a-f]{64}$/.test(c.rsvp_token)
+          ? `${SUPABASE_URL}/functions/v1/guardian-link?t=${c.rsvp_token}` : null;
+        const bodyWithLink = c.body + (rsvpUrl ? `\n\nAre you coming? Answer in one tap — no app, no account:\n${rsvpUrl}` : "");
 
         // send window from settings (default 8am-8pm org tz, blocked days)
         const { data: winRow, error: windowError } = await deliveryRead(admin.from("provider_settings")
@@ -457,7 +464,7 @@ Deno.serve(async (req) => {
               ...(replyTo ? { reply_to: replyTo } : {}),
               to: [gEmail],
               subject: c.subject || `A message from ${orgName}`,
-              text: c.body + (unsubUrl ? `\n\n—\nUnsubscribe from these messages: ${unsubUrl}` : ""),
+              text: bodyWithLink + (unsubUrl ? `\n\n—\nUnsubscribe from these messages: ${unsubUrl}` : ""),
               headers: {
                 "X-Sporv-Message-Id": er.id,
                 ...(unsubUrl ? {

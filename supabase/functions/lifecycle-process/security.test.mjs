@@ -648,3 +648,26 @@ test('real message-draft remains functional without importing historical family 
   const prompt=modelRequests[0].messages[0].content[0].text;
   assert.match(prompt,/Could we find another time/);assert.doesNotMatch(prompt,/Tone anchors/);
 });
+
+// Spec 13 slice 1 (001071): an approved reminder / schedule change carries the
+// one-tap RSVP link; a message without a token, or with a malformed one, never
+// interpolates anything into the mail.
+test('a well-formed rsvp_token becomes the guardian-link URL in the email text, once',async()=>{
+  const tok='c'.repeat(64);
+  const r=await invoke({rows:[{...message,content:{...message.content,rsvp_token:tok}}]});
+  assert.equal(r.body.emailed,1);
+  const mail=r.external.find(e=>e.kind==='email').payload;
+  const url=`https://fixture.invalid/functions/v1/guardian-link?t=${tok}`;
+  assert.equal(mail.text.split(url).length-1,1,'exactly one link');
+  assert.match(mail.text,/Answer in one tap — no app, no account/);
+  assert.ok(mail.text.indexOf('Fixture message')<mail.text.indexOf(url),'the body comes first, the link after');
+  assert.ok(mail.text.indexOf(url)<mail.text.indexOf('Unsubscribe'),'the unsubscribe footer stays last');
+});
+for(const [name,tok] of [['absent',undefined],['malformed',"c'--"],['uppercase','C'.repeat(64)],['short','c'.repeat(63)]])
+  test(`rsvp_token ${name}: no guardian-link URL and no interpolation`,async()=>{
+    const r=await invoke({rows:[{...message,content:{...message.content,...(tok===undefined?{}:{rsvp_token:tok})}}]});
+    assert.equal(r.body.emailed,1);
+    const mail=r.external.find(e=>e.kind==='email').payload;
+    assert.ok(!/guardian-link/.test(mail.text));
+    if(tok) assert.ok(!mail.text.includes(tok),'a bad token must never reach the mail');
+  });
