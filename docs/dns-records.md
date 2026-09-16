@@ -21,11 +21,18 @@ DNS-over-HTTPS (`node tools/check-mail-dns.mjs`); re-checked weekly by
 Monitoring for a week first is the textbook advice; `rua` has pointed at the
 owner's Gmail since at least 09-15, so the reports already exist to read.
 
+**Strict alignment (`adkim=s; aspf=s`), owner ruling 2026-09-16.** Relaxed
+alignment lets any subdomain of sporv.ai pass for any other; we control every
+sending domain (`sporv.ai`, `send.`, and the D7 `tx.`/`msg.`), so strict costs
+nothing, and relaxed defeats the purpose of the record. Resend's DKIM signs
+`d=sporv.ai` for mail from `@sporv.ai`; each D7 subdomain gets its own DKIM at
+Resend, so strict alignment holds per stream.
+
 1. Google Admin → **Groups** → Create group `dmarc@sporv.ai`, add yourself as a member, allow "anyone on the internet" to post. (A Gmail address works too; a group is what survives a mailbox change.)
 2. GoDaddy → **My Products** → sporv.ai → **DNS** → find the TXT row named `_dmarc` → **Edit** → set Value to exactly:
 
    ```
-   v=DMARC1; p=quarantine; pct=100; adkim=r; aspf=r; rua=mailto:dmarc@sporv.ai; ruf=mailto:dmarc@sporv.ai; fo=1
+   v=DMARC1; p=quarantine; pct=100; adkim=s; aspf=s; rua=mailto:dmarc@sporv.ai; ruf=mailto:dmarc@sporv.ai; fo=1
    ```
 
 3. Save. Within an hour: `node tools/check-mail-dns.mjs --require quarantine` prints `DMARC policy  quarantine`.
