@@ -101,7 +101,25 @@ Nothing here is optional before the first paid org.
 
 Shape agreed: base fee + per-athlete + payment margin.
 
+> **Amended 2026-09-16 (owner ruling b).** Do **not** build `org_subscription`.
+> A second billing table duplicating `plan_entitlements` is how reconciliation
+> drift starts, and there is nothing to bill yet. The per-athlete and margin
+> components are two **nullable columns on `plan_entitlements`**, unused at
+> launch (migration `20260915_001063`):
+>
+> ```sql
+> alter table public.plan_entitlements
+>   add column if not exists per_athlete_minor integer,    -- billed at registration, on a counted date
+>   add column if not exists payment_margin_bps int;        -- basis points on processed volume
+> ```
+>
+> `billed_athlete_count`, `billing_anchor`, `parent_pays_fees` and
+> `contract_end` are per-org facts and belong on `billing_subscriptions`
+> (which already keys on `provider_id`) when billing on them begins — not
+> before. The original table sketch is kept below for lineage only.
+
 ```sql
+-- LINEAGE ONLY — superseded 2026-09-16, do not build
 create table if not exists public.org_subscription (
   id uuid primary key default gen_random_uuid(),
   organization_id uuid not null unique,
