@@ -15,6 +15,10 @@
     "scheduling", "payments", "roster", "session-notes",
     "media-consent", "insights",
     "waivers", "agent", "payouts",
+    /* External-dependency item 11 / spec 18.4: the written security overview
+       a club's board asks for before signing. Every sentence is a fact of the
+       shipped product or an explicit "not yet". */
+    "security",
     
     // For organizations — the Enterprise ($149/mo, in development) showcase.
     // These are SALES/DESIGN artifacts: every one frames the tier as "in
@@ -430,6 +434,40 @@
       questionSection(questions, { layout: "compact-parent-questions", className: "pg-check-questions" }));
   }
 
+  function securityPage(meta) {
+    var controls = [
+      ["Nothing sends without a person", "The agent drafts; a director approves. The database enforces the order: a trigger on the message table refuses any client that tries to mark a message sent, and a second holds every obligation to draft, approved, done or void. There is no setting that turns approval off."],
+      ["Your rows are your rows", "Every table carries the organization it belongs to, and row-level security policies decide what a signed-in session can read. The check runs in Postgres on every query; a bug in the page cannot widen it."],
+      ["Card numbers never touch Sporv", "Stripe holds the card. Sporv sees an event that says a payment happened, writes it to a ledger that a trigger makes append-only, and files anything it cannot apply in a dead-letter table it reviews rather than drops."],
+      ["The page cannot be tampered with in flight", "Every inline script on sporv.ai is listed by hash in the Content-Security-Policy, so an injected script does not run. The site is HTTPS-only for two years by header, cannot be framed, and sends no referrer to other sites."],
+      ["Checks belong to a person, with a date", "A background check is stored against the named coach and the day it cleared. It is read again when a booking is written. It does not transfer to a colleague or survive expiry."]
+    ];
+    var others = [
+      ["Supabase", "Database, authentication and the functions that run the agent. Postgres, with row-level security on."],
+      ["Stripe", "Payments, dues and payouts. Sporv never stores a card number."],
+      ["Resend", "Email delivery for messages a director has approved. Bounces feed a suppression list."],
+      ["Anthropic and OpenAI", "The assistant runs on Anthropic models through a server gateway; the page never holds a model key. OpenAI produces the search embeddings. Neither trains on your data."],
+      ["Google, if you connect it", "Gmail is read-only — the scope cannot compose or send. Calendar changes you approve are written back. The scopes are declared in one registry that refuses any send-capable scope."],
+      ["Vercel", "Hosts the site as static files behind the headers above."]
+    ];
+    var board = [
+      ["Has an outside firm tested this?", "Not yet. An annual third-party penetration test is planned and will be published here when it has happened. Until then, the enforcement above is what stands, and it lives in the database rather than in a document."],
+      ["What happens after an incident?", "Every incident gets a written review with a timeline, the cause, and the change made. Ask for it and it is sent. Nothing is edited out to look better."],
+      ["How do I report a problem?", "Write to security@sporv.ai. A person reads it. A confirmed report is fixed before it is discussed anywhere else."]
+    ];
+    return wrap("security", "S01", "threshold-head-definitions-ledger-honesty-questions", "D-L-L-D-L", hero(meta,
+      "Built so a mistake <em>cannot reach a family.</em>",
+      "Security here is not a promise in a policy. It is a set of rules the database and the browser enforce on every request, whoever wrote the code that made it. This page lists those rules, names every company that touches the data, and says plainly which protections are not in place yet, so a club's board decides on facts rather than adjectives.",
+      { tone: "dark", layout: "check-threshold", eyebrow: "SECURITY" }) +
+      definitionSection(controls, { tone: "white", layout: "definition-rows", className: "pg-security-controls" }) +
+      questionSection(others, { tone: "slate", layout: "compact-parent-questions", className: "pg-security-others" }) +
+      "<section class='pgband dark pg-check-honesty' data-section='honesty-panel' data-layout='two-paragraph-honesty'><div class='shell'><h2>What is not done yet</h2><div>" +
+      "<p data-prose>There has been no outside penetration test, there is no SOC 2 report, and the parent registration form that will collect medical and emergency details is not built. When it is, sensitive fields will live in their own table the agent cannot select from.</p>" +
+      "<p data-prose>A data-processing agreement and a certificate of insurance are being prepared for clubs and associations that require them. Until they exist, do not sign on the assumption that they do; ask, and you will get a date.</p>" +
+      "</div></div></section>" +
+      questionSection(board, { layout: "compact-parent-questions", className: "pg-security-board" }));
+  }
+
   function mediaConsentPage(meta) {
     var questions = [
       ["Who can grant consent?",
@@ -662,6 +700,7 @@
     if (id === "messaging") return messagingPage(meta);
     if (id === "session-notes") return sessionNotesPage(meta);
     if (id === "background-checks") return backgroundChecksPage(meta);
+    if (id === "security") return securityPage(meta);
     if (id === "media-consent") return mediaConsentPage(meta);
     if (id === "enterprise") return enterprisePage(meta);
     if (id === "waivers") return waiversPage(meta);
