@@ -171,9 +171,13 @@
        under its real CSP — the check that would have caught connect-src 'self'
        silently blocking every request. */
     ping: function () {
-      return API.from("programs", "select=id&status=eq.published&limit=1")
+      // plan_entitlements is the only table an anonymous visitor may read
+      // (public pricing). Every org table — programs included — is revoked
+      // from anon since 20260915_001068, so probing one of those would
+      // prove the revocation, not the connection.
+      return API.from("plan_entitlements", "select=plan&limit=1")
         .then(function (rows) {
-          return { ok: true, programs: Array.isArray(rows) ? rows.length : 0 };
+          return { ok: true, rows: Array.isArray(rows) ? rows.length : 0 };
         });
     },
   };

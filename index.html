@@ -25,7 +25,7 @@
 <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16.png">
 <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
 <link rel="manifest" href="/site.webmanifest">
-<meta name="sporve-build" content="d2c9a8641a3dcbab">
+<meta name="sporve-build" content="b79c751a62e0d447">
 </head>
 <body>
 <noscript><h1>Sporv — Every sport. One app.</h1><p>Sporv connects families and athletes with coaches, trainers, camps, and teams across more than 20 sports. Please enable JavaScript to use the app.</p></noscript>
@@ -20300,9 +20300,13 @@ window.MOD_COACHUI = { css:CSS, wire:wire };
        under its real CSP — the check that would have caught connect-src 'self'
        silently blocking every request. */
     ping: function () {
-      return API.from("programs", "select=id&status=eq.published&limit=1")
+      // plan_entitlements is the only table an anonymous visitor may read
+      // (public pricing). Every org table — programs included — is revoked
+      // from anon since 20260915_001068, so probing one of those would
+      // prove the revocation, not the connection.
+      return API.from("plan_entitlements", "select=plan&limit=1")
         .then(function (rows) {
-          return { ok: true, programs: Array.isArray(rows) ? rows.length : 0 };
+          return { ok: true, rows: Array.isArray(rows) ? rows.length : 0 };
         });
     },
   };

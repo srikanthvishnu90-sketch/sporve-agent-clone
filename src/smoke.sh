@@ -402,7 +402,7 @@ if curl -sI "http://127.0.0.1:$CSPPORT/index.html" | grep -qi "^content-security
     && pass "auth: sign-in has a failure branch and an intent replayer" \
     || fail "auth: authFail/doSignIn/runIntent missing — a failed sign-in has nowhere to report"
 
-  ping=$($B js "window.SporveAPI.ping().then(r=>'OK:'+r.programs).catch(e=>'ERR:'+e.status+':'+e.message)" 2>/dev/null | tr -d '\r')
+  ping=$($B js "window.SporveAPI.ping().then(r=>'OK:'+r.rows).catch(e=>'ERR:'+e.status+':'+e.message)" 2>/dev/null | tr -d '\r')
   case "$(printf '%s' "$ping" | tr -d '[:space:]')" in
     # An empty marketplace used to fail here, on the assumption that production
     # always holds inventory. That assumption was seeded demo data: twenty fake
@@ -412,8 +412,11 @@ if curl -sI "http://127.0.0.1:$CSPPORT/index.html" | grep -qi "^content-security
     # product. What it must prove is that the browser reaches Supabase under the
     # real CSP and gets a well-formed answer; zero rows is the correct answer
     # before the first real club signs up.
-    OK:0)  pass "api: reached Supabase under the real CSP; no published programs yet (expected pre-launch)" ;;
-    OK:*)  pass "api: reached Supabase under the real CSP and read live programs" ;;
+    # 2026-09-16: the probe now reads plan_entitlements, the one table anon may
+    # read. Org tables (programs included) are revoked from anon by
+    # 20260915_001068, so the old programs probe would fail by design.
+    OK:0)  pass "api: reached Supabase under the real CSP; plan_entitlements empty (pricing not yet published)" ;;
+    OK:*)  pass "api: reached Supabase under the real CSP and read plan_entitlements" ;;
     ERR:0:*) fail "api: request blocked before leaving the browser — connect-src does not allow the Supabase origin" ;;
     ERR:*) fail "api: backend rejected the request — $ping" ;;
     *)     fail "api: liveness probe returned nothing (harness or network problem)" ;;
