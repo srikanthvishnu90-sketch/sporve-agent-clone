@@ -480,9 +480,12 @@ Deno.serve(async (req) => {
           });
           const rj = await resp.json().catch(() => ({}));
           if (resp.ok && rj?.id) {
+            // the secret existed once, in the message — once delivered, the row keeps no copy
+            const { rsvp_token: _spent, ...contentAfterSend } = c as Record<string, unknown>;
             await admin.from("outbound_messages").update({
               status: "sent", sent_at: new Date().toISOString(),
               provider: "resend", provider_message_id: String(rj.id), last_error: null,
+              ...(rsvpUrl ? { content: contentAfterSend } : {}),
             }).eq("id", er.id).is("sent_at", null);
             emailSummary.emailed++;
           } else {

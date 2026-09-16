@@ -30,7 +30,7 @@ const TOKEN = 'd'.repeat(64);
 type Rpc = (name: string, args: Record<string, unknown>) => Promise<{ data: unknown; error: { message: string } | null }>;
 async function call(req: Request, rpc: Rpc): Promise<{ status: number; body: string; names: string[] }> {
   let handler: ((r: Request) => Promise<Response>) | undefined; const names: string[] = [];
-  vm.runInNewContext(source, { Response, Request, URL, Intl, Date, String, JSON, console,
+  vm.runInNewContext(source, { Response, Request, URL, Intl, Date, String, JSON, console, crypto, TextEncoder, Uint8Array,
     createClient: () => ({ rpc: async (n: string, a: Record<string, unknown>) => { names.push(n); return rpc(n, a); } }),
     Deno: { serve(fn: typeof handler) { handler = fn; }, env: { get: () => 'fixture' } } });
   const res = await handler!(req); return { status: res.status, body: await res.text(), names };
@@ -54,7 +54,9 @@ test('there is no family-profile scope: nothing medical, no contacts, no sibling
   assert.ok(!/dob|phone|email|signature|address|medical|emergency/.test(redeem), 'redeem returns no personal data beyond the guardian first name');
 });
 
-test('after expiry (and after revocation, consumption, or a contact change) the token redeems to nothing', () => {
+test('after expiry (and after revocation, consumption, or a contact change) the token redeems to nothing; an rsvp token expires at event start', () => {
+  assert.match(read('supabase/migrations/20260915_001072_rsvp_token_expires_at_event.sql'), /if p_scope = 'rsvp' then v_expires := least\(v_expires, v_event_start\); end if;/);
+  assert.match(fixture, /PASS J: rsvp tokens expire at event start/);
   assert.match(mig, /and g\.expires_at > now\(\) and g\.revoked_at is null and g\.consumed_at is null/);
   assert.match(mig, /create trigger trg_guardian_contact_rotated after update of email, phone on public\.guardians/);
   assert.match(fixture, /FAIL E: expired token redeemed/); assert.match(fixture, /FAIL E: revoked token redeemed/);
@@ -65,7 +67,7 @@ test('the API answers a refused token with 404 — never a 2xx, never a hint, no
   for (const why of ['link is not valid (42501)', 'this link cannot answer an RSVP (42501)', "none of your athletes is on this event's team (42501)"]) {
     const r = await call(post('yes'), async (n) => n === 'consume_edge_rate_limit' ? { data: true, error: null } : { data: null, error: { message: why } });
     assert.equal(r.status, 404, why); assert.ok(!/42501|athlete|scope/i.test(r.body), 'the body must not explain why');
-    assert.deepEqual(r.names, ['consume_edge_rate_limit', 'guardian_token_rsvp']);
+    assert.deepEqual(r.names, ['consume_edge_rate_limit', 'consume_edge_rate_limit', 'guardian_token_rsvp']);
   }
   const expired = await call(new Request(`https://x.invalid/functions/v1/guardian-link?t=${TOKEN}`), async (n) => n === 'consume_edge_rate_limit' ? { data: true, error: null } : { data: [], error: null });
   assert.equal(expired.status, 404); assert.equal(JSON.parse(expired.body).error, 'not_found');
@@ -79,12 +81,12 @@ test('the only way a token is minted for a family is at approval, bound to the e
   assert.match(fixture, /PASS I: approved reminder → practice_reminder \+ event-bound rsvp token; cancel → schedule_change, no link; owner-only/);
 });
 
-test('the fixture runs for real: 10 groups green against a live Postgres', () => {
+test('the fixture runs for real: 11 groups green against a live Postgres', () => {
   assert.ok(existsSync(new URL(fixturePath, root)));
   assert.ok(!/001056|001057|001058/.test(fixture), 'the fixture includes main\'s migrations, not the preserved slice sources');
   let hasPg = false; try { execSync('command -v initdb', { stdio: 'ignore' }); hasPg = true; } catch { /* CI without Postgres */ }
   if (!hasPg) { console.log('   (initdb not on PATH — the fixture ran in tools/run-sql-fixtures.sh before this PR opened; see the PR body)'); return; }
   const out = execSync('bash tools/run-sql-fixtures.sh 2026-09-15-spec13', { cwd: new URL('.', root), encoding: 'utf8', timeout: 300000 });
   assert.match(out, /PASS +2026-09-15-spec13-guardian-token\.test\.sql/, out.slice(-800));
-  assert.match(out, /10 assertion group\(s\)/, out.slice(-300));
+  assert.match(out, /11 assertion group\(s\)/, out.slice(-300));
 });

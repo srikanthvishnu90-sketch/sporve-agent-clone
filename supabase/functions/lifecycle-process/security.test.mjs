@@ -671,3 +671,14 @@ for(const [name,tok] of [['absent',undefined],['malformed',"c'--"],['uppercase',
     assert.ok(!/sporv\.ai\/r\?t=|guardian-link/.test(mail.text));
     if(tok) assert.ok(!mail.text.includes(tok),'a bad token must never reach the mail');
   });
+test('once sent, the row keeps no copy of the rsvp secret; a message without one leaves content untouched',async()=>{
+  const tok='c'.repeat(64);
+  const r=await invoke({rows:[{...message,content:{...message.content,rsvp_token:tok}}]});
+  const sent=r.calls.find(c=>c.table==='outbound_messages'&&c.payload?.status==='sent');
+  assert.ok(sent,'a sent receipt was written');
+  assert.ok(sent.payload.content && !('rsvp_token' in sent.payload.content),'rsvp_token stripped on send');
+  assert.equal(sent.payload.content.body,'Fixture message');
+  const plain=await invoke();
+  const sent2=plain.calls.find(c=>c.table==='outbound_messages'&&c.payload?.status==='sent');
+  assert.ok(!('content' in sent2.payload),'no content rewrite when there was no token');
+});

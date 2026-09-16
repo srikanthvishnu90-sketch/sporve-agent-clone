@@ -80,6 +80,7 @@ create table public.provider_settings (provider_id uuid, key text, value jsonb);
 \ir ../../supabase/migrations/20260915_001070_publication_reminders_calendar_feed.sql
 \ir ../../supabase/migrations/20260915_001059_guardian_access_token.sql
 \ir ../../supabase/migrations/20260915_001071_event_drafts_deliverable.sql
+\ir ../../supabase/migrations/20260915_001072_rsvp_token_expires_at_event.sql
 
 -- ── fixture: org A (owner uA); Maria is linked to Ava (14U); James to Ben (14U); Ava also on 16U ──
 insert into auth.users (id) values ('a0000000-0000-4000-8000-00000000000a'), ('b0000000-0000-4000-8000-00000000000b');
@@ -253,4 +254,18 @@ do $$ declare ob uuid; msg uuid; c jsonb; r record; n int; begin
   exception when others then if sqlerrm not like 'only the org owner%' then raise; end if; end;
   select count(*) into n from public.outbound_messages; if n <> 2 then raise exception 'FAIL I: % outbound rows, expected 2', n; end if;
   raise notice 'PASS I: approved reminder → practice_reminder + event-bound rsvp token; cancel → schedule_change, no link; owner-only';
+end $$;
+
+-- J · pentest 2026-09-16: an rsvp token expires no later than the event starts; a past event issues nothing ──
+do $$ declare tok text; exp timestamptz; st timestamptz; ok boolean := false; past uuid; begin
+  perform set_config('request.jwt.claim.sub', 'a0000000-0000-4000-8000-00000000000a', true);
+  tok := public.issue_guardian_token('4a000000-0000-4000-8000-000000000002','rsvp','event','8a000000-0000-4000-8000-00000000000a');
+  select expires_at into exp from public.guardian_access_token where token_hash = public.guardian_token_hash(tok);
+  select starts_at into st from public.event where id = '8a000000-0000-4000-8000-00000000000a';
+  if exp > st then raise exception 'FAIL J: rsvp token outlives the event (% > %)', exp, st; end if;
+  insert into public.event (id, provider_id, team_id, kind, title, starts_at, ends_at, timezone, published_at) values
+    ('8a000000-0000-4000-8000-00000000000d','0a000000-0000-4000-8000-000000000001','1a000000-0000-4000-8000-000000000001','practice','yesterday', now()-interval '1 day', now()-interval '23 hours','America/Chicago',now()) returning id into past;
+  begin perform public.issue_guardian_token('4a000000-0000-4000-8000-000000000002','rsvp','event',past); exception when sqlstate '22023' then ok := true; end;
+  if not ok then raise exception 'FAIL J: a link was issued for an event that already started'; end if;
+  raise notice 'PASS J: rsvp tokens expire at event start; no link for a past event';
 end $$;

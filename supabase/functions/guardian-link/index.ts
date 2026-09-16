@@ -35,9 +35,19 @@ Deno.serve(async (req) => {
 
   const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!,
     { auth: { persistSession: false, autoRefreshToken: false } });
-  const ip = (req.headers.get('x-forwarded-for') ?? 'unknown').split(',')[0].trim();
+  // A browser POST from any other origin is refused outright; the CORS header
+  // only hides the reply, it does not stop a simple request from mutating.
+  const origin = req.headers.get('origin');
+  if (req.method === 'POST' && origin && origin !== ORIGIN) return json({ error: 'forbidden' }, 403);
+
+  // Rate limit on an IP the gateway vouches for (Cloudflare's cf-connecting-ip,
+  // else the LAST x-forwarded-for entry, which the proxy appended), never the
+  // left-most entry a client can write. It fails CLOSED: if the limiter cannot
+  // answer, nobody gets through.
+  const xff = (req.headers.get('x-forwarded-for') ?? '').split(',').map((s) => s.trim()).filter(Boolean);
+  const ip = req.headers.get('cf-connecting-ip') ?? xff[xff.length - 1] ?? 'unknown';
   const { data: allowed } = await admin.rpc('consume_edge_rate_limit', { p_actor_key: `ip:${ip}`, p_scope: 'guardian-link', p_limit: 60, p_window_seconds: 3600 });
-  if (allowed === false) return json({ error: 'rate_limited' }, 429);
+  if (allowed !== true) return json({ error: 'rate_limited' }, 429);
 
   if (req.method === 'GET') {
     const t = new URL(req.url).searchParams.get('t') ?? '';
@@ -57,6 +67,11 @@ Deno.serve(async (req) => {
   if (!TOKEN_RE.test(t)) return notFound();
   if (!['yes', 'no', 'maybe'].includes(response)) return json({ error: 'bad_response' }, 400);
   const member = typeof body.member === 'string' && /^[0-9a-f-]{36}$/.test(body.member) ? body.member : null;
+  // one link may change its answer, but not 60 times an hour — the key is a hash, the secret never lands in edge_rate_limits
+  const digest = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(t));
+  const tokKey = [...new Uint8Array(digest)].slice(0, 16).map((b) => b.toString(16).padStart(2, '0')).join('');
+  const { data: tokAllowed } = await admin.rpc('consume_edge_rate_limit', { p_actor_key: `tok:${tokKey}`, p_scope: 'guardian-rsvp', p_limit: 10, p_window_seconds: 3600 });
+  if (tokAllowed !== true) return json({ error: 'rate_limited' }, 429);
   const { data, error } = await admin.rpc('guardian_token_rsvp', { p_token: t, p_response: response, p_member: member, p_note: null });
   if (error) {
     // 42501 from the RPC = not valid / wrong scope / no athlete on that team. Same answer for all: nothing to learn.
