@@ -90,6 +90,6 @@ test('demo and guest doors are gone; the demo roster is never seeded for a real 
   assert.ok(!/data-demoacct="1"/.test(host), 'no "Use the demo account"');
   assert.ok(!/Continue as a guest/.test(host), 'no guest path on the auth sheet');
   assert.ok(!/completeAuth\(\{\.\.\.SEED\.user/.test(host), 'no code path signs in as the demo user');
-  assert.match(host, /S\.teamRoster=coachState\(\)\.isReal\?\[\]:/, 'a real org starts with an empty roster');
+  assert.match(host, /S\.teamRoster=queueIsLive\(\)\?\[\]:/, 'a real org starts with an empty roster (gated on the signed-in state since C4, PR #30)');
   assert.match(account, /"&select=id,business_name,bio,sports,location,provider_type,status,onboarding_completed/, 'save() names its returning columns (the 42501 that made the name unsaveable)');
 });
