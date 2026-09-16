@@ -189,8 +189,14 @@ reset role;
 select set_config('request.jwt.claim.sub', 'a0000000-0000-4000-8000-00000000000a', false);
 
 -- I. attendance: not before start; idempotent by client_id; append-only
+-- The "future" event is created relative to now(), never a fixed date: a
+-- calendar date hardcoded as future stops being future, and the fixture would
+-- start failing on its own the day it passed (CodeRabbit, PR #5).
 do $$ declare fut uuid; past uuid; r1 uuid; r2 uuid; begin
-  select id into fut from public.event where series_local_date='2026-11-10';
+  insert into public.event (id, provider_id, team_id, kind, title, starts_at, ends_at, timezone, published_at)
+    values ('8a000000-0000-4000-8000-000000000002','0a000000-0000-4000-8000-000000000001','1a000000-0000-4000-8000-000000000001','practice','Tomorrow',
+            now() + interval '1 day', now() + interval '25 hours', 'America/Chicago', now())
+  returning id into fut;
   begin
     perform public.mark_attendance(fut, '3a000000-0000-4000-8000-000000000001', 'present', '9a000000-0000-4000-8000-000000000001');
     raise exception 'FAIL I: attendance accepted before the event started';
