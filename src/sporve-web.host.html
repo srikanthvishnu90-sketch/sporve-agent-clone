@@ -4262,6 +4262,7 @@ body.reg-coach .greet{font-size:24px}
    Stacked rather than a row of squares, so each option reads as a sentence. */
 /* The decline. Deliberately quiet — a text button, not a second primary — so it
    reads as available without competing with Continue. */
+.ic-pv.err{color:#B45454;font-size:var(--text-sm)}
 .au-guest{display:block;width:100%;margin-top:16px;padding:11px 0;
   font-size:var(--text-base);font-weight:700;color:var(--muted);
   text-decoration:underline;text-underline-offset:3px;transition:color .14s}
@@ -7329,7 +7330,13 @@ const INTENTS = {
        to a stranger's org. The click opens a named question; only Accept
        calls the RPC. */
     if(!(window.SporveAPI&&window.SporveAPI.isSignedIn&&window.SporveAPI.isSignedIn())) return;
-    S.modal={type:"inviteconfirm",token:a.token};render();
+    S.modal={type:"inviteconfirm",token:a.token};S.invitePreview=null;render();
+    /* C11 (2026-09-16): show WHAT is being joined and WHO it is for before
+       the accept click. The preview is by token, masked, and says whether
+       the signed-in address is the invited one. */
+    if(window.SporveAPI) window.SporveAPI.rpc("preview_coach_invite",{p_token:a.token})
+      .then(rows=>{S.invitePreview={token:a.token,row:(rows&&rows[0])||null};render();})
+      .catch(e=>{S.invitePreview={token:a.token,row:null,error:(e&&e.message)||"could not load"};render();});
   },
 };
 function runIntent(intent){
@@ -13329,14 +13336,22 @@ function modalHTML(){
            <button class="btn ghost wide" data-arrerun="1">Run again</button></div>`)
         :`<button class="btn ghost wide" data-close="1" style="margin-top:14px">Run in the background</button>`}`);
   }
-  if(m.type==="inviteconfirm") return wrap("Accept this invite?",`
-    <p style="color:var(--muted);margin-bottom:14px;line-height:1.6">A coach or club sent
-      you this link to join their roster on Sporv. Accepting marks the invite as used
-      by your account — nothing is charged and no message is sent.</p>
+  if(m.type==="inviteconfirm"){
+    const pv=S.invitePreview&&S.invitePreview.token===m.token?S.invitePreview:null, row=pv&&pv.row;
+    const who=!pv?`<p class="ic-pv" style="color:var(--muted);margin-bottom:14px">Checking this invite…</p>`
+      :pv.error?`<p class="ic-pv err" style="margin-bottom:14px">Could not load this invite (${esc(pv.error)}). Reload and try again.</p>`
+      :!row?`<p class="ic-pv err" style="margin-bottom:14px">This invite is not valid. It may have been revoked or the link is incomplete — ask the club for a new one.</p>`
+      :row.status!=="pending"?`<p class="ic-pv err" style="margin-bottom:14px">This invite is ${esc(row.status)}. Ask the club for a new one.</p>`
+      :`<p class="ic-pv" style="margin-bottom:6px;line-height:1.6"><b style="color:var(--ink)">${esc(row.org_name)}</b> invited <b style="color:var(--ink)">${esc(row.invited_email_masked||"(no address)")}</b> to join their family list.</p>`+
+        (row.matches_caller?`<p style="color:var(--muted);margin-bottom:14px;line-height:1.6">That is the address you are signed in with. Accepting marks the invite as used by your account — nothing is charged and no message is sent.</p>`
+        :`<p class="ic-pv err" style="margin-bottom:14px;line-height:1.6">You are signed in with a different address, so this invite cannot be accepted here. Sign in with the address it was sent to, or ask the club to re-send it.</p>`);
+    const ok=!!(row&&row.status==="pending"&&row.matches_caller);
+    return wrap("Accept this invite?",`
+    ${who}
     <p style="color:var(--faint);font-size:var(--text-sm);margin-bottom:18px;line-height:1.6">
       Didn't expect this? Close this window — nothing happens unless you accept.</p>
-    <button class="btn wide" data-invaccept="${esc(m.token)}">Accept invite</button>
-    <button class="btn ghost wide" data-close="1" style="margin-top:9px">Not now</button>`);
+    <button class="btn wide" data-invaccept="${esc(m.token)}" ${ok?"":"disabled"}>Accept invite</button>
+    <button class="btn ghost wide" data-close="1" style="margin-top:9px">Not now</button>`);}
   if(m.type==="confirmemail") return wrap("Check your email",`
     <p style="color:var(--muted);margin-bottom:18px;line-height:1.6">
       We sent a confirmation link to <b style="color:var(--ink)">${esc(m.email||"")}</b>.
@@ -16871,7 +16886,7 @@ document.querySelectorAll('.sig-ai-coach').forEach(sigAiCoachWire);
     window.SporveAPI.rpc("redeem_coach_invite",{p_token:tk})
       /* Honest claim (pentest M2): redemption marks the invite used — it does
          not yet create a membership row, so say what actually happened. */
-      .then(()=>{toast("Invite accepted — the club can now see you've joined their list.");})
+      .then(()=>{toast("Invite accepted — you are on the club's family list as the person they invited.");})
       .catch(e=>{toast((e&&e.message)||"That invite can't be used.");});
   });
   $("[data-invcopy]").forEach(b=>b.onclick=()=>{
