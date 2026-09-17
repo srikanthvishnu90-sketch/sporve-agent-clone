@@ -7,8 +7,9 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { chromium } from 'playwright';
 import { mount, freshDb, session, UID, PID, SUPABASE } from './fake-supabase.mjs';
-const INDEX = 'file://' + new URL('../../index.html', import.meta.url).pathname;
-let browser; test.before(async () => { browser = await chromium.launch(); }); test.after(async () => { await browser?.close(); });
+import { serve } from './serve.mjs';
+let browser, site, INDEX;   // a real http origin: the offline test must prove the queue SURVIVES a reload, and file:// storage does not on CI's Chromium
+test.before(async () => { browser = await chromium.launch(); site = await serve(); INDEX = site.index; }); test.after(async () => { await browser?.close(); await site?.close(); });
 const H = 3600e3, D = 86400e3;
 const iso = (ms) => new Date(ms).toISOString();
 function orgDb() {
