@@ -6271,6 +6271,37 @@ body.reg-coach .rail button.on{font-weight:600}
   .pg-capability-grid,.pg-message-defs .pg-definition-list,.pg-roster-grid .pg-r4-copy{grid-template-columns:1fr}
   .pg-capability-grid article{min-height:0}
 }
+
+/* ── schedule screen (audit 2026-09-17 P1-2) ── */
+.sch-row{display:grid;grid-template-columns:76px 1fr auto;gap:14px;align-items:start;padding:12px 14px;border:1px solid var(--cui-line,#1F2226);border-radius:10px;background:var(--cui-panel,#141517);margin:0 0 8px}
+.sch-row--off{opacity:.6}
+.sch-time{font-size:var(--text-base);line-height:1.3}.sch-time small{display:block;color:var(--cui-ink-3,#8B98A6);font-size:var(--text-sm)}
+.sch-main b{display:block;font-size:var(--text-base)}.sch-main small{display:block;color:var(--cui-ink-3,#8B98A6);font-size:var(--text-sm);margin-top:2px}
+.sch-st{display:inline-block;margin-top:6px;font-size:var(--text-sm);letter-spacing:.02em;color:var(--cui-ink-2,#A3A3AB)}
+.sch-st--warn{color:var(--warn,#B6C6D8)}.sch-st--off{color:var(--cui-ink-3,#8B98A6)}.sch-st--muted{color:var(--cui-ink-3,#8B98A6)}
+.sch-receipt{display:block;margin-top:6px;font-size:var(--text-sm);color:var(--cui-ink,#F5F5F2)}
+.sch-actions{display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end}
+.sch-viewbtns{display:flex;gap:6px}
+.sch-monthbar{display:flex;align-items:center;gap:8px;margin:0 0 10px}.sch-monthlabel{flex:1;text-align:center;font-size:var(--text-md)}
+.sch-month{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:4px}
+.sch-dow{text-align:center;font-size:var(--text-sm);color:var(--cui-ink-3,#8B98A6);text-transform:uppercase;letter-spacing:.04em;padding:4px 0}
+.sch-day{display:flex;flex-direction:column;align-items:stretch;gap:2px;min-height:76px;padding:6px;border:1px solid var(--cui-line,#1F2226);border-radius:8px;background:var(--cui-panel,#141517);color:inherit;text-align:left;cursor:pointer;font:inherit}
+.sch-day--spill{opacity:.45}.sch-day--today{border-color:var(--cui-steel,#6B7F9E)}.sch-day.on{outline:2px solid var(--cui-ink,#F5F5F2);outline-offset:-2px}
+.sch-day__n{font-size:var(--text-sm);color:var(--cui-ink-2,#A3A3AB)}
+.sch-day__ev{display:block;font-size:var(--text-sm);line-height:1.3;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;border-left:2px solid var(--cui-steel,#6B7F9E);padding-left:4px}
+.sch-day__ev.warn{border-left-color:var(--warn,#B6C6D8)}.sch-day__ev.off{text-decoration:line-through;opacity:.6}
+.sch-day__more{font-size:var(--text-sm);color:var(--cui-ink-3,#8B98A6)}
+.sch-att{margin:-2px 0 12px}.att-list{padding:0 14px}
+.att-row{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:10px 0;border-top:1px solid var(--cui-line,#1F2226)}.att-row:first-child{border-top:0}
+.att-name b{display:block;font-size:var(--text-base)}.att-note{display:block;font-size:var(--text-sm);color:var(--cui-ink-3,#8B98A6);margin-top:2px}
+.att-note--queued{color:var(--warn,#B6C6D8)}.att-note--bad{color:var(--cui-ink,#F5F5F2)}
+.att-btns{display:flex;gap:4px;flex-wrap:wrap;justify-content:flex-end}
+.att-btn{min-height:40px;min-width:64px;padding:0 10px;border:1px solid var(--cui-line-2,#2A3138);border-radius:8px;background:transparent;color:var(--cui-ink-2,#A3A3AB);font:inherit;font-size:var(--text-sm);text-transform:uppercase;letter-spacing:.04em;cursor:pointer}
+.att-btn.on{background:var(--cui-ink,#F5F5F2);color:#0E0E0F;border-color:var(--cui-ink,#F5F5F2)}
+.sch-cancel{padding:14px}.sch-cancel input{width:100%;box-sizing:border-box;margin:6px 0 10px;min-height:40px;padding:0 10px;font:inherit;font-size:var(--text-base);background:transparent;color:inherit;border:1px solid var(--cui-line-2,#2A3138);border-radius:8px}
+.sch-cancel__btns{display:flex;gap:8px;flex-wrap:wrap}
+.sch-day__count{display:none}
+@media(max-width:640px){.sch-row{grid-template-columns:64px 1fr}.sch-actions{grid-column:1/-1;justify-content:flex-start}.sch-day{min-height:48px}.sch-day__ev,.sch-day__more{display:none}.sch-day__count{display:block;font-size:var(--text-base);color:var(--cui-ink,#F5F5F2)}}
 </style>
 
 <div id="app"></div>
@@ -11672,7 +11703,10 @@ function dashRowsHTML(b){
   let list=[];
   if(b.key==="money.overdue") list=rows.map(r=>line(r.family||r.title,(r.family?r.title+" · ":"")+r.days_overdue+" day"+(r.days_overdue===1?"":"s")+" overdue",money(Number(r.amount_cents||0)/100)));
   else if(b.key==="schedule.today") list=rows.map(r=>{const c=Array.isArray(r.conflicts)?r.conflicts:[];
-    return line(r.title,[r.team,r.venue].filter(Boolean).join(" · ")+(c.length?" · CONFLICT: "+c.map(x=>x.conflict).join(", "):""),when(r.starts_at,r.timezone));});
+    const row=line(r.title,[r.team,r.venue].filter(Boolean).join(" · ")+(c.length?" · CONFLICT: "+c.map(x=>x.conflict).join(", "):""),when(r.starts_at,r.timezone));
+    /* audit P1-2: cancel in two taps from home — this is tap one; the schedule asks why and confirms */
+    if(coachRole()!=="coach"&&r.id) row.value=ui.html(esc(when(r.starts_at,r.timezone))+` <button type="button" class="cui-button cui-button--sm cui-button--secondary" data-evcancel="${esc(r.id)}" data-evtitle="${esc(r.title||"")}">Cancel</button>`);
+    return row;});
   else if(b.key==="agent.attention") list=rows.map(r=>line(r.title,(r.kind==="finding"?"Finding":"Draft")+(r.detail?" · "+String(r.detail).slice(0,90):""),r.kind==="finding"?(r.severity||"finding"):"draft",false));
   else if(b.key==="roster.gaps") list=rows.map(r=>line(r.name,r.detail||"",r.kind==="waiver"?"waiver":"staff",false));
   else if(b.key==="people.recent") list=rows.map(r=>line(r.name,r.kind||"",String(r.at||"").slice(0,10)));
@@ -11890,19 +11924,219 @@ function coachClientsPage(){
   });
 }
 
+/* ═══════════════════════════════════════════════════════════════════════════
+   AUDIT 2026-09-17 P1-2 — the schedule is the org's `event` rows.
+   The tab used to render the marketplace "sessions" model, so an org with
+   400 events saw "No sessions scheduled". This reads `event` for a window
+   (list: next 60 days; month: the month ±7 days), the org's team names, and
+   the conflicts the server detects for that window — three requests, no
+   extra round trip on navigation. Nothing on screen is invented: the rows
+   are the query's rows, the empty text names the window it watched, and an
+   error names the failure and offers a retry (doc 28 laws 1 and 4).
+   ═══════════════════════════════════════════════════════════════════════════ */
+const ATT_QUEUE_KEY="sporv:attendance-queue:v1";
+function schedState(){
+  if(!S.sched) S.sched={providerId:null,key:null,view:"list",month:null,day:null,loading:false,error:null,events:null,teams:{},conflicts:{},conflictsError:null,loadedAt:null,open:null,att:{},cancel:null,receipts:{}};
+  return S.sched;
+}
+function schedMonthKey(d){ return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0"); }
+function schedRange(st){
+  if(st.view==="month"){
+    const [y,m]=(st.month||schedMonthKey(new Date())).split("-").map(Number);
+    const a=new Date(y,m-1,1), b=new Date(y,m,1); a.setDate(a.getDate()-7); b.setDate(b.getDate()+7);
+    return {from:a.toISOString(),to:b.toISOString()};
+  }
+  return {from:new Date(Date.now()-3600e3).toISOString(),to:new Date(Date.now()+60*86400e3).toISOString()};
+}
+function schedSignedIn(){ const pv=S.coachProvider; return !!(pv&&pv.id&&window.SporveAPI&&window.SporveAPI.isSignedIn&&window.SporveAPI.isSignedIn()); }
+function loadSchedule(force){
+  if(!schedSignedIn()) return;
+  const pv=S.coachProvider, st=schedState(), r=schedRange(st), key=pv.id+"|"+st.view+"|"+r.from.slice(0,10)+"|"+r.to.slice(0,10);
+  if(st.key===key&&!force&&(st.loading||(st.loadedAt&&Date.now()-st.loadedAt<20000))) return;
+  st.key=key; st.providerId=pv.id; st.loading=true; st.error=null;
+  const API=window.SporveAPI;
+  const ev=API.from("event","select=id,team_id,kind,title,starts_at,ends_at,timezone,venue_id,location_text,status,cancellation_reason,assigned_member_id,published_at,capacity,sequence"+
+    "&provider_id=eq."+pv.id+"&starts_at=gte."+encodeURIComponent(r.from)+"&starts_at=lte."+encodeURIComponent(r.to)+"&order=starts_at&limit=1000");
+  const teams=(S.orgTeams&&S.orgTeams.providerId===pv.id)?Promise.resolve(S.orgTeams.rows)
+    :API.from("teams","select=id,name&provider_id=eq."+pv.id+"&limit=200").then(rows=>{S.orgTeams={providerId:pv.id,rows:Array.isArray(rows)?rows:[]};return S.orgTeams.rows;});
+  /* conflicts are a second question to the server; if it refuses or fails,
+     the schedule still renders and SAYS the conflicts were not checked */
+  const conf=API.rpc("event_conflicts_in_range",{p_provider:pv.id,p_from:r.from,p_to:r.to})
+    .then(rows=>({rows:Array.isArray(rows)?rows:[],error:null})).catch(e=>({rows:[],error:(e&&e.message)||"Could not check conflicts."}));
+  Promise.all([ev,teams,conf]).then(([events,tr,c])=>{
+    if(st.key!==key) return;
+    const tmap={}; (tr||[]).forEach(t=>{tmap[t.id]=t.name;});
+    const cmap={}; c.rows.forEach(x=>{(cmap[x.event_id]=cmap[x.event_id]||[]).push(x);});
+    st.events=Array.isArray(events)?events:[]; st.teams=tmap; st.conflicts=cmap; st.conflictsError=c.error; st.loading=false; st.loadedAt=Date.now(); render();
+  }).catch(e=>{ if(st.key!==key) return; st.loading=false; st.events=null; st.loadedAt=Date.now(); st.error=(e&&e.message)||"Could not reach the server."; render(); });  // loadedAt on failure too: a render must never re-fire a failed load (retry is the button)
+}
+/* ── attendance: what the coach tapped is written locally first (≤100ms,
+   field phones lose signal), then replayed to mark_attendance with the same
+   client_id, which the server treats as the idempotency key. A row shows
+   exactly one of: saved (the server's row), queued (ours, not yet
+   acknowledged), or refused (the server's words). Nothing is dropped. ── */
+function attQueue(){
+  if(!S.attQueue){ try{ S.attQueue=JSON.parse(localStorage.getItem(ATT_QUEUE_KEY)||"[]"); }catch(e){ S.attQueue=[]; } if(!Array.isArray(S.attQueue)) S.attQueue=[]; }
+  return S.attQueue;
+}
+function attQueueSave(){ try{ localStorage.setItem(ATT_QUEUE_KEY,JSON.stringify(attQueue())); }catch(e){} }
+function attClientId(){ try{ if(window.crypto&&crypto.randomUUID) return crypto.randomUUID(); }catch(e){} return "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g,c=>{const r=Math.random()*16|0;return (c==="x"?r:(r&3|8)).toString(16);}); }
+function loadAttendance(eventId,force){
+  if(!schedSignedIn()) return;
+  const st=schedState(), cur=st.att[eventId];
+  if(cur&&!force&&(cur.loading||(cur.loadedAt&&Date.now()-cur.loadedAt<20000))) return;
+  st.att[eventId]={loading:true,error:null,rows:cur&&cur.rows||null,loadedAt:cur&&cur.loadedAt||null};
+  window.SporveAPI.from("attendance_current","select=member_id,state,marked_at,marked_by&event_id=eq."+eventId+"&limit=500")
+    .then(rows=>{ st.att[eventId]={loading:false,error:null,rows:Array.isArray(rows)?rows:[],loadedAt:Date.now()}; render(); })
+    .catch(e=>{ st.att[eventId]={loading:false,error:(e&&e.message)||"Could not load attendance.",rows:null,loadedAt:Date.now()}; render(); });
+}
+function markAttendanceLocal(eventId,memberId,state){
+  const pv=S.coachProvider; if(!(pv&&pv.id)) return;
+  const q=attQueue();
+  for(let i=q.length-1;i>=0;i--){ if(q[i].event_id===eventId&&q[i].member_id===memberId&&!q[i].sending) q.splice(i,1); }  // the newest tap wins; an unsent older one is retired
+  q.push({client_id:attClientId(),event_id:eventId,member_id:memberId,state:state,at:new Date().toISOString(),provider_id:pv.id,error:null});
+  attQueueSave(); render(); flushAttendanceQueue();
+}
+function flushAttendanceQueue(){
+  const q=attQueue();
+  if(S.attFlushing||!q.length||!(window.SporveAPI&&window.SporveAPI.isSignedIn&&window.SporveAPI.isSignedIn())) return;
+  const item=q.find(x=>!x.error); if(!item) return;
+  S.attFlushing=true; item.sending=true;
+  window.SporveAPI.rpc("mark_attendance",{p_event:item.event_id,p_member:item.member_id,p_state:item.state,p_client_id:item.client_id})
+    .then(row=>{
+      const i=q.indexOf(item); if(i>=0) q.splice(i,1); attQueueSave();
+      const a=schedState().att[item.event_id];
+      if(a&&Array.isArray(a.rows)){
+        const rec={member_id:item.member_id,state:(row&&row.state)||item.state,marked_at:(row&&row.marked_at)||null,marked_by:(row&&row.marked_by)||null};
+        const j=a.rows.findIndex(x=>x.member_id===item.member_id); if(j>=0) a.rows[j]=rec; else a.rows.push(rec);
+      }
+      S.attFlushing=false; item.sending=false; render(); flushAttendanceQueue();
+    })
+    .catch(e=>{
+      S.attFlushing=false; item.sending=false;
+      const permanent=e&&(e.status===403||e.status===401||e.status===404||e.status===400||e.status===409||String(e.code||"").match(/^(42501|23503|23514|22P02)$/));
+      if(permanent){ item.error=(e&&e.message)||"Refused by the server."; attQueueSave(); render(); flushAttendanceQueue(); return; }  // stays visible, never retried silently
+      render();
+      if(!S.attRetryTimer) S.attRetryTimer=setTimeout(()=>{ S.attRetryTimer=null; flushAttendanceQueue(); },15000);
+    });
+}
+window.addEventListener("online",()=>flushAttendanceQueue());
+/* ── cancel: two taps. Tap one names the event and asks why; tap two calls
+   cancel_event, which cancels, bumps the ICS sequence, and DRAFTS one notice
+   per family for approval in Needs you — nothing is sent by this screen. ── */
+function cancelEventStart(id,title){ const st=schedState(); st.cancel={id:id,title:title||"",reason:"",busy:false,error:null}; }
+function cancelEventGo(){
+  const st=schedState(), c=st.cancel; if(!c||c.busy||!schedSignedIn()) return;
+  c.busy=true; c.error=null; render();
+  window.SporveAPI.rpc("cancel_event",{p_event:c.id,p_reason:c.reason||"",p_notify:true}).then(r=>{
+    const ev=(st.events||[]).find(e=>e.id===c.id); if(ev){ ev.status="cancelled"; ev.cancellation_reason=c.reason||ev.cancellation_reason||null; }
+    st.receipts[c.id]=Object.assign({title:c.title},r&&typeof r==="object"?r:{}); delete st.conflicts[c.id]; st.cancel=null;
+    if(S.dashHome) S.dashHome.loadedAt=0;  // the home block must not keep showing a cancelled event
+    render();
+  }).catch(e=>{ c.busy=false; c.error=((e&&e.message)||"Could not cancel.")+" Nothing changed."; render(); });
+}
+function schedWhen(iso,tz,opts){ try{ return new Intl.DateTimeFormat("en-US",Object.assign({timeZone:tz||undefined},opts)).format(new Date(iso)); }catch(e){ return String(iso||""); } }
+function schedLocalDate(iso,tz){ try{ const p=new Intl.DateTimeFormat("en-CA",{timeZone:tz||undefined,year:"numeric",month:"2-digit",day:"2-digit"}).formatToParts(new Date(iso)); const g=k=>(p.find(x=>x.type===k)||{}).value; return g("year")+"-"+g("month")+"-"+g("day"); }catch(e){ return String(iso||"").slice(0,10); } }
+function schedEventRow(ev){
+  const ui=window.COACH_UI, st=schedState(), admin=coachRole()!=="coach", conf=st.conflicts[ev.id]||[], rc=st.receipts[ev.id];
+  const past=Date.parse(ev.ends_at)<Date.now(), cancelled=ev.status==="cancelled";
+  const meta=[st.teams[ev.team_id]||null,ev.location_text||null,ev.kind||null].filter(Boolean).join(" · ");
+  const status=cancelled?`<span class="sch-st sch-st--off">Cancelled${ev.cancellation_reason?" · "+esc(ev.cancellation_reason):""}</span>`
+    :conf.length?`<span class="sch-st sch-st--warn" role="status">CONFLICT: ${esc(conf.map(c=>c.conflict+" — "+c.detail).join("; "))}</span>`
+    :ev.published_at?`<span class="sch-st">Published</span>`:`<span class="sch-st sch-st--muted">Not published</span>`;
+  const receipt=rc?`<small class="sch-receipt" role="status">Cancelled. ${Number(rc.drafted_notices||0)} family notice${Number(rc.drafted_notices||0)===1?"":"s"} drafted for your approval in Needs you.</small>`:"";
+  const actions=[
+    !cancelled&&ev.team_id?ui.Button({label:st.open===ev.id?"Close attendance":"Attendance",size:"sm",variant:"secondary",attrs:`data-evatt="${esc(ev.id)}"`}):"",
+    admin&&!cancelled&&!past?ui.Button({label:"Cancel",size:"sm",variant:"secondary",attrs:`data-evcancel="${esc(ev.id)}" data-evtitle="${esc(ev.title)}"`}):"",
+  ].filter(Boolean).join(" ");
+  return `<div class="sch-row${cancelled?" sch-row--off":""}" data-schrow="${esc(ev.id)}">
+    <div class="sch-time cui-mono">${esc(schedWhen(ev.starts_at,ev.timezone,{hour:"numeric",minute:"2-digit"}))}<small>${esc(schedWhen(ev.ends_at,ev.timezone,{hour:"numeric",minute:"2-digit"}))}</small></div>
+    <div class="sch-main"><b>${esc(ev.title)}</b>${meta?`<small>${esc(meta)}</small>`:""}${status}${receipt}</div>
+    <div class="sch-actions">${actions}</div>
+  </div>${st.open===ev.id?schedAttendanceHTML(ev):""}`;
+}
+function schedAttendanceHTML(ev){
+  const ui=window.COACH_UI, st=schedState(), a=st.att[ev.id], q=attQueue().filter(x=>x.event_id===ev.id);
+  loadAttendance(ev.id);
+  const roster=(S.teamRoster||[]).filter(r=>r.live&&r.teamId===ev.team_id);
+  if(!S.teamRoster) hydrateTeamRoster();
+  const STATES=[["present","Present"],["absent","Absent"],["late","Late"],["excused","Excused"]];
+  let body="";
+  if(a&&a.error) body=`<div class="cui-card cui-empty" role="alert"><b>Couldn't load attendance: ${esc(a.error)}</b><p>What you mark still saves locally and sends when the server answers. <button class="cui-button cui-button--sm cui-button--secondary" type="button" data-attretry="${esc(ev.id)}">Try again</button></p></div>`;
+  else if(!S.teamRoster) body=`<div class="cui-card cui-empty"><b>Loading the roster…</b></div>`;
+  else if(!roster.length) body=`<div class="cui-card cui-empty"><b>No active athletes on this team.</b><p>Import or add athletes to the team and they appear here.</p></div>`;
+  else body=`<div class="cui-card att-list">${roster.map(r=>{
+    const srv=(a&&a.rows||[]).find(x=>x.member_id===r.id), pend=q.filter(x=>x.member_id===r.id).slice(-1)[0];
+    const cur=pend?pend.state:srv?srv.state:null;
+    const note=pend&&pend.error?`<small class="att-note att-note--bad" role="alert">Refused: ${esc(pend.error)}</small>`
+      :pend?`<small class="att-note att-note--queued" role="status">Queued — sends when the connection is back</small>`
+      :srv?`<small class="att-note">Saved ${esc(schedWhen(srv.marked_at,ev.timezone,{hour:"numeric",minute:"2-digit"}))}</small>`
+      :(!a||(a.loading&&!a.rows))?`<small class="att-note">Checking the server…</small>`:`<small class="att-note">Not marked</small>`;
+    return `<div class="att-row" data-attrow="${esc(r.id)}"><div class="att-name"><b>${esc(r.name)}</b>${note}</div>
+      <div class="att-btns" role="group" aria-label="Attendance for ${esc(r.name)}">${STATES.map(([k,l])=>`<button type="button" class="att-btn${cur===k?" on":""}" aria-pressed="${cur===k}" data-att="${esc(ev.id)}" data-attmember="${esc(r.id)}" data-attstate="${k}">${l}</button>`).join("")}</div></div>`;
+  }).join("")}</div>`;
+  const queued=q.filter(x=>!x.error).length, refused=q.filter(x=>x.error).length;
+  return `<div class="sch-att" data-schatt="${esc(ev.id)}">${ui.Block({title:"Attendance · "+ev.title,
+    subtitle:(roster.length?roster.length+" athlete"+(roster.length===1?"":"s")+" on the roster. ":"")+"Each tap saves on this device instantly and is sent to the server with a stable id, so a lost signal never loses or doubles a mark."+(queued?" "+queued+" queued.":"")+(refused?" "+refused+" refused.":""),
+    body})}</div>`;
+}
+function schedCancelHTML(){
+  const ui=window.COACH_UI, st=schedState(), c=st.cancel; if(!c) return "";
+  return ui.Block({title:"Cancel "+(c.title||"this event")+"?",
+    subtitle:"Families are told only after you approve the drafted notices in Needs you. The reason goes on the notice.",
+    body:`<div class="cui-card sch-cancel"><label class="l" for="schCancelReason">Reason (optional, up to 300 characters)</label>
+      <input type="text" id="schCancelReason" maxlength="300" value="${esc(c.reason||"")}" placeholder="Field flooded">
+      ${c.error?`<p class="att-note att-note--bad" role="alert">${esc(c.error)}</p>`:""}
+      <div class="sch-cancel__btns">${ui.Button({label:c.busy?"Cancelling…":"Confirm cancellation",size:"sm",variant:"primary",attrs:`data-evcancel-go="1"${c.busy?" disabled":""}`})} ${ui.Button({label:"Keep the event",size:"sm",variant:"secondary",attrs:'data-evcancel-keep="1"'})}</div></div>`});
+}
+function schedMonthHTML(){
+  const st=schedState(); const mk=st.month||schedMonthKey(new Date()); const [y,m]=mk.split("-").map(Number);
+  const first=new Date(y,m-1,1); const start=new Date(first); start.setDate(1-first.getDay());
+  const byDay={}; (st.events||[]).forEach(ev=>{ const d=schedLocalDate(ev.starts_at,ev.timezone); (byDay[d]=byDay[d]||[]).push(ev); });
+  const today=schedLocalDate(new Date().toISOString(),Intl.DateTimeFormat().resolvedOptions().timeZone);
+  const cells=[]; for(let i=0;i<42;i++){ const d=new Date(start); d.setDate(start.getDate()+i); const key=schedMonthKey(d)+"-"+String(d.getDate()).padStart(2,"0"); const evs=byDay[key]||[];
+    cells.push(`<button type="button" class="sch-day${d.getMonth()!==m-1?" sch-day--spill":""}${key===today?" sch-day--today":""}${st.day===key?" on":""}" data-schday="${key}" aria-label="${esc(key)}: ${evs.length} event${evs.length===1?"":"s"}">
+      <span class="sch-day__n cui-mono">${d.getDate()}</span>${evs.length?`<span class="sch-day__count cui-mono">${evs.length}</span>`:""}${evs.slice(0,3).map(ev=>`<span class="sch-day__ev${ev.status==="cancelled"?" off":""}${(st.conflicts[ev.id]||[]).length?" warn":""}">${esc(schedWhen(ev.starts_at,ev.timezone,{hour:"numeric"}))} ${esc(ev.title)}</span>`).join("")}${evs.length>3?`<span class="sch-day__more">+${evs.length-3} more</span>`:""}</button>`); }
+  const label=first.toLocaleDateString("en-US",{month:"long",year:"numeric"});
+  const dayEvents=st.day?(byDay[st.day]||[]):[];
+  return `<div class="sch-monthbar"><button type="button" class="cui-button cui-button--sm cui-button--secondary" data-schmonth="-1" aria-label="Previous month">‹</button><b class="sch-monthlabel">${esc(label)}</b><button type="button" class="cui-button cui-button--sm cui-button--secondary" data-schmonth="1" aria-label="Next month">›</button><button type="button" class="cui-button cui-button--sm cui-button--secondary" data-schmonth="0">Today</button></div>
+    <div class="sch-month" role="grid" aria-label="${esc(label)}">${["Sun","Mon","Tue","Wed","Thu","Fri","Sat"].map(d=>`<div class="sch-dow">${d}</div>`).join("")}${cells.join("")}</div>
+    ${st.day?`<div class="sch-daylist"><div class="sec-head" style="margin:14px 0 6px"><h3>${esc(new Date(st.day+"T12:00:00").toLocaleDateString("en-US",{weekday:"long",month:"long",day:"numeric"}))} · ${dayEvents.length}</h3></div>${dayEvents.length?dayEvents.map(schedEventRow).join(""):`<div class="cui-card cui-empty"><b>Nothing scheduled on this day.</b></div>`}</div>`:""}`;
+}
+function schedListHTML(){
+  const st=schedState(); const evs=st.events||[]; if(!evs.length) return `<div class="cui-card cui-empty"><b>Nothing scheduled in the next 60 days.</b><p>Events appear here the moment a series is created or a schedule is imported.</p></div>`;
+  const groups=[]; evs.forEach(ev=>{ const d=schedLocalDate(ev.starts_at,ev.timezone); let g=groups[groups.length-1]; if(!g||g.d!==d){ g={d,rows:[]}; groups.push(g); } g.rows.push(ev); });
+  return groups.map(g=>`<div class="sch-group"><div class="sec-head" style="margin:14px 0 6px"><h3>${esc(new Date(g.d+"T12:00:00").toLocaleDateString("en-US",{weekday:"long",month:"long",day:"numeric"}))} · ${g.rows.length}</h3></div>${g.rows.map(schedEventRow).join("")}</div>`).join("");
+}
+function schedBodyHTML(){
+  const ui=window.COACH_UI, st=schedState();
+  loadSchedule();
+  if(st.error&&!st.events) return ui.Block({title:"Couldn't load the schedule",subtitle:st.error+" Nothing is shown in its place.",action:ui.Button({label:"Try again",size:"sm",variant:"secondary",attrs:'data-schretry="1"'}),body:""});
+  if(!st.events) return ui.Block({title:"Loading the schedule…",subtitle:"Reading your events and checking them for conflicts.",body:""});
+  const n=st.events.filter(e=>e.status!=="cancelled").length, c=Object.keys(st.conflicts).length;
+  const warn=st.conflictsError?`<aside class="cui-callout" role="status"><b>Conflicts were not checked.</b> ${esc(st.conflictsError)}</aside>`:"";
+  const sub=st.view==="month"?"Every event this month, coloured where the server found a conflict. Pick a day to work its list.":n+" upcoming event"+(n===1?"":"s")+" in the next 60 days"+(c?", "+c+" with a conflict the server found":"")+".";
+  return schedCancelHTML()+ui.Block({title:st.view==="month"?"Month":"Upcoming",subtitle:sub,
+    action:`<div class="sch-viewbtns">${ui.Button({label:"List",size:"sm",variant:st.view==="list"?"primary":"secondary",attrs:'data-schview="list"'})} ${ui.Button({label:"Month",size:"sm",variant:st.view==="month"?"primary":"secondary",attrs:'data-schview="month"'})}</div>`,
+    body:warn+(st.view==="month"?schedMonthHTML():schedListHTML())});
+}
 function coachSchedulePage(){
   const ui=window.COACH_UI;
   const sessions=providerSessions().filter(s=>s.date>=TODAY);
   const rules=(S.recurringSlots||[]).slice();
+  const live=queueIsLive(), st=live?schedState():null;
   const tabs=[
-    {key:"calendar",label:"Calendar",count:sessions.length},
+    {key:"calendar",label:live?"Schedule":"Calendar",count:live?((st.events||[]).filter(e=>e.status!=="cancelled").length):sessions.length},
     {key:"availability",label:"Availability",count:rules.length},
     {key:"time-off",label:"Time off"},
   ];
   const active=ui.activeTab(tabs,"calendar","schedulePageTab");
   let body="";
   if(active==="calendar"){
-    body=ui.Block({
+    /* AUDIT 2026-09-17 P1-2: the org's events, not the marketplace sessions.
+       A signed-in org reads `event`; the seeded sessions table is never shown
+       to a real org (doc 28 law 1). */
+    body=queueIsLive()?schedBodyHTML():ui.Block({
       title:"Upcoming sessions",
       subtitle:"Bookable and booked sessions loaded across your active listings, ordered by date and time.",
       body:ui.DataTable({
@@ -11935,8 +12169,8 @@ function coachSchedulePage(){
   }
   return ui.Page({
     page:"schedule",eyebrow:"Clients",h1:"Schedule",
-    lede:"Sessions families can attend, the availability that creates them, and exceptions that keep the calendar honest.",
-    actions:[ui.Button({label:"Add session",size:"lg",variant:"primary",attrs:'data-addsession="1"'})],
+    lede:live?"Your organization's events, the conflicts the server found on them, attendance from the field, and cancellations that reach families only after you approve the notice.":"Sessions families can attend, the availability that creates them, and exceptions that keep the calendar honest.",
+    actions:live?[]:[ui.Button({label:"Add session",size:"lg",variant:"primary",attrs:'data-addsession="1"'})],
     tabs:tabs,active:active,stateKey:"schedulePageTab",tabLabel:"Schedule sections",body:body,
   });
 }
@@ -16575,6 +16809,21 @@ document.querySelectorAll('.sig-ai-coach').forEach(sigAiCoachWire);
     if(b.dataset.settab) S.setTab=b.dataset.settab;
     setCoachTab(b.dataset.ctab);window.scrollTo(0,0);render();});
   $("[data-dashretry]").forEach(b=>b.onclick=()=>{loadDashboardHome(true);render();});
+  /* AUDIT 2026-09-17 P1-2 — schedule screen */
+  $("[data-schview]").forEach(b=>b.onclick=()=>{const st=schedState();st.view=b.dataset.schview;st.day=null;render();});
+  $("[data-schmonth]").forEach(b=>b.onclick=()=>{const st=schedState();const d=Number(b.dataset.schmonth);
+    if(d===0) st.month=schedMonthKey(new Date()); else { const [y,m]=(st.month||schedMonthKey(new Date())).split("-").map(Number); st.month=schedMonthKey(new Date(y,m-1+d,1)); }
+    st.day=null;render();});
+  $("[data-schday]").forEach(b=>b.onclick=()=>{const st=schedState();st.day=st.day===b.dataset.schday?null:b.dataset.schday;render();});
+  $("[data-schretry]").forEach(b=>b.onclick=()=>{loadSchedule(true);render();});
+  $("[data-evatt]").forEach(b=>b.onclick=()=>{const st=schedState();st.open=st.open===b.dataset.evatt?null:b.dataset.evatt;render();});
+  $("[data-attretry]").forEach(b=>b.onclick=()=>{loadAttendance(b.dataset.attretry,true);flushAttendanceQueue();render();});
+  $("[data-att]").forEach(b=>b.onclick=()=>markAttendanceLocal(b.dataset.att,b.dataset.attmember,b.dataset.attstate));
+  $("[data-evcancel]").forEach(b=>b.onclick=()=>{cancelEventStart(b.dataset.evcancel,b.dataset.evtitle);if(S.coachTab!=="schedule"){setCoachTab("schedule");S.schedulePageTab="calendar";}window.scrollTo(0,0);render();
+    const el=document.getElementById("schCancelReason"); if(el) el.focus();});
+  $("[data-evcancel-go]").forEach(b=>b.onclick=()=>cancelEventGo());
+  $("[data-evcancel-keep]").forEach(b=>b.onclick=()=>{schedState().cancel=null;render();});
+  const scr=document.getElementById("schCancelReason"); if(scr){ scr.oninput=()=>{const c=schedState().cancel;if(c) c.reason=scr.value;}; scr.onkeydown=e=>{if(e.key==="Enter"){e.preventDefault();cancelEventGo();}}; }
   /* Operations sub-tabs. Owned by the host, not mod-coachops, because the tab
      now mixes host-rendered Reviews with views from two different modules. */
   $("[data-opstab]").forEach(b=>b.onclick=()=>{S.opsTab=b.dataset.opstab;window.scrollTo(0,0);render();});

@@ -43,6 +43,10 @@ function filterRows(rows, params) {
       if (op === 'not.is') return raw === 'null' ? x != null : String(x) !== raw;
       if (op === 'in') return raw.replace(/^\(|\)$/g, '').split(',').includes(String(x));
       if (op === 'like' || op === 'ilike') return new RegExp('^' + raw.replace(/%/g, '.*') + '$', op === 'ilike' ? 'i' : '').test(String(x ?? ''));
+      if (op === 'gte' || op === 'lte' || op === 'gt' || op === 'lt') {   // ISO timestamps and numbers compare the same way PostgREST orders them
+        const a = typeof x === 'number' ? x : String(x ?? ''), b = typeof x === 'number' ? Number(raw) : raw;
+        return op === 'gte' ? a >= b : op === 'lte' ? a <= b : op === 'gt' ? a > b : a < b;
+      }
       return true;
     });
   }
@@ -81,6 +85,31 @@ export async function mount(page, db) {
         if (mem) { const emp = (db.providers || []).find((p) => p.id === mem.organization_id); if (emp) return json(shape(emp, mem.role === 'admin' ? 'director' : mem.role === 'owner' ? 'owner' : 'coach', mem.id)); }
         return json([]);
       }
+      // ── schedule screen doubles (audit P1-2): the real functions' shapes, refusals and receipts ──
+      if (fn === 'event_conflicts_in_range') {
+        if (db.__conflictsError) return json({ message: db.__conflictsError, code: '42501' }, 403);
+        const rows = []; (db.event || []).filter((e) => e.provider_id === body?.p_provider && e.status !== 'cancelled').forEach((e) => (e.__conflicts || []).forEach((c) => rows.push({ event_id: e.id, ...c })));
+        return json(rows);
+      }
+      if (fn === 'cancel_event') {
+        if (db.__cancelError) return json({ message: db.__cancelError, code: '42501' }, 403);
+        const e = (db.event || []).find((x) => x.id === body?.p_event); if (!e) return json({ message: 'event not found', code: '23503' }, 404);
+        if (e.status === 'cancelled') return json({ event_id: e.id, status: 'cancelled', already_cancelled: true, drafted_notices: 0, sequence: e.sequence || 0, venue_released: false });
+        e.status = 'cancelled'; e.cancellation_reason = (body.p_reason || '').trim().slice(0, 300) || null; e.sequence = (e.sequence || 0) + 1;
+        const families = (db.team_athletes || []).filter((a) => a.team_id === e.team_id && a.status !== 'inactive').length;
+        for (let i = 0; i < families; i++) db.obligations.push({ id: uuid(), provider_id: e.provider_id, kind: 'schedule', status: 'draft', source_kind: 'agent', draft_type: 'schedule_cancellation', source_ref: 'event:' + e.id + ':cancel:' + i, title: 'Cancelled: ' + e.title });
+        log.push({ kind: 'cancel_event', id: e.id, reason: body.p_reason, notify: body.p_notify });
+        return json({ event_id: e.id, status: 'cancelled', already_cancelled: false, drafted_notices: families, sequence: e.sequence, venue_released: !!e.venue_id });
+      }
+      if (fn === 'mark_attendance') {
+        if (db.__attendanceError) return json({ message: db.__attendanceError, code: '42501' }, 403);
+        const e = (db.event || []).find((x) => x.id === body?.p_event); if (!e) return json({ message: 'event not found', code: '23503' }, 404);
+        db.attendance_record = db.attendance_record || [];
+        const dup = db.attendance_record.find((r) => r.client_id === body.p_client_id); if (dup) return json(dup);
+        const row = { id: uuid(), provider_id: e.provider_id, event_id: e.id, member_id: body.p_member, state: body.p_state, marked_by: UID, client_id: body.p_client_id, marked_at: new Date().toISOString() };
+        db.attendance_record.push(row); log.push({ kind: 'mark_attendance', client_id: row.client_id, member_id: row.member_id, state: row.state });
+        return json(row);
+      }
       if (fn === 'dashboard_home') {
         if (db.__homeError) return json({ message: db.__homeError }, 503);
         return json(typeof db.__home === 'function' ? db.__home(body, db) : dashboardHome(db, body?.p_provider));
@@ -94,6 +123,10 @@ export async function mount(page, db) {
     // ── rest ──
     if (path.startsWith('/rest/v1/')) {
       const table = path.split('/')[3]; const params = url.searchParams; const prefer = req.headers()['prefer'] || '';
+      if (table === 'attendance_current' && method === 'GET') {   // the view: newest record per (event, member)
+        const latest = new Map(); [...(db.attendance_record || [])].sort((a, b) => String(a.marked_at).localeCompare(String(b.marked_at))).forEach((r) => latest.set(r.event_id + '|' + r.member_id, r));
+        return json(filterRows([...latest.values()], params));
+      }
       if (!(table in db)) { db[table] = []; }
       const rows = db[table];
       if (method === 'GET') return json(filterRows(rows, params));
