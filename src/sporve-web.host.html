@@ -7618,7 +7618,7 @@ function adoptIdentity(newUid){
        but drop the SEED-derived demo collections — a real account must never
        inherit "Julian Mercer" as its roster or the demo org's listings. Live
        rows re-hydrate from the DB right after auth. */
-    ["athletes","bookings","messages","roster","listings","teams","parentUpdates"].forEach(k=>{
+    ["athletes","bookings","messages","roster","listings","teams","parentUpdates","conversations","notifications"].forEach(k=>{
       if(k in S) S[k]=Array.isArray(S[k])?[]:{};
     });
   }
@@ -11035,7 +11035,7 @@ function coachHTML(){
               ["finances","Earnings"],["operations","Operations"],["billing","Billing"]];
   const extra=modCoachTabs().filter(([k])=>!core.some(c=>c[0]===k));
   const gs=gettingStarted();
-  const unread=S.conversations.length;
+  const unread=liveConversations().length;
   return `<div class="coachtop"><div class="shell coachtop-in">
       <button class="navlink" data-import="1">⇄ Import clients</button>
       <button class="navlink" data-info="help">? Support</button>
@@ -11789,8 +11789,8 @@ function coachClientsPage(){
   let body="";
   if(active==="roster"){
     body+=ui.Block({
-      title:SEED.teams[0].name,
-      subtitle:"Clients currently attached to this team; payment status comes from each loaded relationship.",
+      title:queueIsLive()?((S.coachProvider&&S.coachProvider.business_name)||"Roster"):SEED.teams[0].name,
+      subtitle:queueIsLive()?"Everyone on your organization's roster; payment status comes from each loaded relationship.":"Clients currently attached to this team; payment status comes from each loaded relationship.",
       body:ui.DataTable({
         columns:[{key:"client",label:"Client"},{key:"jersey",label:sportField().label,mono:true},{key:"available",label:"Available"},{key:"payment",label:"Payment"},{key:"actions",label:"Actions"}],
         rows:roster.map((row,index)=>({
@@ -12180,6 +12180,12 @@ const OBLIG_SRC={email:"forwarded email",pdf:"attached PDF",sms:"text message",a
    loadLiveObligations); anything else that reached S.obligations — a guest
    seed carried across sign-in, a demo parse — is dropped, not rendered. The
    seed exists for the disclosed guest preview alone. */
+/* A real org's conversations are the ones made in this workspace (live:true);
+   the seed threads exist for the disclosed guest preview only. */
+function liveConversations(){
+  const all=Array.isArray(S.conversations)?S.conversations:[];
+  return queueIsLive()?all.filter(c=>c&&c.live===true):all;
+}
 function queueIsLive(){
   return !!(coachState().isReal||(window.SporveAPI&&window.SporveAPI.isSignedIn&&window.SporveAPI.isSignedIn()));
 }
@@ -12971,14 +12977,14 @@ function coachBody(t){
     <div class="panel"><h3>Trainers</h3>
       <div style="display:flex;flex-direction:column;gap:13px;margin-top:15px">${S.trainers.length?S.trainers.map(trainerRow).join(""):'<p style="color:var(--muted);font-size:var(--text-sm)">No trainers on your account yet — anyone you add clears their own background check before they can be booked.</p>'}</div></div>
     <div class="panel" style="margin-top:16px">
-      <div class="sec-head" style="margin:0"><h3>${esc(SEED.teams[0].name)}</h3>
+      <div class="sec-head" style="margin:0"><h3>${esc(queueIsLive()?((S.coachProvider&&S.coachProvider.business_name)||"Roster"):SEED.teams[0].name)}</h3>
         <span style="display:flex;gap:8px">
           ${(S.importBatches||[]).some(x=>!x.undone)
             ?`<button class="btn ghost sm" data-imp-undo="${esc(((S.importBatches||[]).filter(x=>!x.undone).slice(-1)[0]||{}).id||"")}">Undo last import</button>`:""}
           <button class="btn ghost sm" data-setupclub="1">Set up your club</button>
           <button class="btn ghost sm" data-import="1">Import clients</button>
           <button class="btn ghost sm" data-addathlete="1">+ Add athlete</button></span></div>
-      <p style="color:var(--muted);font-size:var(--text-base)">${esc(SEED.teams[0].sport)} · ${teamRoster().length} athlete${teamRoster().length===1?"":"s"}</p>
+      <p style="color:var(--muted);font-size:var(--text-base)">${queueIsLive()?esc(((S.coachProvider||{}).sports||[])[0]||"")+(((S.coachProvider||{}).sports||[])[0]?" · ":""):esc(SEED.teams[0].sport)+" · "}${teamRoster().length} athlete${teamRoster().length===1?"":"s"}</p>
       <div class="tblwrap" style="margin-top:14px"><table class="tbl">
         <thead><tr><th>Athlete</th><th>Jersey</th><th>Available</th><th>Paid</th><th></th></tr></thead>
         <tbody>${teamRoster().map((r,i)=>`<tr>
@@ -13004,8 +13010,13 @@ function coachBody(t){
     const tab=S.inboxTab==="group"?"group":"direct";
     const title=c=>kindOf(c)==="group"?c.name:c.with;
     const initials=n=>String(n||"?").split(" ").map(w=>w[0]).slice(0,2).join("").toUpperCase();
-    const directs=S.conversations.filter(c=>kindOf(c)==="direct");
-    const groups=S.conversations.filter(c=>kindOf(c)==="group");
+    /* AUDIT 2026-09-17 P0-2: the seed threads ("Northside Flight Basketball",
+       "Julian is registered…") rendered on a real, empty org. A real org's
+       inbox holds only threads it created here (groups) — inbound replies are
+       spec 15.6 and do not exist yet, and the screen says so. */
+    const convs=liveConversations();
+    const directs=convs.filter(c=>kindOf(c)==="direct");
+    const groups=convs.filter(c=>kindOf(c)==="group");
     const shown=tab==="group"?groups:directs;
     const head=`<div class="sec-head" style="margin-top:18px"><h1>Inbox</h1>
         <button class="btn" data-newgroup="1">+ New group</button></div>
@@ -13021,7 +13032,7 @@ function coachBody(t){
         <h3>${tab==="group"?"No group messages yet":"No messages yet"}</h3>
         <p style="margin-top:6px">${tab==="group"
           ? "A group reaches a whole roster at once — the parents on one team, or the trainers on your staff."
-          : "When a family messages you about a listing, the thread opens here."}</p>
+          : (queueIsLive()?"Sporv cannot receive replies yet — families answer at your reply-to address. Inbound threads arrive here once the inbox connector is live.":"When a family messages you about a listing, the thread opens here.")}</p>
         ${tab==="group"?`<button class="btn" data-newgroup="1" style="margin-top:18px">Create a group</button>`:""}</div>`;
     const active=shown.find(x=>x.id===S.activeConv)||shown[0];
     const isGroup=kindOf(active)==="group";
@@ -17959,7 +17970,7 @@ document.querySelectorAll('.sig-ai-coach').forEach(sigAiCoachWire);
     const pool=providerPeople();
     const members=ids.map(id=>pool.find(p=>p.id===id)).filter(Boolean).map(p=>({id:p.id,name:p.name}));
     const id="conv_g"+Math.random().toString(36).slice(2,9);
-    S.conversations=[{id,kind:"group",name,members,
+    S.conversations=[{id,kind:"group",name,members,live:true,
       last:`Group created · ${members.length} ${members.length===1?"person":"people"}`,at:TODAY},...S.conversations];
     S.messages[id]=[];
     S.inboxTab="group";S.activeConv=id;S.modal=null;

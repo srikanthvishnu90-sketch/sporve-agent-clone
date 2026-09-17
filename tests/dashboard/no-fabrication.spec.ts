@@ -51,3 +51,21 @@ test('rows on screen are exactly the rows the query returned', async () => {
   assert.equal(await page.evaluate(() => document.querySelectorAll('.cui-list__row').length), 3, 'one money row + one finding + one draft — nothing else');
   await ctx.close();
 });
+
+// Audit 2026-09-17 P0-2: seed content on a real org's Roster header and Inbox.
+test('a real org never sees the seed team name, the seed threads, or a badge counting them', async () => {
+  const db = freshDb({ onboarded: true, name: 'Rivertown FC' });
+  const ctx = await browser.newContext({ viewport: { width: 1280, height: 900 } });
+  await ctx.addInitScript((s) => localStorage.setItem('sporve:session:v1', JSON.stringify(s)), session());
+  const page = await ctx.newPage(); await mount(page, db); await page.goto(INDEX, { waitUntil: 'domcontentloaded' });
+  await page.waitForFunction(() => typeof S === 'object' && S.auth?.status === 'verified' && !!S.coachProvider, null, { timeout: 15000 });
+  for (const tab of ['roster', 'inbox']) {
+    await page.evaluate((t) => { S.coachTab = t; render(); }, tab); await page.waitForTimeout(600);
+    const text = await page.evaluate(() => document.querySelector('#app').innerText);
+    assert.ok(!/Northside|Julian|Apex|tryout/i.test(text), `${tab}: seed content on a real org: ${text.slice(0, 200)}`);
+    if (tab === 'roster') assert.match(text, /Rivertown FC/, 'the roster is titled with the org\'s own name');
+    if (tab === 'inbox') assert.match(text, /cannot receive replies yet/i, 'the inbox says what it is waiting on');
+  }
+  assert.equal(await page.evaluate(() => document.querySelectorAll('.rbadge').length), 0, 'no unread badge counting seed threads');
+  await ctx.close();
+});
