@@ -15,7 +15,7 @@ export function freshDb({ onboarded = false, name = 'Your organization' } = {}) 
       stripe_onboarding_started: false, stripe_charges_enabled: false, plan: 'free', plan_status: 'active', plan_period_end: null,
       coach_years_coaching: null, coach_years_played: null, credentials: null, avatar_url: null, logo_url: null }],
     provider_settings: [], team_athletes: [], guardians: [], guardian_links: [], org_connectors: [], import_batches: [],
-    obligations: [], agent_findings: [], lifecycle_message_prefs: [], outbound_messages: [], teams: [], programs: [], sessions: [],
+    obligations: [], installments: [], fee_schedules: [], agent_findings: [], lifecycle_message_prefs: [], outbound_messages: [], teams: [], programs: [], sessions: [],
     bookings: [], athletes: [], reviews: [], staff_certifications: [], organization_members: [], plan_entitlements: [{ plan: 'free' }, { plan: 'pro' }],
     event: [], event_series: [], venue: [], seasons: [], notifications: [], coach_agent_turns: [], installments: [], fee_schedules: [],
   };
@@ -110,6 +110,30 @@ export async function mount(page, db) {
         db.attendance_record.push(row); log.push({ kind: 'mark_attendance', client_id: row.client_id, member_id: row.member_id, state: row.state });
         return json(row);
       }
+      if (fn === 'money_aged_balances') {   // audit P1-3: the real function's shape — zero rows below treasurer, never an error
+        if (db.__moneyError) return json({ message: db.__moneyError }, 503);
+        const role = callerRole(db); const pid = body?.p_provider;
+        const empty = { role, totals: null, families: [], items: [], items_truncated: false, failed: [], collected: [], collected_90d_cents: 0 };
+        if (!role || role === 'coach' || role === 'registrar') return json(empty);
+        const now = Date.now(); const nm = (g) => g ? [g.first_name, g.last_name].filter(Boolean).join(' ') || null : null;
+        const open = (db.obligations || []).filter((o) => o.provider_id === pid && o.kind === 'fee' && ['draft', 'approved'].includes(o.status) && (o.amount_cents || 0) > 0)
+          .map((o) => ({ ...o, days_overdue: !o.due_at || Date.parse(o.due_at) > now ? 0 : Math.floor((now - Date.parse(o.due_at)) / 86400e3) }));
+        const sum = (rows, f = () => true) => rows.filter(f).reduce((a, o) => a + Number(o.amount_cents || 0), 0);
+        const fams = new Map(); open.forEach((o) => { const k = o.guardian_id || null; if (!fams.has(k)) fams.set(k, []); fams.get(k).push(o); });
+        const families = [...fams.entries()].map(([gid, rows]) => ({ guardian_id: gid, family: nm((db.guardians || []).find((g) => g.id === gid)), balance_cents: sum(rows), overdue_cents: sum(rows, (o) => o.days_overdue > 0), open_count: rows.length,
+          oldest_due_at: rows.map((o) => o.due_at).filter(Boolean).sort()[0] || null, days_overdue: Math.max(0, ...rows.map((o) => o.days_overdue)),
+          athletes: [...new Set(rows.map((o) => nm((db.team_athletes || []).find((a) => a.id === o.member_id))).filter(Boolean))].sort().join(', ') || null }))
+          .sort((a, b) => b.overdue_cents - a.overdue_cents || b.days_overdue - a.days_overdue || b.balance_cents - a.balance_cents);
+        const items = [...open].sort((a, b) => String(a.due_at || '9').localeCompare(String(b.due_at || '9')) || b.amount_cents - a.amount_cents).slice(0, 2000)
+          .map((o) => ({ id: o.id, guardian_id: o.guardian_id || null, member_id: o.member_id || null, title: o.title, amount_cents: o.amount_cents, due_at: o.due_at || null, days_overdue: o.days_overdue, status: o.status, source_kind: o.source_kind || 'manual', source_ref: o.source_ref || null, created_at: o.created_at || null }));
+        const failed = (db.installments || []).filter((i) => i.status === 'failed' && (db.fee_schedules || []).some((f) => f.id === i.fee_schedule_id && f.provider_id === pid))
+          .map((i) => ({ id: i.id, member_id: i.member_id, athlete: nm((db.team_athletes || []).find((a) => a.id === i.member_id)), amount_cents: i.amount_cents, due_date: i.due_date, attempt_count: i.attempt_count || 0, last_attempt_at: i.last_attempt_at || null }));
+        const done = (db.obligations || []).filter((o) => o.provider_id === pid && o.kind === 'fee' && o.status === 'done' && (o.amount_cents || 0) > 0).sort((a, b) => String(b.done_at || '').localeCompare(String(a.done_at || '')));
+        const buckets = { current: sum(open, (o) => o.days_overdue <= 0), d1_30: sum(open, (o) => o.days_overdue >= 1 && o.days_overdue <= 30), d31_60: sum(open, (o) => o.days_overdue >= 31 && o.days_overdue <= 60), d61_90: sum(open, (o) => o.days_overdue >= 61 && o.days_overdue <= 90), d90_plus: sum(open, (o) => o.days_overdue > 90) };
+        return json({ role, totals: { outstanding_cents: sum(open), open_count: open.length, overdue_cents: sum(open, (o) => o.days_overdue > 0), overdue_count: open.filter((o) => o.days_overdue > 0).length, families_count: fams.size, buckets },
+          families, items, items_truncated: open.length > 2000, failed, collected: done.slice(0, 50).map((o) => ({ id: o.id, title: o.title, amount_cents: o.amount_cents, done_at: o.done_at || null, family: nm((db.guardians || []).find((g) => g.id === o.guardian_id)) })),
+          collected_90d_cents: sum(done, (o) => o.done_at && Date.parse(o.done_at) >= now - 90 * 86400e3) });
+      }
       if (fn === 'dashboard_home') {
         if (db.__homeError) return json({ message: db.__homeError }, 503);
         return json(typeof db.__home === 'function' ? db.__home(body, db) : dashboardHome(db, body?.p_provider));
@@ -162,6 +186,17 @@ export async function mount(page, db) {
 }
 
 
+/* The caller's role in the org the double serves, the way my_workspace() and
+   dashboard_caller() resolve it: owner of the provider row, else the active
+   membership's role mapped admin→director, trainer→coach, else null. */
+export function callerRole(db) {
+  const own = (db.providers || []).find((p) => p.owner_id === UID);
+  const mem = (db.organization_members || []).find((m) => m.member_user_id === UID && m.is_active !== false);
+  if (own && (!mem || own.onboarding_completed || !['Your organization', 'My Academy', 'My coaching business'].includes(own.business_name))) return 'owner';
+  if (mem) return mem.role === 'owner' ? 'owner' : mem.role === 'admin' ? 'director' : 'coach';
+  return own ? 'owner' : null;
+}
+
 /* A faithful double of dashboard_home() (migration 001073) for the OWNER of
    the org: role default → flags → permission filter, rows from the double's
    own tables. Tests may override with db.__home = (args, db) => {...} or
@@ -188,7 +223,7 @@ export function dashboardHome(db, pid) {
   const blocks = ROLE_DEFAULT.owner.filter((k) => BLOCKS[k].requires.every((r) => flags[r])).map((k) => {
     const b = BLOCKS[k]; let rows = [];
     if (k === 'money.overdue') rows = (db.obligations || []).filter((o) => o.provider_id === pid && o.kind === 'fee' && ['draft', 'approved'].includes(o.status) && o.amount_cents > 0 && o.due_at && Date.parse(o.due_at) < now)
-      .map((o) => ({ id: o.id, title: o.title, amount_cents: o.amount_cents, due_at: o.due_at, days_overdue: Math.floor((now - Date.parse(o.due_at)) / 86400000), family: ((db.guardians || []).find((g) => g.id === o.guardian_id) || {}).first_name || null }));
+      .map((o) => ({ id: o.id, title: o.title, amount_cents: o.amount_cents, due_at: o.due_at, days_overdue: Math.floor((now - Date.parse(o.due_at)) / 86400000), family: (() => { const g = (db.guardians || []).find((x) => x.id === o.guardian_id); return g ? [g.first_name, g.last_name].filter(Boolean).join(' ') || null : null; })() }));
     if (k === 'schedule.today') rows = (db.event || []).filter((e) => e.provider_id === pid && e.status !== 'cancelled' && Date.parse(e.starts_at) >= now - 3600e3 && Date.parse(e.starts_at) < now + 48 * 3600e3)
       .map((e) => ({ id: e.id, title: e.title, kind: e.kind, starts_at: e.starts_at, ends_at: e.ends_at, timezone: e.timezone, team: ((db.teams || []).find((t) => t.id === e.team_id) || {}).name || null, venue: e.location_text || null, conflicts: e.__conflicts || [] }));
     if (k === 'agent.attention') rows = [...(db.agent_findings || []).filter((f) => f.provider_id === pid && f.status === 'open').map((f) => ({ kind: 'finding', id: f.id, title: f.title, detail: f.detail, severity: f.severity, created_at: f.created_at })),

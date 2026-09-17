@@ -6302,6 +6302,17 @@ body.reg-coach .rail button.on{font-weight:600}
 .sch-cancel__btns{display:flex;gap:8px;flex-wrap:wrap}
 .sch-day__count{display:none}
 @media(max-width:640px){.sch-row{grid-template-columns:64px 1fr}.sch-actions{grid-column:1/-1;justify-content:flex-start}.sch-day{min-height:48px}.sch-day__ev,.sch-day__more{display:none}.sch-day__count{display:block;font-size:var(--text-base);color:var(--cui-ink,#F5F5F2)}}
+
+/* ── money screen (audit 2026-09-17 P1-3) ── */
+.mny-list{padding:0 14px}
+.mny-fam{border-top:1px solid var(--cui-line,#1F2226)}.mny-fam:first-child{border-top:0}
+.mny-fam__head{display:flex;justify-content:space-between;align-items:center;gap:12px;width:100%;padding:12px 0;background:transparent;border:0;color:inherit;font:inherit;text-align:left;cursor:pointer;min-height:44px}
+.mny-fam__who b{display:block;font-size:var(--text-base)}.mny-fam__who small{display:block;color:var(--cui-ink-3,#8B98A6);font-size:var(--text-sm);margin-top:2px}
+.mny-fam__amt{text-align:right;white-space:nowrap}.mny-fam__amt b{display:block;font-size:var(--text-base)}.mny-fam__amt small{display:block;color:var(--cui-ink-3,#8B98A6);font-size:var(--text-sm)}
+.mny-over{color:var(--warn,#B6C6D8)}
+.mny-items{padding:0 0 10px 12px;border-left:2px solid var(--cui-line-2,#2A3138);margin:0 0 10px}
+.mny-item{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;padding:8px 0}.mny-item b{display:block;font-size:var(--text-base)}.mny-item small{display:block;color:var(--cui-ink-3,#8B98A6);font-size:var(--text-sm);margin-top:2px}
+@media(max-width:640px){.mny-fam__head{flex-wrap:wrap}.mny-fam__amt{text-align:left}}
 </style>
 
 <div id="app"></div>
@@ -7500,6 +7511,8 @@ function coachGateActive(){
 }
 /* the caller's role in the open workspace: owner | director | coach */
 function coachRole(){ const pv=S.coachProvider; return (pv&&pv.role)||"owner"; }
+/* AUDIT 2026-09-17 P1-3: a real org's money tab is Money (doc 22.6); the marketplace demo keeps Earnings. */
+function financesLabel(){ return queueIsLive()?"Money":"Earnings"; }
 /* Resume the wizard where the DB says this org left off — sessionStorage only
    survives the tab; provider_settings survives the device. */
 function suwResume(pv){
@@ -10404,7 +10417,7 @@ function aiContext(){
     inbox:    ["Draft a reply to a parent"],
     schedule: ["What's on my schedule this week?","Message families about a change"],
   };
-  const LABEL={dashboard:"Home",roster:rosterLabel(),inbox:"Messages",finances:"Earnings",
+  const LABEL={dashboard:"Home",roster:rosterLabel(),inbox:"Messages",finances:financesLabel(),
                schedule:"Schedule",listings:"Listings",media:"Media",operations:"Operations",
                profile:"Settings",search:"Search"};
   /* The v2 header's context-action — the surface-relevant view, deep-linked to a
@@ -11031,7 +11044,7 @@ function coachHTML(){
   /* The gate sits here, above every branch, so a private tab cannot be reached
      by any route that sets S.coachTab — including module code and the AI bar. */
   if(isCoachGuest()&&COACH_PRIVATE[t]){
-    const label=(modCoachTabs().concat([["finances","Earnings"],["roster",rosterLabel()],
+    const label=(modCoachTabs().concat([["finances",financesLabel()],["roster",rosterLabel()],
       ["inbox","Messages"]]).find(x=>x[0]===t)||[t,t])[1];
     return coachLockHTML(label,COACH_PRIVATE[t]);
   }
@@ -11066,11 +11079,11 @@ function coachHTML(){
   const GROUPS=[
     [null,      [["queue","Queue"],["dashboard","Home"]]],
     [rosterLabel(), [["roster",rosterLabel()],["inbox","Messages"],["schedule","Schedule"]]],
-    ["Business",[["finances","Earnings"],["approvals","Approvals"],["operations","Operations"],["billing","Billing"]]],
+    ["Business",[["finances",financesLabel()],["approvals","Approvals"],["operations","Operations"],["billing","Billing"]]],
   ];
   const core=[["dashboard","Home"],["schedule","Schedule"],
               ["roster",rosterLabel()],["inbox","Messages"],
-              ["finances","Earnings"],["operations","Operations"],["billing","Billing"]];
+              ["finances",financesLabel()],["operations","Operations"],["billing","Billing"]];
   const extra=modCoachTabs().filter(([k])=>!core.some(c=>c[0]===k));
   const gs=gettingStarted();
   const unread=liveConversations().length;
@@ -11735,7 +11748,7 @@ function dashHomeHTML(){
       : connectPrompt
         ? `<div class="cui-card cui-empty"><b>Nothing is connected yet.</b><p>Connect your inbox so the agent has something to watch.</p>${ui.Button({label:"Connect Gmail",size:"sm",variant:"secondary",attrs:'data-ctab="settings" data-settab="connectors"'})}</div>`
         : dashRowsHTML(b);
-    return ui.Block({title:b.title,subtitle:b.description,action:ui.Button({label:"Open",size:"sm",variant:"secondary",attrs:`data-ctab="${esc(b.drill_to||"queue")}"`}),body});
+    return ui.Block({title:b.title,subtitle:b.description,action:ui.Button({label:"Open",size:"sm",variant:"secondary",attrs:`data-ctab="${esc(b.drill_to||"queue")}"${b.key==="money.overdue"?' data-moneyfilter="overdue"':""}`}),body});
   }).join("");
 }
 function coachHomePage(){
@@ -12218,7 +12231,95 @@ function coachListingsPage(){
   });
 }
 
+/* ═══════════════════════════════════════════════════════════════════════════
+   AUDIT 2026-09-17 P1-3 — money has a screen for dues (doc 22.6).
+   The Earnings tab showed marketplace booking revenue over an org holding
+   real fee obligations. For a signed-in org this is the Money screen: one
+   RPC (money_aged_balances) returns aged balances by family and aggregate,
+   every open obligation with what created it, failed payments with their
+   retry state, and what was collected. Anyone below treasurer gets zero
+   rows from the server and this screen says so; nothing is invented.
+   ═══════════════════════════════════════════════════════════════════════════ */
+function moneyState(){
+  if(!S.money) S.money={providerId:null,loading:false,error:null,data:null,loadedAt:null,tab:"balances",filter:S.moneyFilter||"all",open:null};
+  return S.money;
+}
+function loadMoney(force){
+  const pv=S.coachProvider, st=moneyState();
+  if(!(pv&&pv.id&&window.SporveAPI&&window.SporveAPI.isSignedIn&&window.SporveAPI.isSignedIn())) return;
+  if(st.providerId===pv.id&&!force&&(st.loading||(st.loadedAt&&Date.now()-st.loadedAt<20000))) return;
+  st.providerId=pv.id; st.loading=true; st.error=null;
+  window.SporveAPI.rpc("money_aged_balances",{p_provider:pv.id})
+    .then(d=>{ st.loading=false; st.data=d&&typeof d==="object"?d:null; st.loadedAt=Date.now(); render(); })
+    .catch(e=>{ st.loading=false; st.data=null; st.loadedAt=Date.now(); st.error=(e&&e.message)||"Could not reach the server."; render(); });  // loadedAt on failure: a render never re-fires a failed load
+}
+function moneyCents(c){ try{ return new Intl.NumberFormat("en-US",{style:"currency",currency:"USD"}).format(Number(c||0)/100); }catch(e){ return "$"+(Number(c||0)/100).toFixed(2); } }  // dues carry cents; the marketplace money() rounds to whole dollars
+function moneyDate(iso){ if(!iso) return "no due date"; try{ return new Date(iso).toLocaleDateString("en-US",{month:"short",day:"numeric",year:"numeric"}); }catch(e){ return String(iso).slice(0,10); } }
+function moneyCSV(){
+  const st=moneyState(), d=st.data; if(!d) return "";
+  const q=v=>'"'+String(v==null?"":v).replace(/"/g,'""')+'"';
+  const lines=[["family","athletes","balance","overdue","open_items","oldest_due","days_overdue"].join(",")];
+  (d.families||[]).forEach(f=>lines.push([f.family||"No family on file",f.athletes||"",(Number(f.balance_cents||0)/100).toFixed(2),(Number(f.overdue_cents||0)/100).toFixed(2),f.open_count||0,f.oldest_due_at?String(f.oldest_due_at).slice(0,10):"",f.days_overdue||0].map(q).join(",")));
+  lines.push(""); lines.push(["obligation","family","athlete","amount","due","days_overdue","status","source","reference"].join(","));
+  const fam={}; (d.families||[]).forEach(f=>{fam[f.guardian_id||"none"]=f;});
+  (d.items||[]).forEach(o=>{const f=fam[o.guardian_id||"none"]||{}; lines.push([o.title,f.family||"No family on file",f.athletes||"",(Number(o.amount_cents||0)/100).toFixed(2),o.due_at?String(o.due_at).slice(0,10):"",o.days_overdue||0,o.status,o.source_kind,o.source_ref||""].map(q).join(","));});
+  return lines.join("\n");
+}
+function moneyExport(){
+  const csv=moneyCSV(); if(!csv) return;
+  try{ const blob=new Blob([csv],{type:"text/csv"}); const url=URL.createObjectURL(blob); const a=document.createElement("a"); a.href=url; a.download="sporv-balances-"+new Date().toISOString().slice(0,10)+".csv"; document.body.appendChild(a); a.click(); a.remove(); setTimeout(()=>URL.revokeObjectURL(url),2000); }catch(e){ toast("Could not build the export."); }
+}
+function moneyFamiliesHTML(d){
+  const ui=window.COACH_UI, st=moneyState();
+  const all=d.families||[], fams=st.filter==="overdue"?all.filter(f=>Number(f.overdue_cents||0)>0):all;
+  const items=d.items||[]; const byFam={}; items.forEach(o=>{(byFam[o.guardian_id||"none"]=byFam[o.guardian_id||"none"]||[]).push(o);});
+  if(!all.length) return `<div class="cui-card cui-empty"><b>Nobody owes anything right now.</b><p>Open fee obligations appear here the moment one is approved or drafted.</p></div>`;
+  if(!fams.length) return `<div class="cui-card cui-empty"><b>No family has an overdue balance.</b><p>${all.length} famil${all.length===1?"y has":"ies have"} a balance that is not yet due. ${ui.Button({label:"Show all",size:"sm",variant:"secondary",attrs:'data-moneyfilter="all"'})}</p></div>`;
+  return `<div class="cui-card mny-list">${fams.map(f=>{const key=f.guardian_id||"none", open=st.open===key, rows=byFam[key]||[];
+    return `<div class="mny-fam${open?" on":""}" data-mnyfam="${esc(key)}">
+      <button type="button" class="mny-fam__head" data-moneyopen="${esc(key)}" aria-expanded="${open}">
+        <span class="mny-fam__who"><b>${esc(f.family||"No family on file")}</b><small>${esc(f.athletes||"no athlete linked")} · ${f.open_count} open item${f.open_count===1?"":"s"}${f.oldest_due_at?" · oldest due "+esc(moneyDate(f.oldest_due_at)):""}</small></span>
+        <span class="mny-fam__amt cui-mono"><b>${esc(moneyCents(f.balance_cents))}</b>${Number(f.overdue_cents||0)>0?`<small class="mny-over">${esc(moneyCents(f.overdue_cents))} overdue · ${f.days_overdue} day${f.days_overdue===1?"":"s"}</small>`:`<small>not yet due</small>`}</span>
+      </button>
+      ${open?`<div class="mny-items">${rows.length?rows.map(o=>`<div class="mny-item"><span><b>${esc(o.title)}</b><small>due ${esc(moneyDate(o.due_at))}${o.days_overdue>0?" · "+o.days_overdue+" days overdue":""} · ${esc(o.status)} · from ${esc(o.source_kind)}${o.source_ref?" · "+esc(o.source_ref):""}</small></span><span class="cui-mono">${esc(moneyCents(o.amount_cents))}</span></div>`).join(""):`<div class="mny-item"><small>${d.items_truncated?"This family's items are beyond the first 2,000 loaded. Export the CSV for the full list.":"No open items."}</small></div>`}</div>`:""}
+    </div>`;}).join("")}</div>`;
+}
+function moneyPageHTML(){
+  const ui=window.COACH_UI, st=moneyState(); loadMoney();
+  const tabs=[{key:"balances",label:"Balances",count:st.data&&st.data.totals?Number(st.data.totals.families_count||0):undefined},{key:"failed",label:"Failed payments",count:st.data?(st.data.failed||[]).length:undefined},{key:"collected",label:"Collected",count:st.data?(st.data.collected||[]).length:undefined}];
+  const active=ui.activeTab(tabs,"balances","moneyPageTab"); st.tab=active;
+  let body="";
+  if(st.error&&!st.data) body=ui.Block({title:"Couldn't load balances",subtitle:st.error+" Nothing is shown in its place.",action:ui.Button({label:"Try again",size:"sm",variant:"secondary",attrs:'data-moneyretry="1"'}),body:""});
+  else if(!st.data) body=ui.Block({title:"Loading balances…",subtitle:"Reading every open fee obligation and ageing it.",body:""});
+  else if(!st.data.totals) body=ui.Block({title:"Money is not part of your role",subtitle:"A treasurer, director or owner sees balances. The server returned nothing for yours — nothing is shown in its place.",body:""});
+  else {
+    const d=st.data, t=d.totals, b=t.buckets||{};
+    if(active==="balances"){
+      const filterBtns=`<div class="sch-viewbtns">${ui.Button({label:"All",size:"sm",variant:st.filter==="all"?"primary":"secondary",attrs:'data-moneyfilter="all"'})} ${ui.Button({label:"Overdue",size:"sm",variant:st.filter==="overdue"?"primary":"secondary",attrs:'data-moneyfilter="overdue"'})} ${ui.Button({label:"Export CSV",size:"sm",variant:"secondary",attrs:'data-moneyexport="1"'})}</div>`;
+      body=ui.Block({title:"Outstanding",subtitle:t.open_count+" open fee obligation"+(t.open_count===1?"":"s")+" across "+t.families_count+" famil"+(t.families_count===1?"y":"ies")+", aged from the due date.",
+        body:ui.StatGrid([{label:"Outstanding",value:moneyCents(t.outstanding_cents),context:t.open_count+" open items"},{label:"Overdue",value:moneyCents(t.overdue_cents),context:t.overdue_count+" past due"},{label:"Collected, 90 days",value:moneyCents(d.collected_90d_cents),context:"fee obligations marked done"},{label:"Failed payments",value:String((d.failed||[]).length),context:"card attempts that failed"}])
+          +ui.ListCard([["Not yet due",b.current],["1–30 days",b.d1_30],["31–60 days",b.d31_60],["61–90 days",b.d61_90],["Over 90 days",b.d90_plus]].map(([l,v])=>({label:ui.html(`<b>${esc(l)}</b>`),value:moneyCents(v)})))})
+        +ui.Block({title:st.filter==="overdue"?"Families with an overdue balance":"Balances by family",subtitle:"Largest overdue first. Open a family to see every obligation, what created it, and its status.",action:filterBtns,body:moneyFamiliesHTML(d)});
+    } else if(active==="failed"){
+      const f=d.failed||[];
+      body=ui.Block({title:"Failed payments",subtitle:"Installments whose last card attempt failed, with the retry count the server holds. The retry ladder and the parent's pay link arrive with registration and payment (spec 13.6).",
+        body:f.length?ui.DataTable({columns:[{key:"athlete",label:"Athlete"},{key:"due",label:"Due",mono:true},{key:"amount",label:"Amount",mono:true},{key:"attempts",label:"Attempts",mono:true},{key:"last",label:"Last attempt",mono:true}],
+          rows:f.map(x=>({athlete:x.athlete||"(no athlete linked)",due:x.due_date||"",amount:moneyCents(x.amount_cents),attempts:String(x.attempt_count||0),last:x.last_attempt_at?moneyDate(x.last_attempt_at):"never"}))})
+          :`<div class="cui-card cui-empty"><b>No failed payments.</b><p>Every installment attempt on record succeeded, or none has been attempted.</p></div>`});
+    } else {
+      const c=d.collected||[];
+      body=ui.Block({title:"Collected",subtitle:"Fee obligations marked done, newest first (last 50). "+moneyCents(d.collected_90d_cents)+" in the last 90 days.",
+        body:c.length?ui.DataTable({columns:[{key:"when",label:"Done",mono:true},{key:"title",label:"Obligation"},{key:"family",label:"Family"},{key:"amount",label:"Amount",mono:true}],
+          rows:c.map(x=>({when:x.done_at?moneyDate(x.done_at):"",title:x.title,family:x.family||"No family on file",amount:moneyCents(x.amount_cents)}))})
+          :`<div class="cui-card cui-empty"><b>Nothing collected yet.</b><p>An obligation marked done appears here with its amount and date.</p></div>`});
+    }
+  }
+  return ui.Page({page:"money",eyebrow:"Business",h1:"Money",
+    lede:"Outstanding balances by family and in aggregate, aged from the due date; every obligation traceable to what created it; failed payments with their retry state; what was collected.",
+    tabs:tabs,active:active,stateKey:"moneyPageTab",tabLabel:"Money sections",body:body});
+}
 function coachEarningsPage(){
+  if(queueIsLive()) return moneyPageHTML();  /* AUDIT 2026-09-17 P1-3: a real org sees Money, never marketplace earnings */
   const ui=window.COACH_UI;
   const mineIds=S.listings||[];
   const tx=(S.bookings||[]).filter(b=>mineIds.includes(b.programId));
@@ -16811,8 +16912,14 @@ document.querySelectorAll('.sig-ai-coach').forEach(sigAiCoachWire);
   $("[data-ctab]").forEach(b=>b.onclick=()=>{
     S.cmdPending=null;S.cmdError="";
     if(b.dataset.settab) S.setTab=b.dataset.settab;
+    if(b.dataset.moneyfilter){ moneyState().filter=b.dataset.moneyfilter; S.moneyPageTab="balances"; }
     setCoachTab(b.dataset.ctab);window.scrollTo(0,0);render();});
   $("[data-dashretry]").forEach(b=>b.onclick=()=>{loadDashboardHome(true);render();});
+  /* AUDIT 2026-09-17 P1-3 — money screen */
+  $("[data-moneyfilter]").forEach(b=>{ if(b.dataset.ctab) return; b.onclick=()=>{moneyState().filter=b.dataset.moneyfilter;render();}; });
+  $("[data-moneyopen]").forEach(b=>b.onclick=()=>{const st=moneyState();st.open=st.open===b.dataset.moneyopen?null:b.dataset.moneyopen;render();});
+  $("[data-moneyretry]").forEach(b=>b.onclick=()=>{loadMoney(true);render();});
+  $("[data-moneyexport]").forEach(b=>b.onclick=()=>moneyExport());
   /* AUDIT 2026-09-17 P1-2 — schedule screen */
   $("[data-schview]").forEach(b=>b.onclick=()=>{const st=schedState();st.view=b.dataset.schview;st.day=null;render();});
   $("[data-schmonth]").forEach(b=>b.onclick=()=>{const st=schedState();const d=Number(b.dataset.schmonth);
