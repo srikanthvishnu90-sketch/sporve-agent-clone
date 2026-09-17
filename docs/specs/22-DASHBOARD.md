@@ -10,6 +10,16 @@ Answers "what needs me today" in under five seconds, and differs by role.
 **Coach:** My next event with one-tap attendance · My teams and rosters · Availability responses for my upcoming events · Nothing about money. Nothing about other teams.
 **Treasurer:** Outstanding balances by family, sortable by amount and age · Failed payments needing action · Payout status and ledger drift · Financial aid requests pending.
 **Registrar:** Incomplete registrations · Missing documents by athlete · Import status and quarantined rows · Eligibility failures.
+**Amended 2026-09-17 (doc 25, slice 1):** the role home screens above are now
+**seeded data**, not code. `dashboard_role_default` (migration
+`20260915_001073`) holds each role's ordered block list; `dashboard_block` is
+the registry of the five CORE blocks (doc 26.2); `dashboard_home(p_provider)`
+resolves default → derived capability flags → stored layout → permission
+filter and returns every block's rows in one round trip. Repo roles map
+owner → owner, admin → director, trainer → coach; treasurer and registrar
+defaults are seeded for when those roles exist. Nobody can rearrange blocks
+yet, deliberately (25.1).
+
 ## 22.4 Schedule
 Month, week, list views (list = mobile default). Filter by team, program, staff, facility. Conflicts render inline on the event. Draft vs published visually unmistakable; publishing deliberate, scoped to a team or date range. Create supports single event or recurring series in one flow. Editing an occurrence asks: this event / this and following / all. **Cancel is two taps from home on a phone**, with a pre-written draft attached. Every event shows attendance state and availability responses.
 ## 22.5 People

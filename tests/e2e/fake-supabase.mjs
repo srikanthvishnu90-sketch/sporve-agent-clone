@@ -70,6 +70,10 @@ export async function mount(page, db) {
     // ── rpc ──
     if (path.startsWith('/rest/v1/rpc/')) {
       const fn = path.split('/').pop(); log.push({ kind: 'rpc', fn, args: body });
+      if (fn === 'dashboard_home') {
+        if (db.__homeError) return json({ message: db.__homeError }, 503);
+        return json(typeof db.__home === 'function' ? db.__home(body, db) : dashboardHome(db, body?.p_provider));
+      }
       const answers = { consume_edge_rate_limit: true, run_agent_read: 0, run_agent_drafts: { total: 0, dues: 0, waivers: 0, practice: 0, reactivation: 0, eligibility: 0 },
         create_member_fee_schedule: null, approve_obligation_and_queue: null, agent_autodraft_on: true, reject_unintended_signup: null };
       return json(fn in answers ? answers[fn] : null);
@@ -111,4 +115,42 @@ export async function mount(page, db) {
   // the OAuth / Google endpoints must never be reached for real
   await page.route('https://accounts.google.com/**', (route) => route.fulfill({ status: 200, contentType: 'text/html', body: '<title>oauth-stub</title>' }));
   return { db, log };
+}
+
+
+/* A faithful double of dashboard_home() (migration 001073) for the OWNER of
+   the org: role default → flags → permission filter, rows from the double's
+   own tables. Tests may override with db.__home = (args, db) => {...} or
+   force a whole-call failure with db.__homeError = 'message'. */
+export const BLOCKS = {
+  'money.overdue':   { title: 'Outstanding balances', description: 'Families with a balance past due, aged, largest and oldest first.', min_role: 'treasurer', requires: ['collects_dues'], empty: 'Nobody owes anything right now.', error: 'Could not load balances.', drill_to: 'finances' },
+  'schedule.today':  { title: 'Today and tomorrow', description: 'Events in the next 48 hours with any unresolved conflict flagged on the event.', min_role: 'coach', requires: [], empty: 'Nothing scheduled in the next two days.', error: 'Could not load the schedule.', drill_to: 'schedule' },
+  'agent.attention': { title: 'Needs you', description: 'Findings not dismissed and drafts awaiting your approval, newest first.', min_role: 'coach', requires: [], empty: 'The agent is watching your inbox and your schedule. Nothing needs you.', error: "Could not load the agent's queue.", drill_to: 'queue' },
+  'roster.gaps':     { title: 'Roster gaps', description: 'Athletes missing a required waiver, and staff whose background check or certification expires soon.', min_role: 'registrar', requires: [], empty: 'Every athlete and every staff member is current.', error: 'Could not load roster gaps.', drill_to: 'roster' },
+  'people.recent':   { title: 'Roster changes', description: 'Registrations, withdrawals and waitlist movement in the last 14 days.', min_role: 'registrar', requires: ['runs_registration'], empty: 'No roster changes in the last two weeks.', error: 'Could not load recent changes.', drill_to: 'roster' },
+};
+export const ROLE_DEFAULT = { owner: ['agent.attention', 'money.overdue', 'schedule.today', 'roster.gaps', 'people.recent'], director: ['agent.attention', 'schedule.today', 'roster.gaps', 'people.recent'],
+  treasurer: ['money.overdue', 'agent.attention'], registrar: ['roster.gaps', 'people.recent', 'agent.attention'], coach: ['schedule.today', 'agent.attention'] };
+export function dashboardFlags(db, pid) {
+  return { has_staff: (db.organization_members || []).filter((m) => m.organization_id === pid && m.is_active !== false).length > 1, rents_facilities: false,
+    collects_dues: (db.obligations || []).some((o) => o.provider_id === pid && o.kind === 'fee'), runs_registration: false,
+    multi_team: (db.teams || []).filter((t) => t.provider_id === pid).length > 1,
+    has_connected_inbox: (db.org_connectors || []).some((c) => c.provider_id === pid && c.kind === 'gmail' && ['connected', 'active'].includes(c.status)) };
+}
+export function dashboardHome(db, pid) {
+  const prov = (db.providers || []).find((p) => p.id === pid);
+  if (!prov || prov.owner_id !== UID) return { role: null, flags: {}, blocks: [] };
+  const flags = dashboardFlags(db, pid); const now = Date.now();
+  const blocks = ROLE_DEFAULT.owner.filter((k) => BLOCKS[k].requires.every((r) => flags[r])).map((k) => {
+    const b = BLOCKS[k]; let rows = [];
+    if (k === 'money.overdue') rows = (db.obligations || []).filter((o) => o.provider_id === pid && o.kind === 'fee' && ['draft', 'approved'].includes(o.status) && o.amount_cents > 0 && o.due_at && Date.parse(o.due_at) < now)
+      .map((o) => ({ id: o.id, title: o.title, amount_cents: o.amount_cents, due_at: o.due_at, days_overdue: Math.floor((now - Date.parse(o.due_at)) / 86400000), family: ((db.guardians || []).find((g) => g.id === o.guardian_id) || {}).first_name || null }));
+    if (k === 'schedule.today') rows = (db.event || []).filter((e) => e.provider_id === pid && e.status !== 'cancelled' && Date.parse(e.starts_at) >= now - 3600e3 && Date.parse(e.starts_at) < now + 48 * 3600e3)
+      .map((e) => ({ id: e.id, title: e.title, kind: e.kind, starts_at: e.starts_at, ends_at: e.ends_at, timezone: e.timezone, team: ((db.teams || []).find((t) => t.id === e.team_id) || {}).name || null, venue: e.location_text || null, conflicts: e.__conflicts || [] }));
+    if (k === 'agent.attention') rows = [...(db.agent_findings || []).filter((f) => f.provider_id === pid && f.status === 'open').map((f) => ({ kind: 'finding', id: f.id, title: f.title, detail: f.detail, severity: f.severity, created_at: f.created_at })),
+      ...(db.obligations || []).filter((o) => o.provider_id === pid && o.status === 'draft' && o.source_kind === 'agent').map((o) => ({ kind: 'draft', id: o.id, title: o.title, detail: o.detail, draft_type: o.draft_type, created_at: o.created_at }))];
+    if (k === 'roster.gaps') rows = (db.waiver_documents || []).some((d) => d.provider_id === pid) ? (db.team_athletes || []).filter((a) => a.provider_id === pid && a.status === 'active' && !(db.waiver_signatures || []).some((s) => s.member_id === a.id)).map((a) => ({ kind: 'waiver', id: a.id, name: [a.first_name, a.last_name].filter(Boolean).join(' '), detail: 'no signed waiver on file' })) : [];
+    return { key: k, title: b.title, description: b.description, params: {}, empty: b.empty, error: b.error, drill_to: b.drill_to, rows, failed: false };
+  });
+  return { role: 'owner', flags, blocks };
 }

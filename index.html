@@ -25,7 +25,7 @@
 <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16.png">
 <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
 <link rel="manifest" href="/site.webmanifest">
-<meta name="sporve-build" content="47478ecbee0028e2">
+<meta name="sporve-build" content="bfa06ddfb59a3804">
 </head>
 <body>
 <noscript><h1>Sporv — Every sport. One app.</h1><p>Sporv connects families and athletes with coaches, trainers, camps, and teams across more than 20 sports. Please enable JavaScript to use the app.</p></noscript>
@@ -11691,8 +11691,71 @@ function approvalDrafts(){
    MOD_COACHUI. Counts and metrics are derived from the state hydrated by the
    API modules; the disclosed guest workspace reads the same state shape with
    sample records. No renderer below owns a type size or font stack. */
+/* ═══ HOME AS DATA (doc 25/26/27 slice 1, 2026-09-17) ═══════════════════════
+   A real org's home renders from the block list the database resolved for THIS
+   member (dashboard_home): role default → derived capability flags → stored
+   layout → permission filter, all in one round trip. Nothing here decides what
+   a role may see; a forbidden block is simply absent from the list, and a
+   block's rows are the rows its own query returned. Every value on screen
+   traces to that response; an empty block shows its declared empty text; a
+   block whose query failed shows its declared error text and the others still
+   render. The shell, the tabs and the agent rail do not move (25.1). */
+function loadDashboardHome(force){
+  const pv=S.coachProvider;
+  if(!(pv&&pv.id&&window.SporveAPI&&window.SporveAPI.isSignedIn&&window.SporveAPI.isSignedIn())) return;
+  const cur=S.dashHome;
+  if(cur&&cur.providerId===pv.id&&!force&&(cur.loading||(cur.loadedAt&&Date.now()-cur.loadedAt<20000))) return;
+  S.dashHome={providerId:pv.id,loading:true,error:null,data:cur&&cur.providerId===pv.id?cur.data:null,loadedAt:cur&&cur.providerId===pv.id?cur.loadedAt:null};
+  window.SporveAPI.rpc("dashboard_home",{p_provider:pv.id})
+    .then(d=>{S.dashHome={providerId:pv.id,loading:false,error:null,data:d&&typeof d==="object"?d:{blocks:[]},loadedAt:Date.now()};render();})
+    .catch(e=>{S.dashHome={providerId:pv.id,loading:false,error:(e&&e.message)||"Could not reach the server.",data:null,loadedAt:Date.now()};render();});
+}
+function dashRowsHTML(b){
+  const ui=window.COACH_UI, rows=Array.isArray(b.rows)?b.rows:[];
+  const when=(iso,tz)=>{try{return new Intl.DateTimeFormat("en-US",{timeZone:tz||undefined,weekday:"short",hour:"numeric",minute:"2-digit"}).format(new Date(iso));}catch(e){return String(iso||"");}};
+  const line=(label,small,value,mono)=>({label:ui.html(`<b>${esc(label)}</b>${small?`<small>${esc(small)}</small>`:""}`),value:value==null?"":ui.html(esc(String(value))),mono:mono!==false});
+  let list=[];
+  if(b.key==="money.overdue") list=rows.map(r=>line(r.family||r.title,(r.family?r.title+" · ":"")+r.days_overdue+" day"+(r.days_overdue===1?"":"s")+" overdue",money(Number(r.amount_cents||0)/100)));
+  else if(b.key==="schedule.today") list=rows.map(r=>{const c=Array.isArray(r.conflicts)?r.conflicts:[];
+    return line(r.title,[r.team,r.venue].filter(Boolean).join(" · ")+(c.length?" · CONFLICT: "+c.map(x=>x.conflict).join(", "):""),when(r.starts_at,r.timezone));});
+  else if(b.key==="agent.attention") list=rows.map(r=>line(r.title,(r.kind==="finding"?"Finding":"Draft")+(r.detail?" · "+String(r.detail).slice(0,90):""),r.kind==="finding"?(r.severity||"finding"):"draft",false));
+  else if(b.key==="roster.gaps") list=rows.map(r=>line(r.name,r.detail||"",r.kind==="waiver"?"waiver":"staff",false));
+  else if(b.key==="people.recent") list=rows.map(r=>line(r.name,r.kind||"",String(r.at||"").slice(0,10)));
+  else list=rows.map(r=>line(r.title||r.name||b.key,"",""));
+  // the declared empty text and nothing else — no generic fallback line (doc 28 law 1)
+  if(!list.length) return `<div class="cui-card cui-empty"><b>${esc(b.empty)}</b></div>`;
+  return ui.ListCard(list);
+}
+function dashHomeHTML(){
+  const ui=window.COACH_UI, st=S.dashHome;
+  if(!st||(st.loading&&!st.data)) return ui.Block({title:"Loading your home…",subtitle:"Reading what needs you today.",body:""});
+  if(st.error&&!st.data) return ui.Block({title:"Couldn't load your home",subtitle:st.error+" Nothing below is shown until it loads — no value is invented in its place.",
+    action:ui.Button({label:"Try again",size:"sm",variant:"secondary",attrs:'data-dashretry="1"'}),body:""});
+  const blocks=(st.data&&Array.isArray(st.data.blocks))?st.data.blocks:[];
+  const flags=(st.data&&st.data.flags)||{};
+  if(!blocks.length) return ui.Block({title:"Nothing to show for this role",subtitle:"Your role has no home blocks yet. The tabs above still work.",body:""});
+  return blocks.map(b=>{
+    const failed=!!b.failed;
+    const connectPrompt=b.key==="agent.attention"&&flags.has_connected_inbox===false&&!(Array.isArray(b.rows)&&b.rows.length);
+    const body=failed
+      ? `<div class="cui-card cui-empty" role="alert"><b>${esc(b.error||"Could not load this block.")}</b><p>The rest of your home is unaffected. <button class="btn ghost sm" data-dashretry="1">Try again</button></p></div>`
+      : connectPrompt
+        ? `<div class="cui-card cui-empty"><b>Nothing is connected yet.</b><p>Connect your inbox so the agent has something to watch.</p>${ui.Button({label:"Connect Gmail",size:"sm",variant:"secondary",attrs:'data-ctab="settings" data-settab="connectors"'})}</div>`
+        : dashRowsHTML(b);
+    return ui.Block({title:b.title,subtitle:b.description,action:ui.Button({label:"Open",size:"sm",variant:"secondary",attrs:`data-ctab="${esc(b.drill_to||"queue")}"`}),body});
+  }).join("");
+}
 function coachHomePage(){
   const ui=window.COACH_UI;
+  if(queueIsLive()){
+    loadDashboardHome();
+    const gs=gettingStarted();
+    const pv=S.coachProvider||{};
+    return ui.Page({page:"home",eyebrow:"Home",h1:pv.business_name||"Home",
+      lede:"What needs you today, resolved for your role from your organization's own records.",
+      body:(gs&&gs.total&&gs.done<gs.total?ui.Block({title:"Getting started",subtitle:gs.done+" of "+gs.total+" setup steps complete.",
+        action:ui.Button({label:"Open guide",size:"sm",variant:"secondary",attrs:'data-ctab="getting-started"'}),body:""}):"")+dashHomeHTML()});
+  }
   const mine=coachListings();
   const roster=teamRoster();
   const sessions=providerSessions().filter(s=>s.date>=TODAY);
@@ -16530,7 +16593,9 @@ document.querySelectorAll('.sig-ai-coach').forEach(sigAiCoachWire);
      would ambush the coach on their next visit to the dashboard. */
   $("[data-ctab]").forEach(b=>b.onclick=()=>{
     S.cmdPending=null;S.cmdError="";
+    if(b.dataset.settab) S.setTab=b.dataset.settab;
     setCoachTab(b.dataset.ctab);window.scrollTo(0,0);render();});
+  $("[data-dashretry]").forEach(b=>b.onclick=()=>{loadDashboardHome(true);render();});
   /* Operations sub-tabs. Owned by the host, not mod-coachops, because the tab
      now mixes host-rendered Reviews with views from two different modules. */
   $("[data-opstab]").forEach(b=>b.onclick=()=>{S.opsTab=b.dataset.opstab;window.scrollTo(0,0);render();});
