@@ -194,22 +194,35 @@
     load: function () {
       if (!uid()) { provider = null; return Promise.resolve(null); }
       syncPlans();  // A5: reconcile plan prices/quota/seats from the DB (non-blocking)
-      /* plan / plan_status / plan_period_end are SERVER-COMPUTED: the Stripe
-         webhook projects them onto this row and a trigger refuses a client
-         write, so they are safe to read and pointless to send. They are
-         selected here rather than in a second query because the billing tab
-         must never be able to render a plan the row does not state. */
-      return API.from("providers",
-        "select=id,business_name,bio,sports,location,provider_type,status," +
-        "verification_status,background_check_status,background_check_completed_at," +
-        "onboarding_completed,stripe_onboarding_started,stripe_charges_enabled," +
-        "plan,plan_status,plan_period_end," +
-        "coach_years_coaching,coach_years_played,credentials,avatar_url,logo_url" +
-        "&owner_id=eq." + encodeURIComponent(uid()) + "&limit=1"
-      ).then(function (rows) {
-        provider = (rows && rows[0]) || null;
-        return provider;
-      });
+      /* AUDIT 2026-09-17 P1-1: the workspace is resolved by the DATABASE
+         (my_workspace, migration 001075): a person's own org, unless it is
+         still the untouched signup default and they hold an active membership
+         elsewhere — then the org that employs them, with their role. The old
+         owner_id select could only ever find the auto-created org, so a
+         trainer never saw the club that added them. Falls back to the owner
+         select if the RPC is unavailable (an older environment). */
+      return API.rpc("my_workspace", {})
+        .then(function (rows) {
+          var r = rows && rows[0];
+          if (!r) { provider = null; return null; }
+          provider = Object.assign({}, r, { id: r.provider_id, role: r.role || "owner", member_id: r.member_id || null });
+          delete provider.provider_id;
+          return provider;
+        })
+        .catch(function () {
+          return API.from("providers",
+            "select=id,business_name,bio,sports,location,provider_type,status," +
+            "verification_status,background_check_status,background_check_completed_at," +
+            "onboarding_completed,stripe_onboarding_started,stripe_charges_enabled," +
+            "plan,plan_status,plan_period_end," +
+            "coach_years_coaching,coach_years_played,credentials,avatar_url,logo_url" +
+            "&owner_id=eq." + encodeURIComponent(uid()) + "&limit=1"
+          ).then(function (rows) {
+            provider = (rows && rows[0]) || null;
+            if (provider) provider.role = "owner";
+            return provider;
+          });
+        });
     },
 
     /* Get the coach's provider row, creating it only if it is genuinely absent.
@@ -236,7 +249,7 @@
       var wanted = String(businessName || "").trim();
       return ACCOUNT.load().then(function (existing) {
         if (existing) {
-          if (wanted && existing.business_name !== wanted) {
+          if (wanted && existing.business_name !== wanted && (existing.role || "owner") === "owner") {
             return ACCOUNT.save({ business_name: wanted });
           }
           return existing;

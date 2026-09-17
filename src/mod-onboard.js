@@ -136,7 +136,7 @@
       <p class="sub" style="text-align:center;margin:0 auto 16px"><span class="mono" style="color:var(--steel-l)">${esc(o.email)}</span></p>
       <p class="sub" style="text-align:center;margin:0 auto 18px;max-width:40ch">The link works for 15 minutes and signs you in on this device. No password to set.</p>
       ${o.err ? `<p class="oberr" role="alert">${esc(o.err)}</p>` : ""}
-      ${o.code ? `<form id="obCode" class="f" style="max-width:280px;margin:0 auto 16px"><label class="l" for="obTok">6-digit code from the email</label><input type="text" id="obTok" inputmode="numeric" autocomplete="one-time-code" placeholder="123456"><button class="btn pri full" style="margin-top:8px" type="submit">Sign in</button></form>` : ""}
+      ${o.code ? `<form id="obCode" class="f" style="max-width:280px;margin:0 auto 16px"><label class="l" for="obTok">6-digit code from the email</label><input type="text" id="obTok" inputmode="numeric" autocomplete="one-time-code" placeholder="123456" value="${esc(o.tok || "")}"><button class="btn pri full" style="margin-top:8px" type="submit">Sign in</button></form>` : ""}
       <div style="display:flex;gap:6px;justify-content:center;flex-wrap:wrap"><button class="btn ghost" data-obresend="1">${o.resent ? "Sent again" : "Resend link"}</button><button class="btn ghost" data-obwrong="1">Use a different email</button>${o.code ? "" : `<button class="btn ghost" data-obcode="1">Enter the code instead</button>`}</div>
     </section>`;
   }
@@ -298,8 +298,13 @@
     q("[data-obpw]").forEach((a) => a.onclick = (e) => { e.preventDefault(); S.authIdentifier = o.email; S.modal = { type: "login" }; render(); });
     q("[data-obfoot]").forEach((a) => a.onclick = (e) => { e.preventDefault(); const [n, arg] = a.dataset.obfoot.split(":"); S.modal = null; window.open(location.origin + "/?page=" + encodeURIComponent(arg), "_blank", "noopener"); void n; });
     q("[data-obresend]").forEach((b) => b.onclick = () => { o.resent = true; AUTH().magicLink(o.email, window.location.origin + "/", { role: "provider" }).catch(() => {}); render(); setTimeout(() => { o.resent = false; render(); }, 1800); });
-    q("[data-obwrong]").forEach((b) => b.onclick = () => { o.step = "1"; o.sent = false; o.err = null; o.code = false; render(); });
+    q("[data-obwrong]").forEach((b) => b.onclick = () => { o.step = "1"; o.sent = false; o.err = null; o.code = false; o.tok = ""; render(); });
     q("[data-obcode]").forEach((b) => b.onclick = () => { o.code = true; render(); });
+    /* AUDIT 2026-09-17 (self-caught while fixing P1-1): the code field kept its
+       value only in the DOM, so any render() — the "sent" flash fading 1.8s
+       after Resend, a background load finishing — erased what was typed. Hold
+       it in state like the email field. */
+    const tk = id("obTok"); if (tk) tk.oninput = () => { o.tok = tk.value.trim(); };
     const cf = id("obCode"); if (cf) cf.onsubmit = (e) => { e.preventDefault(); verifyCode((id("obTok").value || "").trim()); };
     q("[data-obtype]").forEach((b) => b.onclick = () => { o.type = b.dataset.obtype; render(); });
     const cs = id("obConsent"); if (cs) cs.onchange = () => { o.consent = cs.checked; render(); };

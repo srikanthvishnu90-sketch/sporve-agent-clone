@@ -70,6 +70,17 @@ export async function mount(page, db) {
     // ── rpc ──
     if (path.startsWith('/rest/v1/rpc/')) {
       const fn = path.split('/').pop(); log.push({ kind: 'rpc', fn, args: body });
+      if (fn === 'my_workspace') {
+        // the resolver of migration 001075: own org unless it is the untouched default and a membership exists
+        const own = (db.providers || []).find((p) => p.owner_id === UID);
+        const mem = (db.organization_members || []).find((m) => m.member_user_id === UID && m.is_active !== false);
+        const untouched = own && !own.onboarding_completed && ['Your organization', 'My Academy', 'My coaching business'].includes(own.business_name)
+          && !(db.teams || []).some((t) => t.provider_id === own.id) && !(db.team_athletes || []).some((a) => a.provider_id === own.id);
+        const shape = (p, role, member_id) => [{ provider_id: p.id, role, member_id, ...Object.fromEntries(Object.entries(p).filter(([k]) => k !== 'id' && k !== 'owner_id')) }];
+        if (own && (!mem || !untouched)) return json(shape(own, 'owner', mem ? mem.id : null));
+        if (mem) { const emp = (db.providers || []).find((p) => p.id === mem.organization_id); if (emp) return json(shape(emp, mem.role === 'admin' ? 'director' : mem.role === 'owner' ? 'owner' : 'coach', mem.id)); }
+        return json([]);
+      }
       if (fn === 'dashboard_home') {
         if (db.__homeError) return json({ message: db.__homeError }, 503);
         return json(typeof db.__home === 'function' ? db.__home(body, db) : dashboardHome(db, body?.p_provider));

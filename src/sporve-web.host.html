@@ -7464,8 +7464,11 @@ function realSignedIn(){
    renders normally rather than trapping someone on a network blip. */
 function coachGateActive(){
   const pv=S.coachProvider;
-  return realSignedIn() && !!pv && pv.onboarding_completed===false;
+  /* staff working in someone else's org are never routed into that org's setup (audit P1-1) */
+  return realSignedIn() && !!pv && pv.onboarding_completed===false && (pv.role||"owner")==="owner";
 }
+/* the caller's role in the open workspace: owner | director | coach */
+function coachRole(){ const pv=S.coachProvider; return (pv&&pv.role)||"owner"; }
 /* Resume the wizard where the DB says this org left off — sessionStorage only
    survives the tab; provider_settings survives the device. */
 function suwResume(pv){
