@@ -73,6 +73,7 @@ test('3. every soft block is advanceable: a reason and a finish-later path, neve
   assert.equal(ph('My Academy'), true); assert.equal(ph('Your organization'), true); assert.equal(ph(''), true); assert.equal(ph('Northside Flight'), false);
   assert.match(mod, /o\.org = isPlaceholderOrg\(p\.business_name\) \? "" : p\.business_name;/, 'resume() treats both placeholders as unset');
   assert.match(mod, /if \(o\.org\.trim\(\) && !isPlaceholderOrg\(o\.org\)\) patch\.business_name/, 'a placeholder is never saved as the org name');
+  assert.match(mod, /patch\.provider_type = PACK\[o\.type \|\| "blank"\]\.org \? "organization" : "solo";/, 'setup writes provider_type so the org can add staff (audit P1-7)');
   assert.match(mod, /if \(s === "2" && skip && !o\.type\) o\.type = "blank";/, 'skipping "what you run" starts blank instead of blocking');
   assert.match(mod, /return \{ hard: false, msg: "Still needed: " \+ miss\.join\(", "\) \+ "\. You can finish this later from Settings\." \}/, 'the soft block says exactly what is missing and where to finish it');
   assert.match(mod, /data-obskip="1"[^>]*>\$\{SKIP\[s\]\}/, 'the finish-later control is rendered');

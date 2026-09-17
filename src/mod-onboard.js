@@ -257,6 +257,11 @@
       const nm = o.name.trim().split(/\s+/); const first = nm[0] || null, last = nm.slice(1).join(" ") || null;
       if (first && AUTH() && AUTH().userId) jobs.push(API().from("profiles", "id=eq." + AUTH().userId() + "&select=id", { method: "PATCH", headers: { Prefer: "return=representation" }, body: { first_name: first, last_name: last } }));
       const patch = {}; if (o.org.trim() && !isPlaceholderOrg(o.org)) patch.business_name = o.org.trim(); else if (!PACK[o.type || "blank"].org && first) patch.business_name = o.name.trim();
+      /* AUDIT 2026-09-17 P1-7: enforce_org_member() refuses staff on any
+         provider whose provider_type is not 'organization', and setup never
+         wrote it — so a club that finished setup could never add a coach.
+         The pack decides: team/camp/blank are organizations, private is solo. */
+      patch.provider_type = PACK[o.type || "blank"].org ? "organization" : "solo";
       if (o.sport) patch.sports = [o.sport]; if (o.area.trim()) patch.location = o.area.trim();
       if (Object.keys(patch).length && window.SporveCoach && window.SporveCoach.save) jobs.push(window.SporveCoach.save(patch).then((row) => { if (row) S.coachProvider = Object.assign({}, S.coachProvider, row); }));
     }

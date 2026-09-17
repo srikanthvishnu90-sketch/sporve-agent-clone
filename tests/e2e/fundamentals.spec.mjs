@@ -110,6 +110,7 @@ test('2+3. signup: every button works, and what is entered is saved and shown af
   await click('#obNext', '3 · Continue'); await page.waitForFunction(() => S.ob?.step === '4', null, { timeout: 8000 });
   assert.equal(db.profiles[0].first_name, 'Marcus'); assert.equal(db.profiles[0].last_name, 'Reed');
   assert.equal(db.providers[0].business_name, 'Rivertown FC'); assert.deepEqual(db.providers[0].sports, ['Soccer']); assert.equal(db.providers[0].location, 'Chicago');
+  assert.equal(db.providers[0].provider_type, 'organization', 'a team org is an organization, so staff can be added (audit P1-7)');
   // ── step 4: connect ──
   await noteButtons('4');
   for (const k of ['gmail', 'google_calendar', 'google_sheets', 'google_drive']) {
