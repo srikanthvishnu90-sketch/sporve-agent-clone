@@ -25,7 +25,7 @@
 <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16.png">
 <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
 <link rel="manifest" href="/site.webmanifest">
-<meta name="sporve-build" content="07867d5d196c5b92">
+<meta name="sporve-build" content="47478ecbee0028e2">
 </head>
 <body>
 <noscript><h1>Sporv — Every sport. One app.</h1><p>Sporv connects families and athletes with coaches, trainers, camps, and teams across more than 20 sports. Please enable JavaScript to use the app.</p></noscript>
@@ -7526,6 +7526,36 @@ function suwResume(pv){
     }).catch(()=>{});
 }
 
+/* Load the signed-in org's own provider row and roster (no create). Used by
+   the cold-start path; enterCoachWorkspace() is the create-if-missing door. */
+function loadOrgWorkspace(){
+  if(!(window.SporveCoach&&realSignedIn())) return Promise.resolve(null);
+  return window.SporveCoach.load().then(pv=>{
+    S.coachProvider=pv||null; if(pv) S.coachEnsureError=null;
+    if(pv) hydrateTeamRoster();
+    return pv;
+  }).catch(()=>null);
+}
+/* FUNDAMENTAL 3: the roster a director imported is a SERVER fact. It used to
+   live only in S.teamRoster for the tab that imported it, so a cold reload
+   showed an empty roster over a database that held every athlete. Load the
+   org's active members into the same shape the roster tab renders. */
+function hydrateTeamRoster(){
+  const pv=S.coachProvider;
+  if(!(pv&&pv.id&&window.SporveAPI&&window.SporveAPI.isSignedIn&&window.SporveAPI.isSignedIn())) return Promise.resolve();
+  return window.SporveAPI.from("team_athletes",
+    "select=id,first_name,last_name,jersey_number,dob,external_ref,status,import_batch_id,team_id"+
+    "&provider_id=eq."+pv.id+"&status=eq.active&order=last_name,first_name&limit=500")
+    .then(rows=>{
+      if(!Array.isArray(rows)) return;
+      S.teamRoster=rows.map(r=>({id:r.id,serverId:r.id,live:true,
+        name:[r.first_name,r.last_name].filter(Boolean).join(" ")||"(unnamed)",
+        jersey:r.jersey_number||"—",available:true,paid:false,payState:null,guardian:"",contact:"",
+        dob:r.dob||null,externalRef:r.external_ref||"",batchId:r.import_batch_id||null,teamId:r.team_id||null}));
+      render();
+    }).catch(()=>{/* keep whatever is on screen; the next load retries */});
+}
+
 /* Called once a coach has a real session. Creates their provider row if it is
    their first time, then opens the portal on THEIR business. */
 function enterCoachWorkspace(){
@@ -7536,6 +7566,7 @@ function enterCoachWorkspace(){
       S.pendingBusinessName="";
       S.coachProvider = p || null;
       S.coachEnsureError = null;
+      if(p) hydrateTeamRoster();
       S.coachTab="queue";  /* home = the review queue (doc 04) */
       /* Not-yet-onboarded: the wizard is the only door (spec 04). The render
          gate keeps it open; this just seeds it and asks the DB for the step. */
@@ -16154,8 +16185,13 @@ function render(){
      aiDockHTML re-emits it as the input's value, so the draft survives collapse,
      maximize, minimize and a full close+reopen. Send clears S.aiDraft. */
   (function(){const di=document.getElementById("aiDockInput"); if(di) S.aiDraft=di.value;})();
+  /* Login/setup is FULLSCREEN, NO FRAME (owner prototype 2026-09-15): the
+     topbar is already dropped above; the AI dock must go too — position:fixed
+     over the setup page, it intercepted taps on the sport chips and the
+     Continue row (fundamental 2, 2026-09-17). */
+  const frameless=(r.name==="coachgate"||r.name==="setup");
   document.getElementById("layer").innerHTML=
-    modalHTML()+aiDockHTML()+(S.toast?`<div class="toast">${esc(S.toast)}</div>`:"");
+    modalHTML()+(frameless?"":aiDockHTML())+(S.toast?`<div class="toast">${esc(S.toast)}</div>`:"");
 
   /* CONTENT COMPENSATION. The pill is position:fixed, so it is out of flow and
      the page has no idea it is there — the last row of a coach table would sit
@@ -16978,7 +17014,16 @@ document.querySelectorAll('.sig-ai-coach').forEach(sigAiCoachWire);
     const w=S.importWiz;
     const headers=rows[0].map(h=>h.trim()||"(unnamed)");
     w.csv={headers,rows:rows.slice(1)};
-    w.map={ name:guessCol(headers,["athlete name","full name","player name"]),
+    /* A plain export's name column is usually headed just "Name" (or
+       "Athlete"/"Player"); the phrase list alone missed it and every such file
+       stalled at mapping (fundamental 2, 2026-09-17). Prefer the explicit
+       phrases, then an exact single-word header, then any "…name…" header that
+       is not a first/last/parent/team/email column. */
+    const guessName=hs=>{const h=hs.map(x=>x.toLowerCase().trim());
+      let i=guessCol(hs,["athlete name","full name","player name","participant name","member name"]); if(i>=0) return i;
+      i=h.findIndex(x=>["name","athlete","player","participant","member","full_name","fullname"].includes(x)); if(i>=0) return i;
+      return h.findIndex(x=>x.includes("name")&&!/first|last|sur|parent|guardian|team|coach|email|file|nick|user/.test(x));};
+    w.map={ name:guessName(headers),
       first:guessCol(headers,["first"]), last:guessCol(headers,["last","surname"]),
       dob:guessCol(headers,["dob","birth","d.o.b"]), email:guessCol(headers,["email","e-mail"]),
       jersey:guessCol(headers,["jersey","uniform"]), ref:guessCol(headers,["external id","external ref","player id","athlete id"]) };
@@ -21645,7 +21690,11 @@ window.MOD_COACHUI = { css:CSS, wire:wire };
   const EMAIL_RX = /^[^@\s]+@[^@\s]+\.[^@\s]+$/;
   const API = () => window.SporveAPI, AUTH = () => window.SporveAuth;
   const signedIn = () => !!(AUTH() && AUTH().isSignedIn && AUTH().isSignedIn());
-  const pv = () => (window.S && S.coachProvider) || null;
+  /* S is the host's top-level `const` — a global lexical binding, NOT a window
+     property. The old `window.S && …` guard was always false, so every step
+     saved nothing (no consent row, no name, no org, no progress, no
+     onboarding_completed) and a returning org could never resume. */
+  const pv = () => (typeof S !== "undefined" && S && S.coachProvider) || null;
 
   function ob() {
     if (!S.ob) S.ob = { step: "1", email: "", sent: false, code: false, type: null, name: "", org: "", sport: null, area: "",
@@ -29648,6 +29697,14 @@ function hydrateAuth(){
         S.route={name:"dashboard",arg:null};
       }
       render();
+      /* FUNDAMENTAL 1 (owner 2026-09-17): a returning org must land INSIDE its
+         own workspace. Until now the boot path restored the session and picked
+         the route but never loaded the provider row, so the dashboard rendered
+         with no org (an empty shell that read as signed-out) and the setup
+         gate — which needs the row — could not send a mid-setup org back to
+         its step. loadOrgWorkspace() fetches THEIR row and roster; the render
+         gate then routes to setup or dashboard by itself. */
+      if(p.role==="provider") loadOrgWorkspace().then(()=>render());
       hydrateBookings();
       hydrateAthletes();
       hydrateRoster();

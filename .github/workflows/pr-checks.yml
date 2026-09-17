@@ -93,6 +93,13 @@ jobs:
       # the repo but nothing ran them; wired in here so the AI-endpoint auth /
       # quota / injection-resistance contract (and the repo + data contracts)
       # actually gate a PR instead of rotting.
+      # The three fundamentals (owner 2026-09-17): cold start lands in the
+      # org's own workspace, every signup button works, signup data persists
+      # to the dashboard. Drives the built page in Chromium against an
+      # in-memory Supabase double — no network, no live project.
+      - name: Fundamentals (browser · fake backend)
+        run: node --test --test-timeout=300000 tests/e2e/fundamentals.spec.mjs
+
       - name: Contract tests (gates · agents · ai · repo · data · onboarding)
         run: |
           python3 scripts/gates-status.py

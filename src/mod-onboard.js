@@ -40,7 +40,11 @@
   const EMAIL_RX = /^[^@\s]+@[^@\s]+\.[^@\s]+$/;
   const API = () => window.SporveAPI, AUTH = () => window.SporveAuth;
   const signedIn = () => !!(AUTH() && AUTH().isSignedIn && AUTH().isSignedIn());
-  const pv = () => (window.S && S.coachProvider) || null;
+  /* S is the host's top-level `const` — a global lexical binding, NOT a window
+     property. The old `window.S && …` guard was always false, so every step
+     saved nothing (no consent row, no name, no org, no progress, no
+     onboarding_completed) and a returning org could never resume. */
+  const pv = () => (typeof S !== "undefined" && S && S.coachProvider) || null;
 
   function ob() {
     if (!S.ob) S.ob = { step: "1", email: "", sent: false, code: false, type: null, name: "", org: "", sport: null, area: "",
