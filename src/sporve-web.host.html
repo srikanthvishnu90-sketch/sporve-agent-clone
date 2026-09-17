@@ -7519,6 +7519,10 @@ function loadOrgWorkspace(){
   return window.SporveCoach.load().then(pv=>{
     S.coachProvider=pv||null; if(pv) S.coachEnsureError=null;
     if(pv) hydrateTeamRoster();
+    /* audit P1-2: a mark queued while the field had no signal must not wait
+       for an `online` event that already fired — send it as soon as the
+       workspace is back, on every boot. */
+    if(pv&&typeof flushAttendanceQueue==="function") flushAttendanceQueue();
     return pv;
   }).catch(()=>null);
 }

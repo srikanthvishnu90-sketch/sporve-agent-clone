@@ -25,7 +25,7 @@
 <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16.png">
 <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
 <link rel="manifest" href="/site.webmanifest">
-<meta name="sporve-build" content="4f63711d216d09fb">
+<meta name="sporve-build" content="28ad177a4463ac21">
 </head>
 <body>
 <noscript><h1>Sporv — Every sport. One app.</h1><p>Sporv connects families and athletes with coaches, trainers, camps, and teams across more than 20 sports. Please enable JavaScript to use the app.</p></noscript>
@@ -7567,6 +7567,10 @@ function loadOrgWorkspace(){
   return window.SporveCoach.load().then(pv=>{
     S.coachProvider=pv||null; if(pv) S.coachEnsureError=null;
     if(pv) hydrateTeamRoster();
+    /* audit P1-2: a mark queued while the field had no signal must not wait
+       for an `online` event that already fired — send it as soon as the
+       workspace is back, on every boot. */
+    if(pv&&typeof flushAttendanceQueue==="function") flushAttendanceQueue();
     return pv;
   }).catch(()=>null);
 }
