@@ -14253,12 +14253,25 @@ function modalHTML(){
           <button class="btn ghost sm" type="button" data-imp-prevback="1">Back to mapping</button>
           <button class="btn" type="button" data-imp-commit="1"${d.create.length?"":" disabled"}>Commit ${d.create.length} athlete${d.create.length===1?"":"s"}</button></div>`);
     }
+    if(w.step==="committing"){
+      return wrap("Saving your roster…",`
+        <p class="imp-sub" role="status">Writing ${w.dry?w.dry.create.length:""} athlete${w.dry&&w.dry.create.length===1?"":"s"} to your organization.
+          Nothing shows as saved until the server confirms every row.</p>`);
+    }
+    if(w.step==="failed"){
+      return wrap("Import not saved",`
+        <p class="imp-sub" role="alert"><b>${esc(w.error||"The import could not be saved.")}</b><br>
+          Nothing was added to your roster and the file can be imported again. Check your connection and try again.</p>
+        <div class="imp-actions" style="margin-top:12px">
+          <button class="btn" type="button" data-imp-retry="1">Back to the preview</button>
+          <button class="btn ghost sm" type="button" data-imp-close="1">Close</button></div>`);
+    }
     if(w.step==="done"){
-      const c=w.committed; const withEmail=c.created.filter(x=>x.contact).length;
+      const c=w.committed; const withEmail=c.created.filter(x=>x.contact).length; const sv=c.server;
       return wrap("Import committed",`
-        <p class="imp-sub">${c.created.length} shadow record${c.created.length===1?"":"s"} added to
-          your roster. Nothing was sent to any family and no one was charged — each stays
-          a shadow record until its family claims it. Undo removes exactly this batch.</p>
+        <p class="imp-sub">${sv?`<b>${sv.rows} athlete${sv.rows===1?"":"s"} saved</b> to your organization${sv.families?` · ${sv.families} famil${sv.families===1?"y":"ies"} on file`:""}${sv.guardianErrors?` · <b>${sv.guardianErrors} family record${sv.guardianErrors===1?"":"s"} could not be saved</b> (the athletes are)`:""}.`
+          :`${c.created.length} record${c.created.length===1?"":"s"} added to the sample roster.`}
+          Nothing was sent to any family and no one was charged. Undo removes exactly this batch.</p>
         <div class="imp-actions" style="margin-top:12px;flex-wrap:wrap;gap:8px">
           <button class="btn ghost sm" type="button" data-imp-undo="${esc(c.batch)}">Undo this import</button>
           ${withEmail?`<button class="btn" type="button" data-imp-toinvites="1">Send ${withEmail} invite${withEmail===1?"":"s"} →</button>`:""}
@@ -17076,82 +17089,93 @@ document.querySelectorAll('.sig-ai-coach').forEach(sigAiCoachWire);
   });
   $("[data-imp-mapback]").forEach(b=>b.onclick=()=>{const w=S.importWiz;w.csv=null;w.dry=null;w.step=1;render();});
   $("[data-imp-prevback]").forEach(b=>b.onclick=()=>{S.importWiz.step="map";render();});
+  /* AUDIT 2026-09-17 P0-1. The old handler pushed the rows into the local
+     roster, flipped the wizard to "committed" and toasted success BEFORE any
+     server write, then swallowed every server failure — with the network cut
+     mid-commit the screen said "10 records added", an import_batches row
+     existed with row_count=10, and team_athletes held none of them. Now, for
+     a real org, the server is written FIRST and the receipt IS the returned
+     rows: the wizard shows "committing…", then either "committed" with the
+     server's own counts, or a failure state that says what happened, leaves
+     no batch row behind (so the same file can be retried), and adds nothing
+     to the local roster. The demo/guest path keeps its local walk. */
+  const impServerCommit=async(w,pv,created)=>{
+    const api=window.SporveAPI;
+    const raw=(w.rawText||w.fileName||"")+"|"+created.map(c=>c.name+","+(c.contact||"")+","+(c.dob||"")).join(";");
+    const hb=await crypto.subtle.digest("SHA-256",new TextEncoder().encode(raw));
+    const hash=Array.from(new Uint8Array(hb)).map(b=>b.toString(16).padStart(2,"0")).join("");
+    const prior=await api.from("import_batches",
+      "select=id&provider_id=eq."+encodeURIComponent(pv.id)+"&content_hash=eq."+encodeURIComponent(hash)+"&undone_at=is.null&limit=1");
+    if(prior&&prior[0]) return {duplicate:true};
+    let b;
+    try{
+      b=await api.from("import_batches","",{method:"POST",headers:{Prefer:"return=representation"},
+        body:{provider_id:pv.id,source_filename:w.fileName||"pasted CSV",row_count:created.length,content_hash:hash}});
+    }catch(e){ if(/duplicate|conflict|23505/i.test(String(e&&e.message))) return {duplicate:true}; throw e; }
+    if(!b||!b[0]||!b[0].id) throw new Error("The server did not record the import batch.");
+    const batchId=b[0].id;
+    /* from here on, a failure must not leave a batch row that blocks the retry */
+    const rollback=async()=>{ try{ await api.from("import_batches","id=eq."+batchId,{method:"DELETE"}); }catch(_){ /* reported below either way */ } };
+    let mrows;
+    try{
+      const members=created.map(c=>{const parts=String(c.name||"").trim().split(/\s+/);
+        return {provider_id:pv.id,team_id:null,athlete_id:null,first_name:parts[0]||c.name,last_name:parts.slice(1).join(" ")||null,
+          dob:c.dob||null,external_ref:c.externalRef||null,jersey_number:c.jersey&&c.jersey!=="—"?c.jersey:null,import_batch_id:batchId};});
+      mrows=await api.from("team_athletes","",{method:"POST",headers:{Prefer:"return=representation,resolution=ignore-duplicates"},body:members});
+    }catch(e){ await rollback(); throw new Error("The roster rows were not saved ("+((e&&e.message)||"connection lost")+")."); }
+    if(!Array.isArray(mrows)||mrows.length!==created.length){
+      await rollback();
+      throw new Error("The server saved "+(Array.isArray(mrows)?mrows.length:0)+" of "+created.length+" athletes, so nothing was kept.");
+    }
+    /* guardians: one per distinct email, payer link per member — best effort
+       AFTER the roster is safely written; a guardian failure is reported, not
+       hidden, but does not undo the athletes. */
+    const byEmail={}; let guardianErrors=0;
+    mrows.forEach((m,i)=>{const em=(created[i]&&created[i].contact||"").toLowerCase(); if(em){(byEmail[em]=byEmail[em]||[]).push(m.id);}});
+    for(const em of Object.keys(byEmail)){
+      try{
+        let g=await api.from("guardians","select=id&provider_id=eq."+pv.id+"&email=eq."+encodeURIComponent(em));
+        if(!g||!g[0]) g=await api.from("guardians","",{method:"POST",headers:{Prefer:"return=representation"},body:{provider_id:pv.id,first_name:em.split("@")[0],email:em}});
+        if(g&&g[0]) for(const mid of byEmail[em]) await api.from("guardian_links","",{method:"POST",headers:{Prefer:"resolution=ignore-duplicates"},body:{guardian_id:g[0].id,member_id:mid,is_payer:true,relationship:"parent"}});
+        else guardianErrors++;
+      }catch(_){ guardianErrors++; }
+    }
+    return {batchId,rows:mrows,guardianErrors,families:Object.keys(byEmail).length};
+  };
   $("[data-imp-commit]").forEach(b=>b.onclick=()=>{
-    const w=S.importWiz; if(!w||!w.dry||!w.dry.create.length) return;
+    const w=S.importWiz; if(!w||!w.dry||!w.dry.create.length||w.busy) return;
     const batch="imp_"+Date.now();
     const created=w.dry.create.map(c=>({name:c.name,jersey:c.jersey||"—",available:true,paid:false,payState:null,
       guardian:"",contact:c.email||"",dob:c.dob||null,externalRef:c.externalRef||"",batchId:batch}));
-    teamRoster().push(...created);   // one synchronous append = all-or-nothing
-    S.importBatches=[...(S.importBatches||[]),{id:batch,at:Date.now(),count:created.length,file:w.fileName||"pasted CSV"}];
-    /* SERVER commit (spec 04, 2026-08-31): a signed-in owner writes the REAL
-       roster — one team_athletes member row per created entry (org-entered
-       identity, athlete link fills when a family claims), one guardian per
-       distinct email, one payer guardian_link each — all stamped with a
-       durable import_batches row keyed by content hash so re-uploading the
-       identical file is a DB-enforced no-op. IMPORT SENDS ZERO EMAILS AND
-       CREATES ZERO CHARGES. Undo (24h) deletes exactly this batch's rows. */
     const pv=S.coachProvider;
-    if(pv&&pv.id&&window.SporveAPI&&window.SporveAPI.isSignedIn&&window.SporveAPI.isSignedIn()){
-      (async()=>{try{
-        const raw=(w.rawText||w.fileName||"")+"|"+created.map(c=>c.name+","+(c.contact||"")+","+(c.dob||"")).join(";");
-        const hb=await crypto.subtle.digest("SHA-256",new TextEncoder().encode(raw));
-        const hash=Array.from(new Uint8Array(hb)).map(b=>b.toString(16).padStart(2,"0")).join("");
-        /* The unique index is the race-safe backstop; this read makes the
-           common sequential re-upload path honest even before that migration
-           reaches an environment. Scope it to this provider and active batch. */
-        const prior=await window.SporveAPI.from("import_batches",
-          "select=id&provider_id=eq."+encodeURIComponent(pv.id)+
-          "&content_hash=eq."+encodeURIComponent(hash)+"&undone_at=is.null&limit=1").catch(()=>[]);
-        const b=prior&&prior[0] ? null : await window.SporveAPI.from("import_batches","",{method:"POST",
-          headers:{Prefer:"return=representation"},
-          body:{provider_id:pv.id,source_filename:w.fileName||"pasted CSV",
-                row_count:created.length,content_hash:hash}}).catch(e=>{
-          if(/duplicate|conflict|23505/i.test(String(e&&e.message)))return null;throw e;});
-        if(!b||!b[0]){
-          S.teamRoster=teamRoster().filter(r=>r.batchId!==batch);
-          S.importBatches=(S.importBatches||[]).filter(x=>x.id!==batch);
-          render();
-          toast("This exact file was already imported — nothing was created twice.");return;}
-        const batchId=b[0].id; w.serverBatchId=batchId; w.serverBatchAt=Date.now();
-        S.importBatches=(S.importBatches||[]).map(x=>x.id===batch?{...x,serverId:batchId,serverAt:Date.now()}:x);
-        const members=[];
-        for(const c of created){
-          const parts=String(c.name||"").trim().split(/\s+/);
-          members.push({provider_id:pv.id,team_id:null,athlete_id:null,
-            first_name:parts[0]||c.name,last_name:parts.slice(1).join(" ")||null,
-            dob:c.dob||null,external_ref:c.externalRef||null,
-            jersey_number:c.jersey&&c.jersey!=="—"?c.jersey:null,
-            import_batch_id:batchId});
-        }
-        const mrows=await window.SporveAPI.from("team_athletes","",{method:"POST",
-          headers:{Prefer:"return=representation,resolution=ignore-duplicates"},body:members})
-          .catch(()=>[]);
-        /* guardians: one per distinct email, payer link per member */
-        const byEmail={};
-        (mrows||[]).forEach((m,i)=>{const em=(created[i]&&created[i].contact||"").toLowerCase();
-          if(em){(byEmail[em]=byEmail[em]||[]).push(m.id);}});
-        for(const em of Object.keys(byEmail)){
-          let g=await window.SporveAPI.from("guardians",
-            "select=id&provider_id=eq."+pv.id+"&email=eq."+encodeURIComponent(em)).catch(()=>[]);
-          if(!g||!g[0]){g=await window.SporveAPI.from("guardians","",{method:"POST",
-            headers:{Prefer:"return=representation"},
-            body:{provider_id:pv.id,first_name:em.split("@")[0],email:em}}).catch(()=>[]);}
-          if(g&&g[0]) for(const mid of byEmail[em]){
-            await window.SporveAPI.from("guardian_links","",{method:"POST",
-              headers:{Prefer:"resolution=ignore-duplicates"},
-              body:{guardian_id:g[0].id,member_id:mid,is_payer:true,relationship:"parent"}}).catch(()=>{});
-          }
-        }
-        render();
-        /* Fresh roster rows are agent material immediately (missing-info,
-           waivers) — draft now, not at the next cron tick. */
-        agentRunAfterConnect();
-      }catch(_){/* demo view already committed; server sync surfaced next load */}})();
+    const live=!!(pv&&pv.id&&window.SporveAPI&&window.SporveAPI.isSignedIn&&window.SporveAPI.isSignedIn());
+    if(!live){
+      /* disclosed sample workspace only: a local walk with no server behind it */
+      teamRoster().push(...created);
+      S.importBatches=[...(S.importBatches||[]),{id:batch,at:Date.now(),count:created.length,file:w.fileName||"pasted CSV"}];
+      w.step="done"; w.committed={batch,created,server:null}; render();
+      toast(created.length+" athlete"+(created.length===1?"":"s")+" added to the sample roster."); return;
     }
-    w.step="done"; w.committed={batch,created};
-    render();
-    toast(created.length+" athlete"+(created.length===1?"":"s")+" imported as shadow records — nothing was sent to any family.");
+    w.busy=true; w.step="committing"; w.error=null; render();
+    (async()=>{
+      try{
+        const r=await impServerCommit(w,pv,created);
+        if(r.duplicate){ w.busy=false; w.step="preview"; render(); toast("This exact file was already imported — nothing was created twice."); return; }
+        /* the receipt: the rows the server returned, nothing else */
+        const rows=r.rows.map((m,i)=>({...created[i],serverId:m.id,batchId:r.batchId,live:true}));
+        teamRoster().push(...rows);
+        S.importBatches=[...(S.importBatches||[]),{id:r.batchId,serverId:r.batchId,serverAt:Date.now(),at:Date.now(),count:rows.length,file:w.fileName||"pasted CSV"}];
+        w.busy=false; w.step="done"; w.committed={batch:r.batchId,created:rows,server:{rows:rows.length,families:r.families,guardianErrors:r.guardianErrors}};
+        render();
+        toast(rows.length+" athlete"+(rows.length===1?"":"s")+" saved to your roster — nothing was sent to any family.");
+        agentRunAfterConnect();
+      }catch(e){
+        w.busy=false; w.step="failed"; w.error=(e&&e.message)||"The import could not be saved.";
+        render();
+      }
+    })();
   });
+  $("[data-imp-retry]").forEach(b=>b.onclick=()=>{const w=S.importWiz; if(!w) return; w.step="preview"; w.error=null; render();});
   $("[data-imp-undo]").forEach(b=>b.onclick=()=>{
     const id=b.dataset.impUndo; if(!id) return;
     const rec=(S.importBatches||[]).find(x=>x.id===id);
