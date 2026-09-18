@@ -325,3 +325,56 @@ All audit rows carry ids derived from `md5('ad17-…')` and belong to the three
 `ad170000-…` users; deleting the three `auth.users` rows cascades through
 profiles → providers → every org table. Done after this PR merged; verified
 with a count of `ad170000-%` users = 0 and providers named `ZZ AUDIT%` = 0.
+
+## Fix log (2026-09-18)
+
+Executed in the report's order, one PR each, merged only on a green run;
+every migration applied to the live project and verified after its PR merged.
+Numbers below were re-measured the same way the audit measured them
+(`tests/perf/mobile-probe.mjs`: Pixel-5 class, 4× CPU, ~4G, gzip on; the
+fake backend from a real http origin), so they are comparable to the
+performance table above, not a substitute for the next live audit.
+
+| # | Finding | PR | What changed | Proof |
+|---|---------|----|--------------|-------|
+| 1 | P0-1 import "success" while writing nothing | #41 | commit is server-conditional; the receipt is worded from server rows; partial writes roll the batch back | `tests/e2e/import-receipt.spec.mjs` |
+| 2 | P0-2 seed roster header, seed inbox on a real org | #42 | seed literals gated on `queueIsLive()`; roster title, inbox threads, unread badge from the org's rows or nothing | `tests/dashboard/no-fabrication.spec.ts` |
+| 3 | P1-7 an org that finished setup cannot add staff | #43 | setup writes `provider_type`; 001074 backfills existing orgs | `tests/e2e/fundamentals.spec.mjs` |
+| 4 | P1-1 a coach cannot do a coach's job | #44 | `my_workspace()` resolves the employer org; member-scoped RLS on teams/athletes/events/attendance; `mark_attendance` admits the assigned coach (001075) | `docs/red-drafts/2026-09-17-staff-access.test.sql`, `tests/e2e/staff-workspace.spec.mjs` |
+| 5 | P1-2 the schedule has no screen | #45 | list and month over `event`; conflicts on the event (001076 lets a coach read theirs); cancel in two taps, draft-first; attendance with an offline queue replayed by `client_id` | `tests/e2e/schedule.spec.mjs` (400-event month 150ms; local mark 5ms; offline replay after reload) |
+| 6 | P1-3 money has no screen | #49 (#46 was merged red and reverted in #47) | Money tab: aged balances by family from one RPC (001077), drill-through from home, failed installments, collected, CSV | `tests/e2e/money.spec.mjs` (600 obligations in 33ms, one request) |
+| 7 | P1-4 chatbox dead / Enter sends nothing | #50 | the dock posts to `coach-command` (verified live 2026-09-18: HTTP 200, grounded replies, 13.8s cold / 4.9s warm); `/api/ai` is the command bar's parser and still needs its Vercel key (owner) | `tests/e2e/dock.spec.mjs` |
+| 8 | P1-5 13 boot requests, 806KB | #51 | boot to the home is 4 requests (profile, workspace, roster, home RPC); every other load waits for its tab | `tests/perf/boot-requests.spec.ts`; document weight unchanged, see residual |
+| 9 | P2-3 / P2-4 backend down → guest; nothing offline | #52 | cached profile keeps you signed in with "Can't reach Sporv's server" and a retry; `sw.js` (network-first shell) opens the app offline | `tests/e2e/offline.spec.mjs` |
+| 10 | P2-1 / P2-2 garbage row became an athlete; 1899 stored | #53 | unclosed quote is a flagged row; non-names rejected; birthdate must be a real past date after 1920, client and database (001078) | `tests/e2e/import-validation.spec.mjs`, `docs/red-drafts/2026-09-18-dob-guard.test.sql` |
+| 11 | P2-5 320px overflow; 30px tap targets | #54 | phone-width block: nothing wider than the screen; every Roster/Queue control ≥ 40px | `tests/e2e/narrow.spec.mjs` |
+| 12 | P2-6 / P2-7 / P2-8 cron-bound delivery; 500 on ceiling; last write wins | #55 | approval kicks the delivery pass now (cron stays as the net); ceiling is a 429 with "try again in an hour"; stale cancel/edit refused with 409 and the schedule reloads (001079) | `docs/red-drafts/2026-09-18-delivery-conflicts.test.sql`, `tests/scheduling/edit-conflicts.spec.ts` |
+| 13 | P1-6 registration and payment | — | **Not started.** Blocked on two owner actions: a Stripe sandbox context (the CLI and the project's secret are LIVE; the 13.6 DoD is "a real test-mode charge") and a ruling on the spec 14 slice (schema 14.2, pricing 14.3, waitlist 14.4). Proposed slice 1: 13.7 registration page + 13.6 pay link to hosted Checkout, retry ladder after. | — |
+
+**Re-measured rows.** Boot round trips 13 → 4 (budget 4, pass). Mobile FCP
+4,768 → 4,744ms and login → home 5,000 → 4,958ms (budgets 1,500 / 2,000,
+still fail): the document is 848KB on the wire, and 378KB gz of it is the
+host's own inline script — the marketplace surface the club product no
+longer opens on. Splitting the host is a direction decision, not a fix, and
+is left for a ruling. Schedule month view (400 events) 150ms and money
+(600 obligations) 33ms against the fake backend, both one to three requests.
+Chatbox full answer 4.9s warm (budget 6s, pass), 13.8s cold (fail): the
+gateway picked Sonnet for a Haiku request — also a ruling.
+
+**Self-caught along the way.** The onboarding code field lost its value on
+any re-render (a 1-in-3 flake on main, fixed in #44). PR #46 was merged with
+a red smoke check because my merge gate used a tab escape BSD grep does not
+honour; reverted within minutes (#47), gate rewritten, re-landed green (#49).
+CI's Chromium drops `localStorage` across a `file://` reload, so anything that
+must survive a reload is proven from a local http origin (`tests/e2e/serve.mjs`);
+the browser suites now run one at a time on the two-core runner (#48).
+
+**External review.** CodeRabbit was rate-limited or skipped on every PR in
+this log; its path filters also exclude `supabase/migrations/**` and
+`tests/**` from review. No external review of any of this has happened.
+
+**Found while verifying on GitHub.** The `uptime` workflow had been red on
+every run since 001068 revoked anon table grants: its database probe read
+`programs` as anon and got 401. It now probes `plan_entitlements`, the one
+table anon may read (the same probe `SporveAPI.ping()` uses). Production was
+never down; the monitor was stale.
