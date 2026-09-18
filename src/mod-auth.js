@@ -46,6 +46,7 @@
   if (!API) { return; }                      // mod-api.js must inline first
 
   var KEY = "sporve:session:v1";
+  var PROFILE_KEY = "sporve:profile:v1";
   var REFRESH_MARGIN_MS = 5 * 60 * 1000;     // refresh 5 min before expiry
   var session = null;                        // {access_token, refresh_token, expires_at, user}
   var refreshTimer = null;
@@ -56,7 +57,7 @@
   function save() {
     try {
       if (session) localStorage.setItem(KEY, JSON.stringify(session));
-      else localStorage.removeItem(KEY);
+      else { localStorage.removeItem(KEY); localStorage.removeItem(PROFILE_KEY); }
     } catch (e) { /* private mode / quota — session simply won't survive reload */ }
   }
 
@@ -310,7 +311,23 @@
     loadProfile: function () {
       if (!session) return Promise.resolve(null);
       return API.from("profiles", "select=id,role,first_name,last_name,email,phone_number,created_at&limit=1")
-        .then(function (rows) { return (rows && rows[0]) || null; });
+        .then(function (rows) {
+          var p = (rows && rows[0]) || null;
+          /* audit P2-3: the last profile this device saw, so a boot whose
+             backend cannot be reached keeps the person signed in as who they
+             are instead of demoting them to a guest on the marketing page.
+             Read only when the network fails; never a substitute for a 401. */
+          if (p) { try { localStorage.setItem(PROFILE_KEY, JSON.stringify({ id: p.id, role: p.role, first_name: p.first_name, last_name: p.last_name, email: p.email })); } catch (e) {} }
+          return p;
+        });
+    },
+    /* The cached profile for the STORED session's user, or null. */
+    cachedProfile: function () {
+      try {
+        var s = load(); if (!s || !s.user || !s.user.id) return null;
+        var p = JSON.parse(localStorage.getItem(PROFILE_KEY) || "null");
+        return p && p.id === s.user.id ? p : null;
+      } catch (e) { return null; }
     },
 
     /* Restore on boot: adopt an OAuth return, else a stored session, refreshing

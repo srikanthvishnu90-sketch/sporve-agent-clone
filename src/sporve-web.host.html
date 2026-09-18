@@ -6313,6 +6313,9 @@ body.reg-coach .rail button.on{font-weight:600}
 .mny-items{padding:0 0 10px 12px;border-left:2px solid var(--cui-line-2,#2A3138);margin:0 0 10px}
 .mny-item{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;padding:8px 0}.mny-item b{display:block;font-size:var(--text-base)}.mny-item small{display:block;color:var(--cui-ink-3,#8B98A6);font-size:var(--text-sm);margin-top:2px}
 @media(max-width:640px){.mny-fam__head{flex-wrap:wrap}.mny-fam__amt{text-align:left}}
+
+/* ── backend unreachable (audit 2026-09-17 P2-3) ── */
+.netbar{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;padding:10px 16px;background:#1A212B;color:#F5F5F2;border-bottom:1px solid #2A3138;font-size:var(--text-base)}
 </style>
 
 <div id="app"></div>
@@ -7538,7 +7541,8 @@ function loadOrgWorkspace(){
        workspace is back, on every boot. */
     if(pv&&typeof flushAttendanceQueue==="function") flushAttendanceQueue();
     return pv;
-  }).catch(()=>null);
+  }).then(pv=>{ if(pv) S.backendDown=null; return pv; })
+    .catch((err)=>{ if(!err||err.status===0||err.name==="TypeError") S.backendDown={at:Date.now(),message:(err&&err.message)||"Could not reach the server."}; render(); return null; });
 }
 /* FUNDAMENTAL 3: the roster a director imported is a SERVER fact. It used to
    live only in S.teamRoster for the tab that imported it, so a cold reload
@@ -16477,11 +16481,12 @@ function render(){
        handlers. coachLandingHTML() is still reachable at the `coachinfo`
        route for anyone who wants the pitch. */
     if(r.name==="info") body=infoHTML(r.arg||"help");
+    else if(realSignedIn()&&!S.coachProvider&&S.backendDown) body=netDownHTML();
     else if(realSignedIn()&&!S.coachProvider&&S.coachEnsureError) body=coachEnsureErrorHTML();
     /* Gated: the tabs REFUSE to render — not even dimmed behind the wizard
        modal. A new org sees its own empty shell, never the seeded dashboard. */
     else if(coachGateActive()) body=`<section class="band"><div class="in" style="min-height:70vh"></div></section>`;
-    else body=coachHTML();
+    else body=netBarHTML()+coachHTML();
   }
   /* "start" retired as a surface (owner 2026-08-30): route/portal PERSIST in
      sessionStorage (GUEST_KEEP), so any tab that ever visited the old minimal
@@ -17603,6 +17608,7 @@ document.querySelectorAll('.sig-ai-coach').forEach(sigAiCoachWire);
     S.setupWiz=S.setupWiz&&S.setupWiz.step?S.setupWiz:{step:1};
     S.modal={type:"setupwiz"};render();});
   $("[data-coach-retry]").forEach(b=>b.onclick=()=>{S.coachEnsureError=null;render();enterCoachWorkspace();});
+  $("[data-net-retry]").forEach(b=>b.onclick=()=>retryBackend());
   /* DOC 12 — the doors. Each preset comes from the door's pack; "scratch"
      presets nothing and asks the three questions cold. */
   $("[data-suw-door]").forEach(b=>b.onclick=()=>{
@@ -20392,9 +20398,43 @@ function hydrateAuth(){
       hydrateRoster();
       if(parked) setTimeout(()=>runIntent(parked),60);
     })
-    .catch(()=>{ /* stay a guest; RLS is the real control either way */ });
+    .catch((err)=>{
+      /* AUDIT 2026-09-17 P2-3: a backend that cannot be REACHED is not a
+         rejected session. With a stored session and the profile this device
+         last saw, stay signed in, open the workspace, and say plainly that
+         the server is unreachable — with a retry. A 401/403 (a real
+         rejection) still falls through to guest; RLS is the control there. */
+      const network=!err||err.status===0||err.name==="TypeError";
+      const cached=network&&window.SporveAuth&&window.SporveAuth.cachedProfile&&window.SporveAuth.cachedProfile();
+      if(!cached) return;
+      adoptIdentity(cached.id);
+      S.auth={status:"verified",user:{id:cached.id,firstName:cached.first_name||"",lastName:cached.last_name||"",email:cached.email||"",phone:"",role:cached.role||"searcher",preferredSports:[],img:phAvatar()}};
+      S.backendDown={at:Date.now(),message:(err&&err.message)||"Could not reach the server."};
+      if(cached.role==="provider"){ S.portal="coach"; S.coachTab=S.coachTab||"dashboard"; S.route={name:"dashboard",arg:null}; }
+      render();
+    });
 }
 hydrateAuth();
+/* audit P2-3: the next successful reach clears the state; a retry re-runs the boot */
+function retryBackend(){ S.backendDown=null; S.coachEnsureError=null; render(); hydrateAuth(); }
+window.addEventListener("online",()=>{ if(S.backendDown) retryBackend(); });
+function netDownHTML(){
+  return `<section class="band"><div class="in" style="max-width:520px;padding:72px 0;text-align:center" data-netdown="1">
+    <h1 style="margin-bottom:10px">Can't reach Sporv's server</h1>
+    <p style="color:var(--muted);margin-bottom:18px">You're still signed in as ${esc((S.auth&&S.auth.user&&S.auth.user.email)||"yourself")}. Nothing on this device is lost — attendance you mark queues and sends when the connection is back. ${esc(S.backendDown&&S.backendDown.message||"")}</p>
+    <button class="btn" data-net-retry="1">Try again</button>
+  </div></section>`;
+}
+function netBarHTML(){
+  if(!S.backendDown) return "";
+  return `<div class="netbar" role="alert"><span>Can't reach Sporv's server — showing what this device holds. Attendance marks queue and send later.</span><button type="button" class="btn ghost sm" data-net-retry="1">Try again</button></div>`;
+}
+/* audit P2-4: the offline shell. Registered only from a secure origin; a
+   file:// or plain-http open (smoke, a local build) skips it silently. */
+try{
+  if("serviceWorker" in navigator && (location.protocol==="https:" || /^(localhost|127\.0\.0\.1)$/.test(location.hostname)))
+    window.addEventListener("load",()=>{ navigator.serviceWorker.register("/sw.js").catch(()=>{}); });
+}catch(e){}
 
 /* Same shape as hydrateAuth, same trade: paint the seeded catalogue first,
    then re-render if live rows arrive. render() is called ONLY on success —

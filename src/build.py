@@ -378,6 +378,14 @@ for t in TARGETS:
     os.makedirs(os.path.dirname(t), exist_ok=True)
     with open(t, "w", encoding="utf-8") as f:
         f.write(_page)
+# The offline shell (audit P2-4): sw.js caches the page, network-first, keyed
+# by this build's stamp so a deploy retires the previous cache.
+with open(os.path.join(HERE, "sw.template.js"), encoding="utf-8") as f:
+    _sw = f.read()
+require_once(_sw, "__STAMP__", "sw.template.js stamp")
+with open(os.path.join(ROOT, "sw.js"), "w", encoding="utf-8") as f:
+    f.write(_sw.replace("__STAMP__", _stamp))
+print("service worker: sw.js emitted for stamp %s" % _stamp)
 
 print("inlined %d module(s):" % len(names))
 print("\n".join(report) if report else "  (none yet)")
