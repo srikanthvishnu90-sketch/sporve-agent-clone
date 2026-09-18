@@ -98,7 +98,7 @@ jobs:
       # to the dashboard. Drives the built page in Chromium against an
       # in-memory Supabase double — no network, no live project.
       - name: Fundamentals (browser · fake backend)
-        run: node --test --test-concurrency=1 --test-timeout=300000 tests/e2e/fundamentals.spec.mjs tests/e2e/import-receipt.spec.mjs tests/e2e/staff-workspace.spec.mjs tests/e2e/schedule.spec.mjs tests/e2e/money.spec.mjs tests/dashboard/degradation.spec.ts tests/dashboard/no-fabrication.spec.ts tests/perf/dashboard-budget.spec.ts
+        run: node --test --test-concurrency=1 --test-timeout=300000 tests/e2e/fundamentals.spec.mjs tests/e2e/import-receipt.spec.mjs tests/e2e/staff-workspace.spec.mjs tests/e2e/schedule.spec.mjs tests/e2e/money.spec.mjs tests/e2e/dock.spec.mjs tests/dashboard/degradation.spec.ts tests/dashboard/no-fabrication.spec.ts tests/perf/dashboard-budget.spec.ts
 
       - name: Contract tests (gates · agents · ai · repo · data · onboarding)
         run: |
