@@ -38,6 +38,11 @@ reviews:
     - "*.py"
     - "*.sh"
     - "*.svg"
+    # The highest-risk paths in the repo, added 2026-09-18 by owner ruling after
+    # 17 PRs shipped with no external review: every migration changes the live
+    # database, and a weakened test is how a regression ships unnoticed.
+    - "supabase/**"
+    - "tests/**"
     # NOT the generated build or the inlined binaries — they are outputs, not code.
     - "!index.html"
     - "!package-lock.json"

@@ -87,10 +87,10 @@ test('2+3. signup: every button works, and what is entered is saved and shown af
   await click('[data-obwrong]', '1b · different email'); assert.equal((await state(page)).step, '1');
   await page.fill('#obEm', 'coach@example.com'); await click('#obSend', '1 · Continue'); await click('[data-obcode]', '1b · enter code');
   await page.fill('#obTok', '000000'); await page.locator('#obCode button[type=submit]').click();
-  await page.waitForFunction(() => !!S.ob?.err, null, { timeout: 8000 }); // two verify round trips on CI can exceed a fixed pause
+  await page.waitForFunction(() => !!S.ob?.err, null, { timeout: 15000 }); // two verify round trips on a loaded CI runner can exceed 8s (owner ruling 2026-09-18)
   assert.match((await state(page)).text, /not accepted/, 'a wrong code says so');
   await page.fill('#obTok', '123456'); await page.locator('#obCode button[type=submit]').click(); clicked.add('1b · Sign in');
-  await page.waitForFunction(() => S.auth?.status === 'verified' && S.ob?.step === '2', null, { timeout: 8000 });
+  await page.waitForFunction(() => S.auth?.status === 'verified' && S.ob?.step === '2', null, { timeout: 15000 });
   // ── step 2: what you run ──
   await noteButtons('2');
   assert.ok(await page.locator('#obNext').isDisabled(), 'Continue waits for consent');
