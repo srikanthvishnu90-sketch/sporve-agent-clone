@@ -25,7 +25,7 @@
 <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16.png">
 <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
 <link rel="manifest" href="/site.webmanifest">
-<meta name="sporve-build" content="5320f1a4362e55ef">
+<meta name="sporve-build" content="b6d3ae88d1f4da0e">
 </head>
 <body>
 <noscript><h1>Sporv — Every sport. One app.</h1><p>Sporv connects families and athletes with coaches, trainers, camps, and teams across more than 20 sports. Please enable JavaScript to use the app.</p></noscript>
@@ -6364,6 +6364,20 @@ body.reg-coach .rail button.on{font-weight:600}
 
 /* ── backend unreachable (audit 2026-09-17 P2-3) ── */
 .netbar{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;padding:10px 16px;background:#1A212B;color:#F5F5F2;border-bottom:1px solid #2A3138;font-size:var(--text-base)}
+/* ── phone in one hand (audit 2026-09-17 P2-5): 320px never scrolls sideways;
+   every control is at least 40px tall on a touch screen ── */
+@media(max-width:640px){
+  #app .btn.sm,#app .cui-button--sm,#app .cui-button--lg{min-height:40px;height:auto;padding-top:0;padding-bottom:0}
+  #app .cui-tab,#app .aidock-chip,#app .acct,#app .brand,#app .tlink,#app .pill[data-ctab],#app button.cs-row{min-height:40px}
+  .aidock-ic,.aidock-x{min-width:40px;min-height:40px;width:40px;height:40px}
+  .aidock-input{min-height:40px}
+  #app .att-btn{min-width:60px}
+  .ob2undo{flex-wrap:wrap}.ob2undo>*{min-width:0}.ob2tone{margin-left:0}
+  .obcard,.cui-block,.cui-card{min-width:0;max-width:100%}
+  #app .cui-tablewrap,#app .sch-month{max-width:100%;overflow-x:auto}
+  #app img,#app svg{max-width:100%}
+  #app .sec-head,#app .sec-head>span,#app .sec-head>div{flex-wrap:wrap;gap:8px;min-width:0}
+}
 </style>
 
 <div id="app"></div>

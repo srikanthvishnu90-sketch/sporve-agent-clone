@@ -6316,6 +6316,20 @@ body.reg-coach .rail button.on{font-weight:600}
 
 /* ── backend unreachable (audit 2026-09-17 P2-3) ── */
 .netbar{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;padding:10px 16px;background:#1A212B;color:#F5F5F2;border-bottom:1px solid #2A3138;font-size:var(--text-base)}
+/* ── phone in one hand (audit 2026-09-17 P2-5): 320px never scrolls sideways;
+   every control is at least 40px tall on a touch screen ── */
+@media(max-width:640px){
+  #app .btn.sm,#app .cui-button--sm,#app .cui-button--lg{min-height:40px;height:auto;padding-top:0;padding-bottom:0}
+  #app .cui-tab,#app .aidock-chip,#app .acct,#app .brand,#app .tlink,#app .pill[data-ctab],#app button.cs-row{min-height:40px}
+  .aidock-ic,.aidock-x{min-width:40px;min-height:40px;width:40px;height:40px}
+  .aidock-input{min-height:40px}
+  #app .att-btn{min-width:60px}
+  .ob2undo{flex-wrap:wrap}.ob2undo>*{min-width:0}.ob2tone{margin-left:0}
+  .obcard,.cui-block,.cui-card{min-width:0;max-width:100%}
+  #app .cui-tablewrap,#app .sch-month{max-width:100%;overflow-x:auto}
+  #app img,#app svg{max-width:100%}
+  #app .sec-head,#app .sec-head>span,#app .sec-head>div{flex-wrap:wrap;gap:8px;min-width:0}
+}
 </style>
 
 <div id="app"></div>
