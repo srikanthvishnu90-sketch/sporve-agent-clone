@@ -32,9 +32,22 @@ test('backend unreachable on a cold boot: still signed in, in the workspace, tol
   await warm.page.waitForFunction(() => !S.backendDown && !!S.coachProvider && S.dashHome?.data, null, { timeout: 15000 });
   assert.match(await warm.text(), /Rivertown FC/); assert.deepEqual(warm.errors, []); await warm.ctx.close();
 });
-test('a real rejection is not a network failure: no cached profile + dead backend stays a guest, no fake sign-in', async () => {
+test('no cached profile + dead backend: says it cannot reach the server, claims no identity, and never shows the marketing page', async () => {
+  /* This test used to assert the opposite — that a device with no cached
+     profile just stayed a guest and set nothing. The verification agent
+     (law4.*.the_whole_backend) showed what that meant in practice: a signed-in
+     person on a new phone, offline, was shown the MARKETING page. The invariant
+     that actually matters is stronger, and is what is asserted now: no fake
+     identity is claimed, and the page says what is wrong. */
   const db = freshDb({ onboarded: true, name: 'Rivertown FC' }); const s = await boot(db, { block: true });
-  await s.page.waitForTimeout(2500); assert.equal(await s.page.evaluate(() => S.auth?.status), 'guest'); assert.equal(await s.page.evaluate(() => !!S.backendDown), false); await s.ctx.close();
+  await s.page.waitForFunction(() => S.backendDown, null, { timeout: 15000 });
+  const st = await s.page.evaluate(() => ({ user: S.auth?.user ?? null, unknown: !!S.authUnknown, down: !!S.backendDown }));
+  assert.equal(st.down, true); assert.equal(st.unknown, true);
+  assert.equal(st.user, null, 'no identity may be invented from a failed profile read');
+  const t = await s.text();
+  assert.match(t, /Can't reach Sporv's server/i);
+  assert.ok(!/Get started|Book a call|THE AI FOR YOUTH SPORTS/i.test(t), 'a signed-in device must never fall back to the marketing page');
+  await s.ctx.close();
 });
 test('offline shell: after one online open the app opens with no network, from the service worker cache', async () => {
   const db = freshDb({ onboarded: true, name: 'Rivertown FC' }); const s = await boot(db);

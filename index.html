@@ -25,7 +25,7 @@
 <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16.png">
 <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
 <link rel="manifest" href="/site.webmanifest">
-<meta name="sporve-build" content="61b3ea2f43cdaa42">
+<meta name="sporve-build" content="102ae3af05950ca0">
 </head>
 <body>
 <noscript><h1>Sporv — Every sport. One app.</h1><p>Sporv connects families and athletes with coaches, trainers, camps, and teams across more than 20 sports. Please enable JavaScript to use the app.</p></noscript>
@@ -6377,6 +6377,15 @@ body.reg-coach .rail button.on{font-weight:600}
   #app .cui-tablewrap,#app .sch-month{max-width:100%;overflow-x:auto}
   #app img,#app svg{max-width:100%}
   #app .sec-head,#app .sec-head>span,#app .sec-head>div{flex-wrap:wrap;gap:8px;min-width:0}
+  /* Settings has its own two-column shell (200px nav + content). At phone
+     width the two columns were 379px each and the page scrolled sideways;
+     its nav rows were 32px, below a thumb (verification agent, 2026-09-18). */
+  .stshell{grid-template-columns:minmax(0,1fr);gap:14px}
+  .strail{position:static;flex-direction:row;flex-wrap:wrap;gap:6px;overflow-x:auto}
+  .strail .stsec{width:100%;padding:8px 2px 2px}
+  .strail .stfoot{width:100%;margin-top:8px}
+  .strail button{height:auto;min-height:40px;line-height:1.2;padding:10px;display:flex;align-items:center}
+  .stmain,.sthead,.stshell>*{min-width:0;max-width:100%}
 }
 </style>
 
@@ -16569,6 +16578,14 @@ function render(){
      finished setup is routed to the fullscreen onboarding surface — every
      tab is behind it, and the surface itself resumes from provider_settings.
      Replaces the forced setupwiz modal. */
+  /* VERIFICATION AGENT 2026-09-18: signed in, backend unreachable, identity not
+     yet known. The marketing page is the one thing this must never be. */
+  if(S.authUnknown&&S.backendDown&&typeof realSignedIn==="function"&&realSignedIn()){
+    document.getElementById("app").innerHTML=netDownHTML();
+    /* $ is scoped to the wiring pass, not to render() — bind directly. */
+    document.querySelectorAll("[data-net-retry]").forEach(b=>b.onclick=()=>retryBackend());
+    return;
+  }
   if(r.name!=="setup"&&r.name!=="info"&&typeof coachGateActive==="function"&&coachGateActive()){
     S.route={name:"setup",arg:null}; return render();
   }
@@ -30082,6 +30099,10 @@ window.MOD_NOTES = {
 const PERSIST_KEY = "sporve:state:v1";
 const EPHEMERAL = new Set([
   "modal", "toast",
+  /* Connection state is about THIS moment, never a snapshot: a reload must
+     re-discover whether the server answers rather than restoring yesterday's
+     verdict (verification agent, 2026-09-18). */
+  "backendDown", "authUnknown",
   /* pendingIntent is deliberately NOT ephemeral any more. JSON.stringify drops
      a function silently, so a legacy closure still vanishes on reload exactly
      as before — but a DESCRIPTOR ({kind:"book",…}) survives, which is what lets
@@ -30297,7 +30318,19 @@ function hydrateAuth(){
          the server is unreachable — with a retry. A 401/403 (a real
          rejection) still falls through to guest; RLS is the control there. */
       const network=!err||err.status===0||err.name==="TypeError";
-      const cached=network&&window.SporveAuth&&window.SporveAuth.cachedProfile&&window.SporveAuth.cachedProfile();
+      const stored=network&&window.SporveAuth&&window.SporveAuth.isSignedIn&&window.SporveAuth.isSignedIn();
+      const cached=stored&&window.SporveAuth.cachedProfile&&window.SporveAuth.cachedProfile();
+      /* VERIFICATION AGENT 2026-09-18 (law4.*.the_whole_backend): the cached
+         profile only exists on a device that has already loaded once. On a new
+         phone, or after site data is cleared, there was no cache — so this
+         returned, the person fell through to guest, and the app rendered the
+         MARKETING PAGE at someone who is signed in and offline. Say it instead:
+         we know a session is held, we just cannot reach the server. */
+      if(stored&&!cached){
+        S.backendDown={at:Date.now(),message:(err&&err.message)||"Could not reach the server."};
+        S.authUnknown=true;   /* signed in, identity not yet fetched — never guess a role */
+        render(); return;
+      }
       if(!cached) return;
       adoptIdentity(cached.id);
       S.auth={status:"verified",user:{id:cached.id,firstName:cached.first_name||"",lastName:cached.last_name||"",email:cached.email||"",phone:"",role:cached.role||"searcher",preferredSports:[],img:phAvatar()}};
@@ -30308,12 +30341,12 @@ function hydrateAuth(){
 }
 hydrateAuth();
 /* audit P2-3: the next successful reach clears the state; a retry re-runs the boot */
-function retryBackend(){ S.backendDown=null; S.coachEnsureError=null; render(); hydrateAuth(); }
+function retryBackend(){ S.backendDown=null; S.authUnknown=false; S.coachEnsureError=null; render(); hydrateAuth(); }
 window.addEventListener("online",()=>{ if(S.backendDown) retryBackend(); });
 function netDownHTML(){
   return `<section class="band"><div class="in" style="max-width:520px;padding:72px 0;text-align:center" data-netdown="1">
     <h1 style="margin-bottom:10px">Can't reach Sporv's server</h1>
-    <p style="color:var(--muted);margin-bottom:18px">You're still signed in as ${esc((S.auth&&S.auth.user&&S.auth.user.email)||"yourself")}. Nothing on this device is lost — attendance you mark queues and sends when the connection is back. ${esc(S.backendDown&&S.backendDown.message||"")}</p>
+    <p style="color:var(--muted);margin-bottom:18px">${S.auth&&S.auth.user&&S.auth.user.email?`You're still signed in as ${esc(S.auth.user.email)}.`:"You're still signed in on this device — we just can't reach the server to load your organization."} Nothing on this device is lost — attendance you mark queues and sends when the connection is back. ${esc(S.backendDown&&S.backendDown.message||"")}</p>
     <button class="btn" data-net-retry="1">Try again</button>
   </div></section>`;
 }
