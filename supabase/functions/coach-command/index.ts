@@ -398,8 +398,10 @@ Deno.serve(async (req) => {
       { role: "user", content: [{ type: "text", text: ctx.join("\n") }] },
     ];
 
-    // ── ONE model call THROUGH ai-gateway (task=reason -> sonnet; agentic judgment
-    //    for ambiguity + injection resistance). Coach's JWT => per-user rate limit. ─
+    // ── ONE model call THROUGH ai-gateway (task=agent_turn -> haiku; owner
+    //    ruling 2026-09-18 after the audit measured 13.8s cold on sonnet). The
+    //    injection resistance lives in SYSTEM and in the ownership scrub below,
+    //    not in the model tier. Coach's JWT => per-user rate limit. ─
     const gResp = await fetch(`${SUPABASE_URL}/functions/v1/${GATEWAY_FN}`, {
       method: "POST",
       headers: {
@@ -409,7 +411,7 @@ Deno.serve(async (req) => {
         ...(INTERNAL_SECRET ? { "x-sporve-internal": INTERNAL_SECRET } : {}),
       },
       body: JSON.stringify({
-        task: "reason",
+        task: "agent_turn",
         feature: "coach_command",
         system: SYSTEM,
         messages,

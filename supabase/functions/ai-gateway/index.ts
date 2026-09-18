@@ -62,7 +62,12 @@ const PRICING: Record<string, { in: number; cacheRead: number; cacheWrite: numbe
   "claude-opus-4-8":           { in: 5.0, cacheRead: 0.5, cacheWrite: 6.25, out: 25.0 },
 };
 
-const HAIKU_TASKS = new Set(["parse", "classify", "extract"]);
+/* agent_turn: a structured-output turn whose whole world is the CONTEXT block
+   the caller assembled (coach-command). It is extraction plus a tool call, not
+   open reasoning, so it routes to Haiku — 13.8s on Sonnet made the dock
+   unusable (audit P1-4; owner ruling 2026-09-18: pin to Haiku, fix quality
+   with prompting, not latency). */
+const HAIKU_TASKS = new Set(["parse", "classify", "extract", "agent_turn"]);
 const SONNET_TASKS = new Set(["draft", "summarize", "reason"]);
 /* The gateway's OWN system prompts, keyed by feature. Used whenever the caller
    cannot prove it is server-side. Deliberately conservative: these constrain the

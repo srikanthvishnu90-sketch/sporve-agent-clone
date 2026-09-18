@@ -7091,7 +7091,15 @@ const S={
   cmdAction:"",
   cmdDraft:"",
   cmdSending:false,
-  aiModel:"Sporv AI",
+  /* AUDIT P1-4 / owner ruling 2026-09-18. This used to default to the LABEL
+     "Sporv AI", which is truthy — so `S.aiModel || "claude-haiku…"` never fell
+     back and every turn asked for a model id that does not exist. It did not
+     matter which: the gateway routes by TASK and ignores a non-service
+     caller's model entirely (that is the security property — clients never
+     pick the model). Both the field and the picker that fed it are gone; the
+     dock is pinned to Haiku by coach-command's task. The .aidock-model rules
+     in the sheet above are now unused and are left for a CSS sweep — removing
+     them by hand took the family-portal contrast baseline with them. */
   cmdModelOpen:false,
   cmdError:"",
   /* A parsed action awaiting the coach's confirmation. Nothing the model
@@ -10712,7 +10720,6 @@ function aiDockHTML(){
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
                  stroke-width="1.9" stroke-linecap="round" aria-hidden="true">
               <path d="M12 5v14M5 12h14"/></svg></button>
-          <label class="aidock-model" style="margin-left:auto"><select data-aimodel aria-label="Choose AI model"><option value="claude-haiku-4-5-20251001"${(S.aiModel||"claude-haiku-4-5-20251001")==="claude-haiku-4-5-20251001"?" selected":""}>Haiku</option><option value="claude-sonnet-4-6"${S.aiModel==="claude-sonnet-4-6"?" selected":""}>Sonnet</option><option value="claude-opus-4-8"${S.aiModel==="claude-opus-4-8"?" selected":""}>Opus 4.8</option></select></label>
           <button type="button" class="aidock-ic" data-aivoice="1" aria-label="Dictate a message">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor"
                  stroke-width="1.8" stroke-linecap="round" aria-hidden="true">
@@ -10797,7 +10804,6 @@ function aiDockHTML(){
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
                  stroke-width="1.9" stroke-linecap="round" aria-hidden="true">
               <path d="M12 5v14M5 12h14"/></svg></button>
-          <label class="aidock-model" style="margin-left:auto"><select data-aimodel aria-label="Choose AI model"><option value="claude-haiku-4-5-20251001"${(S.aiModel||"claude-haiku-4-5-20251001")==="claude-haiku-4-5-20251001"?" selected":""}>Haiku</option><option value="claude-sonnet-4-6"${S.aiModel==="claude-sonnet-4-6"?" selected":""}>Sonnet</option><option value="claude-opus-4-8"${S.aiModel==="claude-opus-4-8"?" selected":""}>Opus 4.8</option></select></label>
           <button type="button" class="aidock-ic" data-aivoice="1" aria-label="Dictate a message">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor"
                  stroke-width="1.8" stroke-linecap="round" aria-hidden="true">
@@ -17096,7 +17102,7 @@ document.querySelectorAll('.sig-ai-coach').forEach(sigAiCoachWire);
   $("[data-billtoggle]").forEach(b=>b.onclick=()=>{ S.billYearly = b.dataset.billtoggle==="1"; render(); });
   /* AI model picker (owner 2026-08-22): Haiku (default) / Sonnet / Opus 4.8.
      No re-render — the next send reads S.aiModel; the gateway caps the ladder. */
-  $("[data-aimodel]").forEach(el=>el.onchange=()=>{ S.aiModel=el.value; });
+
   $("[data-acct]").forEach(b=>b.onclick=()=>{S.modal={type:"account"};render();});
   $("[data-addchild]").forEach(b=>b.onclick=()=>{S.modal={type:"addchild"};render();});
   /* Guest gating: every coach action that WRITES goes through requireAuth(),
@@ -19761,7 +19767,7 @@ function askCoach(q){
        request itself isn't aborted (API.fn has no cancellation), but the UI
        recovers and offers retry. */
     const timeout=new Promise((_,rej)=>setTimeout(()=>rej(new Error("timeout")),45000));
-    Promise.race([API.fn("coach-command",{text,history,model:S.aiModel||"claude-haiku-4-5-20251001"}),timeout]).then(r=>{
+    Promise.race([API.fn("coach-command",{text,history}),timeout]).then(r=>{
       /* The coach switched threads while this turn was in flight — its reply
          belongs to a conversation that is no longer on screen. Drop it. */
       if(epoch!==chatEpoch) return;
@@ -19805,7 +19811,7 @@ function askCoach(q){
      family user on thinking-dots forever. On timeout the .catch falls back to a
      plain catalogue match rather than hanging. */
   const aiTimeout=new Promise((_,rej)=>setTimeout(()=>rej(new Error("timeout")),45000));
-  Promise.race([API.fn("ai-chat",{messages:history,model:S.aiModel||"claude-haiku-4-5-20251001"}),aiTimeout]).then(r=>{
+  Promise.race([API.fn("ai-chat",{messages:history}),aiTimeout]).then(r=>{
     const reply=r&&typeof r.text==="string"?r.text.trim():"";
     if(!reply) return fallback("I couldn't reach the assistant, so here's a catalogue match:");
     /* Ground the picks: only listings the model NAMED and that actually exist. */
