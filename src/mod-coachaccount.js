@@ -193,7 +193,6 @@
        id: the session is the source of truth for who you are. */
     load: function () {
       if (!uid()) { provider = null; return Promise.resolve(null); }
-      syncPlans();  // A5: reconcile plan prices/quota/seats from the DB (non-blocking)
       /* AUDIT 2026-09-17 P1-1: the workspace is resolved by the DATABASE
          (my_workspace, migration 001075): a person's own org, unless it is
          still the untouched signup default and they hold an active membership
@@ -651,7 +650,9 @@
                label: label, plan: PLANS[id] };
     },
 
-    plans: function () { return PLANS; },
+    /* audit P1-5: the plan reconcile used to run on every boot; it runs the
+       first time anything asks for the plans (billing tab, onboarding step). */
+    plans: function () { syncPlans(); return PLANS; },
 
     /* BUY A PLAN. The function decides everything that matters — that the
        caller is a coach, that the plan is on sale, that they are not already

@@ -7531,6 +7531,7 @@ function loadOrgWorkspace(){
   if(!(window.SporveCoach&&realSignedIn())) return Promise.resolve(null);
   return window.SporveCoach.load().then(pv=>{
     S.coachProvider=pv||null; if(pv) S.coachEnsureError=null;
+    if(pv) S.myProviderId=pv.id;
     if(pv) hydrateTeamRoster();
     /* audit P1-2: a mark queued while the field had no signal must not wait
        for an `online` event that already fired — send it as soon as the
@@ -11762,6 +11763,7 @@ function coachHomePage(){
       body:(gs&&gs.total&&gs.done<gs.total?ui.Block({title:"Getting started",subtitle:gs.done+" of "+gs.total+" setup steps complete.",
         action:ui.Button({label:"Open guide",size:"sm",variant:"secondary",attrs:'data-ctab="getting-started"'}),body:""}):"")+dashHomeHTML()});
   }
+  if(realSignedIn()) hydrateFor("marketplace");
   const mine=coachListings();
   const roster=teamRoster();
   const sessions=providerSessions().filter(s=>s.date>=TODAY);
@@ -12193,6 +12195,7 @@ function coachSchedulePage(){
 }
 
 function coachListingsPage(){
+  if(realSignedIn()) hydrateFor("marketplace");
   const ui=window.COACH_UI;
   const mine=coachListings();
   const statusOf=p=>p.status==="draft"||p.published===false?"draft":p.status==="archived"?"archived":"active";
@@ -12320,6 +12323,7 @@ function moneyPageHTML(){
 }
 function coachEarningsPage(){
   if(queueIsLive()) return moneyPageHTML();  /* AUDIT 2026-09-17 P1-3: a real org sees Money, never marketplace earnings */
+  if(realSignedIn()) hydrateFor("marketplace");
   const ui=window.COACH_UI;
   const mineIds=S.listings||[];
   const tx=(S.bookings||[]).filter(b=>mineIds.includes(b.programId));
@@ -12431,6 +12435,7 @@ function coachApprovalsPage(){
 }
 
 function coachOperationsPage(){
+  if(realSignedIn()) hydrateFor("operations");
   const ui=window.COACH_UI;
   const reviews=(S.reviews||[]).filter(row=>(S.listings||[]).includes(row.programId));
   const policies=S.policies||{};
@@ -13049,6 +13054,7 @@ function obligWhy(o){
   return ref.length>1?ref.slice(0,2).join(" · ").replace(/_/g," "):null;
 }
 function coachQueuePage(){
+  if(realSignedIn()) hydrateFor("queue");
   const q=obligationQueue();
   const drafts=q.filter(o=>o.status==="draft");
   const approved=q.filter(o=>o.status==="approved");
@@ -20376,13 +20382,14 @@ function hydrateAuth(){
          its step. loadOrgWorkspace() fetches THEIR row and roster; the render
          gate then routes to setup or dashboard by itself. */
       if(p.role==="provider") loadOrgWorkspace().then(()=>render());
-      hydrateBookings();
-      hydrateAthletes();
+      /* AUDIT 2026-09-17 P1-5: boot issued 13 backend requests (budget 4).
+         A provider's cold boot needs exactly what the home renders — the
+         profile, the workspace row, the roster, the home RPC. Everything
+         else loads when the surface that reads it renders (queue, operations,
+         listings/earnings) — see hydrateFor(). Family sessions keep their
+         loads: the booking picker and the family's athletes are their home. */
+      if(p.role!=="provider"){ hydrateBookings(); hydrateAthletes(); hydrateReviews(); }
       hydrateRoster();
-      hydrateReviews();
-      hydrateQueue();
-      hydrateOrgCompliance();
-      hydrateStaffCerts();
       if(parked) setTimeout(()=>runIntent(parked),60);
     })
     .catch(()=>{ /* stay a guest; RLS is the real control either way */ });
@@ -20751,6 +20758,16 @@ function hydrateStaffCerts(){
   }).catch(function(){ /* table/rows absent → summary simply stays off */ });
 }
 
+/* Lazy, once-per-session hydration for a coach surface (audit P1-5). Each
+   entry runs the first time its tab renders; explicit actions (approve,
+   record a certification) keep calling the underlying hydrate to refresh. */
+function hydrateFor(surface){
+  S.hydratedFor=S.hydratedFor||{};
+  if(S.hydratedFor[surface]) return; S.hydratedFor[surface]=true;
+  if(surface==="queue") hydrateQueue();
+  else if(surface==="operations"){ hydrateOrgCompliance(); hydrateStaffCerts(); }
+  else if(surface==="marketplace"){ hydrateBookings(); hydrateAthletes(); hydrateReviews(); }
+}
 function hydrateQueue(){
   if(!window.SporveCoach||!window.SporveAuth||!window.SporveAuth.isSignedIn()) return Promise.resolve();
   return window.SporveCoach.queue().then(function(rows){
