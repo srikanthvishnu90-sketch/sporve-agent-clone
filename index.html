@@ -25,7 +25,7 @@
 <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16.png">
 <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
 <link rel="manifest" href="/site.webmanifest">
-<meta name="sporve-build" content="ae0a3e2cf9078fe7">
+<meta name="sporve-build" content="5320f1a4362e55ef">
 </head>
 <body>
 <noscript><h1>Sporv — Every sport. One app.</h1><p>Sporv connects families and athletes with coaches, trainers, camps, and teams across more than 20 sports. Please enable JavaScript to use the app.</p></noscript>
@@ -11656,14 +11656,37 @@ function teamRoster(){
 function csvParse(text){
   const rows=[];let row=[],cell="",q=false;
   for(let i=0;i<text.length;i++){const c=text[i];
-    if(q){ if(c==='"'){ if(text[i+1]==='"'){cell+='"';i++;} else q=false; } else cell+=c; }
+    if(q){ if(c==='"'){ if(text[i+1]==='"'){cell+='"';i++;} else q=false; }
+      else if(c==="\n"||c==="\r"){
+        /* A quote still open at a line break: if no closing quote follows, or
+           the "quoted" text would span a second line break, the quote is
+           stray — end the row here, flag it, and parse the next line as a row
+           of its own instead of swallowing the rest of the file (audit P2-1). */
+        const j=text.indexOf('"',i+1);
+        if(j===-1||/[\r\n]/.test(text.slice(i+1,j))){ if(c==="\r"&&text[i+1]==="\n") i++; row.push(cell);cell="";row.malformed="unclosed quote";rows.push(row);row=[];q=false; }
+        else cell+=c; }
+      else cell+=c; }
     else if(c==='"') q=true;
     else if(c===","){row.push(cell);cell="";}
     else if(c==="\n"||c==="\r"){ if(c==="\r"&&text[i+1]==="\n") i++;
       row.push(cell);cell=""; if(row.some(x=>x.trim()!=="")) rows.push(row); row=[]; }
     else cell+=c; }
   row.push(cell); if(row.some(x=>x.trim()!=="")) rows.push(row);
+  /* AUDIT 2026-09-17 P2-1: a quote that never closes swallowed the rest of
+     the file into one cell, and that cell became an athlete named
+     `"Unterminated,quote,x,y,z`. The row is kept so the director sees it,
+     but flagged — the dry run rejects it with the reason. */
+  if(q&&rows.length) rows[rows.length-1].malformed="unclosed quote";
   return rows;
+}
+/* A cell that cannot be a person's name: no letters, a stray quote or
+   separator, control characters, or longer than any real name. */
+function nameProblem(name){
+  const n=String(name||"");
+  if(!/\p{L}/u.test(n)) return "no letters in the name";
+  if(/[",;|<>{}\[\]\\\x00-\x1f]/.test(n)) return "stray quote or separator in the name";
+  if(n.length>80) return "name longer than 80 characters";
+  return null;
 }
 function guessCol(headers,keys){ const h=headers.map(x=>x.toLowerCase());
   for(const k of keys){const i=h.findIndex(x=>x.includes(k)); if(i>=0) return i;} return -1; }
@@ -11686,8 +11709,15 @@ function parseDob(v,fmt){
   else if(fmt==="DMY"){d=+m[1];mo=+m[2];y=+m[3];}
   else {mo=+m[1];d=+m[2];y=+m[3];}
   if(y<100) y+=(y>30?1900:2000);
-  if(mo<1||mo>12||d<1||d>31||y<1990||y>2030) return null;
-  return y+"-"+String(mo).padStart(2,"0")+"-"+String(d).padStart(2,"0");
+  if(mo<1||mo>12||d<1||d>31) return null;
+  const iso=y+"-"+String(mo).padStart(2,"0")+"-"+String(d).padStart(2,"0");
+  /* AUDIT 2026-09-17 P2-2: an impossible birthdate is a rejection, not a row.
+     A real calendar date (no Feb 30), not in the future, and after 1920 —
+     the same rule the database now enforces (migration 001078). */
+  const dt=new Date(iso+"T00:00:00Z"); if(isNaN(dt)||dt.getUTCDate()!==d||dt.getUTCMonth()!==mo-1) return null;
+  const today=new Date().toISOString().slice(0,10);
+  if(iso>today||y<1920) return null;
+  return iso;
 }
 /* Dry run: classify every row before anything is written. Never auto-merge —
    a same-name row with a differing or missing DOB is flagged for review and
@@ -11705,10 +11735,12 @@ function importDryRun(w){
     const get=k=>map[k]>=0?String(r[map[k]]||"").trim():"";
     const name=map.name>=0?get("name"):[get("first"),get("last")].filter(Boolean).join(" ");
     const email=get("email"), dobRaw=get("dob"), jersey=get("jersey")||"—", ref=get("ref");
+    if(r.malformed){out.rejected.push({row:idx+2,name:String(r[0]||"").slice(0,40)+"…",why:"malformed row ("+r.malformed+") — fix the file and re-upload"});return;}
     if(!norm(name)){out.rejected.push({row:idx+2,name:"(blank)",why:"missing athlete name"});return;}
+    const np=nameProblem(name); if(np){out.rejected.push({row:idx+2,name:name.slice(0,40),why:np});return;}
     let dob=null;
     if(map.dob>=0&&dobRaw){ dob=parseDob(dobRaw,fmt);
-      if(!dob){out.rejected.push({row:idx+2,name,why:"unreadable date of birth “"+dobRaw+"”"});return;} }
+      if(!dob){out.rejected.push({row:idx+2,name,why:"impossible date of birth “"+dobRaw+"” (must be a real past date after 1920)"});return;} }
     if(map.email>=0&&email&&!rx.test(email)){out.rejected.push({row:idx+2,name,why:"invalid guardian email “"+email+"”"});return;}
     const key=norm(name)+"|"+(dob||"");
     if(seen.has(key)){out.matched.push({name,why:"duplicate row in this file"});return;}
