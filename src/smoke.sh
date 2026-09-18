@@ -33,7 +33,28 @@ else
   fail "build.py failed:"; sed 's/^/        /' /tmp/smoke-build.txt; exit 1
 fi
 grep -q "NONE FOUND" /tmp/smoke-build.txt && fail "fonts missing -- type contract not met" \
-  || pass "all faces inlined"
+  || pass "all faces emitted"
+# The faces are served from this origin now, not base64'd into the document
+# (2026-09-18). Two things must hold: the page references them by path, and the
+# files are actually there to be served.
+if grep -q 'url("/assets/fonts/' index.html; then
+  _missing=0
+  for _f in $(grep -o '/assets/fonts/[A-Za-z0-9._-]*\.woff2' index.html | sort -u); do
+    [ -f ".${_f}" ] || { fail "font referenced but not present: ${_f}"; _missing=1; }
+  done
+  [ "$_missing" = "0" ] && pass "every face resolves to a file on disk"
+  grep -q "data:font/woff2;base64" index.html \
+    && fail "a face is still base64'd into the document" \
+    || pass "no font is inlined into the critical path"
+  # The hero and the logo moved out with the fonts. Both must resolve to files.
+  _imgmiss=0
+  for _i in $(grep -oE '"/assets/(hero-[A-Za-z0-9._-]+|logo\.png)"' index.html | tr -d '"' | sort -u); do
+    [ -f ".${_i}" ] || { fail "image referenced but not present: ${_i}"; _imgmiss=1; }
+  done
+  [ "$_imgmiss" = "0" ] && pass "hero and logo resolve to files on disk"
+else
+  fail "no same-origin @font-face in the built page"
+fi
 [ -s index.html ] && pass "index.html emitted ($(wc -c < index.html) bytes)" \
   || { fail "index.html empty or missing"; exit 1; }
 

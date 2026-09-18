@@ -87,7 +87,7 @@ export class Harness {
   /* The pool key deliberately EXCLUDES the surface: switching tabs is a
      render() call, opening a browser context is seconds. Keying on the surface
      turned 44 mobile checks into 44 contexts and a 33-minute run. */
-  key(ctx) { return `${ctx.org || 'small'}|${ctx.role || 'owner'}|${ctx.width || 1280}`; }
+  key(ctx) { return `${ctx.org || 'small'}|${ctx.role || 'owner'}|${ctx.width || 1280}|${ctx.noSession ? 'nosession' : ctx.profileOnly ? 'profileonly' : 'session'}`; }
 
   /* One page per (org · role · width), switched to whichever surface the check
      asked for. */
@@ -109,7 +109,15 @@ export class Harness {
   async open(ctx) {
     const width = ctx.width || 1280;
     const context = await this.browser.newContext({ viewport: { width, height: width <= 430 ? 780 : 900 }, ...(width <= 430 ? { isMobile: true, hasTouch: true, deviceScaleFactor: 2 } : {}) });
-    await context.addInitScript((s) => localStorage.setItem('sporve:session:v1', JSON.stringify(s)), session());
+    /* noSession: boot with NOTHING in storage. The owner's standing rule is
+       that nobody is ever auto-logged into Sporv, so the agent has to be able
+       to arrive as a stranger. profileOnly: a cached profile with no session
+       token — the shape a half-cleared device has. */
+    if (ctx.profileOnly) {
+      await context.addInitScript(() => localStorage.setItem('sporve:profile:v1', JSON.stringify({ id: 'a0000000-0000-4000-8000-00000000000a', role: 'provider', first_name: 'Someone', last_name: 'Else', email: 'someone@example.com' })));
+    } else if (!ctx.noSession) {
+      await context.addInitScript((s) => localStorage.setItem('sporve:session:v1', JSON.stringify(s)), session());
+    }
     const page = await context.newPage();
     const errors = []; page.on('pageerror', (e) => errors.push(String(e.message)));
     const db = ctx.db || buildDb(ctx);
@@ -124,6 +132,11 @@ export class Harness {
     if (typeof ctx.cut === 'function') await page.route((u) => ctx.cut(u.href), (r) => r.abort('connectionfailed'));
     const requests = []; page.on('request', (r) => { if (r.url().startsWith(SUPABASE)) requests.push(r.method() + ' ' + r.url().slice(SUPABASE.length).split('?')[0]); });
     await page.goto(this.site.index, { waitUntil: 'domcontentloaded' });
+    if (ctx.noSession || ctx.profileOnly) {
+      await page.waitForFunction(() => typeof S === 'object' && typeof render === 'function', null, { timeout: 30000 });
+      await page.waitForTimeout(1500);
+      return { ctx: context, page, db, log, errors, requests, surface: ctx.surface || 'dashboard' };
+    }
     if (ctx.cut) {
       /* With the backend cut the workspace may never arrive; wait for the app
          to exist, not for a provider it cannot fetch. */

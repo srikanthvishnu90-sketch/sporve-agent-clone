@@ -124,17 +124,23 @@ for fp in font_files:
         weight = VARIABLE_RANGE.get(family, "100 900")
     else:
         weight = next((v for k, v in FONT_WEIGHTS.items() if k in tail.replace("italic", "")), 400)
-    import base64 as _b64
-    with open(fp, "rb") as f:
-        b64 = _b64.b64encode(f.read()).decode("ascii")
+    # SAME-ORIGIN, not base64 (2026-09-18). The faces were inlined because the
+    # page must survive a CSP with no external font host — but the CSP reads
+    # `font-src 'self' data:`, so a file served from this origin was always
+    # allowed. Inlining cost ~104KB of gzipped document on the critical path,
+    # and base64 inflates a woff2 by a third before gzip claws it back. Served
+    # as files they are fetched in parallel, cached across deploys, and
+    # font-display:swap means text paints on the fallback immediately.
     faces.append(
         '@font-face{font-family:"%s";font-weight:%s;font-style:%s;font-display:swap;'
-        'src:url(data:font/woff2;base64,%s) format("woff2")}'
-        % (family, weight, "italic" if italic else "normal", b64))
+        'src:url("/assets/fonts/%s") format("woff2")}'
+        % (family, weight, "italic" if italic else "normal", os.path.basename(fp)))
     fam_seen.add(family)
 if faces:
     built = built.replace("/*__FONTFACE__*/", "\n".join(faces))
-    print("fonts: %d face(s) inlined across %s" % (len(faces), ", ".join(sorted(fam_seen))))
+    _font_bytes = sum(os.path.getsize(f) for f in font_files)
+    print("fonts: %d face(s) served same-origin from /assets/fonts (%.0f KB, off the critical path) across %s"
+          % (len(faces), _font_bytes / 1024, ", ".join(sorted(fam_seen))))
 else:
     print("fonts: NONE FOUND at assets/fonts/*.woff2")
     print("       The type contract names Syne (display) + Plus Jakarta Sans")
@@ -237,17 +243,18 @@ MIME = {"jpg": "jpeg", "jpeg": "jpeg", "png": "png", "webp": "webp"}
 hero_dir = os.path.join(ROOT, "assets")
 heroes = sorted(p for ext in MIME for p in glob.glob(os.path.join(hero_dir, "hero-*." + ext)))
 if heroes:
-    import base64
+    # SAME-ORIGIN, not base64 (2026-09-18). A 60KB webp base64'd into the
+    # document is 80KB of critical-path bytes that gzip cannot recover — it is
+    # already a compressed format. `img-src 'self' data:` always allowed a file
+    # from this origin; served as one it is fetched in parallel with the paint
+    # and cached across deploys instead of being re-downloaded with the page.
     uris, hero_bytes = [], 0
     for h in heroes:
-        with open(h, "rb") as f:
-            raw = f.read()
-        hero_bytes += len(raw)
-        uris.append("data:image/%s;base64,%s"
-                    % (MIME[h.rsplit(".", 1)[1].lower()], base64.b64encode(raw).decode("ascii")))
+        hero_bytes += os.path.getsize(h)
+        uris.append("/assets/" + os.path.basename(h))
     built = built.replace(_hero_source,
                           "[%s]" % ",".join('"%s"' % u for u in uris))
-    print("hero images: %d inlined (%.0f KB) — %s"
+    print("hero images: %d served same-origin from /assets (%.0f KB, off the critical path) — %s"
           % (len(heroes), hero_bytes / 1024, ", ".join(os.path.basename(h) for h in heroes)))
     if len(heroes) != 1:
         print("       NOTE: the hero is a SINGLE still now — the slideshow and its")

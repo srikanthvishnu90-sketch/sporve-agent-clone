@@ -25,6 +25,7 @@ import { plan as performance } from './checks/performance.mjs';
 import { plan as adversarial } from './checks/adversarial.mjs';
 import { plan as mobile } from './checks/mobile.mjs';
 import { plan as integrity } from './checks/integrity.mjs';
+import { plan as auth } from './checks/auth.mjs';
 
 const ROOT = new URL('../../', import.meta.url).pathname;
 const argv = process.argv.slice(2);
@@ -42,10 +43,11 @@ const LAW_NAMES = {
   adversarial: 'Adversarial · doc 29.5, hostile input and data',
   mobile: 'The field · doc 29.9, a phone in one hand',
   integrity: 'Integrity · doc 29.7 and the excellence checks',
+  auth: 'Auth · nobody is ever auto-logged in (owner, standing)',
 };
 
 function collect() {
-  const all = [...laws(), ...failure(), ...performance(), ...adversarial(), ...mobile(), ...integrity()];
+  const all = [...laws(), ...failure(), ...performance(), ...adversarial(), ...mobile(), ...integrity(), ...auth()];
   const seen = new Set();
   for (const c of all) {
     if (seen.has(c.id)) throw new Error(`duplicate check id: ${c.id}`);
