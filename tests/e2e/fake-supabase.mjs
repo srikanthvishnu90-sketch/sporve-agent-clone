@@ -94,6 +94,7 @@ export async function mount(page, db) {
       if (fn === 'cancel_event') {
         if (db.__cancelError) return json({ message: db.__cancelError, code: '42501' }, 403);
         const e = (db.event || []).find((x) => x.id === body?.p_event); if (!e) return json({ message: 'event not found', code: '23503' }, 404);
+        if (body.p_expected_sequence != null && body.p_expected_sequence !== (e.sequence || 0)) return json({ message: 'this event changed since you loaded it — reload the schedule and look again', code: 'PT409' }, 409);
         if (e.status === 'cancelled') return json({ event_id: e.id, status: 'cancelled', already_cancelled: true, drafted_notices: 0, sequence: e.sequence || 0, venue_released: false });
         e.status = 'cancelled'; e.cancellation_reason = (body.p_reason || '').trim().slice(0, 300) || null; e.sequence = (e.sequence || 0) + 1;
         const families = (db.team_athletes || []).filter((a) => a.team_id === e.team_id && a.status !== 'inactive').length;

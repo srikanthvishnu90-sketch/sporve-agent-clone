@@ -28,6 +28,22 @@ const json = (body: unknown, status = 200) =>
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const ANON_KEY = Deno.env.get("SUPABASE_ANON_KEY")!;
 const SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+/* Run lifecycle-process's approved pass immediately (audit P2-6). Bounded to
+   12s so an approval never hangs on delivery; the minute cron is the net. */
+async function kickDelivery(): Promise<{ delivered?: number; deliveryFailed?: number; kick: "done" | "timeout" | "error" }> {
+  const ctl = new AbortController(); const t = setTimeout(() => ctl.abort(), 12000);
+  try {
+    const r = await fetch(`${SUPABASE_URL}/functions/v1/lifecycle-process`, {
+      method: "POST", signal: ctl.signal,
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${SERVICE_ROLE_KEY}`, apikey: SERVICE_ROLE_KEY },
+      body: JSON.stringify({ reason: "approval" }),
+    });
+    const j = await r.json().catch(() => ({})) as { emailed?: number; emailFailed?: number };
+    return { kick: r.ok ? "done" : "error", delivered: j.emailed, deliveryFailed: j.emailFailed };
+  } catch (e) {
+    return { kick: (e as Error)?.name === "AbortError" ? "timeout" : "error" };
+  } finally { clearTimeout(t); }
+}
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: cors });
@@ -124,7 +140,13 @@ Deno.serve(async (req) => {
             .eq("id", id).eq("status", "drafted")
             .select("id").maybeSingle();
           if (!q) return json({ error: "Only a drafted message can be approved." }, 409);
-          return json({ ok: true, status: "approved", queuedEmail: true });
+          /* AUDIT 2026-09-17 P2-6: delivery waited for the next minute's cron
+             tick (15–62s). Kick the delivery pass now for this approval and
+             report what it did; the cron stays as the safety net, and the
+             pass itself is idempotent (it claims each row once). A kick that
+             fails or times out leaves the row approved for the tick. */
+          const kicked = await kickDelivery();
+          return json({ ok: true, status: "approved", queuedEmail: true, ...kicked });
         }
       }
     }

@@ -25,7 +25,7 @@
 <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16.png">
 <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
 <link rel="manifest" href="/site.webmanifest">
-<meta name="sporve-build" content="b6d3ae88d1f4da0e">
+<meta name="sporve-build" content="9aeaf0bb80b2b326">
 </head>
 <body>
 <noscript><h1>Sporv — Every sport. One app.</h1><p>Sporv connects families and athletes with coaches, trainers, camps, and teams across more than 20 sports. Please enable JavaScript to use the app.</p></noscript>
@@ -12145,12 +12145,19 @@ function cancelEventStart(id,title){ const st=schedState(); st.cancel={id:id,tit
 function cancelEventGo(){
   const st=schedState(), c=st.cancel; if(!c||c.busy||!schedSignedIn()) return;
   c.busy=true; c.error=null; render();
-  window.SporveAPI.rpc("cancel_event",{p_event:c.id,p_reason:c.reason||"",p_notify:true}).then(r=>{
+  const evNow=(st.events||[]).find(e=>e.id===c.id);
+  /* audit P2-8: send the sequence this screen loaded; a stale screen gets a
+     conflict (409), never a silent overwrite of someone else's change */
+  const args={p_event:c.id,p_reason:c.reason||"",p_notify:true}; if(evNow&&Number.isInteger(evNow.sequence)) args.p_expected_sequence=evNow.sequence;
+  window.SporveAPI.rpc("cancel_event",args).then(r=>{
     const ev=(st.events||[]).find(e=>e.id===c.id); if(ev){ ev.status="cancelled"; ev.cancellation_reason=c.reason||ev.cancellation_reason||null; }
     st.receipts[c.id]=Object.assign({title:c.title},r&&typeof r==="object"?r:{}); delete st.conflicts[c.id]; st.cancel=null;
     if(S.dashHome) S.dashHome.loadedAt=0;  // the home block must not keep showing a cancelled event
     render();
-  }).catch(e=>{ c.busy=false; c.error=((e&&e.message)||"Could not cancel.")+" Nothing changed."; render(); });
+  }).catch(e=>{
+    c.busy=false;
+    if(e&&(e.status===409||e.code==="PT409")){ c.error="Someone changed this event after you opened it. The schedule has been reloaded — look again before cancelling."; loadSchedule(true); render(); return; }
+    c.error=((e&&e.message)||"Could not cancel.")+" Nothing changed."; render(); });
 }
 function schedWhen(iso,tz,opts){ try{ return new Intl.DateTimeFormat("en-US",Object.assign({timeZone:tz||undefined},opts)).format(new Date(iso)); }catch(e){ return String(iso||""); } }
 function schedLocalDate(iso,tz){ try{ const p=new Intl.DateTimeFormat("en-CA",{timeZone:tz||undefined,year:"numeric",month:"2-digit",day:"2-digit"}).formatToParts(new Date(iso)); const g=k=>(p.find(x=>x.type===k)||{}).value; return g("year")+"-"+g("month")+"-"+g("day"); }catch(e){ return String(iso||"").slice(0,10); } }
@@ -18042,7 +18049,7 @@ document.querySelectorAll('.sig-ai-coach').forEach(sigAiCoachWire);
             :"Approved — no recipient on this one, nothing to send.");return;}
           return window.SporveAPI.fn("lifecycle-approve",{id:msgId})
             .then(r=>toast(r&&r.queuedEmail
-              ?"Approved — emailing this family on the next delivery tick."
+              ?(r.kick==="done"&&Number(r.delivered)>0?"Approved and emailed to the family.":"Approved — emailing this family within the minute.")
               :"Approved and sent to the family."))
             .catch(e=>toast(/bounced/.test(e&&e.message||"")
               ?"Approved, but this guardian's email bounced — fix the address on their record."

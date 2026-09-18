@@ -22,7 +22,7 @@ test('the screen reads event, the org\'s teams and the server\'s conflicts — t
 });
 test('cancel is two taps and draft-first: tap one names the event, tap two calls cancel_event with notify=true; the receipt counts drafted notices', () => {
   assert.match(host, /data-evcancel=/); assert.match(host, /data-evcancel-go=/);
-  assert.match(host, /rpc\("cancel_event",\{p_event:c\.id,p_reason:c\.reason\|\|"",p_notify:true\}\)/);
+  assert.match(host, /const args=\{p_event:c\.id,p_reason:c\.reason\|\|"",p_notify:true\};/); assert.match(host, /rpc\("cancel_event",args\)/);   // notify stays true; the loaded sequence rides along (audit P2-8)
   assert.match(host, /family notice\$\{[^}]*\} drafted for your approval in Needs you\./);
   assert.ok(!/outbound_messages"\s*,\s*[^)]*method:\s*"POST"/.test(host.slice(host.indexOf('function cancelEventGo'), host.indexOf('function cancelEventGo') + 2000)), 'the screen never writes a message');
 });

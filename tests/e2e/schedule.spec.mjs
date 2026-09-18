@@ -143,3 +143,16 @@ test('backend down: the schedule says so and offers a retry; nothing is shown in
   down = false; await s.page.locator('[data-schretry]').click(); await s.page.waitForFunction(() => S.sched && S.sched.events && S.sched.events.length === 1, null, { timeout: 8000 });
   assert.match(await s.text(), /Tuesday practice/); await s.ctx.close();
 });
+
+test('a stale screen cannot cancel over someone else\'s change: 409, nothing changes, the schedule reloads (audit P2-8)', async () => {
+  const db = orgDb(); db.event.push(ev('e1', 'Tuesday practice', Date.now() + 5 * H));
+  const s = await open(db);
+  db.event[0].sequence = 1; db.event[0].title = 'Tuesday practice (moved)';   // another editor, after this screen loaded sequence 0
+  await s.page.locator('[data-evcancel="e1"]').click(); await s.page.locator('[data-evcancel-go]').click();
+  await s.page.waitForFunction(() => S.sched.cancel && S.sched.cancel.error, null, { timeout: 5000 });
+  assert.match(await s.text(), /Someone changed this event after you opened it/); assert.equal(db.event[0].status, 'scheduled');
+  assert.ok(!s.log.some((l) => l.kind === 'cancel_event'), 'no cancellation was recorded');
+  await s.page.waitForFunction(() => S.sched.events && S.sched.events[0] && S.sched.events[0].sequence === 1, null, { timeout: 8000 });
+  await s.page.locator('[data-evcancel-go]').click(); await s.page.waitForFunction(() => S.sched && !S.sched.cancel && S.sched.receipts.e1, null, { timeout: 5000 });
+  assert.equal(db.event[0].status, 'cancelled'); await s.ctx.close();
+});
