@@ -262,12 +262,21 @@ async function runAI(args: RunAIArgs) {
   };
 
   // Exactly one audit row per call. Return the persisted row as proof.
+  // Defensive: actor_id has a FK to profiles(id). If the caller's actor has no
+  // profile row yet (e.g. fresh signup before profile creation), null it out
+  // so the audit row still persists instead of failing the FK silently.
+  if (row.actor_id) {
+    const { data: prof } = await admin.from("profiles").select("id")
+      .eq("id", row.actor_id).single();
+    if (!prof) row.actor_id = null;
+  }
   const { data: audit, error: auditErr } = await admin
     .from("ai_audit_log").insert(row).select().single();
+  const auditErrorMsg = auditErr ? auditErr.message : null;
   if (auditErr) console.error("ai_audit_log insert failed:", auditErr.message);
 
   if (!ok) {
-    return { error: errMsg, model, task: args.task, latency_ms, audit: audit ?? null };
+    return { error: errMsg, model, task: args.task, latency_ms, audit: audit ?? null, audit_error: auditErrorMsg };
   }
   return {
     text,
@@ -283,6 +292,7 @@ async function runAI(args: RunAIArgs) {
     est_cost_usd,
     latency_ms,
     audit: audit ?? null,
+    audit_error: auditErrorMsg,
   };
 }
 
