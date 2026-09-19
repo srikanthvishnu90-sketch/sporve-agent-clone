@@ -25,7 +25,7 @@
 <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16.png">
 <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
 <link rel="manifest" href="/site.webmanifest">
-<meta name="sporve-build" content="8b788d7f029c6f83">
+<meta name="sporve-build" content="065ba5fa5bf20c4b">
 </head>
 <body>
 <noscript><h1>Sporv — Every sport. One app.</h1><p>Sporv connects families and athletes with coaches, trainers, camps, and teams across more than 20 sports. Please enable JavaScript to use the app.</p></noscript>
@@ -19971,6 +19971,7 @@ function askCoach(q){
     if(att){
       S.chatThinking=false;
       S.chat=[...S.chat,{role:"coach",text:att.reply,proposal:att.proposal}];
+      chatArchive(); /* F2 persistence (2026-09-19) */
       if(S.aiOpen===false) S.aiUnread=(S.aiUnread||0)+1;
       render(); return;
     }
@@ -20039,6 +20040,7 @@ function askCoach(q){
         ?{document_id:String(docRead.result.document_id),title:String(docRead.result.title||"Document"),format:String(docRead.result.format||"handout")}:null;
       S.chatThinking=false;
       S.chat=[...S.chat,{role:"coach",text:reply,tools,proposal,facilities,leads,leadsSaved,document}];
+      chatArchive(); /* F2 persistence (2026-09-19): archive the AI response, not just the user turn */
       /* Reply landed while the dock was closed → badge the FAB so the coach
          sees there's something waiting; cleared when they reopen. */
       if(S.aiOpen===false) S.aiUnread=(S.aiUnread||0)+1;

@@ -19923,6 +19923,7 @@ function askCoach(q){
     if(att){
       S.chatThinking=false;
       S.chat=[...S.chat,{role:"coach",text:att.reply,proposal:att.proposal}];
+      chatArchive(); /* F2 persistence (2026-09-19) */
       if(S.aiOpen===false) S.aiUnread=(S.aiUnread||0)+1;
       render(); return;
     }
@@ -19991,6 +19992,7 @@ function askCoach(q){
         ?{document_id:String(docRead.result.document_id),title:String(docRead.result.title||"Document"),format:String(docRead.result.format||"handout")}:null;
       S.chatThinking=false;
       S.chat=[...S.chat,{role:"coach",text:reply,tools,proposal,facilities,leads,leadsSaved,document}];
+      chatArchive(); /* F2 persistence (2026-09-19): archive the AI response, not just the user turn */
       /* Reply landed while the dock was closed → badge the FAB so the coach
          sees there's something waiting; cleared when they reopen. */
       if(S.aiOpen===false) S.aiUnread=(S.aiUnread||0)+1;
