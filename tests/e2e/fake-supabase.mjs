@@ -5,7 +5,7 @@
 // the product actually persisted. Nothing here talks to the network.
 export const UID = 'a0000000-0000-4000-8000-00000000000a';
 export const PID = '0a000000-0000-4000-8000-000000000001';
-export const SUPABASE = 'https://tseszaprvtvqrkfpditu.supabase.co';
+export const SUPABASE = 'https://hzbhjkcqwawgqtspueuw.supabase.co';
 
 export function freshDb({ onboarded = false, name = 'Your organization' } = {}) {
   return {

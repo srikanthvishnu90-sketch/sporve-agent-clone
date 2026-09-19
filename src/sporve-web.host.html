@@ -102,11 +102,11 @@
   /* ── TYPE SCALE: eight steps, no ninth. Carried verbatim from the marketing
      landing (sporve-landing/tokens.css) so the two web surfaces share one
      scale. Every text element on this page maps to one of these. */
-  --text-xs:10.5px;                    /* eyebrows, stat labels, chips (micro — kept ≥10) */
-  --text-sm:10px;                      /* meta lines, captions, buttons  (−2, owner 08-23) */
-  --text-base:12.5px;                  /* body paragraphs                (−2, owner 08-23) */
-  --text-md:13.5px;                    /* lead paragraph only            (−2, owner 08-23) */
-  --text-lg:clamp(13px,1.3vw,15px);    /* card titles, coach name        (−2 more, owner 08-23) */
+  --text-xs:14px;                      /* eyebrows, stat labels, chips (floor 14, owner 2026-09-19) */
+  --text-sm:15px;                      /* meta lines, captions, buttons (floor 15, owner 2026-09-19) */
+  --text-base:16px;                    /* body paragraphs (Stripe/Palantir body 16, owner 2026-09-19) */
+  --text-md:17px;                      /* lead paragraph (body+, owner 2026-09-19) */
+  --text-lg:clamp(17px,1.6vw,20px);    /* card titles, coach name (owner 2026-09-19) */
   --text-xl:clamp(21px,1.9vw,27px);    /* stat numerals — NOT a header, unchanged */
   --text-2xl:clamp(20px,2.2vw,28px);   /* section headers (h2)           (−2 more, owner 08-23) */
   --text-hero:clamp(28px,3.6vw,50px);  /* h1 only                        (−2 more, owner 08-23) */
@@ -313,7 +313,7 @@ h4{font-size:var(--text-base)}
   --text-hero:clamp(32px,3.6vw,52px);  /* h1 hero               (−2 more, owner 08-23) */
   --text-h1:clamp(20px,2.4vw,24px);    /* in-app page titles    (−2 more, owner 08-23) */
   --text-2xl:clamp(20px,2vw,24px);     /* h2 section headers — lifted so a section h2 is no longer smaller than --text-xl stat numerals (2xl<xl hierarchy fix, owner 2026-09-01) */
-  --text-lg:clamp(12px,1.1vw,13px);    /* h3 card/module titles (−2 more, owner 08-23) */
+  --text-lg:clamp(15px,1.4vw,17px);    /* h3 card/module titles (floor 15, owner 2026-09-19) */
 }
 /* Coach DASHBOARD only. Owner 2026-08-25: "the text should be larger similar to
    stripe … this includes the dashboard to the left in the coaching bar." The
@@ -509,7 +509,7 @@ img{max-width:100%;display:block}
    affordance. padding 7px 12px + radius 8px per the prototype .nl. */
 .tnav-row .tnav{
   display:inline-flex;align-items:center;gap:7px;padding:7px 12px;
-  border-radius:8px;font-family:var(--sans);font-size:13px;font-weight:500;
+  border-radius:8px;font-family:var(--sans);font-size:14px;font-weight:500;
   letter-spacing:.01em;color:#FFFFFF;background:none;transition:background .15s;
 }   /* centre tabs 13px (owner 2026-08-25 SECOND ruling: "back to the previous size" — the pasted spec's 16px lasted one deploy; 13px is the canon for EVERY bar) */
 /* Hover/menu-open = a faint white wash (rgba white .08), text stays white — the
@@ -656,7 +656,7 @@ img{max-width:100%;display:block}
    global .avatar (auth sheet, fallbacks) keeps its slate fill. #1C222B is the
    existing topbar/mega-menu border literal (≈ the prototype's #1C1C20) — no new
    hex; the ring is a faint white inset via box-shadow. */
-.acct .avatar{width:32px;height:32px;font-size:12.5px;
+.acct .avatar{width:32px;height:32px;font-size:14px;
   background:#1C222B;color:#FFFFFF;box-shadow:inset 0 0 0 1px rgba(255,255,255,.14)}
 .acct:hover .avatar{box-shadow:inset 0 0 0 1px rgba(255,255,255,.30)}
 .avatar{
@@ -697,14 +697,14 @@ img{max-width:100%;display:block}
    topbar is always #09090B (no scroll flip to a light ground), so white text
    never lands on white. Scoped to .navcenter/.topnav so the product-page
    .tnav-row is untouched. Active .on keeps its slate-tint chip (:not(.on)). */
-.navcenter .tnav{font-size:13px}   /* 13px — owner 2026-08-25 second ruling (dead selector, kept in sync) */
+.navcenter .tnav{font-size:14px}   /* 13px — owner 2026-08-25 second ruling (dead selector, kept in sync) */
 .navcenter .tnav:not(.on){color:#FFFFFF}
 /* Right-cluster nav links (Become a coach / Log in) match the nav tabs exactly:
    --sans (Inter), 14.5px (--text-base), medium weight, pure white (owner 2026-08-23,
    nudged down from 16px — "top bar too large, meet in the middle"). The
    base .navlink hover (#8FA3BC slate) already applies. Coach-portal .navlink rows
    are a different container and keep the base --nav-face. */
-.topnav .navlink{font-family:var(--sans);font-size:13px;font-weight:500;
+.topnav .navlink{font-family:var(--sans);font-size:14px;font-weight:500;
   padding:7px 12px;border-radius:8px;height:auto;transition:background .15s,color .15s}   /* 13px on every bar (owner 2026-08-25 second ruling) */
 /* Right-cluster links share the prototype .nl pill wash on hover (white text held). */
 .topnav .navlink:hover{background:rgba(255,255,255,.08);color:#FFFFFF}
@@ -718,7 +718,11 @@ img{max-width:100%;display:block}
   .nav-left .tnav-row .tnav:not(.tnav-cta):not([data-prodtoggle]){display:none}
   .nav-left .tnav-row{gap:0}
   .navlogin,.getstarted,.acct-name{display:none}  /* auth cluster → sheet */
-  .topbar.guest .acct{display:flex}      /* hamburger returns for guests */
+  /* `.topbar.guest .acct{display:none}` (0,3,0) out-specifies a bare
+     `.topbar .acct` (0,2,0), so the logged-out hamburger stayed hidden on
+     mobile. Re-state the guest variant at equal-or-higher specificity. */
+  .topbar.guest .acct,.topbar .acct{display:flex}  /* hamburger shows on mobile, guest or not —
+                                   the account sheet owns auth there (owner 2026-09-19) */
   .acct,.acct:has(.acct-name){width:44px;padding:0;gap:0}
   .acct .burger{display:grid}
   .acct .avatar{display:none}
@@ -880,6 +884,13 @@ img{max-width:100%;display:block}
   font-size:var(--text-hero-lp);line-height:1;letter-spacing:-.01em;
   color:var(--on-dark);max-width:none;margin:0}
 #app .hero-ai span{color:var(--slate)}
+/* Mobile hero (owner 2026-09-19): at 390px the condensed uppercase headline
+   clipped on the right under the panel's overflow:hidden. Shrink the clamp's
+   floor on narrow screens and let the two phrases balance across lines. */
+@media(max-width:560px){
+  :root{--text-hero-lp:clamp(27px,8.5vw,40px)}
+  #app .hero-ai{text-wrap:balance;overflow-wrap:break-word}
+}
 /* Centred hero (owner 2026-08-23, Devin reference): primary text centred, the
    search field sitting centred below with generous air — the panel's own scrim
    is re-graded to a centre pool (below) so the darkness follows the type. */
@@ -1026,7 +1037,7 @@ img{max-width:100%;display:block}
    would trip the smoke type-scale gate, so they snap to the nearest steps). */
 .promo-tag{font-family:var(--nav-face);font-weight:700;text-transform:uppercase;
   letter-spacing:.14em;font-size:var(--text-xs);color:#FFFFFF}
-.promo-txt{font-family:var(--nav-face);color:#AEB8C4;font-size:13px}
+.promo-txt{font-family:var(--nav-face);color:#AEB8C4;font-size:14px}
 .promo-link{font-family:var(--nav-face);margin-left:auto;color:var(--accent-on-dark);
   font-weight:700;font-size:var(--text-sm)}
 /* §3.5 — the account sheet (the mobile hamburger target) inherits the nav face
@@ -1078,7 +1089,7 @@ img{max-width:100%;display:block}
 /* The micro-label. The spec calls this Sporv's signature type treatment and
    the thing that makes the flow read as Sporv, so it is one class reused by
    every eyebrow and field label rather than re-declared per component. */
-.cw-micro{font-size:9px;font-weight:900;text-transform:uppercase;
+.cw-micro{font-size:14px;font-weight:900;text-transform:uppercase;
   letter-spacing:.3em;color:var(--cw-muted);display:block}
 
 /* ── shell: fixed 72px header, fixed 80px footer, scrolling middle ───────── */
@@ -1119,7 +1130,7 @@ img{max-width:100%;display:block}
   background:var(--slate-tint);padding:15px}
 .cw-card[aria-pressed="true"] svg{color:var(--cw-blue)}
 .cw-card-t{font-size:15px;font-weight:700}
-.cw-card-m{font-size:12px;font-weight:600;color:var(--cw-muted)}
+.cw-card-m{font-size:14px;font-weight:600;color:var(--cw-muted)}
 /* Multi-select only: a filled check top-right. */
 .cw-card.multi[aria-pressed="true"]::after{content:"";position:absolute;top:8px;right:8px;
   width:16px;height:16px;border-radius:999px;background:var(--cw-blue)}
@@ -1308,7 +1319,7 @@ img{max-width:100%;display:block}
 .tb-seg{display:inline-flex;align-self:flex-start;align-items:center;height:40px;flex:0 0 auto;
   border:1px solid var(--rule);border-radius:var(--r-ctl);overflow:hidden;background:var(--paper)}
 .tb-segbtn{height:100%;padding:0 16px;border:0;background:none;cursor:pointer;
-  font-family:var(--sans);font-size:13px;font-weight:600;color:var(--ink);
+  font-family:var(--sans);font-size:14px;font-weight:600;color:var(--ink);
   white-space:nowrap;transition:background .14s,color .14s}
 .tb-segbtn + .tb-segbtn{border-left:1px solid var(--rule)}
 .tb-segbtn:hover:not(.on){background:var(--raise2)}
@@ -1319,8 +1330,8 @@ img{max-width:100%;display:block}
 .tb-bar{display:flex;align-items:center;gap:16px;flex-wrap:wrap}
 .tb-drops{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
 .tb-right{display:flex;align-items:center;gap:16px;margin-left:auto}
-.tb-count{font-family:var(--sans);font-size:13px;color:var(--muted);font-variant-numeric:tabular-nums}
-.tb-sort select{font-family:var(--sans);font-size:13px;color:var(--ink);
+.tb-count{font-family:var(--sans);font-size:14px;color:var(--muted);font-variant-numeric:tabular-nums}
+.tb-sort select{font-family:var(--sans);font-size:14px;color:var(--ink);
   background:none;border:0;padding:2px 0;cursor:pointer}
 /* dropdown trigger — a confident, tappable filter pill (owner: "make it premium,
    not a ghosted strip"). White fill + crisp slate border + a subtle token shadow
@@ -1329,7 +1340,7 @@ img{max-width:100%;display:block}
 .tbd{display:inline-flex;align-items:center;gap:9px;height:40px;padding:0 16px;
   border:1px solid var(--rule-strong);border-radius:999px;background:var(--paper);
   box-shadow:var(--shadow);
-  font-family:var(--sans);font-size:13px;font-weight:600;color:var(--ink);cursor:pointer;
+  font-family:var(--sans);font-size:14px;font-weight:600;color:var(--ink);cursor:pointer;
   white-space:nowrap;transition:border-color .14s,background .14s,box-shadow .14s,color .14s}
 .tbd:hover{border-color:var(--ink-2);box-shadow:var(--shadow-lift)}
 .tbd:focus-visible{outline:none;border-color:var(--slate);box-shadow:0 0 0 3px var(--slate-ring)}
@@ -1358,7 +1369,7 @@ img{max-width:100%;display:block}
 .tbd-tw{width:18px;height:18px;flex:0 0 auto;display:block}
 .tbd-lab-tw{width:16px;height:16px;flex:0 0 auto;margin-right:6px;vertical-align:-3px}
 .tbd-ot{flex:1 1 auto;min-width:0}
-.tbd-n{color:var(--faint);font-size:13px;font-weight:600}
+.tbd-n{color:var(--faint);font-size:14px;font-weight:600}
 .tbd-foot{display:flex;align-items:center;justify-content:space-between;gap:12px;
   margin-top:10px;padding-top:10px;border-top:1px solid var(--rule)}
 /* price popover */
@@ -1379,27 +1390,27 @@ img{max-width:100%;display:block}
 .tbd-range:focus-visible::-webkit-slider-thumb{outline:2px solid var(--slate);outline-offset:2px}
 .tbd-range:focus-visible::-moz-range-thumb{outline:2px solid var(--slate);outline-offset:2px}
 .tbd-prow{display:flex;align-items:center;justify-content:space-between;gap:12px;margin:12px 0}
-.tbd-pval{font-size:13px;font-weight:700;color:var(--ink);font-variant-numeric:tabular-nums}
+.tbd-pval{font-size:14px;font-weight:700;color:var(--ink);font-variant-numeric:tabular-nums}
 /* All-filters overflow popover — grouped sections of the existing .tbd-opt rows */
 .tbd-pop-all{width:min(300px,88vw)}
 .tbd-sect{display:flex;flex-direction:column;gap:2px}
 .tbd-sect + .tbd-sect{margin-top:8px;padding-top:8px;border-top:1px solid var(--rule)}
-.tbd-sech{font-family:var(--sans);font-size:11px;font-weight:700;letter-spacing:.05em;
+.tbd-sech{font-family:var(--sans);font-size:14px;font-weight:700;letter-spacing:.05em;
   text-transform:uppercase;color:var(--faint);padding:2px 10px 4px}
-.tbd-sub{display:block;font-size:12px;font-weight:500;color:var(--faint);margin-top:1px}
+.tbd-sub{display:block;font-size:14px;font-weight:500;color:var(--faint);margin-top:1px}
 /* row 3 — active-filter chips */
 .tb-chips2{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
 .tb-chip2{display:inline-flex;align-items:center;gap:6px;height:30px;padding:0 6px 0 12px;
   border:1px solid var(--rule-strong);border-radius:999px;background:var(--paper);
-  font-family:var(--sans);font-size:13px;font-weight:600;color:var(--ink-2);cursor:pointer}
+  font-family:var(--sans);font-size:14px;font-weight:600;color:var(--ink-2);cursor:pointer}
 .tb-chip2:hover{border-color:var(--ink-2)}
 .tb-chipx{display:grid;place-items:center;width:18px;height:18px;border-radius:999px;color:var(--faint)}
 .tb-chip2:hover .tb-chipx{background:var(--raise2);color:var(--ink)}
 .tb-chipx svg{width:12px;height:12px}
-.tb-chipclear{font-size:13px}
+.tb-chipclear{font-size:14px}
 @media(max-width:560px){
   .tb{gap:12px;margin-bottom:18px}
-  .tb-seg{height:36px}.tb-segbtn{padding:0 12px;font-size:13px}
+  .tb-seg{height:36px}.tb-segbtn{padding:0 12px;font-size:14px}
   .tb-right{margin-left:0}
   .tbd{height:38px;padding:0 12px}
   /* Mobile: a popover anchored to a middle/right trigger would run off-screen at
@@ -1420,34 +1431,34 @@ img{max-width:100%;display:block}
 /* settings (coachdark) — mock adapted to house tokens */
 .stshell{display:grid;grid-template-columns:200px 1fr;gap:22px;margin-top:8px}
 .strail{display:flex;flex-direction:column;gap:2px;position:sticky;top:80px;align-self:start}
-.strail .stsec{font-size:11px;font-weight:600;letter-spacing:.04em;text-transform:uppercase;color:var(--faint);padding:12px 10px 5px}
+.strail .stsec{font-size:14px;font-weight:600;letter-spacing:.04em;text-transform:uppercase;color:var(--faint);padding:12px 10px 5px}
 .strail button{display:block;text-align:left;height:32px;line-height:32px;padding:0 10px;border-radius:6px;color:var(--muted);font-size:var(--text-sm);font-weight:450}
 .strail button:hover{background:var(--raise);color:var(--ink)}
 .strail button.on{background:var(--raise);color:var(--ink);font-weight:600}
-.strail .stfoot{margin-top:14px;border-top:1px solid var(--line);padding:10px;font-size:12px;color:var(--faint)}
+.strail .stfoot{margin-top:14px;border-top:1px solid var(--line);padding:10px;font-size:14px;color:var(--faint)}
 .sthead h2{margin:0 0 3px}.sthead p{margin:0 0 10px;color:var(--muted);font-size:var(--text-sm);max-width:66ch}
 .stcard{background:var(--panel,var(--raise));border:1px solid var(--line);border-radius:10px;overflow:hidden}
 .stcard+.stcard{margin-top:10px}
 .strow{display:flex;align-items:center;gap:16px;padding:12px 14px;border-bottom:1px solid var(--line)}
 .strow:last-child{border-bottom:0}.strow.sttop{align-items:flex-start}
 .stlab{flex:1;min-width:0}.stlab b{display:block;font-weight:600;font-size:var(--text-sm)}
-.stlab small{display:block;color:var(--faint);font-size:12.5px;margin-top:2px;line-height:1.45}
+.stlab small{display:block;color:var(--faint);font-size:14px;margin-top:2px;line-height:1.45}
 .stctl{flex:none;display:flex;align-items:center;gap:8px;flex-wrap:wrap;max-width:60%}
-.stghead{display:flex;align-items:baseline;gap:10px;padding:9px 14px;background:var(--raise);border-bottom:1px solid var(--line);font-size:12.5px}
-.stghead span{font-weight:700}.stghead em{font-style:normal;color:var(--faint);font-size:12px;margin-left:auto}
+.stghead{display:flex;align-items:baseline;gap:10px;padding:9px 14px;background:var(--raise);border-bottom:1px solid var(--line);font-size:14px}
+.stghead span{font-weight:700}.stghead em{font-style:normal;color:var(--faint);font-size:14px;margin-left:auto}
 .stseg{display:inline-flex;border:1px solid var(--line);border-radius:7px;overflow:hidden}
-.stseg button{font-size:13px;font-weight:500;height:30px;padding:0 12px;color:var(--faint);border-right:1px solid var(--line)}
+.stseg button{font-size:14px;font-weight:500;height:30px;padding:0 12px;color:var(--faint);border-right:1px solid var(--line)}
 .stseg button:last-child{border-right:0}
 .stseg button.on{background:var(--ink);color:var(--paper)}
 .stseg button.on[data-v="auto"]{background:var(--accent-on-dark,#94A3B8);color:#0B0D0F}
 .stchips{display:flex;gap:6px;flex-wrap:wrap;align-items:center}
-.stchip{height:28px;padding:0 11px;border:1px solid var(--line);border-radius:999px;font-size:12.5px;color:var(--muted);display:inline-flex;align-items:center;gap:6px}
+.stchip{height:28px;padding:0 11px;border:1px solid var(--line);border-radius:999px;font-size:14px;color:var(--muted);display:inline-flex;align-items:center;gap:6px}
 .stchip.on{background:var(--ink);color:var(--paper);border-color:var(--ink);font-weight:500}
 .stdays{display:flex;gap:5px}
-.stdays button{width:38px;height:30px;border:1px solid var(--line);border-radius:7px;font-size:12.5px;color:var(--faint)}
+.stdays button{width:38px;height:30px;border:1px solid var(--line);border-radius:7px;font-size:14px;color:var(--faint)}
 .stdays button.on{background:var(--ink);color:var(--paper);border-color:var(--ink);font-weight:600}
 .stin{background:transparent;border:1px solid var(--line);border-radius:7px;padding:0 10px;font-size:var(--text-sm);height:32px;color:var(--ink)}
-.stro{color:var(--faint);font-size:var(--text-sm)}.stmut{color:var(--faint);font-size:12.5px}
+.stro{color:var(--faint);font-size:var(--text-sm)}.stmut{color:var(--faint);font-size:14px}
 .stradios{display:flex;flex-direction:column;gap:8px}
 .stradios label{display:flex;align-items:center;gap:8px;font-size:var(--text-sm);cursor:pointer}
 .stnote{border-left:2px solid var(--accent-on-dark,#94A3B8);background:var(--raise);border-radius:0 7px 7px 0;padding:11px 14px;color:var(--muted);font-size:var(--text-sm);margin-top:12px}
@@ -1457,7 +1468,7 @@ img{max-width:100%;display:block}
    fills differ. Log in = near-black quiet; Get started = steel. Literals on
    the dark bar per colour law; equal reserved width kills layout shift. */
 .cta-pair{margin-left:auto;display:inline-flex;gap:10px;justify-content:flex-end;min-width:216px}
-.tnav-row .cta{height:38px;padding:0 16px;border-radius:8px;border:1px solid transparent;
+.tnav-row .cta{height:34px;padding:0 14px;border-radius:8px;border:1px solid transparent;
   display:inline-flex;align-items:center;font-family:var(--nav-face);font-size:14px;
   font-weight:600;font-style:normal;text-transform:none;letter-spacing:0;cursor:pointer;
   transition:background .16s,border-color .16s,color .16s}
@@ -1675,7 +1686,7 @@ button.tnav.tnav-cta:hover{background:#FFFFFF;color:#0B0D0F;border-color:#FFFFFF
 .shot-ph{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;
   gap:9px;background:var(--raise2)}
 .shot-ph-init{font-family:var(--display);font-size:28px;font-weight:700;letter-spacing:.02em;line-height:1}
-.shot-ph-sport{display:inline-flex;align-items:center;gap:6px;font-size:13px;font-weight:600;color:var(--muted)}
+.shot-ph-sport{display:inline-flex;align-items:center;gap:6px;font-size:14px;font-weight:600;color:var(--muted)}
 .shot-ph-dot{width:8px;height:8px;border-radius:999px;flex:0 0 auto}
 
 /* ── Bookings list cards (owner 2026-08-23) ──────────────────────────────────
@@ -1891,7 +1902,7 @@ button.tnav.tnav-cta:hover{background:#FFFFFF;color:#0B0D0F;border-color:#FFFFFF
 .bk-facts{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin:22px 0 4px}
 .bk-fact{border:1px solid var(--rule);border-radius:var(--r-m);background:var(--paper);padding:12px 13px}
 .bk-fact-ic{color:var(--muted);margin-bottom:10px;display:block}
-.bk-fact-l{font-size:10px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--faint)}
+.bk-fact-l{font-size:14px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--faint)}
 .bk-fact-v{font-family:var(--sans);font-size:var(--text-sm);font-weight:600;margin-top:4px;font-variant-numeric:tabular-nums}
 .bk-sec{padding:22px 0;border-bottom:1px solid var(--rule)}
 .bk-sec:last-of-type{border-bottom:none}
@@ -1904,7 +1915,7 @@ button.tnav.tnav-cta:hover{background:#FFFFFF;color:#0B0D0F;border-color:#FFFFFF
 .bk-bgcheck b{display:block;margin-bottom:3px}
 .bk-bgcheck p{color:var(--muted);font-size:var(--text-sm)}
 .bk-sessions{width:100%;border-collapse:collapse;font-size:var(--text-sm)}
-.bk-sessions th{text-align:left;font-size:10px;font-weight:700;letter-spacing:.11em;text-transform:uppercase;color:var(--faint);padding:0 12px 11px 0;border-bottom:1px solid var(--rule)}
+.bk-sessions th{text-align:left;font-size:14px;font-weight:700;letter-spacing:.11em;text-transform:uppercase;color:var(--faint);padding:0 12px 11px 0;border-bottom:1px solid var(--rule)}
 .bk-sessions td{padding:13px 12px 13px 0;border-bottom:1px solid var(--rule);color:var(--ink-2)}
 .bk-sessions tr:last-child td{border-bottom:none}
 .bk-sessions .t{font-family:var(--mono);font-variant-numeric:tabular-nums;color:var(--muted);font-size:var(--text-sm)}
@@ -1929,7 +1940,7 @@ button.tnav.tnav-cta:hover{background:#FFFFFF;color:#0B0D0F;border-color:#FFFFFF
 .bk-meter-top .v{font-family:var(--mono);font-weight:600;color:var(--ink);font-variant-numeric:tabular-nums}
 .bk-meter-bar{height:6px;border-radius:3px;background:var(--rule);overflow:hidden}
 .bk-meter-bar span{display:block;height:100%;background:var(--accent);border-radius:3px}
-.bk-sel-l{font-size:10px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--faint);margin:16px 0 7px}
+.bk-sel-l{font-size:14px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--faint);margin:16px 0 7px}
 .bk-select{width:100%;min-height:40px;padding:9px 12px;border:1px solid var(--rule-strong);border-radius:var(--r-m);font:inherit;font-size:var(--text-sm);background:var(--paper);color:var(--ink)}
 .bk-total{display:flex;justify-content:space-between;align-items:baseline;margin:16px 0 2px;padding-top:14px;border-top:1px solid var(--rule);font-weight:600;font-size:var(--text-sm)}
 .bk-total .v{font-family:var(--mono);font-variant-numeric:tabular-nums}
@@ -1976,7 +1987,7 @@ button.tnav.tnav-cta:hover{background:#FFFFFF;color:#0B0D0F;border-color:#FFFFFF
 .kcard:hover{border-color:var(--rule-strong);transform:translateY(-2px)}
 .kcard-img{width:100%;height:172px;object-fit:cover;display:block;flex:none}
 .kcard-body{padding:17px 18px 19px;display:flex;flex-direction:column;gap:7px;flex:1}
-.kcard-eyebrow{font-size:9px;font-weight:900;text-transform:uppercase;
+.kcard-eyebrow{font-size:14px;font-weight:900;text-transform:uppercase;
   letter-spacing:.3em;color:var(--muted)}
 .kcard-h{font-family:var(--display);font-size:var(--text-lg);letter-spacing:-.01em}
 .kcard-p{color:var(--muted);font-size:var(--text-sm);flex:1}
@@ -2088,7 +2099,7 @@ button.tnav.tnav-cta:hover{background:#FFFFFF;color:#0B0D0F;border-color:#FFFFFF
 
 /* ── Part B: context chip, quick actions, collapsed strip ──────────────── */
 .aidock-ctx{display:flex;align-items:center;gap:8px;margin-bottom:2px}
-.aidock-ctxchip{font-family:var(--sans);font-size:11px;font-weight:700;
+.aidock-ctxchip{font-family:var(--sans);font-size:14px;font-weight:700;
   letter-spacing:.08em;text-transform:uppercase;color:#9AA6B2;
   background:rgba(154,166,178,.12);border-radius:999px;padding:3px 9px}
 .aidock-ctx .aidock-ic{margin-left:auto;width:28px;height:28px}
@@ -2115,7 +2126,7 @@ button.tnav.tnav-cta:hover{background:#FFFFFF;color:#0B0D0F;border-color:#FFFFFF
 .aidock-strip:hover{border-color:#414B57}
 .aidock-striptext{font-family:var(--sans);font-size:var(--text-sm);color:#8A93A0;
   overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.aidock-kbd{margin-left:auto;font-family:var(--mono);font-size:11px;color:#8A93A0;
+.aidock-kbd{margin-left:auto;font-family:var(--mono);font-size:14px;color:#8A93A0;
   border:1px solid #2A313B;border-radius:6px;padding:2px 6px;flex:none}
 /* chips stay on mobile too (spec: one line, horizontally scrollable) */
 
@@ -2187,7 +2198,7 @@ button.tnav.tnav-cta:hover{background:#FFFFFF;color:#0B0D0F;border-color:#FFFFFF
    scenery. Slate, which §3 freezes as chrome, says exactly that. */
 /* The DEMO DATA badge: mono, slate outline pill, sitting WITH the header
    rather than under it — the brief is explicit that this is not a footnote. */
-.demodata{font-family:var(--mono);font-size:10.5px;font-weight:700;
+.demodata{font-family:var(--mono);font-size:14px;font-weight:700;
   letter-spacing:.08em;text-transform:uppercase;padding:5px 9px;
   border-radius:var(--r-pill);color:#475569;background:transparent;
   border:1px solid rgba(71,85,105,.38);white-space:nowrap;align-self:center}
@@ -2201,7 +2212,7 @@ button.tnav.tnav-cta:hover{background:#FFFFFF;color:#0B0D0F;border-color:#FFFFFF
 /* The corner watermark chip, per the brief: top-left, always rendered, never
    hover-only. position:absolute against .shot, which is already relative. */
 .demochip{position:absolute;top:10px;left:10px;z-index:2;
-  font-family:var(--mono);font-size:10.5px;font-weight:700;letter-spacing:.06em;
+  font-family:var(--mono);font-size:14px;font-weight:700;letter-spacing:.06em;
   text-transform:uppercase;padding:4px 8px;border-radius:var(--r-pill);
   background:rgba(255,255,255,.94);color:#334155;
   border:1px solid rgba(51,65,85,.22);pointer-events:none}
@@ -2306,9 +2317,9 @@ button.tnav.tnav-cta:hover{background:#FFFFFF;color:#0B0D0F;border-color:#FFFFFF
 /* pp-name is an <h3>; the id-level #app.reg-tabs h3 rule (1,1,1) forces Archivo
    700 and silently beats a bare .pp-name class — the documented dead-CSS trap.
    Scope these two display rules under #app.pricing-stage so the serif wins. */
-#app.pricing-stage .pp-name{font-family:var(--serif);font-size:var(--text-xl);color:var(--ink);font-weight:400;letter-spacing:0}
+#app.pricing-stage .pp-name{font-family:var(--sans);font-size:17px;color:var(--ink);font-weight:600;letter-spacing:-.01em;text-transform:none}
 .pp-price{display:flex;align-items:baseline;gap:6px;margin:20px 0 0}
-#app.pricing-stage .pp-price b{font-family:var(--serif);font-size:var(--text-2xl);font-weight:400;color:var(--ink);letter-spacing:-.01em;line-height:1;font-variant-numeric:tabular-nums}
+#app.pricing-stage .pp-price b{font-family:var(--sans);font-size:clamp(36px,3vw,44px);font-weight:700;color:var(--ink);letter-spacing:-.02em;line-height:1;font-variant-numeric:tabular-nums}
 .pp-price span{font-family:var(--sans);color:var(--muted);font-size:var(--text-sm);font-weight:500}
 .pp-desc{font-family:var(--sans);color:var(--muted);font-size:var(--text-base);line-height:1.5;margin:16px 0 0;min-height:42px}
 .pp-feats{list-style:none;display:flex;flex-direction:column;gap:13px;margin:26px 0 0;flex:1}
@@ -2316,7 +2327,7 @@ button.tnav.tnav-cta:hover{background:#FFFFFF;color:#0B0D0F;border-color:#FFFFFF
 .pp-feats li svg{flex:none;margin-top:2px;color:var(--ink)}
 .pp-cta{margin-top:34px}
 .pp-card.pp-rec .pp-cta.btn{width:100%;height:52px;border-radius:999px;background:var(--ink);color:#fff;
-  font-family:var(--sans);font-weight:500;font-size:var(--text-base);border:0}
+  font-family:var(--sans);font-weight:600;font-size:var(--text-base);border:0;text-transform:none;letter-spacing:-.008em}
 .pp-card.pp-rec .pp-cta.btn:hover{background:#000}
 .pp-cta-alt{width:100%;background:none;border:0;color:var(--ink);text-align:center;
   font-family:var(--sans);font-weight:500;font-size:var(--text-base);cursor:pointer;padding:8px 0}
@@ -2492,7 +2503,9 @@ button.tnav.tnav-cta:hover{background:#FFFFFF;color:#0B0D0F;border-color:#FFFFFF
 .aipill.aidock-col .aidock-scroll{flex:1 1 auto;min-height:0}
 .aipill.aidock-col .aidock-empty{margin:auto 0}
 .aipill.aidock-col .aidock-chips{max-width:100%;flex-wrap:wrap;flex:0 0 auto}   /* column: chips wrap, never clip off the rail edge (owner 2026-08-24) */
-.aipill.aidock-col .aidock-compose{flex:0 0 auto}
+.aipill.aidock-col .aidock-compose{flex:0 0 auto;margin:0 18px 14px;padding:10px 12px}
+/* Composer shares the scroll's 18px horizontal inset so output and chatbox sit
+   in the same column; slightly reduced padding keeps it compact in the dock. */
 /* The floating FAB is redundant while the panel is a permanent column. */
 html.coldock .aidock-fab{display:none}
 /* Owner 2026-08-18: an ACTIVE chatbox (a live conversation panel) sits dead
@@ -2730,7 +2743,7 @@ html.coldock .aidock-fab{display:none}
 .aimax-hist.up{top:auto;bottom:calc(100% + 8px);left:12px}
 /* AI-disclosure captions — slate on the dark panel (§3 literal). #9AA6B2 on
    the pill/max ground measures >7:1. */
-.aidock-aihint{color:#9AA6B2;font-size:12px;text-align:center;
+.aidock-aihint{color:#9AA6B2;font-size:14px;text-align:center;
   margin:2px 12px 10px;line-height:1.4}
 /* ── Reference chat shell (owner 2026-08-25): docked-column header, vertical
    reopen tab, and the fullscreen history rail. Dark literals follow the
@@ -2742,7 +2755,7 @@ html.coldock .aidock-fab{display:none}
 .aidock-head{display:flex;align-items:center;gap:6px;height:48px;flex:none;
   padding:0 10px 0 16px;border-bottom:1px solid #2A313B}
 .aidock-head-t{font-family:var(--display);text-transform:uppercase;font-weight:500;
-  font-size:13px;letter-spacing:.08em;color:#F5F7F9}
+  font-size:14px;letter-spacing:.08em;color:#F5F7F9}
 /* Grey glowing RECTANGULAR launcher (owner 2026-08-25). Bottom-right, above
    the reflow gutter. Grey only (colour law); the glow is an animated grey halo,
    not an accent. Fixed so it rides every scroll position of the dashboard. */
@@ -2750,7 +2763,7 @@ html.coldock .aidock-fab{display:none}
   display:inline-flex;align-items:center;gap:9px;padding:12px 18px;
   border:1px solid #3A434E;border-radius:12px;background:#20262E;color:#E7ECF2;
   font-family:var(--display);text-transform:uppercase;font-weight:500;
-  font-size:13px;letter-spacing:.06em;line-height:1;
+  font-size:14px;letter-spacing:.06em;line-height:1;
   box-shadow:0 4px 14px rgba(0,0,0,.42),0 0 0 0 rgba(148,163,184,.55);
   animation:aidock-glow 2.4s ease-in-out infinite;transition:transform .16s,background .16s,border-color .16s}
 .aidock .aidock-launch:hover{transform:translateY(-2px);background:#28303A;border-color:#55606D}
@@ -2772,12 +2785,12 @@ html.coldock .aidock-fab{display:none}
     width:260px;flex:none;overflow-y:auto;padding:12px;border-right:1px solid #2A313B}
 }
 .aimax-rail .aimax-railnew{display:flex;align-items:center;gap:8px;width:100%;text-align:left;
-  padding:9px 10px;border-radius:8px;border:1px solid #2A313B;font-size:13px;
+  padding:9px 10px;border-radius:8px;border:1px solid #2A313B;font-size:14px;
   color:#F5F7F9;margin-bottom:14px;flex:none}
 .aimax-rail .aimax-railnew:hover{background:#1B1F26}
-.aimax-railg{font-family:var(--display);text-transform:uppercase;font-size:10px;
+.aimax-railg{font-family:var(--display);text-transform:uppercase;font-size:14px;
   letter-spacing:.14em;color:#9AA6B2;padding:8px 10px 4px;flex:none}
-.aimax-aihint{color:#9AA6B2;font-size:12px;text-align:center;
+.aimax-aihint{color:#9AA6B2;font-size:14px;text-align:center;
   margin:0 auto 14px;max-width:720px;padding:0 22px}
 @media(max-width:767px){.aimax-wrap{padding:10px}
   .aidock-panel.aimax{height:calc(100vh - 20px)}}
@@ -2848,6 +2861,18 @@ html.coldock .aidock-fab{display:none}
 .aidock-ic[data-aiattach]{width:32px;height:32px;border-radius:9px;
   background:rgba(255,255,255,.13);color:#FFFFFF}
 .aidock-ic[data-aiattach]:hover{background:rgba(255,255,255,.22);color:#FFFFFF}
+/* B1/B2 — attached-file chip: sits above the composer input while a CSV/text
+   file is staged for the next turn; the × clears it without sending. */
+.aifilebar{display:flex;padding:2px 4px 8px}
+.aifile{display:inline-flex;align-items:center;gap:7px;max-width:100%;
+  padding:6px 8px 6px 10px;border-radius:9px;font-size:14px;font-weight:600;
+  background:rgba(255,255,255,.10);border:1px solid rgba(255,255,255,.16);color:#EAF0F6}
+.aifile svg{flex:none}
+.aifile span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:220px}
+.aifile button{border:0;background:none;color:#AEB9C4;cursor:pointer;font-size:14px;line-height:1;padding:2px}
+.aifile button:hover{color:#fff}
+/* The same chip inside a sent user bubble — no ×, the file already went. */
+.bub.me .aifile{display:flex;margin:0 0 6px;background:rgba(255,255,255,.14);border:0}
 .aidock-ic{width:34px;height:34px;flex:none;display:grid;place-items:center;
   background:none;border:0;border-radius:999px;color:#DCE3EA;cursor:pointer;
   transition:background .15s,color .15s;
@@ -2909,7 +2934,7 @@ html.coldock .aidock-fab{display:none}
 .aidock-empty.aidock-empty-coach{text-align:center}
 .aidock-empty.aidock-empty-coach h3{font-family:var(--display);text-transform:uppercase;font-weight:500;
   font-size:22px;line-height:1.15;margin:0;max-width:none}
-.aidock-empty-coach .aidock-sub{font-size:12.5px;line-height:1.5;margin:0 0 18px}
+.aidock-empty-coach .aidock-sub{font-size:14px;line-height:1.5;margin:0 0 18px}
 .aidock-sugg{display:flex;flex-direction:column;gap:8px;margin-bottom:22px}
 .aidock-sugg .aidock-suggbtn{text-align:left;padding:12px 14px;border:1px solid #2F373F;background:#1A2025;
   border-radius:12px;font-size:14px;font-weight:500;color:#F5F7F9;line-height:1.45;transition:.14s}
@@ -2917,7 +2942,7 @@ html.coldock .aidock-fab{display:none}
 .aidock-explore{display:flex;flex-direction:column;gap:8px}
 .aidock-explore-l{font-size:14px;font-weight:600;margin:0 0 10px;color:#F5F7F9}
 .aidock-explore .aidock-explorebtn{text-align:left;padding:11px 14px;border:1px solid #2F373F;border-radius:999px;
-  font-size:12.5px;color:#9AA6B2;transition:.14s}
+  font-size:14px;color:#9AA6B2;transition:.14s}
 .aidock-explore .aidock-explorebtn:hover{color:#F5F7F9;border-color:#4A5462}
 .aidock-panel.aimax .aidock-empty-coach{text-align:center}
 .aidock-panel.aimax .aidock-sugg,.aidock-panel.aimax .aidock-explore{align-items:center}
@@ -3168,7 +3193,7 @@ html.coldock .aidock-fab{display:none}
 .day-meta{color:var(--muted);font-size:var(--t-small);margin-top:3px}
 @media(max-width:860px){
   .cal-cell{min-height:86px;padding:5px 5px}
-  .cal-ev{font-size:10px;padding:2px 5px;gap:4px}
+  .cal-ev{font-size:14px;padding:2px 5px;gap:4px}
   .cal-num{width:22px;height:22px}
 }
 
@@ -3232,12 +3257,12 @@ html.coldock .aidock-fab{display:none}
    per the coach UI register's weight discipline. */
 /* Stripe grouped-nav eyebrow (owner typography paste 2026-08-25): 12px/600
    uppercase — the one actionable delta from that spec; the rest was already live. */
-.railgroup{font-family:var(--sans);font-size:12px;font-weight:600;
+.railgroup{font-family:var(--sans);font-size:14px;font-weight:600;
   letter-spacing:.06em;text-transform:uppercase;color:var(--faint);
   padding:0 11px;margin:12px 0 4px}
 /* A6 — count badge, right-aligned, numerals in the data face. */
 .rail .rbadge{margin-left:auto;font-family:var(--mono);font-variant-numeric:tabular-nums;
-  font-size:11px;font-weight:600;background:var(--raise2);color:var(--muted);
+  font-size:14px;font-weight:600;background:var(--raise2);color:var(--muted);
   border-radius:999px;padding:1px 7px}
 #app.coachdark .rail .rbadge{background:rgba(143,163,188,.16);color:#B6C6D8}
 .stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(168px,1fr));gap:14px;margin-bottom:12px}
@@ -3254,7 +3279,7 @@ html.coldock .aidock-fab{display:none}
    JetBrains Mono is already designated numerals-only by CLAUDE.md §4 — so the
    intent lands with the fonts present. Archivo IS present and carries display.
    Nothing serif appears in the portal. */
-.stat .k{font-family:var(--sans);font-size:11px;font-weight:700;letter-spacing:.08em;
+.stat .k{font-family:var(--sans);font-size:14px;font-weight:700;letter-spacing:.08em;
   text-transform:uppercase;color:var(--faint)}
 .stat .v{font-family:var(--mono);font-variant-numeric:tabular-nums;
   font-size:30px;font-weight:700;letter-spacing:-.02em;margin-top:6px;line-height:1.05}
@@ -3264,7 +3289,7 @@ html.coldock .aidock-fab{display:none}
 .stat .d{font-size:var(--text-sm);color:var(--muted);margin-top:2px}
 .track{display:flex;align-items:center;gap:0;margin-top:13px}
 .track .step{display:flex;align-items:center;gap:7px;flex:1;min-width:0}
-.track .dot{width:17px;height:17px;border-radius:999px;border:2px solid var(--rule-strong);flex:0 0 auto;display:grid;place-items:center;font-size:9px;color:#fff}
+.track .dot{width:24px;height:24px;border-radius:999px;border:2px solid var(--rule-strong);flex:0 0 auto;display:grid;place-items:center;font-size:14px;color:#fff}
 .track .step.done .dot{background:var(--good);border-color:var(--good)}
 .track .lbl{font-size:var(--text-xs);font-weight:600;color:var(--faint);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .track .step.done .lbl{color:var(--ink-2)}
@@ -3629,7 +3654,7 @@ h2.ctr{margin-bottom:10px}
 .railmenu{display:flex;flex-direction:column;gap:1px;margin:2px 0 4px;
   border:1px solid var(--rule);border-radius:var(--r-m);padding:4px;background:var(--paper)}
 #app.coachdark .railmenu{background:#131519;border-color:#2A313B}
-.railmenu button{font-size:13px;font-weight:500;padding:6px 9px;min-height:32px}
+.railmenu button{font-size:14px;font-weight:500;padding:6px 9px;min-height:32px}
 .railhead{display:flex!important;gap:9px;align-items:center;padding:8px 11px!important;text-align:left;min-height:40px}
 .railhead b{display:block;font-size:var(--text-base);letter-spacing:-.015em;color:var(--ink)}
 .railhead span span{display:block;font-size:var(--text-sm);color:var(--muted)}
@@ -3678,7 +3703,7 @@ html.coldock .dash>div{width:100%;margin:0}
 #app.coachdark .metric .v{font-size:26px;line-height:1.04;font-family:var(--mono)}
 /* Stat labels to the reference eyebrow: 12px display 600 .06em (owner spec
    2026-08-25 §3 — "kill the current wide tracking"). */
-body.reg-coach .metric .k{font-size:12px;letter-spacing:.06em;font-weight:600}
+body.reg-coach .metric .k{font-size:14px;letter-spacing:.06em;font-weight:600}
 /* Section titles (TODAY / NEEDS A DECISION…): reference .sec — 14px 600 .04em. */
 body.reg-coach .sec-head h2{font-size:14px;letter-spacing:.04em;font-weight:600}
 /* Kicker + sub at the reference 14px body. */
@@ -3823,7 +3848,7 @@ body.reg-coach .dashcontext{font-size:14px}
 .gscard{border:1px solid var(--rule);border-radius:12px;padding:20px;background:var(--paper)}
 .gshd{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:12px}
 .gshd .gs-sec{font-size:var(--text-sm);letter-spacing:.04em;margin:0}
-.gshd .gscount{font-size:12px;color:var(--muted)}  /* reference fine size — no 12px token on the coach scale */
+.gshd .gscount{font-size:14px;color:var(--muted)}  /* reference fine size — no 12px token on the coach scale */
 .gsteps{display:flex;flex-direction:column}
 .gsteps .gstep{display:flex;align-items:center;gap:12px;width:100%;text-align:left;
   /* .gsteps .gstep, not bare .gstep: body.reg-coach button{font:inherit} is
@@ -3836,10 +3861,10 @@ body.reg-coach .dashcontext{font-size:14px}
 .gstep.next{color:var(--ink)}
 .gstep.next .gsdot{border-color:var(--ink)}
 .gsgo{margin-left:auto;flex:none;font-family:var(--display);text-transform:uppercase;
-  font-weight:500;font-size:12px;letter-spacing:.06em;border:1px solid var(--rule);
+  font-weight:500;font-size:14px;letter-spacing:.06em;border:1px solid var(--rule);
   border-radius:6px;padding:5px 9px}
 .gsguide{display:flex;flex-direction:column;justify-content:center}
-.gsguide-k{letter-spacing:.12em;font-size:12px;color:var(--faint)}  /* reference eyebrow — no 12px token on the coach scale */
+.gsguide-k{letter-spacing:.12em;font-size:14px;color:var(--faint)}  /* reference eyebrow — no 12px token on the coach scale */
 .gsguide h3{font-size:22px;margin:10px 0 8px;line-height:1.15}  /* reference 22px fixed — --text-2xl clamps to 30 here */
 .gsguide p{color:var(--muted);font-size:var(--text-xs);line-height:1.55;margin:0}
 .today-list{border:1px solid var(--rule);border-radius:12px;background:var(--paper);overflow:hidden}
@@ -4161,7 +4186,7 @@ body.reg-coach .greet{font-size:24px}
    (line ~4973) would otherwise force Roboto Condensed here; the prototype
    says JetBrains Mono and an equal counter-weight is the only way past it. */
 #app .productmenu.glassmenu .eyebrow{font-family:var(--mono)!important;
-  font-size:10.5px;font-weight:500!important;letter-spacing:.16em;text-transform:uppercase;
+  font-size:14px;font-weight:500!important;letter-spacing:.16em;text-transform:uppercase;
   color:#6B7480;margin-bottom:8px}
 /* The panel node MOUNTS open (render() inserts it), so the prototype's
    class-toggle transitions become mount ANIMATIONS with the same values —
@@ -4178,7 +4203,7 @@ body.reg-coach .greet{font-size:24px}
 #app .productmenu.glassmenu .pmrow2:nth-of-type(5){animation-delay:.12s}
 #app .productmenu.glassmenu .pmrow2:hover{background:transparent;color:#EDEFF2}
 #app .productmenu.glassmenu .pmrow2:focus-visible{box-shadow:0 0 0 2px var(--slate-ring);background:transparent}
-#app .productmenu.glassmenu .pmrow2 small{display:block;font-size:12.5px;font-weight:400;
+#app .productmenu.glassmenu .pmrow2 small{display:block;font-size:14px;font-weight:400;
   color:#6B7480;margin-top:1px;line-height:1.4}
 #app .productmenu.glassmenu .pmlead{color:#9DB0CB}
 #app .productmenu.glassmenu .pmlead:hover{color:#9DB0CB}
@@ -4310,7 +4335,7 @@ body.reg-coach .greet{font-size:24px}
 .modal:has(.au-head) .au-fine{color:#7A8794}
 .modal:has(.au-head) .au-link{color:#8FA3BC}
 .modal:has(.au-head) .au-link:hover{color:#E9EEF4}
-.au-logo{width:116px;height:32px;overflow:hidden;margin:0 auto 14px;display:block}
+.au-logo{width:116px;height:32px;overflow:hidden;margin:0 auto 14px;display:block;background:none;border:0;padding:0;cursor:pointer;font:inherit;color:inherit}
 .au-logo img{height:32px;width:auto;max-width:none;display:block}
 
 /* ═══════════════════════════════════════════════════════════════════
@@ -4344,7 +4369,7 @@ body.reg-coach .greet{font-size:24px}
 /* listing-card density: trust line + sport tag ride the meta step, the mono
    price sits at 13px so nothing but the .biz title tops 13.5px on a card. */
 #app .card .verifline,#app .card .pendline,#app .card .sporttag{font-size:var(--text-sm)}
-#app .card .price{font-size:13px}
+#app .card .price{font-size:14px}
 /* the wordmark. `.card .biz` is the card's primary line -- at the dense listing
    size it takes the body step (14.5px), the single element allowed above 13.5px
    on a card, so the mono price and meta lines read as clearly subordinate. */
@@ -4538,7 +4563,7 @@ body.reg-coach .cal-dow span{font-weight:500}
 body.reg-coach .in-sub b{font-weight:600}
 /* The one off-scale text size in shared chrome, snapped under this register
    only — the family topbar keeps its own value. */
-body.reg-coach .navlink{font-size:13px}  /* coach bar matches the landing bar: 13px (owner 2026-08-25 second ruling) */
+body.reg-coach .navlink{font-size:14px}  /* coach bar matches the landing bar: 13px (owner 2026-08-25 second ruling) */
 /* Coach sidebar toggles (owner 2026-08-25 §3: 14px/500). var(--text-sm), NOT
    var(--t-small): --t-small is declared at :root as var(--text-sm) and a var()
    inside a custom property resolves ON THE DECLARING ELEMENT, so it froze at
@@ -4728,7 +4753,7 @@ body.reg-coach .rail button.on{font-weight:600}
 }
 .lp26 section{position:relative;overflow:hidden;border-bottom:0}
 .lp26 .wrap{max-width:1180px;margin:0 auto;padding:0 clamp(20px,5vw,56px)}
-.lp26 .k{font-family:"JetBrains Mono",monospace;font-size:11px;letter-spacing:.18em;text-transform:uppercase}
+.lp26 .k{font-family:"JetBrains Mono",monospace;font-size:14px;letter-spacing:.18em;text-transform:uppercase}
 .lp26 h1,.lp26 h2,.lp26 h3{font-family:"Roboto Condensed",sans-serif;text-transform:uppercase;font-weight:600;margin:0;line-height:1;letter-spacing:-.005em}
 .lp26 h2{font-size:clamp(26px,3.2vw,40px)}
 .lp26 h3{font-size:17px;letter-spacing:.03em}
@@ -4762,19 +4787,19 @@ body.reg-coach .rail button.on{font-weight:600}
 .lp26 .queue{margin-top:54px;border:1px solid var(--w-line);border-radius:10px;overflow:hidden;background:var(--slate-900)}
 .lp26 .queue .qh{display:flex;align-items:center;gap:14px;padding:14px 18px;background:var(--slate-800);border-bottom:1px solid var(--w-line)}
 .lp26 .queue .qh .t{font-family:"Roboto Condensed",sans-serif;text-transform:uppercase;font-weight:600;font-size:14px;letter-spacing:.05em}
-.lp26 .queue .qh .c{font-family:"JetBrains Mono",monospace;font-size:12px;color:var(--slate-300)}
+.lp26 .queue .qh .c{font-family:"JetBrains Mono",monospace;font-size:14px;color:var(--slate-300)}
 .lp26 .queue .qh .b{margin-left:auto;display:flex;gap:8px}
-.lp26 .queue .qh .b span{font-family:"Roboto Condensed",sans-serif;text-transform:uppercase;font-weight:700;font-size:12px;letter-spacing:.06em;padding:8px 13px;border:1px solid var(--slate-700);border-radius:6px;color:var(--slate-300)}
+.lp26 .queue .qh .b span{font-family:"Roboto Condensed",sans-serif;text-transform:uppercase;font-weight:700;font-size:14px;letter-spacing:.06em;padding:8px 13px;border:1px solid var(--slate-700);border-radius:6px;color:var(--slate-300)}
 .lp26 .queue .qh .b span.p{background:#fff;color:var(--black);border-color:#fff}
 .lp26 .queue .r{display:grid;grid-template-columns:158px 1fr 90px 92px;gap:18px;padding:13px 18px;border-bottom:1px solid rgba(174,186,199,.10);align-items:center;font-size:14px}
 .lp26 .queue .r:last-of-type{border-bottom:0}
 .lp26 .queue .r .nm{font-weight:500;color:#E9EDF3}
-.lp26 .queue .r .nm small{display:block;color:var(--w-2);font-size:12px;font-weight:400}
-.lp26 .queue .r .msg{color:var(--w-1);font-size:13.5px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.lp26 .queue .r .amt{font-family:"JetBrains Mono",monospace;font-size:13px;text-align:right}
-.lp26 .queue .r .st{font-family:"Roboto Condensed",sans-serif;text-transform:uppercase;font-weight:600;font-size:11px;letter-spacing:.07em;text-align:right;color:var(--ok)}
+.lp26 .queue .r .nm small{display:block;color:var(--w-2);font-size:14px;font-weight:400}
+.lp26 .queue .r .msg{color:var(--w-1);font-size:14px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.lp26 .queue .r .amt{font-family:"JetBrains Mono",monospace;font-size:14px;text-align:right}
+.lp26 .queue .r .st{font-family:"Roboto Condensed",sans-serif;text-transform:uppercase;font-weight:600;font-size:14px;letter-spacing:.07em;text-align:right;color:var(--ok)}
 .lp26 .queue .r .st.hold{color:var(--sand)}
-.lp26 .queue .qf{padding:12px 18px;color:var(--w-2);font-size:12.5px;border-top:1px solid var(--w-line);background:var(--slate-800)}
+.lp26 .queue .qf{padding:12px 18px;color:var(--w-2);font-size:14px;border-top:1px solid var(--w-line);background:var(--slate-800)}
 @media(max-width:860px){
   .lp26 .queue .r{grid-template-columns:1fr 88px;gap:8px}
   .lp26 .queue .r .msg,.lp26 .queue .r .amt{display:none}
@@ -4785,14 +4810,14 @@ body.reg-coach .rail button.on{font-weight:600}
 .lp26 .band .head h2{margin-bottom:14px;max-width:20ch}
 .lp26 .lines{border-top:1px solid}
 .lp26 .lines .row{display:grid;grid-template-columns:44px 1fr;gap:22px;padding:24px 0;border-bottom:1px solid;align-items:baseline}
-.lp26 .lines .n{font-family:"JetBrains Mono",monospace;font-size:12px;color:var(--steel)}
+.lp26 .lines .n{font-family:"JetBrains Mono",monospace;font-size:14px;color:var(--steel)}
 .lp26 .lines h3{font-size:20px;font-weight:600;letter-spacing:.02em}
 @media(max-width:600px){.lp26 .lines .row{grid-template-columns:1fr;gap:6px}}
 .lp26 .who{display:grid;grid-template-columns:repeat(3,1fr);border-top:1px solid}
 .lp26 .who>div{padding:28px 28px 28px 0;border-right:1px solid}
 .lp26 .who>div:last-child{border-right:0}
 .lp26 .who h3{margin-bottom:10px}
-.lp26 .who .m{margin-top:16px;padding-top:12px;border-top:1px solid;font-family:"JetBrains Mono",monospace;font-size:12px;color:var(--steel)}
+.lp26 .who .m{margin-top:16px;padding-top:12px;border-top:1px solid;font-family:"JetBrains Mono",monospace;font-size:14px;color:var(--steel)}
 @media(max-width:820px){.lp26 .who{grid-template-columns:1fr}.lp26 .who>div{border-right:0;border-bottom:1px solid;padding-right:0}}
 .lp26 .price{display:grid;grid-template-columns:1fr 1fr;gap:56px;align-items:center}
 .lp26 .price .big{font-family:"Roboto Condensed",sans-serif;font-weight:700;font-size:clamp(52px,8.5vw,104px);line-height:.9;letter-spacing:-.02em}
@@ -4803,15 +4828,15 @@ body.reg-coach .rail button.on{font-weight:600}
 .lp26 .files{border:1px solid var(--w-line);border-radius:10px;background:var(--slate-800);padding:4px}
 .lp26 .files div{display:flex;justify-content:space-between;gap:16px;padding:14px;font-size:14px;border-bottom:1px solid rgba(174,186,199,.10)}
 .lp26 .files div:last-child{border-bottom:0}
-.lp26 .files .s{font-family:"JetBrains Mono",monospace;font-size:12px;color:var(--steel-l);flex:none}
+.lp26 .files .s{font-family:"JetBrains Mono",monospace;font-size:14px;color:var(--steel-l);flex:none}
 @media(max-width:820px){.lp26 .switch{grid-template-columns:1fr;gap:28px}}
 .lp26 .close{padding:clamp(88px,12vh,150px) 0;text-align:center}
 .lp26 .close h2{max-width:20ch;margin:0 auto 18px}
 .lp26 .close p{max-width:52ch;margin:0 auto 30px}
-.lp26 .foot{border-top:1px solid var(--w-line);padding:24px 0;display:flex;justify-content:space-between;font-size:13px;color:var(--w-2)}
+.lp26 .foot{border-top:1px solid var(--w-line);padding:24px 0;display:flex;justify-content:space-between;font-size:14px;color:var(--w-2)}
 .lp26 .foot-grid{flex-direction:column;align-items:center;gap:14px;justify-content:center}
 .lp26 .foot-links{display:flex;flex-wrap:wrap;gap:4px 18px;justify-content:center}
-.lp26 .foot-link{background:none;border:0;cursor:pointer;font:inherit;font-size:13px;color:var(--w-1);padding:2px 0}
+.lp26 .foot-link{background:none;border:0;cursor:pointer;font:inherit;font-size:14px;color:var(--w-1);padding:2px 0}
 .lp26 .foot-link:hover{color:#fff}
 .lp26 .foot-line{text-align:center;max-width:70ch}
 .lp26 .foot-mail{text-decoration:underline}
@@ -4819,10 +4844,12 @@ body.reg-coach .rail button.on{font-weight:600}
 /* Full-screen stadium hero (owner 2026-08-30 v5: explore hero, centred, no
    search) */
 .herofull{padding:0;border-bottom:0;background:#0B0D0F}
-.herofull .hero-panel{position:relative;min-height:100svh;
-  /* Full 100svh, NOT minus the topbar (owner 2026-08-31): with the in-flow
-     sticky topbar above, subtracting it left a sliver of the next band inside
-     the first screen. At 100svh the stadium owns the entire first viewport. */
+.herofull .hero-panel{position:relative;min-height:100svh;min-height:100lvh;
+  /* 100lvh (large viewport), not 100svh alone (owner 2026-09-19): on phones
+     the browser chrome collapses as you scroll, the small viewport grows, and
+     a 100svh panel leaves a sliver of the next band inside the first screen.
+     100lvh sizes to the largest viewport so the stadium owns the whole first
+     screen with chrome shown OR collapsed; svh stays as the fallback. */
   display:flex;align-items:center;justify-content:center;overflow:hidden;
   border-radius:0;margin:0;width:100%}
 .herofull-in{position:relative;z-index:1;width:100%;text-align:center;padding:0 20px}
@@ -4840,7 +4867,7 @@ body.reg-coach .rail button.on{font-weight:600}
   font-weight:600;line-height:1;letter-spacing:-.005em}
 .lay-b h3,.lay-c h3{font-family:var(--roboto-cond,"Roboto Condensed");
   text-transform:uppercase;font-weight:600;letter-spacing:.03em}
-.lay-b .pg-eyebrow,.lay-c .pg-eyebrow{font-family:var(--mono);font-size:11px;
+.lay-b .pg-eyebrow,.lay-c .pg-eyebrow{font-family:var(--mono);font-size:14px;
   letter-spacing:.18em;text-transform:uppercase;font-weight:400}
 .lay-b .pg-ctarow .btn,.lay-c .pg-ctarow .btn{border-radius:6px;
   font-family:var(--roboto-cond,"Roboto Condensed");text-transform:uppercase;
@@ -4860,14 +4887,14 @@ body.reg-coach .rail button.on{font-weight:600}
 .lay-c .pg-hero{border-bottom:2px solid #0F1419}
 .lay-c .pg-walk-step{display:grid;grid-template-columns:230px 1fr;gap:14px 48px;
   padding:44px 0;border-bottom:1px solid #D6DCE5;align-items:start}
-.lay-c .pg-walk-step .pg-walk-num{font-family:var(--mono);font-size:11px;
+.lay-c .pg-walk-step .pg-walk-num{font-family:var(--mono);font-size:14px;
   letter-spacing:.18em;grid-column:1}
 .lay-c .pg-walk-step h2{grid-column:1;font-size:17px;letter-spacing:.03em;margin:0}
 .lay-c .pg-walk-step p{grid-column:2;grid-row:1 / span 2;margin:0}
 @media(max-width:900px){.lay-c .pg-walk-step{grid-template-columns:1fr}
   .lay-c .pg-walk-step p{grid-column:1;grid-row:auto}}
 .lay-c .pg-comparison th{font-family:var(--roboto-cond,"Roboto Condensed");
-  text-transform:uppercase;font-weight:600;font-size:12px;letter-spacing:.06em}
+  text-transform:uppercase;font-weight:600;font-size:14px;letter-spacing:.06em}
 .js-rev .lay-c [data-rev]{transform:none;opacity:0;clip-path:inset(0 100% 0 0);
   transition:opacity .7s ease,clip-path .95s cubic-bezier(.2,.7,.2,1)}
 .js-rev .lay-c [data-rev].in{opacity:1;clip-path:inset(0 0 0 0)}
@@ -4893,24 +4920,24 @@ body.reg-coach .rail button.on{font-weight:600}
 .dscreen{padding:18px 18px 20px;border-bottom:1px solid var(--rule)}
 .dscreen:last-child{border-bottom:0}
 .dsc-top{font-family:var(--display);text-transform:uppercase;font-weight:500;
-  font-size:12px;letter-spacing:.06em;color:var(--faint);margin-bottom:12px}
+  font-size:14px;letter-spacing:.06em;color:var(--faint);margin-bottom:12px}
 .dsc-bubble{background:var(--raise);border:1px solid var(--rule);border-radius:12px 12px 12px 4px;
-  padding:10px 12px;font-size:13px;color:var(--ink);margin-bottom:12px;max-width:88%}
+  padding:10px 12px;font-size:14px;color:var(--ink);margin-bottom:12px;max-width:88%}
 .dsc-card{border:1px solid var(--rule);border-radius:12px;padding:12px}
-.dsc-draft{font-size:13px;line-height:1.5;color:var(--ink);margin:0 0 12px}
+.dsc-draft{font-size:14px;line-height:1.5;color:var(--ink);margin:0 0 12px}
 .dsc-acts{display:flex;gap:8px}
-.dsc-btn{font-family:var(--display);text-transform:uppercase;font-weight:500;font-size:12px;
+.dsc-btn{font-family:var(--display);text-transform:uppercase;font-weight:500;font-size:14px;
   letter-spacing:.04em;padding:7px 12px;border-radius:8px;background:var(--slate);color:var(--slate-on)}
 .dsc-btn.ghost{background:none;border:1px solid var(--rule);color:var(--ink)}
 .dsc-line{display:flex;justify-content:space-between;align-items:center;gap:12px;
-  padding:11px 0;border-top:1px solid var(--rule);font-size:13px}
+  padding:11px 0;border-top:1px solid var(--rule);font-size:14px}
 .dsc-line:first-of-type{border-top:0}
 .dsc-line b{font-weight:600}
-.dsc-pill{font-size:11px;padding:3px 9px;border-radius:999px;background:var(--raise2);color:var(--muted)}
+.dsc-pill{font-size:14px;padding:3px 9px;border-radius:999px;background:var(--raise2);color:var(--muted)}
 .dsc-pill.on{background:rgba(71,85,105,.14);color:var(--slate-ink)}
 .dsc-pill.off{background:var(--warn-tint);color:var(--warn)}
 .dsc-big{font-family:var(--mono);font-size:34px;letter-spacing:-.02em;margin:2px 0}
-.dsc-subt{color:var(--muted);font-size:12.5px;margin-bottom:10px}
+.dsc-subt{color:var(--muted);font-size:14px;margin-bottom:10px}
 .dsc-line em{font-family:var(--mono);font-style:normal}
 .srail{display:flex;gap:8px}
 .srail i{width:7px;height:7px;border-radius:999px;background:var(--rule)}
@@ -5238,7 +5265,7 @@ body.reg-coach .rail button.on{font-weight:600}
   font-family:var(--roboto-cond)!important;text-transform:uppercase;font-weight:500!important;
   letter-spacing:.01em;font-style:normal;
 }
-#app .rebuild-page .pg-eyebrow{font-size:12px;letter-spacing:.14em}
+#app .rebuild-page .pg-eyebrow{font-size:14px;letter-spacing:.14em}
 
 /* THE BLACK-TEXT LAW — white + slate bands: every text token is near-black.
    !important is deliberate and scoped: several pages carry inline colour on
@@ -5607,16 +5634,16 @@ body.reg-coach .rail button.on{font-weight:600}
 .sig-scheduling .sc-title{font-weight:800;font-size:var(--text-sm);letter-spacing:-.01em;color:var(--ink)}
 .sig-scheduling .sc-pill{font-size:var(--text-xs);font-weight:700;letter-spacing:.05em;text-transform:uppercase;
   color:var(--muted);background:#F1F5F9;border:1px solid var(--rule);border-radius:999px;padding:3px 9px}
-.sig-scheduling .sc-grid{display:grid;grid-template-columns:26px repeat(7,1fr);gap:4px}
+.sig-scheduling .sc-grid{display:grid;grid-template-columns:48px repeat(7,1fr);gap:4px}
 .sig-scheduling .sc-day{font-size:var(--text-xs);font-weight:700;color:var(--muted);text-align:center;padding-bottom:2px}
-.sig-scheduling .sc-time{font-size:10px;font-weight:600;color:var(--muted);align-self:center;text-align:right;padding-right:4px}
+.sig-scheduling .sc-time{font-size:14px;font-weight:600;color:var(--muted);align-self:center;text-align:right;padding-right:4px}
 .sig-scheduling .sc-cell{height:30px;border:1px solid var(--rule);border-radius:6px;background:transparent}
 .sig-scheduling .sc-open{position:relative;overflow:hidden;cursor:grab}
 .sig-scheduling .sc-open::before{content:"";position:absolute;left:0;right:0;top:0;height:3px;background:var(--ps)}
-.sig-scheduling .sc-open span{display:block;font-size:9px;font-weight:700;color:var(--ps-ink);text-align:center;margin-top:8px}
+.sig-scheduling .sc-open span{display:block;font-size:14px;font-weight:700;color:var(--ps-ink);text-align:center;margin-top:8px}
 .sig-scheduling .sc-open:hover{border-color:var(--ps-ink)}
 .sig-scheduling .sc-open:hover::after{content:"Drag to move";position:absolute;left:50%;bottom:calc(100% + 4px);
-  transform:translateX(-50%);white-space:nowrap;font-size:10px;font-weight:600;color:var(--paper);
+  transform:translateX(-50%);white-space:nowrap;font-size:14px;font-weight:600;color:var(--paper);
   background:var(--ink);border-radius:5px;padding:3px 7px;z-index:2;pointer-events:none}
 .sig-scheduling.dragging .sc-open{cursor:grabbing}
 .sig-scheduling .sc-legend{display:flex;align-items:center;gap:7px;margin-top:12px;font-size:var(--text-xs);color:var(--muted)}
@@ -5637,7 +5664,7 @@ body.reg-coach .rail button.on{font-weight:600}
 .sig-payments[data-step="3"] .py-steps::after{width:calc(100% - 14px)}
 .sig-payments .py-step{position:relative;z-index:1;display:flex;flex-direction:column;align-items:center;gap:6px;flex:1}
 .sig-payments .py-node{width:14px;height:14px;border-radius:50%;background:var(--paper);border:2px solid var(--rule);transition:.25s}
-.sig-payments .py-lbl{font-size:10px;font-weight:600;color:var(--muted);white-space:nowrap;transition:.25s}
+.sig-payments .py-lbl{font-size:14px;font-weight:600;color:var(--muted);white-space:nowrap;transition:.25s}
 .sig-payments[data-step="1"] .py-step:nth-child(-n+1) .py-node,
 .sig-payments[data-step="2"] .py-step:nth-child(-n+2) .py-node,
 .sig-payments[data-step="3"] .py-step:nth-child(-n+3) .py-node{background:var(--ps);border-color:var(--ps)}
@@ -5663,11 +5690,11 @@ body.reg-coach .rail button.on{font-weight:600}
 .sig-roster .ro-pill{font-size:var(--text-xs);font-weight:700;letter-spacing:.05em;text-transform:uppercase;
   color:var(--muted);background:#F1F5F9;border:1px solid var(--rule);border-radius:999px;padding:3px 9px}
 .sig-roster table{width:100%;border-collapse:collapse}
-.sig-roster th{text-align:left;font-size:10px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;
+.sig-roster th{text-align:left;font-size:14px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;
   color:var(--muted);padding:8px 4px;border-bottom:1px solid var(--rule);cursor:pointer;user-select:none;white-space:nowrap}
 .sig-roster th.num{text-align:right}
 .sig-roster th:hover{color:var(--ink)}
-.sig-roster th .ro-car{color:var(--ps-ink);font-size:9px;margin-left:3px}
+.sig-roster th .ro-car{color:var(--ps-ink);font-size:14px;margin-left:3px}
 .sig-roster th.on{color:var(--ink)}
 .sig-roster td{font-size:var(--text-sm);color:var(--ink);padding:12px 4px;border-bottom:1px solid var(--rule)}
 .sig-roster td.nm{font-weight:700}
@@ -5684,7 +5711,7 @@ body.reg-coach .rail button.on{font-weight:600}
   color:var(--muted);background:#F1F5F9;border:1px solid var(--rule);border-radius:999px;padding:3px 9px}
 .sig-session-notes .sn-cols{display:grid;grid-template-columns:1fr 1fr;gap:12px}
 .sig-session-notes .sn-col{display:flex;flex-direction:column;min-width:0}
-.sig-session-notes .sn-lbl{font-size:10px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;color:var(--muted);margin-bottom:6px}
+.sig-session-notes .sn-lbl{font-size:14px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;color:var(--muted);margin-bottom:6px}
 .sig-session-notes .sn-ta{width:100%;box-sizing:border-box;resize:none;border:1px solid var(--rule);border-radius:10px;
   padding:9px;font:inherit;font-size:var(--text-xs);line-height:1.45;color:var(--ink);background:#FBFCFD;min-height:104px}
 .sig-session-notes .sn-ta:focus{outline:2px solid var(--ps-ink);outline-offset:-1px;border-color:transparent}
@@ -5692,8 +5719,8 @@ body.reg-coach .rail button.on{font-weight:600}
   padding:8px;font-weight:600;font-size:var(--text-xs);cursor:pointer}
 .sig-session-notes .sn-thread{border-left:3px solid var(--ps);padding-left:10px;display:flex;flex-direction:column;gap:6px}
 .sig-session-notes .sn-bubble{background:#F1F5F9;border-radius:10px;padding:9px;font-size:var(--text-xs);line-height:1.45;color:var(--ink)}
-.sig-session-notes .sn-from{font-size:9px;font-weight:700;letter-spacing:.03em;text-transform:uppercase;color:var(--muted);margin-bottom:4px}
-.sig-session-notes .sn-status{font-size:9px;font-weight:700;color:var(--ps-ink);display:flex;align-items:center;gap:5px}
+.sig-session-notes .sn-from{font-size:14px;font-weight:700;letter-spacing:.03em;text-transform:uppercase;color:var(--muted);margin-bottom:4px}
+.sig-session-notes .sn-status{font-size:14px;font-weight:700;color:var(--ps-ink);display:flex;align-items:center;gap:5px}
 .sig-session-notes .sn-status::before{content:"";width:6px;height:6px;border-radius:50%;background:var(--ps);flex:0 0 auto}
 @media(max-width:520px){.sig-session-notes .sn-cols{grid-template-columns:1fr}}
 @media(max-width:860px){.sig-session-notes{margin-left:0;max-width:none}}
@@ -6262,7 +6289,7 @@ body.reg-coach .rail button.on{font-weight:600}
   .rebuild-page .pg-hero-title,.rebuild-page .pg-hero-copy{padding-top:0!important}
   .rebuild-page .pg-h1{font-size:clamp(28px,7.7vw,32px);line-height:1.02;max-width:none!important}
   .rebuild-page .pg-eyebrow{margin-bottom:7px}
-  .rebuild-page .pg-sub[data-prose]{font-size:13px;line-height:1.4;margin-top:4px}
+  .rebuild-page .pg-sub[data-prose]{font-size:14px;line-height:1.4;margin-top:4px}
   .rebuild-page .pg-ctarow{margin-top:8px}
   .rebuild-page .pg-cta{height:44px}
   .pg-walk-step{grid-template-columns:1fr}.pg-walk-step p{grid-column:auto}
@@ -7270,6 +7297,21 @@ function sessionsByDate(){
 function toast(msg){S.toast=msg;render();setTimeout(()=>{if(S.toast===msg){S.toast=null;render();}},2600);}
 function go(name,arg){S.route={name,arg:arg??null};window.scrollTo(0,0);render();}
 
+/* Full-page auth exit (2026-09-19, auth-trap fix): the single way out of the
+   coachgate and the guest setup wizard. Clears the parked signup intent, the
+   signup role, and the gate mode, returns to the family home, and persists
+   immediately so a reload cannot reopen the gate. Top-level so the wire()
+   handlers, the Escape key, and mod-onboard.js all share it. Guests only — a
+   signed-in coach mid-onboarding keeps the intentional setup gate (they get
+   Sign out instead). */
+function exitFullPageAuth(){
+  S.portal="family";S.modal=null;
+  S.pendingIntent=null;S.signupRole=null;S.cgMode="signup";
+  S.authError=null;S.ob=null;
+  go("home");
+  try{ saveState(); }catch(e){}
+}
+
 /* auth-on-action gate — mirrors AuthProvider.requireAuth + intent preservation */
 /* ── guest scope on the provider side ──────────────────────────────
    A signed-out visitor browsing the coach portal is looking at someone else's
@@ -7316,9 +7358,14 @@ function coachLockHTML(title,what){
    only that. Every surface used SEED.providerProfile.businessName directly, so
    a coach who had just signed up and named their business was shown "Apex
    Performance Club" on their own dashboard. */
+/* The dashboard's identity line. SEED.providerProfile is the GUEST preview's
+   demo business — a signed-in coach whose org row hasn't landed (or never
+   existed) must never be shown it as their own. The cold-start path now
+   ensures the row; this guard covers only the loading transient. */
 function coachBusinessName(){
   const p=S.coachProvider;
   if(p&&p.business_name) return p.business_name;
+  if(realSignedIn()) return "Your workspace";
   return SEED.providerProfile.businessName;
 }
 
@@ -7519,10 +7566,12 @@ function doCoachSignUp(email, password, businessName){
    fell through to the seeded dashboard — another operator's business — which
    is the "someone else's account" bug. Honest error + retry instead. */
 function coachEnsureErrorHTML(){
+  var detail=S.coachEnsureDetail||"";
   return `<section class="band"><div class="in" style="max-width:520px;padding:72px 0;text-align:center">
     <h1 style="margin-bottom:10px">We couldn't load your workspace</h1>
     <p style="color:var(--muted);margin-bottom:18px">Your account is signed in, but your organization's
       record didn't come back. This is usually a connection blip — nothing was lost.</p>
+    ${detail?`<p style="color:var(--muted);font-size:12px;margin-bottom:18px">Detail: ${String(detail).replace(/</g,"&lt;").slice(0,200)}</p>`:""}
     <button class="btn" data-coach-retry="1">Try again</button>
   </div></section>`;
 }
@@ -7565,6 +7614,9 @@ function loadOrgWorkspace(){
   if(!(window.SporveCoach&&realSignedIn())) return Promise.resolve(null);
   return window.SporveCoach.load().then(pv=>{
     S.coachProvider=pv||null; if(pv) S.coachEnsureError=null;
+    /* Provider role ⇒ not a parent session: never carry seeded demo athletes
+       into the coach workspace (see enterCoachWorkspace). */
+    S.athletes=[];
     if(pv) S.myProviderId=pv.id;
     if(pv) hydrateTeamRoster();
     /* audit P1-2: a mark queued while the field had no signal must not wait
@@ -7604,7 +7656,13 @@ function enterCoachWorkspace(){
     .then(p=>{
       S.pendingBusinessName="";
       S.coachProvider = p || null;
-      S.coachEnsureError = null;
+      S.coachEnsureError = null; S.coachEnsureDetail = null;
+      /* A provider session is never a parent session: drop any seeded athletes
+         that survived into this session (cold-start sessionStorage restore runs
+         no guest->sign-in purge). hydrateAthletes() only runs for non-providers,
+         so nothing live is lost — and no coach surface can offer the seeded
+         demo child as if they were the coach's. */
+      S.athletes=[];
       if(p) hydrateTeamRoster();
       S.coachTab="queue";  /* home = the review queue (doc 04) */
       /* Not-yet-onboarded: the wizard is the only door (spec 04). The render
@@ -7612,11 +7670,15 @@ function enterCoachWorkspace(){
       if(p && p.onboarding_completed===false){ go("setup"); return; }
       go("dashboard");
     })
-    .catch(()=>{
+    .catch((err)=>{
       /* ensure() failing means we do not know WHOSE workspace this is —
          rendering the seeded dashboard here is how a new signup "saw someone
-         else's account". Error screen with retry instead, never dashboard. */
-      S.coachProvider=null; S.coachEnsureError=true; S.coachTab="queue"; go("dashboard");
+         else's account". Error screen with retry instead, never dashboard.
+         Stash the real reason (owner 2026-09-19): "connection blip" hides
+         auth/RPC/RLS failures and makes them undebuggable. */
+      S.coachProvider=null; S.coachEnsureError=true;
+      S.coachEnsureDetail=(err&&(err.message||err.code))||"unknown";
+      S.coachTab="queue"; go("dashboard");
     });
 }
 
@@ -7705,7 +7767,7 @@ function adoptIdentity(newUid){
        but drop the SEED-derived demo collections — a real account must never
        inherit "Julian Mercer" as its roster or the demo org's listings. Live
        rows re-hydrate from the DB right after auth. */
-    ["athletes","bookings","messages","roster","listings","teams","parentUpdates","conversations","notifications"].forEach(k=>{
+    ["athletes","bookings","messages","roster","listings","teams","parentUpdates","conversations","notifications","trainers"].forEach(k=>{
       if(k in S) S[k]=Array.isArray(S[k])?[]:{};
     });
   }
@@ -9172,7 +9234,7 @@ function landingHTML(){
       <div class="r"><span class="nm">Elena Novak<small>Flight 16U</small></span><span class="msg">Hi Elena — installment 3 for Mia's season is outstanding…</span><span class="amt">$425</span><span class="st">Ready</span></div>
         <div class="qf">6 of 12 shown. Nothing here sends until someone approves it.</div>
       </div>
-      <p data-rev data-rev-d="2" style="margin-top:14px;font-size:13px;color:var(--w-2)">Product preview. Names and amounts are illustrative.</p>
+      <p data-rev data-rev-d="2" style="margin-top:14px;font-size:14px;color:var(--w-2)">Product preview. Names and amounts are illustrative.</p>
     </div>
   </section>
   </div>
@@ -10518,6 +10580,21 @@ function leadsCardHTML(list,saved){
   </div>`;
 }
 
+/* Real-artifact card (F2, 2026-09-19). Renders the create_document read result —
+   a genuine downloadable file from coach_documents, served by the
+   document-download edge function. The Download button fetches the rendered
+   HTML under the coach's own JWT and saves it as a file. */
+function documentCardHTML(doc){
+  if(!doc||!doc.document_id) return "";
+  return `<div class="faccard"><div class="facrow">
+      <span class="facmain"><b>${esc(doc.title||"Document")}</b>${
+        doc.format?`<em>${esc(String(doc.format))}</em>`:""}</span>
+      <button class="btn sm" data-dldoc="${esc(String(doc.document_id))}">Download</button>
+    </div>
+    <p class="facfine">Saved to your documents — download it anytime from here or the Documents list.</p>
+  </div>`;
+}
+
 function propCardHTML(p,i){
   const meta=PROP_META[p.tool]||{label:p.tool.replace(/_/g," "),tab:"dashboard"};
   const isMsgFamily=["draft_message","draft_bulk_message","draft_recap","camp_broadcast","draft_waitlist_offer"].includes(p.tool);
@@ -10630,7 +10707,7 @@ function aiDockHTML(){
   const open=S.aiOpen!==false;
   const thread=S.chat.length
     ? S.chat.map((m,i)=>m.role==="user"
-        ? `<div class="bub me" style="max-width:82%">${esc(m.text)}</div>`
+        ? `<div class="bub me" style="max-width:82%">${aiUserFileChip(m)}${esc(m.text)}</div>`
         : `<div style="max-width:94%;align-self:flex-start;display:flex;flex-direction:column;gap:8px">
              ${/* Only tools that actually READ data get a "Checked…" line.
                   get_earnings/get_waitlist return a note, not a query result, so
@@ -10646,6 +10723,7 @@ function aiDockHTML(){
              ${m.proposal?propCardHTML(m.proposal,i):""}
              ${m.facilities?facilitiesCardHTML(m.facilities):""}
              ${m.leads?leadsCardHTML(m.leads,m.leadsSaved):""}
+             ${m.document?documentCardHTML(m.document):""}
              ${(m.picks||[]).map(id=>{
                const p=PROGRAMS.find(x=>x.id===id);
                return p?`<button class="aidock-pick" data-open="${esc(p.id)}">
@@ -10722,6 +10800,7 @@ function aiDockHTML(){
       </div>
       ${S.chat.length?aiChipsHTML():""}
       <form class="aidock-compose aimax-compose" id="aiDockForm">
+        ${aiFileBarHTML()}
         <input id="aiDockInput" class="aidock-input" placeholder="${S.chat.length?"Continue chat":"Ask Sporv"}"
                value="${esc(S.aiDraft||"")}" aria-label="Message Sporv AI" autocomplete="off">
         <div class="aidock-row">
@@ -10802,6 +10881,7 @@ function aiDockHTML(){
       ${(colMode&&!convo)?"":aiChipsHTML()}
       <form class="aidock-compose" id="aiDockForm">
         ${S.aiHistOpen&&!S.aiMax?histDropHTML(true):""}
+        ${aiFileBarHTML()}
         ${/* Two rows, matching the reference exactly: the message field owns the
              top line, the controls sit beneath it. I merged these onto one row
              last turn from a different screenshot and it was wrong — the field
@@ -11139,9 +11219,9 @@ function coachHTML(){
       <div class="railmark">Sporv</div>
       <button class="railhead" data-railmenu="1" aria-expanded="${!!S.railMenu}" aria-haspopup="menu"
               title="Workspace">
-        <span class="avatar" style="width:24px;height:24px;font-size:10px">${
+        <span class="avatar" style="width:24px;height:24px;font-size:14px">${
           esc(coachBusinessName().split(/\s+/).map(w=>w[0]||"").slice(0,2).join("").toUpperCase())}</span>
-        <b style="font-size:13px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(coachBusinessName())}</b>
+        <b style="font-size:14px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(coachBusinessName())}</b>
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
              stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
              style="margin-left:auto;flex:none;opacity:.6" aria-hidden="true">
@@ -13513,7 +13593,7 @@ function coachBody(t){
        fabricated queue rows) — same guard as the queue tab above. */
     const drafts=queueIsLive()?[]:approvalDrafts();
     const sent=S.approvalSent||[];
-    const eb="font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--faint)";
+    const eb="font-size:14px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--faint)";
     const demoRows=drafts.length?`
       <div class="sec-head" style="margin:0"><h3>Waiting for you</h3>
         <span class="pill warn">${drafts.length} draft${drafts.length===1?"":"s"}</span></div>
@@ -13548,7 +13628,7 @@ function coachBody(t){
       ${q.length?`<div style="display:flex;flex-direction:column;gap:10px">
         ${q.map(m=>`<div class="panel" style="display:flex;flex-direction:column;gap:8px">
           <div style="display:flex;align-items:center;gap:9px">
-            <span class="k" style="font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--faint)">${esc(LABEL[m.event_type]||m.event_type)}</span>
+            <span class="k" style="font-size:14px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--faint)">${esc(LABEL[m.event_type]||m.event_type)}</span>
             <span class="pill ${m.status==="drafted"?"warn":m.status==="approved"?"gold":"slate"}" style="margin-left:auto">${esc(m.status)}</span>
           </div>
           <p style="font-size:var(--text-sm)">${esc(
@@ -13761,10 +13841,13 @@ function modalHTML(){
   const STAGE=m.type==="setupwiz"||m.type==="agentrun"||m.type==="importclients"
     ||m.type==="account"||m.type==="authsheet"||m.type==="signup"
     ||m.type==="login"||m.type==="forgot"||m.type==="magiclink";
-  /* A stage carries NO data-scrim: the close handler binds on the attribute's
-     presence, and on a full-screen step the "backdrop" is the page itself — a
-     stray click on empty ground would abandon the setup. The X stays. */
-  const wrap=(title,body,wide)=>`<div class="scrim${STAGE?" stage":""}"${STAGE?"":' data-scrim="1"'}><div class="modal ${wide?"wide":""}${STAGE?" stage":""}" role="dialog" aria-modal="true" aria-label="${esc(title)}">
+  /* A stage carries NO data-scrim EXCEPT the auth stages: the close handler
+     binds on the attribute's presence, and on a full-screen step the
+     "backdrop" is the page itself — a stray click on empty ground would
+     abandon the setup. But an auth sheet a visitor opened by mistake must be
+     dismissible by clicking outside; the X and Escape stay on every stage. */
+  const AUTHSTAGE=["authsheet","signup","login","forgot","magiclink"].includes(m.type);
+  const wrap=(title,body,wide)=>`<div class="scrim${STAGE?" stage":""}"${(!STAGE||AUTHSTAGE)?' data-scrim="1"':""}><div class="modal ${wide?"wide":""}${STAGE?" stage":""}" role="dialog" aria-modal="true" aria-label="${esc(title)}">
     <div class="modal-head"><b>${esc(title)}</b><button class="x" data-close="1" aria-label="Close">${ICON.x}</button></div>
     <div class="modal-body">${body}</div></div></div>`;
   /* Show/hide password toggle (owner 2026-08-23: "see the view password screen").
@@ -13809,7 +13892,7 @@ function modalHTML(){
      a coach landing on the provider side. */
   if(m.type==="authsheet") return wrap("Log in or sign up",`
     <div class="au-head">
-      <span class="au-logo"><img src="data:image/png;base64,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" alt="Sporv" width="99" height="24"></span>
+      <button type="button" class="au-logo" data-close aria-label="Back to Sporv home" title="Back to Sporv home"><img src="data:image/png;base64,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" alt="Sporv" width="99" height="24"></button>
       <h2>Log in or sign up</h2>
       <p>Sporv is for the people who run the program. Staff sign in with an email link — no password to set.</p>
     </div>
@@ -14856,9 +14939,9 @@ function modalHTML(){
         ["explore","Product","Everything Sporv runs for a club"],
         ["pricing","Pricing","Plans and what each includes"],
         ["about","Help","Contact and support"]])}
-      <button class="acswitch" data-portal="coach">
-        <span><b>Switch to coaching</b><small>See the club workspace</small></span>
-        <span class="acr-chev" aria-hidden="true"></span></button>
+      ${/* "Switch to coaching" removed (owner 2026-09-19): the consumer
+           marketplace is dead, so a guest portal-switch button is vestigial.
+           Guests reach the club workspace through Get started / sign-in. */""}
     </div>`);
   }
   if(m.type==="account_legacy"){
@@ -14987,7 +15070,7 @@ const INFO={
      section count, so the site published placeholders as law. Replaced with
      the operative facts the product actually enforces, labelled as interim —
      which is true, verifiable, and not pretending to be counsel's work. */
-  terms:{title:"Terms of Service (interim)",sections:[
+  terms:{title:"Terms of Service",sections:[
     {h:"These terms are being finalized",b:"Sporv's full Terms of Service are being completed with counsel. Until they are published, the statements below describe how the service actually operates today, and they are the terms we hold ourselves to. Questions: support@sporv.ai."},
     {h:"Coaches are independent professionals",b:"Coaches, trainers, camps and teams on Sporv are independent professionals, not Sporv employees. Sporv is the marketplace that connects you and processes payment."},
     {h:"What Sporv charges",b:"Sporv takes 0% of bookings — coaches keep 100% of what families pay. Coaches run their business on a flat subscription (free to start; Pro is $34.99 a month). Families pay the coach's listed price; Sporv adds no booking fee for family payers. Bookings paid during the earlier 12% era keep their recorded fee on their receipts."},
@@ -15079,7 +15162,7 @@ function infoHTML(key){
         <div><div style="font-weight:700">Phone</div>
           <a href="tel:+12246029341" style="color:var(--slate-ink);font-size:var(--text-base)">(224) 602-9341</a></div>
         <div><div style="font-weight:700">Safety team</div>
-          <a href="mailto:safety@sporv.ai" style="color:var(--slate-ink);font-size:var(--text-base)">safety@sporv.ai</a></div>
+          <a href="mailto:safety@sporve.com" style="color:var(--slate-ink);font-size:var(--text-base)">safety@sporve.com</a></div>
         <div><div style="font-weight:700">Location</div>
           <div style="color:var(--muted);font-size:var(--text-base)">Chicago, IL</div></div>
       </div>
@@ -17352,7 +17435,7 @@ document.querySelectorAll('.sig-ai-coach').forEach(sigAiCoachWire);
     /* Drop the pending intent with the identity. Keeping it means the action
        queued by the previous user fires for whoever signs in next. */
     S.auth={status:"guest",user:null};S.pendingIntent=null;render();});
-  $("[data-cg-back]").forEach(b=>b.onclick=()=>{S.portal="family";go("home");});
+  $("[data-cg-back]").forEach(b=>b.onclick=()=>exitFullPageAuth());
   $("[data-coachdash]").forEach(b=>b.onclick=()=>{
     S.portal="coach";S.coachTab="dashboard";go("dashboard");});
   $("[data-sportjump]").forEach(b=>b.onclick=()=>{
@@ -18491,8 +18574,30 @@ document.querySelectorAll('.sig-ai-coach').forEach(sigAiCoachWire);
        re-appends the question, so leaving the original would show it twice
        and double it in the history sent to the model. */
     const prevIsSame=i>0&&S.chat[i-1].role==="user"&&S.chat[i-1].text===m.retry;
+    /* A failed turn keeps its attachment: the dropped user message carries
+       the file, so stage it again before the retry re-sends — otherwise the
+       retry would silently drop the data the question was about. */
+    if(prevIsSame&&!S.aiFile&&S.chat[i-1].fileName)
+      S.aiFile={name:S.chat[i-1].fileName,text:S.chat[i-1].fileText||""};
     S.chat=S.chat.filter((_,x)=>x!==i&&!(prevIsSame&&x===i-1));
     askCoach(m.retry);
+  });
+  /* F2 document download. document-download verifies ownership server-side;
+     the rendered file becomes a Blob download — a real artifact, not a note. */
+  $("[data-dldoc]").forEach(b=>b.onclick=async()=>{
+    const id=String(b.dataset.dldoc||"");
+    if(!id) return;
+    b.disabled=true;const label=b.textContent;b.textContent="Preparing…";
+    try{
+      const r=await window.SporveAPI.fn("document-download",{id});
+      const blob=new Blob([r.html],{type:"text/html"});
+      const a=document.createElement("a");
+      a.href=URL.createObjectURL(blob);a.download=r.filename||"document.html";
+      document.body.appendChild(a);a.click();a.remove();
+      setTimeout(()=>URL.revokeObjectURL(a.href),8000);
+      toast("Downloaded");
+    }catch(_e){toast("Couldn't download the document");}
+    b.disabled=false;b.textContent=label;
   });
   /* The dock's own controls. data-ask / data-chatclear / data-open above are
      document-wide, so the dock's copies of those are already wired. */
@@ -18668,7 +18773,12 @@ document.querySelectorAll('.sig-ai-coach').forEach(sigAiCoachWire);
      silently: a button that looks live and does nothing is worse than one that
      tells you it is not ready, and this is the surface where a coach is being
      asked to trust the product. */
-  $("[data-aiattach]").forEach(b=>b.onclick=()=>toast("Attachments aren't wired up yet"));
+  /* B1/B2 — the + button stages a CSV/TSV/TXT file for the next turn
+     (pickAiFile); the × on the staged-file chip clears it. A button that
+     looks live and does nothing is worse than one that tells you it is not
+     ready — this one is now live. */
+  $("[data-aiattach]").forEach(b=>b.onclick=()=>pickAiFile());
+  $("[data-aifilex]").forEach(b=>b.onclick=()=>{S.aiFile=null;render();});
   $("[data-aivoice]").forEach(b=>b.onclick=()=>toast("Voice input isn't wired up yet"));
   $("[data-aiclose]").forEach(b=>b.onclick=()=>{S.aiOpen=false;S.aiMax=false;S.aiFull=false;S.aiHistOpen=false;render();});
   $("[data-waitlist]").forEach(b=>b.onclick=()=>{
@@ -19719,14 +19829,80 @@ function sendRecapToParentDemo(athleteName, body){
   return {parent:parent, athlete:a.name};
 }
 
+/* ── B1/B2: file attachments for the coach dock ──────────────────────────
+   The + button stages one CSV/TSV/TXT file per turn. The file NEVER leaves
+   the device except inside the single coach-command call its question rides
+   with — read client-side, appended to the turn text under a clear label,
+   and cleared from the composer once sent. No upload endpoint, no storage. */
+const AI_FILE_MAX=20000; /* chars of file text per turn — rosters fit, novels don't */
+let aiFileInput=null;
+function aiFileBlock(f){
+  if(!f) return "";
+  return "\n\n[ATTACHED FILE: "+f.name+"]\n"+f.text;
+}
+function aiFileBarHTML(){
+  if(!S.aiFile) return "";
+  return `<div class="aifilebar"><span class="aifile">
+    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+         stroke-width="1.9" stroke-linecap="round" aria-hidden="true">
+      <path d="M14 3H6a1 1 0 0 0-1 1v16a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V8z"/>
+      <path d="M14 3v5h5"/></svg>
+    <span>${esc(S.aiFile.name)}</span>
+    <button type="button" data-aifilex="1" aria-label="Remove attachment">×</button>
+  </span></div>`;
+}
+function aiUserFileChip(m){
+  if(!m||!m.fileName) return "";
+  return `<span class="aifile">
+    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+         stroke-width="1.9" stroke-linecap="round" aria-hidden="true">
+      <path d="M14 3H6a1 1 0 0 0-1 1v16a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V8z"/>
+      <path d="M14 3v5h5"/></svg>
+    <span>${esc(m.fileName)}</span></span>`;
+}
+function pickAiFile(){
+  if(S.chatThinking){ toast("Wait for the current answer first."); return; }
+  if(!aiFileInput){
+    aiFileInput=document.createElement("input");
+    aiFileInput.type="file";
+    aiFileInput.accept=".csv,.tsv,.tab,.txt,text/csv,text/plain";
+    aiFileInput.hidden=true;
+    aiFileInput.addEventListener("change",()=>{
+      const f=aiFileInput.files&&aiFileInput.files[0];
+      aiFileInput.value="";
+      if(!f) return;
+      if(f.size>512000){ toast("That file is too large — keep it under 500KB."); return; }
+      const rd=new FileReader();
+      rd.onload=()=>{
+        let t=String(rd.result||"");
+        if(!t.trim()){ toast("That file looks empty."); return; }
+        if(t.length>AI_FILE_MAX) t=t.slice(0,AI_FILE_MAX)+"\n[…file truncated to "+AI_FILE_MAX+" characters]";
+        S.aiFile={name:f.name,text:t};
+        toast("Attached "+f.name+" — ask your question and send.");
+        render();
+      };
+      rd.onerror=()=>toast("Couldn't read that file.");
+      rd.readAsText(f);
+    });
+    document.body.appendChild(aiFileInput);
+  }
+  aiFileInput.click();
+}
 function askCoach(q){
-  if(!q||!q.trim()) return;
+  const text=(q||"").trim();
+  /* A file with no question has nothing to answer — keep the file staged
+     and say what is missing instead of silently doing nothing. */
+  if(!text&&S.aiFile){ toast("Ask a question about "+S.aiFile.name+", then press send."); return; }
+  if(!text) return;
   /* One turn at a time. Without this, two quick sends launched two overlapping
      requests that shared one S.chatThinking flag — the first reply cleared the
      dots while the second was still in flight, and both answers appended. */
   if(S.chatThinking) return;
-  const text=q.trim();
-  S.chat=[...S.chat,{role:"user",text}];
+  /* The staged file rides THIS turn only: the message keeps its name + text
+     so history and retries keep working, and the composer clears. */
+  const file=S.aiFile||null;
+  S.aiFile=null;
+  S.chat=[...S.chat,{role:"user",text,fileName:file?file.name:null,fileText:file?file.text:null}];
   /* Keep the session archive in step with the live thread, so the history
      list in the maximized view always shows the conversation in progress.
      Coach-side only: the family finder keeps its single persistent thread. */
@@ -19768,7 +19944,7 @@ function askCoach(q){
      cannot grow the request without bound — the gateway rejects over 24. */
   const history=S.chat.slice(-12).map(m=>({
     role:m.role==="user"?"user":"assistant",
-    content:String(m.text||""),
+    content:String(m.text||"")+aiFileBlock(m.fileText?{name:m.fileName,text:m.fileText}:null),
   }));
 
   /* THE COACH GETS THE AGENTIC TURN — coach-command. One call per message,
@@ -19784,7 +19960,7 @@ function askCoach(q){
        request itself isn't aborted (API.fn has no cancellation), but the UI
        recovers and offers retry. */
     const timeout=new Promise((_,rej)=>setTimeout(()=>rej(new Error("timeout")),45000));
-    Promise.race([API.fn("coach-command",{text,history}),timeout]).then(r=>{
+    Promise.race([API.fn("coach-command",{text:text+aiFileBlock(file),history}),timeout]).then(r=>{
       /* The coach switched threads while this turn was in flight — its reply
          belongs to a conversation that is no longer on screen. Drop it. */
       if(epoch!==chatEpoch) return;
@@ -19806,8 +19982,15 @@ function askCoach(q){
       const leadRead=calls.find(c=>c&&c.kind==="read"&&c.tool==="find_clients");
       const leads=(leadRead&&leadRead.result&&Array.isArray(leadRead.result.leads))?leadRead.result.leads:null;
       const leadsSaved=(leadRead&&leadRead.result&&+leadRead.result.saved_as_findings)||0;
+      /* Real artifact (F2): the create_document READ inserts the row
+         deterministically and returns the receipt; the card below carries the
+         Download button. A missing/failed receipt renders no card — the
+         model's prose must not claim a file exists without it. */
+      const docRead=calls.find(c=>c&&c.kind==="read"&&c.tool==="create_document");
+      const document=(docRead&&docRead.result&&docRead.result.created&&docRead.result.document_id)
+        ?{document_id:String(docRead.result.document_id),title:String(docRead.result.title||"Document"),format:String(docRead.result.format||"handout")}:null;
       S.chatThinking=false;
-      S.chat=[...S.chat,{role:"coach",text:reply,tools,proposal,facilities,leads,leadsSaved}];
+      S.chat=[...S.chat,{role:"coach",text:reply,tools,proposal,facilities,leads,leadsSaved,document}];
       /* Reply landed while the dock was closed → badge the FAB so the coach
          sees there's something waiting; cleared when they reopen. */
       if(S.aiOpen===false) S.aiUnread=(S.aiUnread||0)+1;
@@ -20011,7 +20194,7 @@ function policyField(p){
    key parent messages on args.body and a bio draft on args.draft/args.bio, so
    read any of them — whichever it used becomes the one editable field. */
 function propDraft(p){
-  return String((p.args&&(p.args.body||p.args.draft||p.args.bio||p.args.value||p.args.text))||"");
+  return String((p.args&&(p.args.body||p.args.draft_body||p.args.draft||p.args.bio||p.args.value||p.args.text))||"");
 }
 /* The athlete name and optional title a create_note/create_document proposal
    carries. The model may key the athlete on any of these, so read whichever it
@@ -20149,6 +20332,11 @@ document.addEventListener("error",e=>{
 document.addEventListener("keydown",e=>{
   if(e.key!=="Escape") return;
   if(S.modal){S.modal=null;S.pendingIntent=null;render();}
+  /* Auth-trap fix (2026-09-19): Escape exits the full-page signup surfaces the
+     same way their visible Back controls do. Guests only on setup — a
+     signed-in coach keeps the intentional onboarding gate (Sign out instead). */
+  else if(S.route&&S.route.name==="coachgate"){exitFullPageAuth();}
+  else if(S.route&&S.route.name==="setup"&&!realSignedIn()){exitFullPageAuth();}
   else if(S.sportOpen){S.sportOpen=false;render();}
   /* The pill collapses into the S on Escape — AFTER the modal and the sport
      chooser, because Escape closes the innermost thing first and both of those
@@ -20467,7 +20655,13 @@ function hydrateAuth(){
          gate — which needs the row — could not send a mid-setup org back to
          its step. loadOrgWorkspace() fetches THEIR row and roster; the render
          gate then routes to setup or dashboard by itself. */
-      if(p.role==="provider") loadOrgWorkspace().then(()=>render());
+      if(p.role==="provider") loadOrgWorkspace().then(pv=>{
+        /* No provider row but the backend is reachable: a fresh (or
+           pre-trigger) account, not a failure — run the create-if-missing
+           door instead of rendering the dashboard org-less over demo
+           fallbacks. backendDown keeps its own error screen. */
+        if(!pv&&!S.backendDown) enterCoachWorkspace(); else render();
+      });
       /* AUDIT 2026-09-17 P1-5: boot issued 13 backend requests (budget 4).
          A provider's cold boot needs exactly what the home renders — the
          profile, the workspace row, the roster, the home RPC. Everything
@@ -20551,6 +20745,16 @@ hydrateCatalog();
 function hydrateReturn(){
   var q;
   try { q = new URLSearchParams(window.location.search); } catch(e){ return; }
+  /* ── LEGAL DEEP LINKS (?page=terms / ?page=privacy) ─────────────────────
+     The signup consent links (mod-onboard.js [data-obfoot]) open
+     /?page=<key> in a new tab, but NOTHING READ IT — the new tab landed on
+     the marketing homepage and the user could never read the documents they
+     were forced to agree to. Route to the info hub for any valid INFO key. */
+  var page = q.get("page");
+  if(page && typeof INFO!=="undefined" && INFO[page]){
+    S.route={name:"info",arg:page};render();
+    return;
+  }
   var bookingId = q.get("booking");
   var connect   = q.get("connect");
   var orgId     = q.get("org");

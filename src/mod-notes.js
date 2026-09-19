@@ -507,7 +507,7 @@ const isExample = v => String(v).indexOf(DRAFT_MARK) >= 0;
 /* Panel + filter selection. Deliberately module-local: it is view state, not
    product data, so it never lands in S. */
 const ui = { panel: "queue", athlete: "all" };
-const PANELS = [["queue", "Needs a note"], ["written", "Written notes"], ["progress", "Athlete progress"]];
+const PANELS = [["queue", "Needs a note"], ["written", "Written notes"], ["progress", "Athlete progress"], ["documents", "Documents"]];
 
 const FIELDS = [
   ["worked", "What we worked on", "The drills, the focus, the shape of the session."],
@@ -688,7 +688,7 @@ function notesView(){
           <select id="ntAthlete">${athleteOptions(ui.athlete)}</select>
         </div>
       </div>
-      ${ui.panel === "queue" ? queuePanel() : ui.panel === "written" ? writtenPanel() : progressPanel()}
+      ${ui.panel === "queue" ? queuePanel() : ui.panel === "written" ? writtenPanel() : ui.panel === "documents" ? documentsPanel() : progressPanel()}
     </div>
   </section>
 
@@ -753,6 +753,36 @@ function writtenPanel(){
       ${list.map(noteCard).join("")}
     </div>`;
   }).join("");
+}
+
+/* ── F2 documents panel (2026-09-19). The persistent files list: real
+   downloadable artifacts the coach asked the assistant to make (parent
+   handouts, letters). Loaded lazily from coach_documents — RLS scopes every
+   row to the coach's org — and each row reuses the host's data-dldoc download
+   wiring, so the file on disk is served by the document-download edge
+   function under the coach's own JWT, never from client state. */
+const docState = { loading: false, rows: null };
+function loadDocuments(){
+  if (docState.loading || docState.rows) return;
+  const api = window.SporveCoach;
+  if (!api || !api.documents) return;
+  docState.loading = true;
+  api.documents().then(function(rows){
+    docState.rows = rows || []; docState.loading = false; render();
+  }).catch(function(){ docState.loading = false; render(); });
+}
+function documentsPanel(){
+  loadDocuments();
+  if (docState.loading || !docState.rows)
+    return `<div class="nt-blank">Loading documents…</div>`;
+  if (!docState.rows.length)
+    return `<div class="nt-blank">No documents yet. Ask the assistant for a parent handout and it will land here.</div>`;
+  return docState.rows.map(d => `<div class="nt-note">
+    <div class="nt-notehead">
+      <div><div class="nt-when">${esc(d.title || "Document")}</div>
+        <div class="nt-sub">${esc(d.format || "handout")} · <span class="num">${esc(String(d.created_at || "").slice(0, 10))}</span></div></div>
+      <button class="btn ghost sm" data-dldoc="${esc(String(d.id))}">Download</button>
+    </div></div>`).join("");
 }
 
 function noteCard(n){

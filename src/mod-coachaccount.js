@@ -401,6 +401,16 @@
       ).then(function (r) { return r || []; });
     },
 
+    /* F2 real artifacts (2026-09-19). The persistent files list: documents the
+       coach asked the assistant to make, served for download by the
+       document-download edge function. RLS scopes rows to the coach's org. */
+    documents: function () {
+      if (!uid()) return Promise.resolve([]);
+      return API.from("coach_documents",
+        "select=id,title,format,created_at&order=created_at.desc&limit=50"
+      ).then(function (r) { return r || []; });
+    },
+
     /* One call for all three coach decisions, because they differ only by the
        status written — and keeping them together stops a fourth verb being
        invented that the trigger would then refuse. */

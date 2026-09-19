@@ -26,6 +26,7 @@ test('the client sends no model at all: the picker and the label-shaped default 
   assert.ok(!/aiModel:"Sporv AI"/.test(host), 'the label-as-model-id default is gone');
   assert.ok(!/S\.aiModel\|\|/.test(host), 'nothing falls back through S.aiModel any more');
   assert.ok(!/data-aimodel/.test(host), 'the picker that could not work is gone');
-  assert.match(host, /API\.fn\("coach-command",\{text,history\}\)/);
+  assert.match(host, /API\.fn\("coach-command",\{text:text\+aiFileBlock\(file\),history\}\)/);
+  assert.ok(!/API\.fn\("coach-command",\{[^}]*model/.test(host), 'the client sends no model id at all');
   assert.match(host, /API\.fn\("ai-chat",\{messages:history\}\)/);
 });

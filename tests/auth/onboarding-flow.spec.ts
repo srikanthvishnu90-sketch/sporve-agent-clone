@@ -111,7 +111,7 @@ test('6. no route returns data without a session (live probe with the publishabl
   const { TABLES, probe, pendingOk } = await import(new URL('tools/check-anon-surface.mjs', root).href);
   const pending = JSON.parse(read('tools/anon-surface-pending.json'));
   assert.deepEqual(pendingOk(pending, new URL('supabase/migrations/', root)), [], 'every excuse names a migration that revokes anon on that table');
-  let reachable = false; try { await fetch('https://tseszaprvtvqrkfpditu.supabase.co/auth/v1/health', { signal: AbortSignal.timeout(5000) }); reachable = true; } catch { /* offline */ }
+  let reachable = false; try { await fetch('https://hzbhjkcqwawgqtspueuw.supabase.co/auth/v1/health', { signal: AbortSignal.timeout(5000) }); reachable = true; } catch { /* offline */ }
   if (!reachable) { console.log('   (network unavailable — live probe skipped; the weekly anon-surface workflow runs it)'); return; }
   const open: string[] = [];
   for (const t of TABLES) { const p = await probe(t); if (p.rows > 0 && !pending[t]) open.push(`${t} (${p.columns.slice(0, 5).join(',')})`); }

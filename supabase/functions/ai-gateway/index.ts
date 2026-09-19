@@ -203,6 +203,7 @@ async function runAI(args: RunAIArgs) {
   let text = "";
   let toolCalls: { name: string; input: unknown }[] = [];
   let usage: Record<string, number> = {};
+  let stopReason: string | null = null;
   try {
     const resp = await fetch("https://api.anthropic.com/v1/messages", {
       method: "POST",
@@ -220,6 +221,7 @@ async function runAI(args: RunAIArgs) {
     } else {
       ok = true;
       usage = data?.usage ?? {};
+      stopReason = typeof data?.stop_reason === "string" ? data.stop_reason : null;
       const blocks = Array.isArray(data?.content) ? data.content : [];
       text = blocks.filter((b: { type: string }) => b.type === "text")
         .map((b: { text: string }) => b.text).join("");
@@ -260,22 +262,37 @@ async function runAI(args: RunAIArgs) {
   };
 
   // Exactly one audit row per call. Return the persisted row as proof.
+  // Defensive: actor_id has a FK to profiles(id). If the caller's actor has no
+  // profile row yet (e.g. fresh signup before profile creation), null it out
+  // so the audit row still persists instead of failing the FK silently.
+  if (row.actor_id) {
+    const { data: prof } = await admin.from("profiles").select("id")
+      .eq("id", row.actor_id).single();
+    if (!prof) row.actor_id = null;
+  }
   const { data: audit, error: auditErr } = await admin
     .from("ai_audit_log").insert(row).select().single();
+  const auditErrorMsg = auditErr ? auditErr.message : null;
   if (auditErr) console.error("ai_audit_log insert failed:", auditErr.message);
 
   if (!ok) {
-    return { error: errMsg, model, task: args.task, latency_ms, audit: audit ?? null };
+    return { error: errMsg, model, task: args.task, latency_ms, audit: audit ?? null, audit_error: auditErrorMsg };
   }
   return {
     text,
     toolCalls,
     model,
     task: args.task,
+    stop_reason: stopReason,
+    // A max_tokens stop means the tool_use input may be cut mid-string — the
+    // caller must NOT treat it as a complete turn (D1: truncated parent draft
+    // rendered as if whole). Retry with headroom or fail honestly instead.
+    truncated: stopReason === "max_tokens",
     usage: { tokens_in: tokensIn, tokens_out: tokensOut, cache_read: cacheRead, cache_write: cacheWrite },
     est_cost_usd,
     latency_ms,
     audit: audit ?? null,
+    audit_error: auditErrorMsg,
   };
 }
 

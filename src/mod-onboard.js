@@ -112,7 +112,10 @@
   const canContinue = (step) => { const w = why(step); return !w || (!w.hard && false) ? !w : false; };
 
   /* ── markup ── */
-  const logo = () => `<div class="logo"><svg viewBox="0 0 120 120" aria-hidden="true"><circle cx="60" cy="60" r="52" fill="none" stroke="#7E8BA2" stroke-width="10"/><path d="M38 78 L60 34 L82 78 Z" fill="#7E8BA2"/></svg><span>Sporv</span></div>`;
+  /* Auth-trap fix (2026-09-19): the step-1 logo is a real home control — a guest
+     can always leave the signup flow. Button keeps the .logo class so the
+     existing styles apply; the inline reset only removes native button chrome. */
+  const logo = () => `<button type="button" class="logo" data-obexit="1" aria-label="Back to Sporv home" title="Back to Sporv home" style="background:none;border:0;cursor:pointer;padding:0;font:inherit"><svg viewBox="0 0 120 120" aria-hidden="true"><circle cx="60" cy="60" r="52" fill="none" stroke="#7E8BA2" stroke-width="10"/><path d="M38 78 L60 34 L82 78 Z" fill="#7E8BA2"/></svg><span>Sporv</span></button>`;
   const G = '<svg viewBox="0 0 24 24" class="gi"><path fill="#4285F4" d="M22.6 12.3c0-.8-.1-1.5-.2-2.2H12v4.2h6a5.1 5.1 0 0 1-2.2 3.4v2.8h3.6c2.1-1.9 3.2-4.8 3.2-8.2z"/><path fill="#34A853" d="M12 23c3 0 5.5-1 7.3-2.7l-3.6-2.8c-1 .7-2.3 1.1-3.7 1.1-2.9 0-5.3-1.9-6.2-4.6H2.1v2.9A11 11 0 0 0 12 23z"/><path fill="#FBBC05" d="M5.8 14a6.6 6.6 0 0 1 0-4.2V6.9H2.1a11 11 0 0 0 0 9.9L5.8 14z"/><path fill="#EA4335" d="M12 5.4c1.6 0 3.1.6 4.2 1.7l3.2-3.2A11 11 0 0 0 2.1 6.9L5.8 9.8c.9-2.7 3.3-4.4 6.2-4.4z"/></svg>';
   const A = '<svg viewBox="0 0 24 24" class="gi" fill="#000"><path d="M16.4 12.6c0-2.4 2-3.5 2-3.6-1.1-1.6-2.8-1.8-3.4-1.8-1.4-.1-2.8.9-3.5.9-.7 0-1.8-.8-3-.8-1.6 0-3 .9-3.8 2.3-1.6 2.8-.4 7 1.2 9.3.8 1.1 1.7 2.4 2.9 2.3 1.2 0 1.6-.7 3-.7s1.8.7 3 .7c1.3 0 2.1-1.1 2.8-2.3.9-1.3 1.3-2.6 1.3-2.7 0 0-2.5-1-2.5-3.6zM14.1 5.5c.6-.8 1.1-1.9.9-3-.9 0-2.1.6-2.7 1.4-.6.7-1.1 1.8-1 2.9 1 .1 2.1-.5 2.8-1.3z"/></svg>';
 
@@ -216,7 +219,7 @@
     const w = why(s), next = s === "5" ? "Run Sporv" : s === "7" ? "Open dashboard" : "Continue";
     const showNext = !(s === "1" || s === "1b" || (s === "6" && !(S.agentRun && S.agentRun.done)));
     return `<div class="ob ${full ? "full" : ""}"><div class="left">
-      <div class="top"><span class="brand">Sporv</span><span class="stp">${LBL[s]}</span><span class="clock mono">${o.t0 && full ? fmt(Date.now() - o.t0) : ""}</span>${signedIn() ? `<button class="btn ghost obout" data-obsignout="1">Sign out</button>` : ""}</div>
+      <div class="top"><span class="brand">Sporv</span><span class="stp">${LBL[s]}</span><span class="clock mono">${o.t0 && full ? fmt(Date.now() - o.t0) : ""}</span>${signedIn() ? `<button class="btn ghost obout" data-obsignout="1">Sign out</button>` : `<button class="btn ghost obout" data-obexit="1" aria-label="Back to Sporv home" title="Back to Sporv home">← Back</button>`}</div>
       <div class="prog"><i style="width:${PCT[s]}%"></i></div>
       <div class="body ${s === "1" || s === "1b" ? "center" : ""}"><div class="pad">${body}</div></div>
       <div class="foot">
@@ -226,7 +229,7 @@
       </div>
       ${w && showNext ? `<p class="obwhy ${w.hard ? "hard" : ""}">${esc(w.msg)}</p>` : ""}
     </div>
-    <aside class="right" aria-hidden="true"><div class="ph"><svg viewBox="0 0 120 120" style="width:34%;height:auto;opacity:.9" aria-hidden="true"><circle cx="60" cy="60" r="52" fill="none" stroke="#7E8BA2" stroke-width="10"/><path d="M38 78 L60 34 L82 78 Z" fill="#7E8BA2"/></svg><div class="lab"><b>Welcome to Sporv</b>Your visual goes here · 4:5</div></div><div class="cap"><span>Sporv</span><span>Account</span></div></aside>
+    <aside class="right" aria-hidden="true"><div class="ph"><svg viewBox="0 0 120 120" style="width:34%;height:auto;opacity:.9" aria-hidden="true"><circle cx="60" cy="60" r="52" fill="none" stroke="#7E8BA2" stroke-width="10"/><path d="M38 78 L60 34 L82 78 Z" fill="#7E8BA2"/></svg><div class="lab"><b>Welcome to Sporv</b></div></div><div class="cap"><span>Sporv</span><span>Account</span></div></aside>
     </div>`;
   }
 
@@ -294,9 +297,12 @@
     const em = id("obEm"); if (em) { em.oninput = () => { o.email = em.value.trim(); const b = id("obSend"); if (b) b.disabled = !EMAIL_RX.test(o.email) || o.busy; }; em.onkeydown = (e) => { if (e.key === "Enter" && EMAIL_RX.test(o.email)) sendLink(); }; if (o.step === "1" && !o.email) em.focus(); }
     const send = id("obSend"); if (send) send.onclick = sendLink;
     q("[data-oboauth]").forEach((b) => b.onclick = () => { if (!AUTH()) return fail("Sign-in is unavailable right now. Reload the page."); try { sessionStorage.setItem("sporv:oauth-intent", "signup"); if (typeof saveState === "function") saveState(); } catch (e) {} window.location.href = AUTH().oauthUrl(b.dataset.oboauth, window.location.origin + window.location.pathname); });
-    q("[data-oblogin]").forEach((a) => a.onclick = (e) => { e.preventDefault(); const el = id("obEm"); if (el) el.focus(); });
+    /* Auth-trap fix (2026-09-19): "Log in" used to just focus the signup email
+       field, which read as a dead link. It now opens the real "Log in or sign
+       up" sheet, whose identifier flow routes an existing account to sign-in. */
+    q("[data-oblogin]").forEach((a) => a.onclick = (e) => { e.preventDefault(); S.modal = { type: "authsheet" }; render(); });
     q("[data-obpw]").forEach((a) => a.onclick = (e) => { e.preventDefault(); S.authIdentifier = o.email; S.modal = { type: "login" }; render(); });
-    q("[data-obfoot]").forEach((a) => a.onclick = (e) => { e.preventDefault(); const [n, arg] = a.dataset.obfoot.split(":"); S.modal = null; window.open(location.origin + "/?page=" + encodeURIComponent(arg), "_blank", "noopener"); void n; });
+    q("[data-obfoot]").forEach((a) => a.onclick = (e) => { e.preventDefault(); const arg = a.dataset.obfoot.split(":")[1]; if(!arg) return; window.open(location.origin + "/?page=" + encodeURIComponent(arg), "_blank", "noopener"); });
     q("[data-obresend]").forEach((b) => b.onclick = () => { o.resent = true; AUTH().magicLink(o.email, window.location.origin + "/", { role: "provider" }).catch(() => {}); render(); setTimeout(() => { o.resent = false; render(); }, 1800); });
     q("[data-obwrong]").forEach((b) => b.onclick = () => { o.step = "1"; o.sent = false; o.err = null; o.code = false; o.tok = ""; render(); });
     q("[data-obcode]").forEach((b) => b.onclick = () => { o.code = true; render(); });
@@ -319,6 +325,10 @@
     q("[data-obskip]").forEach((b) => b.onclick = () => advance(true));
     q("[data-obback]").forEach((b) => b.onclick = () => { const i = ORDER.indexOf(o.step); if (i > 0) { o.step = ORDER[i - 1]; o.err = null; persist(); render(); } });
     q("[data-obsignout]").forEach((b) => b.onclick = () => { S.ob = null; if (typeof doSignOut === "function") doSignOut(); else if (AUTH()) AUTH().signOut().then(() => location.reload()); });
+    /* Auth-trap fix (2026-09-19): guest exit for the full-page signup flow.
+       Clears the parked signup intent via the shared host exit; the signed-in
+       guard keeps the intentional onboarding gate for real coaches. */
+    q("[data-obexit]").forEach((b) => b.onclick = () => { if (typeof signedIn === "function" && signedIn()) return; if (typeof window.exitFullPageAuth === "function") window.exitFullPageAuth(); });
   }
 
   const CSS = `
@@ -341,7 +351,7 @@
   .ob .cap{position:absolute;left:var(--s-7);bottom:var(--s-6);right:var(--s-7);display:flex;justify-content:space-between;font-family:"JetBrains Mono",monospace;font-size:var(--t-10);letter-spacing:.12em;text-transform:uppercase;color:var(--ink-3)}
   @media(max-width:900px){.ob{grid-template-columns:1fr}.ob .right{display:none}.ob .body{align-items:flex-start}}
   .ob h1{font-family:"Roboto Condensed",sans-serif;text-transform:uppercase;font-weight:700;font-size:17px;letter-spacing:.035em;margin:0 0 var(--s-2);line-height:1.15;color:var(--ink)}
-  .ob .sub{color:var(--ink-2);font-size:13px;margin:0 0 var(--s-5);max-width:56ch}
+  .ob .sub{color:var(--ink-2);font-size:14px;margin:0 0 var(--s-5);max-width:56ch}
   .ob label.l{display:block;font-family:"Roboto Condensed",sans-serif;text-transform:uppercase;font-weight:700;font-size:var(--t-11);letter-spacing:.08em;color:var(--ink-3);margin:0 0 var(--s-2)}
   .ob .hint{color:var(--ink-3);font-size:var(--t-12);margin-top:var(--s-2);line-height:1.45}.ob .f{margin-bottom:var(--s-5)}.ob .row2{display:grid;grid-template-columns:1fr 1fr;gap:var(--s-4)}
   .ob input[type=text],.ob input[type=email],.ob input[type=url],.ob select{width:100%;height:38px;padding:0 var(--s-3);background:var(--bg);border:1px solid var(--line-2);border-radius:7px;font-size:var(--t-14);color:var(--ink)}
@@ -363,7 +373,7 @@
   .ob .consent{display:flex;gap:10px;align-items:flex-start;margin-top:var(--s-5);padding:var(--s-3) var(--s-4);border:1px solid var(--line-2);border-radius:9px;font-size:var(--t-12);color:var(--ink-2);cursor:pointer}.ob .consent.on{border-color:var(--steel)}.ob .consent input{width:16px;height:16px;margin-top:2px;accent-color:#6B7F9E}.ob .consent a{color:var(--ink)}
   .ob .chips{display:flex;flex-wrap:wrap;gap:var(--s-2)}.ob .chip{height:28px;padding:0 11px;border:1px solid var(--line-2);border-radius:999px;font-size:var(--t-12);color:var(--ink-2);display:inline-flex;align-items:center}.ob .chip:hover{border-color:var(--line-3);color:var(--ink)}.ob .chip.on{background:var(--ink);color:var(--bg);border-color:var(--ink);font-weight:500}.ob input.chip.more{border-style:dashed;color:var(--ink-3);width:auto;height:28px;background:transparent}
   .ob .derived{margin-top:var(--s-6);border:1px solid var(--line);border-radius:10px;overflow:hidden}.ob .derived .h{padding:8px 13px;border-bottom:1px solid var(--line);font-weight:600;font-size:var(--t-12);display:flex;align-items:center;gap:8px}.ob .derived .h i{width:6px;height:6px;border-radius:50%;background:var(--steel);display:inline-block}
-  .ob .derived .r{display:flex;justify-content:space-between;gap:14px;padding:8px 13px;border-bottom:1px solid var(--line);font-size:13px}.ob .derived .r:last-child{border-bottom:0}.ob .derived .r span:first-child{color:var(--ink-3)}.ob .derived .r span:last-child{font-family:"JetBrains Mono",monospace;font-size:var(--t-12);text-align:right}
+  .ob .derived .r{display:flex;justify-content:space-between;gap:14px;padding:8px 13px;border-bottom:1px solid var(--line);font-size:14px}.ob .derived .r:last-child{border-bottom:0}.ob .derived .r span:first-child{color:var(--ink-3)}.ob .derived .r span:last-child{font-family:"JetBrains Mono",monospace;font-size:var(--t-12);text-align:right}
   .ob .conn{display:grid;grid-template-columns:1fr;gap:var(--s-2)}.ob .cn{display:flex;align-items:flex-start;gap:var(--s-3);padding:var(--s-3) var(--s-4);border:1px solid var(--line-2);border-radius:9px;background:var(--bg);text-align:left}.ob .cn:hover{border-color:var(--line-3)}.ob .cn.on{border-color:var(--ok-br);background:var(--ok-bg)}
   .ob .cn .ic{width:28px;height:28px;border-radius:7px;background:var(--panel-2);border:1px solid var(--line);display:grid;place-items:center;font-family:"JetBrains Mono",monospace;font-size:var(--t-10);color:var(--ink-2);flex:none}.ob .cn.on .ic{border-color:var(--ok-br);color:var(--ok)}.ob .cn b{display:block;font-size:var(--t-13);font-weight:500}.ob .cn .b{flex:1;min-width:0}.ob .cn small{display:block;font-size:var(--t-11);color:var(--ink-3);line-height:1.45;margin-top:2px}
   .ob .cn .st{margin-left:auto;font-size:var(--t-11);color:var(--ink-3);flex:none;padding-top:2px;white-space:nowrap}.ob .cn.on .st{color:var(--ok)}.ob .cn.busy .st{color:var(--steel-l)}
