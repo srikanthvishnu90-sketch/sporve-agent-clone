@@ -203,6 +203,7 @@ async function runAI(args: RunAIArgs) {
   let text = "";
   let toolCalls: { name: string; input: unknown }[] = [];
   let usage: Record<string, number> = {};
+  let stopReason: string | null = null;
   try {
     const resp = await fetch("https://api.anthropic.com/v1/messages", {
       method: "POST",
@@ -220,6 +221,7 @@ async function runAI(args: RunAIArgs) {
     } else {
       ok = true;
       usage = data?.usage ?? {};
+      stopReason = typeof data?.stop_reason === "string" ? data.stop_reason : null;
       const blocks = Array.isArray(data?.content) ? data.content : [];
       text = blocks.filter((b: { type: string }) => b.type === "text")
         .map((b: { text: string }) => b.text).join("");
@@ -272,6 +274,11 @@ async function runAI(args: RunAIArgs) {
     toolCalls,
     model,
     task: args.task,
+    stop_reason: stopReason,
+    // A max_tokens stop means the tool_use input may be cut mid-string — the
+    // caller must NOT treat it as a complete turn (D1: truncated parent draft
+    // rendered as if whole). Retry with headroom or fail honestly instead.
+    truncated: stopReason === "max_tokens",
     usage: { tokens_in: tokensIn, tokens_out: tokensOut, cache_read: cacheRead, cache_write: cacheWrite },
     est_cost_usd,
     latency_ms,

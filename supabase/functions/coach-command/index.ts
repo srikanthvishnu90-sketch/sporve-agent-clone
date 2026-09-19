@@ -789,29 +789,43 @@ Deno.serve(async (req) => {
     // ── ONE model call THROUGH ai-gateway (task=agent_turn -> haiku; owner
     //    ruling 2026-09-18 after the audit measured 13.8s cold on sonnet). The
     //    injection resistance lives in SYSTEM and in the ownership scrub below,
-    //    not in the model tier. Coach's JWT => per-user rate limit. ─
-    const gResp = await fetch(`${SUPABASE_URL}/functions/v1/${GATEWAY_FN}`, {
-      method: "POST",
-      headers: {
-        "apikey": ANON_KEY,
-        "Authorization": authHeader,
-        "Content-Type": "application/json",
-        ...(INTERNAL_SECRET ? { "x-sporve-internal": INTERNAL_SECRET } : {}),
-      },
-      body: JSON.stringify({
-        task: "agent_turn",
-        feature: "coach_command",
-        system: SYSTEM,
-        messages,
-        tools: [TURN_TOOL],
-        tool_choice: { type: "tool", name: "coach_turn" },
-        maxTokens: 900,
-      }),
-    });
-    const g = await gResp.json().catch(() => ({}));
+    //    not in the model tier. Coach's JWT => per-user rate limit. ──────────
+    //    D1: a max_tokens-truncated turn used to surface as a complete proposal
+    //    with the draft cut mid-sentence. The gateway now reports `truncated`;
+    //    on truncation we retry once with headroom, and if it is STILL cut we
+    //    fail honestly instead of rendering a broken draft.
+    const gatewayTurn = async (maxTokens: number) => {
+      const gResp = await fetch(`${SUPABASE_URL}/functions/v1/${GATEWAY_FN}`, {
+        method: "POST",
+        headers: {
+          "apikey": ANON_KEY,
+          "Authorization": authHeader,
+          "Content-Type": "application/json",
+          ...(INTERNAL_SECRET ? { "x-sporve-internal": INTERNAL_SECRET } : {}),
+        },
+        body: JSON.stringify({
+          task: "agent_turn",
+          feature: "coach_command",
+          system: SYSTEM,
+          messages,
+          tools: [TURN_TOOL],
+          tool_choice: { type: "tool", name: "coach_turn" },
+          maxTokens,
+        }),
+      });
+      const g = await gResp.json().catch(() => ({}));
+      return { gResp, g };
+    };
+    let { gResp, g } = await gatewayTurn(1600);
+    if (gResp.ok && g?.truncated === true) {
+      ({ gResp, g } = await gatewayTurn(3500));
+    }
     if (!gResp.ok) {
       if (gResp.status === 429) return json({ error: "AI request limit reached. Please try again shortly." }, 429);
       return json({ error: g?.error ?? `ai-gateway error (${gResp.status})`, audit_id: g?.audit?.id ?? null }, 502);
+    }
+    if (g?.truncated === true) {
+      return json({ error: "The assistant's reply was cut off before it finished. Please try again." }, 502);
     }
 
     const call = Array.isArray(g?.toolCalls) ? g.toolCalls[0] : null;
