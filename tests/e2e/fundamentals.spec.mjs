@@ -75,7 +75,7 @@ test('2+3. signup: every button works, and what is entered is saved and shown af
   for (const b of await page.locator('[data-oboauth]').all()) { await b.click(); clicked.add('1 · oauth ' + await b.getAttribute('data-oboauth')); }
   assert.deepEqual(await page.evaluate(() => window.__oauth), ['google', 'apple'], 'Google and Apple buttons start OAuth (navigation stubbed)');
   await click('[data-obpw]', '1 · use a password'); assert.equal((await state(page)).modal, 'login'); await page.evaluate(() => { S.modal = null; render(); });
-  await click('[data-oblogin]', '1 · log in link');
+  await click('[data-oblogin]', '1 · log in link'); await page.evaluate(() => { S.modal = null; render(); }); /* close modal before footer clicks (2026-09-19): footer links are behind the modal */
   for (const b of await page.locator('[data-obfoot]').all()) { await b.click(); clicked.add('1 · footer ' + await b.getAttribute('data-obfoot')); }
   assert.ok(((await page.evaluate(() => window.__opened)) || []).length >= 1, 'footer links open the legal pages');
   await page.fill('#obEm', 'coach@example.com'); await click('#obSend', '1 · Continue');
