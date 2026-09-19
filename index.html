@@ -25,7 +25,7 @@
 <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16.png">
 <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
 <link rel="manifest" href="/site.webmanifest">
-<meta name="sporve-build" content="5ccf98e4d37f7efc">
+<meta name="sporve-build" content="8b788d7f029c6f83">
 </head>
 <body>
 <noscript><h1>Sporv — Every sport. One app.</h1><p>Sporv connects families and athletes with coaches, trainers, camps, and teams across more than 20 sports. Please enable JavaScript to use the app.</p></noscript>
@@ -2535,7 +2535,9 @@ button.tnav.tnav-cta:hover{background:#FFFFFF;color:#0B0D0F;border-color:#FFFFFF
 .aipill.aidock-col .aidock-scroll{flex:1 1 auto;min-height:0}
 .aipill.aidock-col .aidock-empty{margin:auto 0}
 .aipill.aidock-col .aidock-chips{max-width:100%;flex-wrap:wrap;flex:0 0 auto}   /* column: chips wrap, never clip off the rail edge (owner 2026-08-24) */
-.aipill.aidock-col .aidock-compose{flex:0 0 auto}
+.aipill.aidock-col .aidock-compose{flex:0 0 auto;margin:0 18px 14px;padding:10px 12px}
+/* Composer shares the scroll's 18px horizontal inset so output and chatbox sit
+   in the same column; slightly reduced padding keeps it compact in the dock. */
 /* The floating FAB is redundant while the panel is a permanent column. */
 html.coldock .aidock-fab{display:none}
 /* Owner 2026-08-18: an ACTIVE chatbox (a live conversation panel) sits dead
