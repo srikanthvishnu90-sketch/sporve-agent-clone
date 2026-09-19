@@ -10530,6 +10530,21 @@ function leadsCardHTML(list,saved){
   </div>`;
 }
 
+/* Real-artifact card (F2, 2026-09-19). Renders the create_document read result —
+   a genuine downloadable file from coach_documents, served by the
+   document-download edge function. The Download button fetches the rendered
+   HTML under the coach's own JWT and saves it as a file. */
+function documentCardHTML(doc){
+  if(!doc||!doc.document_id) return "";
+  return `<div class="faccard"><div class="facrow">
+      <span class="facmain"><b>${esc(doc.title||"Document")}</b>${
+        doc.format?`<em>${esc(String(doc.format))}</em>`:""}</span>
+      <button class="btn sm" data-dldoc="${esc(String(doc.document_id))}">Download</button>
+    </div>
+    <p class="facfine">Saved to your documents — download it anytime from here or the Documents list.</p>
+  </div>`;
+}
+
 function propCardHTML(p,i){
   const meta=PROP_META[p.tool]||{label:p.tool.replace(/_/g," "),tab:"dashboard"};
   const isMsgFamily=["draft_message","draft_bulk_message","draft_recap","camp_broadcast","draft_waitlist_offer"].includes(p.tool);
@@ -10658,6 +10673,7 @@ function aiDockHTML(){
              ${m.proposal?propCardHTML(m.proposal,i):""}
              ${m.facilities?facilitiesCardHTML(m.facilities):""}
              ${m.leads?leadsCardHTML(m.leads,m.leadsSaved):""}
+             ${m.document?documentCardHTML(m.document):""}
              ${(m.picks||[]).map(id=>{
                const p=PROGRAMS.find(x=>x.id===id);
                return p?`<button class="aidock-pick" data-open="${esc(p.id)}">
@@ -18516,6 +18532,23 @@ document.querySelectorAll('.sig-ai-coach').forEach(sigAiCoachWire);
     S.chat=S.chat.filter((_,x)=>x!==i&&!(prevIsSame&&x===i-1));
     askCoach(m.retry);
   });
+  /* F2 document download. document-download verifies ownership server-side;
+     the rendered file becomes a Blob download — a real artifact, not a note. */
+  $("[data-dldoc]").forEach(b=>b.onclick=async()=>{
+    const id=String(b.dataset.dldoc||"");
+    if(!id) return;
+    b.disabled=true;const label=b.textContent;b.textContent="Preparing…";
+    try{
+      const r=await window.SporveAPI.fn("document-download",{id});
+      const blob=new Blob([r.html],{type:"text/html"});
+      const a=document.createElement("a");
+      a.href=URL.createObjectURL(blob);a.download=r.filename||"document.html";
+      document.body.appendChild(a);a.click();a.remove();
+      setTimeout(()=>URL.revokeObjectURL(a.href),8000);
+      toast("Downloaded");
+    }catch(_e){toast("Couldn't download the document");}
+    b.disabled=false;b.textContent=label;
+  });
   /* The dock's own controls. data-ask / data-chatclear / data-open above are
      document-wide, so the dock's copies of those are already wired. */
   /* Category card -> filter the grid to that type and scroll to it. Sets the
@@ -19899,8 +19932,15 @@ function askCoach(q){
       const leadRead=calls.find(c=>c&&c.kind==="read"&&c.tool==="find_clients");
       const leads=(leadRead&&leadRead.result&&Array.isArray(leadRead.result.leads))?leadRead.result.leads:null;
       const leadsSaved=(leadRead&&leadRead.result&&+leadRead.result.saved_as_findings)||0;
+      /* Real artifact (F2): the create_document READ inserts the row
+         deterministically and returns the receipt; the card below carries the
+         Download button. A missing/failed receipt renders no card — the
+         model's prose must not claim a file exists without it. */
+      const docRead=calls.find(c=>c&&c.kind==="read"&&c.tool==="create_document");
+      const document=(docRead&&docRead.result&&docRead.result.created&&docRead.result.document_id)
+        ?{document_id:String(docRead.result.document_id),title:String(docRead.result.title||"Document"),format:String(docRead.result.format||"handout")}:null;
       S.chatThinking=false;
-      S.chat=[...S.chat,{role:"coach",text:reply,tools,proposal,facilities,leads,leadsSaved}];
+      S.chat=[...S.chat,{role:"coach",text:reply,tools,proposal,facilities,leads,leadsSaved,document}];
       /* Reply landed while the dock was closed → badge the FAB so the coach
          sees there's something waiting; cleared when they reopen. */
       if(S.aiOpen===false) S.aiUnread=(S.aiUnread||0)+1;

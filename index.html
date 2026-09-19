@@ -25,7 +25,7 @@
 <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16.png">
 <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
 <link rel="manifest" href="/site.webmanifest">
-<meta name="sporve-build" content="e86816463938ade7">
+<meta name="sporve-build" content="308f294a52328401">
 </head>
 <body>
 <noscript><h1>Sporv — Every sport. One app.</h1><p>Sporv connects families and athletes with coaches, trainers, camps, and teams across more than 20 sports. Please enable JavaScript to use the app.</p></noscript>
@@ -10578,6 +10578,21 @@ function leadsCardHTML(list,saved){
   </div>`;
 }
 
+/* Real-artifact card (F2, 2026-09-19). Renders the create_document read result —
+   a genuine downloadable file from coach_documents, served by the
+   document-download edge function. The Download button fetches the rendered
+   HTML under the coach's own JWT and saves it as a file. */
+function documentCardHTML(doc){
+  if(!doc||!doc.document_id) return "";
+  return `<div class="faccard"><div class="facrow">
+      <span class="facmain"><b>${esc(doc.title||"Document")}</b>${
+        doc.format?`<em>${esc(String(doc.format))}</em>`:""}</span>
+      <button class="btn sm" data-dldoc="${esc(String(doc.document_id))}">Download</button>
+    </div>
+    <p class="facfine">Saved to your documents — download it anytime from here or the Documents list.</p>
+  </div>`;
+}
+
 function propCardHTML(p,i){
   const meta=PROP_META[p.tool]||{label:p.tool.replace(/_/g," "),tab:"dashboard"};
   const isMsgFamily=["draft_message","draft_bulk_message","draft_recap","camp_broadcast","draft_waitlist_offer"].includes(p.tool);
@@ -10706,6 +10721,7 @@ function aiDockHTML(){
              ${m.proposal?propCardHTML(m.proposal,i):""}
              ${m.facilities?facilitiesCardHTML(m.facilities):""}
              ${m.leads?leadsCardHTML(m.leads,m.leadsSaved):""}
+             ${m.document?documentCardHTML(m.document):""}
              ${(m.picks||[]).map(id=>{
                const p=PROGRAMS.find(x=>x.id===id);
                return p?`<button class="aidock-pick" data-open="${esc(p.id)}">
@@ -18564,6 +18580,23 @@ document.querySelectorAll('.sig-ai-coach').forEach(sigAiCoachWire);
     S.chat=S.chat.filter((_,x)=>x!==i&&!(prevIsSame&&x===i-1));
     askCoach(m.retry);
   });
+  /* F2 document download. document-download verifies ownership server-side;
+     the rendered file becomes a Blob download — a real artifact, not a note. */
+  $("[data-dldoc]").forEach(b=>b.onclick=async()=>{
+    const id=String(b.dataset.dldoc||"");
+    if(!id) return;
+    b.disabled=true;const label=b.textContent;b.textContent="Preparing…";
+    try{
+      const r=await window.SporveAPI.fn("document-download",{id});
+      const blob=new Blob([r.html],{type:"text/html"});
+      const a=document.createElement("a");
+      a.href=URL.createObjectURL(blob);a.download=r.filename||"document.html";
+      document.body.appendChild(a);a.click();a.remove();
+      setTimeout(()=>URL.revokeObjectURL(a.href),8000);
+      toast("Downloaded");
+    }catch(_e){toast("Couldn't download the document");}
+    b.disabled=false;b.textContent=label;
+  });
   /* The dock's own controls. data-ask / data-chatclear / data-open above are
      document-wide, so the dock's copies of those are already wired. */
   /* Category card -> filter the grid to that type and scroll to it. Sets the
@@ -19947,8 +19980,15 @@ function askCoach(q){
       const leadRead=calls.find(c=>c&&c.kind==="read"&&c.tool==="find_clients");
       const leads=(leadRead&&leadRead.result&&Array.isArray(leadRead.result.leads))?leadRead.result.leads:null;
       const leadsSaved=(leadRead&&leadRead.result&&+leadRead.result.saved_as_findings)||0;
+      /* Real artifact (F2): the create_document READ inserts the row
+         deterministically and returns the receipt; the card below carries the
+         Download button. A missing/failed receipt renders no card — the
+         model's prose must not claim a file exists without it. */
+      const docRead=calls.find(c=>c&&c.kind==="read"&&c.tool==="create_document");
+      const document=(docRead&&docRead.result&&docRead.result.created&&docRead.result.document_id)
+        ?{document_id:String(docRead.result.document_id),title:String(docRead.result.title||"Document"),format:String(docRead.result.format||"handout")}:null;
       S.chatThinking=false;
-      S.chat=[...S.chat,{role:"coach",text:reply,tools,proposal,facilities,leads,leadsSaved}];
+      S.chat=[...S.chat,{role:"coach",text:reply,tools,proposal,facilities,leads,leadsSaved,document}];
       /* Reply landed while the dock was closed → badge the FAB so the coach
          sees there's something waiting; cleared when they reopen. */
       if(S.aiOpen===false) S.aiUnread=(S.aiUnread||0)+1;
@@ -21823,6 +21863,16 @@ window.MOD_COACHUI = { css:CSS, wire:wire };
         "approved_at,booking_id,child_id" +
         "&status=in.(pending,processing,drafted,approved)" +
         "&order=created_at.desc&limit=50"
+      ).then(function (r) { return r || []; });
+    },
+
+    /* F2 real artifacts (2026-09-19). The persistent files list: documents the
+       coach asked the assistant to make, served for download by the
+       document-download edge function. RLS scopes rows to the coach's org. */
+    documents: function () {
+      if (!uid()) return Promise.resolve([]);
+      return API.from("coach_documents",
+        "select=id,title,format,created_at&order=created_at.desc&limit=50"
       ).then(function (r) { return r || []; });
     },
 
@@ -28737,7 +28787,7 @@ const isExample = v => String(v).indexOf(DRAFT_MARK) >= 0;
 /* Panel + filter selection. Deliberately module-local: it is view state, not
    product data, so it never lands in S. */
 const ui = { panel: "queue", athlete: "all" };
-const PANELS = [["queue", "Needs a note"], ["written", "Written notes"], ["progress", "Athlete progress"]];
+const PANELS = [["queue", "Needs a note"], ["written", "Written notes"], ["progress", "Athlete progress"], ["documents", "Documents"]];
 
 const FIELDS = [
   ["worked", "What we worked on", "The drills, the focus, the shape of the session."],
@@ -28918,7 +28968,7 @@ function notesView(){
           <select id="ntAthlete">${athleteOptions(ui.athlete)}</select>
         </div>
       </div>
-      ${ui.panel === "queue" ? queuePanel() : ui.panel === "written" ? writtenPanel() : progressPanel()}
+      ${ui.panel === "queue" ? queuePanel() : ui.panel === "written" ? writtenPanel() : ui.panel === "documents" ? documentsPanel() : progressPanel()}
     </div>
   </section>
 
@@ -28983,6 +29033,36 @@ function writtenPanel(){
       ${list.map(noteCard).join("")}
     </div>`;
   }).join("");
+}
+
+/* ── F2 documents panel (2026-09-19). The persistent files list: real
+   downloadable artifacts the coach asked the assistant to make (parent
+   handouts, letters). Loaded lazily from coach_documents — RLS scopes every
+   row to the coach's org — and each row reuses the host's data-dldoc download
+   wiring, so the file on disk is served by the document-download edge
+   function under the coach's own JWT, never from client state. */
+const docState = { loading: false, rows: null };
+function loadDocuments(){
+  if (docState.loading || docState.rows) return;
+  const api = window.SporveCoach;
+  if (!api || !api.documents) return;
+  docState.loading = true;
+  api.documents().then(function(rows){
+    docState.rows = rows || []; docState.loading = false; render();
+  }).catch(function(){ docState.loading = false; render(); });
+}
+function documentsPanel(){
+  loadDocuments();
+  if (docState.loading || !docState.rows)
+    return `<div class="nt-blank">Loading documents…</div>`;
+  if (!docState.rows.length)
+    return `<div class="nt-blank">No documents yet. Ask the assistant for a parent handout and it will land here.</div>`;
+  return docState.rows.map(d => `<div class="nt-note">
+    <div class="nt-notehead">
+      <div><div class="nt-when">${esc(d.title || "Document")}</div>
+        <div class="nt-sub">${esc(d.format || "handout")} · <span class="num">${esc(String(d.created_at || "").slice(0, 10))}</span></div></div>
+      <button class="btn ghost sm" data-dldoc="${esc(String(d.id))}">Download</button>
+    </div></div>`).join("");
 }
 
 function noteCard(n){
