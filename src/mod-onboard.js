@@ -226,7 +226,7 @@
       </div>
       ${w && showNext ? `<p class="obwhy ${w.hard ? "hard" : ""}">${esc(w.msg)}</p>` : ""}
     </div>
-    <aside class="right" aria-hidden="true"><div class="ph"><svg viewBox="0 0 120 120" style="width:34%;height:auto;opacity:.9" aria-hidden="true"><circle cx="60" cy="60" r="52" fill="none" stroke="#7E8BA2" stroke-width="10"/><path d="M38 78 L60 34 L82 78 Z" fill="#7E8BA2"/></svg><div class="lab"><b>Welcome to Sporv</b>Your visual goes here · 4:5</div></div><div class="cap"><span>Sporv</span><span>Account</span></div></aside>
+    <aside class="right" aria-hidden="true"><div class="ph"><svg viewBox="0 0 120 120" style="width:34%;height:auto;opacity:.9" aria-hidden="true"><circle cx="60" cy="60" r="52" fill="none" stroke="#7E8BA2" stroke-width="10"/><path d="M38 78 L60 34 L82 78 Z" fill="#7E8BA2"/></svg><div class="lab"><b>Welcome to Sporv</b></div></div><div class="cap"><span>Sporv</span><span>Account</span></div></aside>
     </div>`;
   }
 
@@ -296,7 +296,7 @@
     q("[data-oboauth]").forEach((b) => b.onclick = () => { if (!AUTH()) return fail("Sign-in is unavailable right now. Reload the page."); try { sessionStorage.setItem("sporv:oauth-intent", "signup"); if (typeof saveState === "function") saveState(); } catch (e) {} window.location.href = AUTH().oauthUrl(b.dataset.oboauth, window.location.origin + window.location.pathname); });
     q("[data-oblogin]").forEach((a) => a.onclick = (e) => { e.preventDefault(); const el = id("obEm"); if (el) el.focus(); });
     q("[data-obpw]").forEach((a) => a.onclick = (e) => { e.preventDefault(); S.authIdentifier = o.email; S.modal = { type: "login" }; render(); });
-    q("[data-obfoot]").forEach((a) => a.onclick = (e) => { e.preventDefault(); const [n, arg] = a.dataset.obfoot.split(":"); S.modal = null; window.open(location.origin + "/?page=" + encodeURIComponent(arg), "_blank", "noopener"); void n; });
+    q("[data-obfoot]").forEach((a) => a.onclick = (e) => { e.preventDefault(); const arg = a.dataset.obfoot.split(":")[1]; if(!arg) return; window.open(location.origin + "/?page=" + encodeURIComponent(arg), "_blank", "noopener"); });
     q("[data-obresend]").forEach((b) => b.onclick = () => { o.resent = true; AUTH().magicLink(o.email, window.location.origin + "/", { role: "provider" }).catch(() => {}); render(); setTimeout(() => { o.resent = false; render(); }, 1800); });
     q("[data-obwrong]").forEach((b) => b.onclick = () => { o.step = "1"; o.sent = false; o.err = null; o.code = false; o.tok = ""; render(); });
     q("[data-obcode]").forEach((b) => b.onclick = () => { o.code = true; render(); });

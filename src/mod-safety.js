@@ -362,7 +362,7 @@
     ["Checks are re-run",            "A badge that stops being true stops showing."],
   ];
   const RULES = [
-    ["Reports go to safety@sporve.com", "During beta a report opens an email to Sporv's safety address. Send it, and keep your copy — that email IS the record."],
+    ["Reports go to safety@sporv.ai", "During beta a report opens an email to Sporv's safety address. Send it, and keep your copy — that email IS the record."],
     ["Refunds are reviewed",   "Full refund, partial refund, or a written denial."],
     ["Deletion is a case",     "Payment and safety records stay under legal hold. We write back."],
   ];
@@ -435,7 +435,7 @@
 
         <div class="sf-note sf-note-warn sf-emergency" role="note">
           <h3>If anyone is in danger, call emergency services first</h3>
-          <p>Report here afterwards. During beta this opens an email to safety@sporve.com — send it so there is a record we can act on.</p>
+          <p>Report here afterwards. During beta this opens an email to safety@sporv.ai — send it so there is a record we can act on.</p>
         </div>
       </div>
     </section>
@@ -612,7 +612,7 @@
          believed Sporv was investigating. Sporv never knew.
 
          Until safety_reports exists with a triage path, the honest surface is
-         email: the report opens a pre-filled message to safety@sporve.com, and
+         email: the report opens a pre-filled message to safety@sporv.ai, and
          the sent mail — held by the parent, not by us — is the record. The local
          entry is kept ONLY as the parent's own copy and is labelled as such; it
          no longer claims a case number Sporv is holding. Deleting the false
@@ -626,7 +626,7 @@
             (providerId?("Provider: "+providerId+"\n"):"")+
             (bookingId?("Booking: "+bookingId+"\n"):"")+
             "\nWhat happened:\n"+details+"\n";
-          window.location.href = "mailto:safety@sporve.com"
+          window.location.href = "mailto:safety@sporv.ai"
             + "?subject=" + encodeURIComponent("Safety report — " + (CATEGORY_LABEL[category]||category))
             + "&body=" + encodeURIComponent(body);
         }catch(e){}
