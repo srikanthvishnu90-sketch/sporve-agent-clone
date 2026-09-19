@@ -1,0 +1,11 @@
+# Gitleaks config for sporve-agent-clone.
+#
+# ALLOWLIST: Supabase publishable ("anon") keys (sb_publishable_...).
+# These keys are PUBLIC BY DESIGN — Supabase intends them to be embedded in
+# client-side code and shipped in the page. They cannot be used to bypass
+# Row Level Security and are not secret credentials. (The service_role key,
+# which IS secret, must never be committed — it is still scanned for.)
+# https://supabase.com/docs/guides/api/api-keys
+[allowlist]
+description = "Supabase publishable keys are public by design, not secrets"
+regexes = ['''sb_publishable_[A-Za-z0-9_-]+''']
