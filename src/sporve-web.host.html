@@ -20159,7 +20159,7 @@ function policyField(p){
    key parent messages on args.body and a bio draft on args.draft/args.bio, so
    read any of them — whichever it used becomes the one editable field. */
 function propDraft(p){
-  return String((p.args&&(p.args.body||p.args.draft||p.args.bio||p.args.value||p.args.text))||"");
+  return String((p.args&&(p.args.body||p.args.draft_body||p.args.draft||p.args.bio||p.args.value||p.args.text))||"");
 }
 /* The athlete name and optional title a create_note/create_document proposal
    carries. The model may key the athlete on any of these, so read whichever it
