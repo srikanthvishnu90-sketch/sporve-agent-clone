@@ -7564,10 +7564,12 @@ function doCoachSignUp(email, password, businessName){
    fell through to the seeded dashboard — another operator's business — which
    is the "someone else's account" bug. Honest error + retry instead. */
 function coachEnsureErrorHTML(){
+  var detail=S.coachEnsureDetail||"";
   return `<section class="band"><div class="in" style="max-width:520px;padding:72px 0;text-align:center">
     <h1 style="margin-bottom:10px">We couldn't load your workspace</h1>
     <p style="color:var(--muted);margin-bottom:18px">Your account is signed in, but your organization's
       record didn't come back. This is usually a connection blip — nothing was lost.</p>
+    ${detail?`<p style="color:var(--muted);font-size:12px;margin-bottom:18px">Detail: ${String(detail).replace(/</g,"&lt;").slice(0,200)}</p>`:""}
     <button class="btn" data-coach-retry="1">Try again</button>
   </div></section>`;
 }
@@ -7652,7 +7654,7 @@ function enterCoachWorkspace(){
     .then(p=>{
       S.pendingBusinessName="";
       S.coachProvider = p || null;
-      S.coachEnsureError = null;
+      S.coachEnsureError = null; S.coachEnsureDetail = null;
       /* A provider session is never a parent session: drop any seeded athletes
          that survived into this session (cold-start sessionStorage restore runs
          no guest->sign-in purge). hydrateAthletes() only runs for non-providers,
@@ -7666,11 +7668,15 @@ function enterCoachWorkspace(){
       if(p && p.onboarding_completed===false){ go("setup"); return; }
       go("dashboard");
     })
-    .catch(()=>{
+    .catch((err)=>{
       /* ensure() failing means we do not know WHOSE workspace this is —
          rendering the seeded dashboard here is how a new signup "saw someone
-         else's account". Error screen with retry instead, never dashboard. */
-      S.coachProvider=null; S.coachEnsureError=true; S.coachTab="queue"; go("dashboard");
+         else's account". Error screen with retry instead, never dashboard.
+         Stash the real reason (owner 2026-09-19): "connection blip" hides
+         auth/RPC/RLS failures and makes them undebuggable. */
+      S.coachProvider=null; S.coachEnsureError=true;
+      S.coachEnsureDetail=(err&&(err.message||err.code))||"unknown";
+      S.coachTab="queue"; go("dashboard");
     });
 }
 
