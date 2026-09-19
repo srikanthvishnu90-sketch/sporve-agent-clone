@@ -22,7 +22,7 @@
 import { readFileSync, existsSync } from 'node:fs';
 
 export const SUPABASE_URL = process.env.SUPABASE_URL || 'https://tseszaprvtvqrkfpditu.supabase.co';
-export const ANON_KEY = process.env.SUPABASE_ANON_KEY || 'sb_publishable_CLawpS61QZDONSyy8ZdhTQ_rjCBLYBW';
+export const ANON_KEY = process.env.SUPABASE_ANON_KEY || 'sb_publishable_FFlP7chwxsb3BSPRQDMomQ_TsLfPe8S';
 
 /* Column lists snapshotted from the live schema on 2026-09-16
    (information_schema.columns). A missing column fails as STALE rather than

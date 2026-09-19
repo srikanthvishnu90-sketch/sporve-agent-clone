@@ -51,7 +51,7 @@ jobs:
       - name: database answers through PostgREST (anon read of plan_entitlements — the one table anon may read since 001068)
         env:
           # the publishable key is public by design (it ships in the page); the secret is optional
-          SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY || 'sb_publishable_CLawpS61QZDONSyy8ZdhTQ_rjCBLYBW' }}
+          SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY || 'sb_publishable_FFlP7chwxsb3BSPRQDMomQ_TsLfPe8S' }}
         run: |
           code=$(curl -s -o /dev/null -w '%{http_code}' --connect-timeout 10 --max-time 20 "https://tseszaprvtvqrkfpditu.supabase.co/rest/v1/plan_entitlements?select=plan&limit=1" -H "apikey: ${SUPABASE_ANON_KEY}")
           echo "postgrest=$code"; [ "$code" = "200" ] || { echo "DATABASE/POSTGREST UNHEALTHY"; exit 1; }

@@ -39,7 +39,7 @@
   "use strict";
 
   var SUPABASE_URL = "https://tseszaprvtvqrkfpditu.supabase.co";
-  var SUPABASE_ANON = "sb_publishable_CLawpS61QZDONSyy8ZdhTQ_rjCBLYBW";
+  var SUPABASE_ANON = "sb_publishable_FFlP7chwxsb3BSPRQDMomQ_TsLfPe8S";
 
   /* The access token for a signed-in visitor. Null while anonymous, in which
      case the publishable key is sent as the bearer and PostgREST resolves the

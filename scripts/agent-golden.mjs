@@ -17,7 +17,7 @@ if (/tseszaprvtvqrkfpditu/.test(SB) && process.env.SPORV_ALLOW_PROD_SEED !== "1"
   console.error("Refusing to seed the production project. The audit found the last seed org readable anonymously. Set SPORV_ALLOW_PROD_SEED=1 only with the owner's explicit say-so.");
   process.exit(2);
 }
-const ANON = process.env.SUPABASE_ANON_KEY || "sb_publishable_CLawpS61QZDONSyy8ZdhTQ_rjCBLYBW";
+const ANON = process.env.SUPABASE_ANON_KEY || "sb_publishable_FFlP7chwxsb3BSPRQDMomQ_TsLfPe8S";
 const EMAIL = process.env.GOLDEN_EMAIL || "sporve123+goldeneval@gmail.com";
 const PW = process.env.GOLDEN_PW || "GoldenSetEval-2026-Sporv!";
 const day = n => new Date(Date.now() + n * 864e5).toISOString().slice(0, 10);
