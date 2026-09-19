@@ -7343,9 +7343,14 @@ function coachLockHTML(title,what){
    only that. Every surface used SEED.providerProfile.businessName directly, so
    a coach who had just signed up and named their business was shown "Apex
    Performance Club" on their own dashboard. */
+/* The dashboard's identity line. SEED.providerProfile is the GUEST preview's
+   demo business — a signed-in coach whose org row hasn't landed (or never
+   existed) must never be shown it as their own. The cold-start path now
+   ensures the row; this guard covers only the loading transient. */
 function coachBusinessName(){
   const p=S.coachProvider;
   if(p&&p.business_name) return p.business_name;
+  if(realSignedIn()) return "Your workspace";
   return SEED.providerProfile.businessName;
 }
 
@@ -7592,6 +7597,9 @@ function loadOrgWorkspace(){
   if(!(window.SporveCoach&&realSignedIn())) return Promise.resolve(null);
   return window.SporveCoach.load().then(pv=>{
     S.coachProvider=pv||null; if(pv) S.coachEnsureError=null;
+    /* Provider role ⇒ not a parent session: never carry seeded demo athletes
+       into the coach workspace (see enterCoachWorkspace). */
+    S.athletes=[];
     if(pv) S.myProviderId=pv.id;
     if(pv) hydrateTeamRoster();
     /* audit P1-2: a mark queued while the field had no signal must not wait
@@ -7632,6 +7640,12 @@ function enterCoachWorkspace(){
       S.pendingBusinessName="";
       S.coachProvider = p || null;
       S.coachEnsureError = null;
+      /* A provider session is never a parent session: drop any seeded athletes
+         that survived into this session (cold-start sessionStorage restore runs
+         no guest->sign-in purge). hydrateAthletes() only runs for non-providers,
+         so nothing live is lost — and no coach surface can offer the seeded
+         demo child as if they were the coach's. */
+      S.athletes=[];
       if(p) hydrateTeamRoster();
       S.coachTab="queue";  /* home = the review queue (doc 04) */
       /* Not-yet-onboarded: the wizard is the only door (spec 04). The render
@@ -20620,7 +20634,13 @@ function hydrateAuth(){
          gate — which needs the row — could not send a mid-setup org back to
          its step. loadOrgWorkspace() fetches THEIR row and roster; the render
          gate then routes to setup or dashboard by itself. */
-      if(p.role==="provider") loadOrgWorkspace().then(()=>render());
+      if(p.role==="provider") loadOrgWorkspace().then(pv=>{
+        /* No provider row but the backend is reachable: a fresh (or
+           pre-trigger) account, not a failure — run the create-if-missing
+           door instead of rendering the dashboard org-less over demo
+           fallbacks. backendDown keeps its own error screen. */
+        if(!pv&&!S.backendDown) enterCoachWorkspace(); else render();
+      });
       /* AUDIT 2026-09-17 P1-5: boot issued 13 backend requests (budget 4).
          A provider's cold boot needs exactly what the home renders — the
          profile, the workspace row, the roster, the home RPC. Everything
