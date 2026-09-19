@@ -112,7 +112,10 @@
   const canContinue = (step) => { const w = why(step); return !w || (!w.hard && false) ? !w : false; };
 
   /* ── markup ── */
-  const logo = () => `<div class="logo"><svg viewBox="0 0 120 120" aria-hidden="true"><circle cx="60" cy="60" r="52" fill="none" stroke="#7E8BA2" stroke-width="10"/><path d="M38 78 L60 34 L82 78 Z" fill="#7E8BA2"/></svg><span>Sporv</span></div>`;
+  /* Auth-trap fix (2026-09-19): the step-1 logo is a real home control — a guest
+     can always leave the signup flow. Button keeps the .logo class so the
+     existing styles apply; the inline reset only removes native button chrome. */
+  const logo = () => `<button type="button" class="logo" data-obexit="1" aria-label="Back to Sporv home" title="Back to Sporv home" style="background:none;border:0;cursor:pointer;padding:0;font:inherit"><svg viewBox="0 0 120 120" aria-hidden="true"><circle cx="60" cy="60" r="52" fill="none" stroke="#7E8BA2" stroke-width="10"/><path d="M38 78 L60 34 L82 78 Z" fill="#7E8BA2"/></svg><span>Sporv</span></button>`;
   const G = '<svg viewBox="0 0 24 24" class="gi"><path fill="#4285F4" d="M22.6 12.3c0-.8-.1-1.5-.2-2.2H12v4.2h6a5.1 5.1 0 0 1-2.2 3.4v2.8h3.6c2.1-1.9 3.2-4.8 3.2-8.2z"/><path fill="#34A853" d="M12 23c3 0 5.5-1 7.3-2.7l-3.6-2.8c-1 .7-2.3 1.1-3.7 1.1-2.9 0-5.3-1.9-6.2-4.6H2.1v2.9A11 11 0 0 0 12 23z"/><path fill="#FBBC05" d="M5.8 14a6.6 6.6 0 0 1 0-4.2V6.9H2.1a11 11 0 0 0 0 9.9L5.8 14z"/><path fill="#EA4335" d="M12 5.4c1.6 0 3.1.6 4.2 1.7l3.2-3.2A11 11 0 0 0 2.1 6.9L5.8 9.8c.9-2.7 3.3-4.4 6.2-4.4z"/></svg>';
   const A = '<svg viewBox="0 0 24 24" class="gi" fill="#000"><path d="M16.4 12.6c0-2.4 2-3.5 2-3.6-1.1-1.6-2.8-1.8-3.4-1.8-1.4-.1-2.8.9-3.5.9-.7 0-1.8-.8-3-.8-1.6 0-3 .9-3.8 2.3-1.6 2.8-.4 7 1.2 9.3.8 1.1 1.7 2.4 2.9 2.3 1.2 0 1.6-.7 3-.7s1.8.7 3 .7c1.3 0 2.1-1.1 2.8-2.3.9-1.3 1.3-2.6 1.3-2.7 0 0-2.5-1-2.5-3.6zM14.1 5.5c.6-.8 1.1-1.9.9-3-.9 0-2.1.6-2.7 1.4-.6.7-1.1 1.8-1 2.9 1 .1 2.1-.5 2.8-1.3z"/></svg>';
 
@@ -216,7 +219,7 @@
     const w = why(s), next = s === "5" ? "Run Sporv" : s === "7" ? "Open dashboard" : "Continue";
     const showNext = !(s === "1" || s === "1b" || (s === "6" && !(S.agentRun && S.agentRun.done)));
     return `<div class="ob ${full ? "full" : ""}"><div class="left">
-      <div class="top"><span class="brand">Sporv</span><span class="stp">${LBL[s]}</span><span class="clock mono">${o.t0 && full ? fmt(Date.now() - o.t0) : ""}</span>${signedIn() ? `<button class="btn ghost obout" data-obsignout="1">Sign out</button>` : ""}</div>
+      <div class="top"><span class="brand">Sporv</span><span class="stp">${LBL[s]}</span><span class="clock mono">${o.t0 && full ? fmt(Date.now() - o.t0) : ""}</span>${signedIn() ? `<button class="btn ghost obout" data-obsignout="1">Sign out</button>` : `<button class="btn ghost obout" data-obexit="1" aria-label="Back to Sporv home" title="Back to Sporv home">← Back</button>`}</div>
       <div class="prog"><i style="width:${PCT[s]}%"></i></div>
       <div class="body ${s === "1" || s === "1b" ? "center" : ""}"><div class="pad">${body}</div></div>
       <div class="foot">
@@ -294,7 +297,10 @@
     const em = id("obEm"); if (em) { em.oninput = () => { o.email = em.value.trim(); const b = id("obSend"); if (b) b.disabled = !EMAIL_RX.test(o.email) || o.busy; }; em.onkeydown = (e) => { if (e.key === "Enter" && EMAIL_RX.test(o.email)) sendLink(); }; if (o.step === "1" && !o.email) em.focus(); }
     const send = id("obSend"); if (send) send.onclick = sendLink;
     q("[data-oboauth]").forEach((b) => b.onclick = () => { if (!AUTH()) return fail("Sign-in is unavailable right now. Reload the page."); try { sessionStorage.setItem("sporv:oauth-intent", "signup"); if (typeof saveState === "function") saveState(); } catch (e) {} window.location.href = AUTH().oauthUrl(b.dataset.oboauth, window.location.origin + window.location.pathname); });
-    q("[data-oblogin]").forEach((a) => a.onclick = (e) => { e.preventDefault(); const el = id("obEm"); if (el) el.focus(); });
+    /* Auth-trap fix (2026-09-19): "Log in" used to just focus the signup email
+       field, which read as a dead link. It now opens the real "Log in or sign
+       up" sheet, whose identifier flow routes an existing account to sign-in. */
+    q("[data-oblogin]").forEach((a) => a.onclick = (e) => { e.preventDefault(); S.modal = { type: "authsheet" }; render(); });
     q("[data-obpw]").forEach((a) => a.onclick = (e) => { e.preventDefault(); S.authIdentifier = o.email; S.modal = { type: "login" }; render(); });
     q("[data-obfoot]").forEach((a) => a.onclick = (e) => { e.preventDefault(); const arg = a.dataset.obfoot.split(":")[1]; if(!arg) return; window.open(location.origin + "/?page=" + encodeURIComponent(arg), "_blank", "noopener"); });
     q("[data-obresend]").forEach((b) => b.onclick = () => { o.resent = true; AUTH().magicLink(o.email, window.location.origin + "/", { role: "provider" }).catch(() => {}); render(); setTimeout(() => { o.resent = false; render(); }, 1800); });
@@ -319,6 +325,10 @@
     q("[data-obskip]").forEach((b) => b.onclick = () => advance(true));
     q("[data-obback]").forEach((b) => b.onclick = () => { const i = ORDER.indexOf(o.step); if (i > 0) { o.step = ORDER[i - 1]; o.err = null; persist(); render(); } });
     q("[data-obsignout]").forEach((b) => b.onclick = () => { S.ob = null; if (typeof doSignOut === "function") doSignOut(); else if (AUTH()) AUTH().signOut().then(() => location.reload()); });
+    /* Auth-trap fix (2026-09-19): guest exit for the full-page signup flow.
+       Clears the parked signup intent via the shared host exit; the signed-in
+       guard keeps the intentional onboarding gate for real coaches. */
+    q("[data-obexit]").forEach((b) => b.onclick = () => { if (typeof signedIn === "function" && signedIn()) return; if (typeof window.exitFullPageAuth === "function") window.exitFullPageAuth(); });
   }
 
   const CSS = `
