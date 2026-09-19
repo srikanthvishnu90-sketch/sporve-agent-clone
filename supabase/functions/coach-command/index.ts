@@ -658,7 +658,7 @@ Deno.serve(async (req) => {
       : [];
 
     // ── Assemble CONTEXT — RLS-scoped to the coach. Nothing invented. ──────────
-    // PRODUCTION SCHEMA (verified 2026-08-14 against tseszaprvtvqrkfpditu): supply
+    // PRODUCTION SCHEMA (verified 2026-08-14 against tseszaprvtvqrkfpditu; live 2026-09-19 on hzbhjkcqwawgqtspueuw): supply
     // is programs + sessions; there is no `services` and no `availability` table —
     // this function was first written against a schema that never shipped, and
     // deploying it verbatim would have produced an assistant with an empty world.
