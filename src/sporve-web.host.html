@@ -2848,6 +2848,18 @@ html.coldock .aidock-fab{display:none}
 .aidock-ic[data-aiattach]{width:32px;height:32px;border-radius:9px;
   background:rgba(255,255,255,.13);color:#FFFFFF}
 .aidock-ic[data-aiattach]:hover{background:rgba(255,255,255,.22);color:#FFFFFF}
+/* B1/B2 — attached-file chip: sits above the composer input while a CSV/text
+   file is staged for the next turn; the × clears it without sending. */
+.aifilebar{display:flex;padding:2px 4px 8px}
+.aifile{display:inline-flex;align-items:center;gap:7px;max-width:100%;
+  padding:6px 8px 6px 10px;border-radius:9px;font-size:12px;font-weight:600;
+  background:rgba(255,255,255,.10);border:1px solid rgba(255,255,255,.16);color:#EAF0F6}
+.aifile svg{flex:none}
+.aifile span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:220px}
+.aifile button{border:0;background:none;color:#AEB9C4;cursor:pointer;font-size:14px;line-height:1;padding:2px}
+.aifile button:hover{color:#fff}
+/* The same chip inside a sent user bubble — no ×, the file already went. */
+.bub.me .aifile{display:flex;margin:0 0 6px;background:rgba(255,255,255,.14);border:0}
 .aidock-ic{width:34px;height:34px;flex:none;display:grid;place-items:center;
   background:none;border:0;border-radius:999px;color:#DCE3EA;cursor:pointer;
   transition:background .15s,color .15s;
@@ -10630,7 +10642,7 @@ function aiDockHTML(){
   const open=S.aiOpen!==false;
   const thread=S.chat.length
     ? S.chat.map((m,i)=>m.role==="user"
-        ? `<div class="bub me" style="max-width:82%">${esc(m.text)}</div>`
+        ? `<div class="bub me" style="max-width:82%">${aiUserFileChip(m)}${esc(m.text)}</div>`
         : `<div style="max-width:94%;align-self:flex-start;display:flex;flex-direction:column;gap:8px">
              ${/* Only tools that actually READ data get a "Checked…" line.
                   get_earnings/get_waitlist return a note, not a query result, so
@@ -10722,6 +10734,7 @@ function aiDockHTML(){
       </div>
       ${S.chat.length?aiChipsHTML():""}
       <form class="aidock-compose aimax-compose" id="aiDockForm">
+        ${aiFileBarHTML()}
         <input id="aiDockInput" class="aidock-input" placeholder="${S.chat.length?"Continue chat":"Ask Sporv"}"
                value="${esc(S.aiDraft||"")}" aria-label="Message Sporv AI" autocomplete="off">
         <div class="aidock-row">
@@ -10802,6 +10815,7 @@ function aiDockHTML(){
       ${(colMode&&!convo)?"":aiChipsHTML()}
       <form class="aidock-compose" id="aiDockForm">
         ${S.aiHistOpen&&!S.aiMax?histDropHTML(true):""}
+        ${aiFileBarHTML()}
         ${/* Two rows, matching the reference exactly: the message field owns the
              top line, the controls sit beneath it. I merged these onto one row
              last turn from a different screenshot and it was wrong — the field
@@ -18494,6 +18508,11 @@ document.querySelectorAll('.sig-ai-coach').forEach(sigAiCoachWire);
        re-appends the question, so leaving the original would show it twice
        and double it in the history sent to the model. */
     const prevIsSame=i>0&&S.chat[i-1].role==="user"&&S.chat[i-1].text===m.retry;
+    /* A failed turn keeps its attachment: the dropped user message carries
+       the file, so stage it again before the retry re-sends — otherwise the
+       retry would silently drop the data the question was about. */
+    if(prevIsSame&&!S.aiFile&&S.chat[i-1].fileName)
+      S.aiFile={name:S.chat[i-1].fileName,text:S.chat[i-1].fileText||""};
     S.chat=S.chat.filter((_,x)=>x!==i&&!(prevIsSame&&x===i-1));
     askCoach(m.retry);
   });
@@ -18671,7 +18690,12 @@ document.querySelectorAll('.sig-ai-coach').forEach(sigAiCoachWire);
      silently: a button that looks live and does nothing is worse than one that
      tells you it is not ready, and this is the surface where a coach is being
      asked to trust the product. */
-  $("[data-aiattach]").forEach(b=>b.onclick=()=>toast("Attachments aren't wired up yet"));
+  /* B1/B2 — the + button stages a CSV/TSV/TXT file for the next turn
+     (pickAiFile); the × on the staged-file chip clears it. A button that
+     looks live and does nothing is worse than one that tells you it is not
+     ready — this one is now live. */
+  $("[data-aiattach]").forEach(b=>b.onclick=()=>pickAiFile());
+  $("[data-aifilex]").forEach(b=>b.onclick=()=>{S.aiFile=null;render();});
   $("[data-aivoice]").forEach(b=>b.onclick=()=>toast("Voice input isn't wired up yet"));
   $("[data-aiclose]").forEach(b=>b.onclick=()=>{S.aiOpen=false;S.aiMax=false;S.aiFull=false;S.aiHistOpen=false;render();});
   $("[data-waitlist]").forEach(b=>b.onclick=()=>{
@@ -19722,14 +19746,80 @@ function sendRecapToParentDemo(athleteName, body){
   return {parent:parent, athlete:a.name};
 }
 
+/* ── B1/B2: file attachments for the coach dock ──────────────────────────
+   The + button stages one CSV/TSV/TXT file per turn. The file NEVER leaves
+   the device except inside the single coach-command call its question rides
+   with — read client-side, appended to the turn text under a clear label,
+   and cleared from the composer once sent. No upload endpoint, no storage. */
+const AI_FILE_MAX=20000; /* chars of file text per turn — rosters fit, novels don't */
+let aiFileInput=null;
+function aiFileBlock(f){
+  if(!f) return "";
+  return "\n\n[ATTACHED FILE: "+f.name+"]\n"+f.text;
+}
+function aiFileBarHTML(){
+  if(!S.aiFile) return "";
+  return `<div class="aifilebar"><span class="aifile">
+    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+         stroke-width="1.9" stroke-linecap="round" aria-hidden="true">
+      <path d="M14 3H6a1 1 0 0 0-1 1v16a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V8z"/>
+      <path d="M14 3v5h5"/></svg>
+    <span>${esc(S.aiFile.name)}</span>
+    <button type="button" data-aifilex="1" aria-label="Remove attachment">×</button>
+  </span></div>`;
+}
+function aiUserFileChip(m){
+  if(!m||!m.fileName) return "";
+  return `<span class="aifile">
+    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+         stroke-width="1.9" stroke-linecap="round" aria-hidden="true">
+      <path d="M14 3H6a1 1 0 0 0-1 1v16a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V8z"/>
+      <path d="M14 3v5h5"/></svg>
+    <span>${esc(m.fileName)}</span></span>`;
+}
+function pickAiFile(){
+  if(S.chatThinking){ toast("Wait for the current answer first."); return; }
+  if(!aiFileInput){
+    aiFileInput=document.createElement("input");
+    aiFileInput.type="file";
+    aiFileInput.accept=".csv,.tsv,.tab,.txt,text/csv,text/plain";
+    aiFileInput.hidden=true;
+    aiFileInput.addEventListener("change",()=>{
+      const f=aiFileInput.files&&aiFileInput.files[0];
+      aiFileInput.value="";
+      if(!f) return;
+      if(f.size>512000){ toast("That file is too large — keep it under 500KB."); return; }
+      const rd=new FileReader();
+      rd.onload=()=>{
+        let t=String(rd.result||"");
+        if(!t.trim()){ toast("That file looks empty."); return; }
+        if(t.length>AI_FILE_MAX) t=t.slice(0,AI_FILE_MAX)+"\n[…file truncated to "+AI_FILE_MAX+" characters]";
+        S.aiFile={name:f.name,text:t};
+        toast("Attached "+f.name+" — ask your question and send.");
+        render();
+      };
+      rd.onerror=()=>toast("Couldn't read that file.");
+      rd.readAsText(f);
+    });
+    document.body.appendChild(aiFileInput);
+  }
+  aiFileInput.click();
+}
 function askCoach(q){
-  if(!q||!q.trim()) return;
+  const text=(q||"").trim();
+  /* A file with no question has nothing to answer — keep the file staged
+     and say what is missing instead of silently doing nothing. */
+  if(!text&&S.aiFile){ toast("Ask a question about "+S.aiFile.name+", then press send."); return; }
+  if(!text) return;
   /* One turn at a time. Without this, two quick sends launched two overlapping
      requests that shared one S.chatThinking flag — the first reply cleared the
      dots while the second was still in flight, and both answers appended. */
   if(S.chatThinking) return;
-  const text=q.trim();
-  S.chat=[...S.chat,{role:"user",text}];
+  /* The staged file rides THIS turn only: the message keeps its name + text
+     so history and retries keep working, and the composer clears. */
+  const file=S.aiFile||null;
+  S.aiFile=null;
+  S.chat=[...S.chat,{role:"user",text,fileName:file?file.name:null,fileText:file?file.text:null}];
   /* Keep the session archive in step with the live thread, so the history
      list in the maximized view always shows the conversation in progress.
      Coach-side only: the family finder keeps its single persistent thread. */
@@ -19771,7 +19861,7 @@ function askCoach(q){
      cannot grow the request without bound — the gateway rejects over 24. */
   const history=S.chat.slice(-12).map(m=>({
     role:m.role==="user"?"user":"assistant",
-    content:String(m.text||""),
+    content:String(m.text||"")+aiFileBlock(m.fileText?{name:m.fileName,text:m.fileText}:null),
   }));
 
   /* THE COACH GETS THE AGENTIC TURN — coach-command. One call per message,
@@ -19787,7 +19877,7 @@ function askCoach(q){
        request itself isn't aborted (API.fn has no cancellation), but the UI
        recovers and offers retry. */
     const timeout=new Promise((_,rej)=>setTimeout(()=>rej(new Error("timeout")),45000));
-    Promise.race([API.fn("coach-command",{text,history}),timeout]).then(r=>{
+    Promise.race([API.fn("coach-command",{text:text+aiFileBlock(file),history}),timeout]).then(r=>{
       /* The coach switched threads while this turn was in flight — its reply
          belongs to a conversation that is no longer on screen. Drop it. */
       if(epoch!==chatEpoch) return;
