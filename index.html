@@ -25,7 +25,7 @@
 <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16.png">
 <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
 <link rel="manifest" href="/site.webmanifest">
-<meta name="sporve-build" content="eecab44d6cfc3e17">
+<meta name="sporve-build" content="8214885d86abf8cd">
 </head>
 <body>
 <noscript><h1>Sporv — Every sport. One app.</h1><p>Sporv connects families and athletes with coaches, trainers, camps, and teams across more than 20 sports. Please enable JavaScript to use the app.</p></noscript>
@@ -134,11 +134,11 @@
   /* ── TYPE SCALE: eight steps, no ninth. Carried verbatim from the marketing
      landing (sporve-landing/tokens.css) so the two web surfaces share one
      scale. Every text element on this page maps to one of these. */
-  --text-xs:10.5px;                    /* eyebrows, stat labels, chips (micro — kept ≥10) */
-  --text-sm:10px;                      /* meta lines, captions, buttons  (−2, owner 08-23) */
-  --text-base:12.5px;                  /* body paragraphs                (−2, owner 08-23) */
-  --text-md:13.5px;                    /* lead paragraph only            (−2, owner 08-23) */
-  --text-lg:clamp(13px,1.3vw,15px);    /* card titles, coach name        (−2 more, owner 08-23) */
+  --text-xs:12px;                      /* eyebrows, stat labels, chips (floor 12 — Stripe smallest, owner 2026-09-19) */
+  --text-sm:13px;                      /* meta lines, captions, buttons (floor 13 — Linear smallest, owner 2026-09-19) */
+  --text-base:15px;                    /* body paragraphs (Linear body 15, owner 2026-09-19) */
+  --text-md:16px;                      /* lead paragraph (Stripe/Palantir body 16, owner 2026-09-19) */
+  --text-lg:clamp(15px,1.4vw,17px);    /* card titles, coach name (lifted to body+, owner 2026-09-19) */
   --text-xl:clamp(21px,1.9vw,27px);    /* stat numerals — NOT a header, unchanged */
   --text-2xl:clamp(20px,2.2vw,28px);   /* section headers (h2)           (−2 more, owner 08-23) */
   --text-hero:clamp(28px,3.6vw,50px);  /* h1 only                        (−2 more, owner 08-23) */
@@ -345,7 +345,7 @@ h4{font-size:var(--text-base)}
   --text-hero:clamp(32px,3.6vw,52px);  /* h1 hero               (−2 more, owner 08-23) */
   --text-h1:clamp(20px,2.4vw,24px);    /* in-app page titles    (−2 more, owner 08-23) */
   --text-2xl:clamp(20px,2vw,24px);     /* h2 section headers — lifted so a section h2 is no longer smaller than --text-xl stat numerals (2xl<xl hierarchy fix, owner 2026-09-01) */
-  --text-lg:clamp(12px,1.1vw,13px);    /* h3 card/module titles (−2 more, owner 08-23) */
+  --text-lg:clamp(13px,1.2vw,15px);    /* h3 card/module titles (floor 13, owner 2026-09-19) */
 }
 /* Coach DASHBOARD only. Owner 2026-08-25: "the text should be larger similar to
    stripe … this includes the dashboard to the left in the coaching bar." The
@@ -750,7 +750,8 @@ img{max-width:100%;display:block}
   .nav-left .tnav-row .tnav:not(.tnav-cta):not([data-prodtoggle]){display:none}
   .nav-left .tnav-row{gap:0}
   .navlogin,.getstarted,.acct-name{display:none}  /* auth cluster → sheet */
-  .topbar.guest .acct{display:flex}      /* hamburger returns for guests */
+  .topbar .acct{display:flex}      /* hamburger shows on mobile, guest or not —
+                                   the account sheet owns auth there (owner 2026-09-19) */
   .acct,.acct:has(.acct-name){width:44px;padding:0;gap:0}
   .acct .burger{display:grid}
   .acct .avatar{display:none}
@@ -1110,7 +1111,7 @@ img{max-width:100%;display:block}
 /* The micro-label. The spec calls this Sporv's signature type treatment and
    the thing that makes the flow read as Sporv, so it is one class reused by
    every eyebrow and field label rather than re-declared per component. */
-.cw-micro{font-size:9px;font-weight:900;text-transform:uppercase;
+.cw-micro{font-size:10px;font-weight:900;text-transform:uppercase;
   letter-spacing:.3em;color:var(--cw-muted);display:block}
 
 /* ── shell: fixed 72px header, fixed 80px footer, scrolling middle ───────── */
@@ -2008,7 +2009,7 @@ button.tnav.tnav-cta:hover{background:#FFFFFF;color:#0B0D0F;border-color:#FFFFFF
 .kcard:hover{border-color:var(--rule-strong);transform:translateY(-2px)}
 .kcard-img{width:100%;height:172px;object-fit:cover;display:block;flex:none}
 .kcard-body{padding:17px 18px 19px;display:flex;flex-direction:column;gap:7px;flex:1}
-.kcard-eyebrow{font-size:9px;font-weight:900;text-transform:uppercase;
+.kcard-eyebrow{font-size:10px;font-weight:900;text-transform:uppercase;
   letter-spacing:.3em;color:var(--muted)}
 .kcard-h{font-family:var(--display);font-size:var(--text-lg);letter-spacing:-.01em}
 .kcard-p{color:var(--muted);font-size:var(--text-sm);flex:1}
@@ -2120,7 +2121,7 @@ button.tnav.tnav-cta:hover{background:#FFFFFF;color:#0B0D0F;border-color:#FFFFFF
 
 /* ── Part B: context chip, quick actions, collapsed strip ──────────────── */
 .aidock-ctx{display:flex;align-items:center;gap:8px;margin-bottom:2px}
-.aidock-ctxchip{font-family:var(--sans);font-size:11px;font-weight:700;
+.aidock-ctxchip{font-family:var(--sans);font-size:12px;font-weight:700;
   letter-spacing:.08em;text-transform:uppercase;color:#9AA6B2;
   background:rgba(154,166,178,.12);border-radius:999px;padding:3px 9px}
 .aidock-ctx .aidock-ic{margin-left:auto;width:28px;height:28px}
@@ -2147,7 +2148,7 @@ button.tnav.tnav-cta:hover{background:#FFFFFF;color:#0B0D0F;border-color:#FFFFFF
 .aidock-strip:hover{border-color:#414B57}
 .aidock-striptext{font-family:var(--sans);font-size:var(--text-sm);color:#8A93A0;
   overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.aidock-kbd{margin-left:auto;font-family:var(--mono);font-size:11px;color:#8A93A0;
+.aidock-kbd{margin-left:auto;font-family:var(--mono);font-size:12px;color:#8A93A0;
   border:1px solid #2A313B;border-radius:6px;padding:2px 6px;flex:none}
 /* chips stay on mobile too (spec: one line, horizontally scrollable) */
 
@@ -2219,7 +2220,7 @@ button.tnav.tnav-cta:hover{background:#FFFFFF;color:#0B0D0F;border-color:#FFFFFF
    scenery. Slate, which §3 freezes as chrome, says exactly that. */
 /* The DEMO DATA badge: mono, slate outline pill, sitting WITH the header
    rather than under it — the brief is explicit that this is not a footnote. */
-.demodata{font-family:var(--mono);font-size:10.5px;font-weight:700;
+.demodata{font-family:var(--mono);font-size:12px;font-weight:700;
   letter-spacing:.08em;text-transform:uppercase;padding:5px 9px;
   border-radius:var(--r-pill);color:#475569;background:transparent;
   border:1px solid rgba(71,85,105,.38);white-space:nowrap;align-self:center}
@@ -2233,7 +2234,7 @@ button.tnav.tnav-cta:hover{background:#FFFFFF;color:#0B0D0F;border-color:#FFFFFF
 /* The corner watermark chip, per the brief: top-left, always rendered, never
    hover-only. position:absolute against .shot, which is already relative. */
 .demochip{position:absolute;top:10px;left:10px;z-index:2;
-  font-family:var(--mono);font-size:10.5px;font-weight:700;letter-spacing:.06em;
+  font-family:var(--mono);font-size:12px;font-weight:700;letter-spacing:.06em;
   text-transform:uppercase;padding:4px 8px;border-radius:var(--r-pill);
   background:rgba(255,255,255,.94);color:#334155;
   border:1px solid rgba(51,65,85,.22);pointer-events:none}
@@ -3212,7 +3213,7 @@ html.coldock .aidock-fab{display:none}
 .day-meta{color:var(--muted);font-size:var(--t-small);margin-top:3px}
 @media(max-width:860px){
   .cal-cell{min-height:86px;padding:5px 5px}
-  .cal-ev{font-size:10px;padding:2px 5px;gap:4px}
+  .cal-ev{font-size:11px;padding:2px 5px;gap:4px}
   .cal-num{width:22px;height:22px}
 }
 
@@ -3281,7 +3282,7 @@ html.coldock .aidock-fab{display:none}
   padding:0 11px;margin:12px 0 4px}
 /* A6 — count badge, right-aligned, numerals in the data face. */
 .rail .rbadge{margin-left:auto;font-family:var(--mono);font-variant-numeric:tabular-nums;
-  font-size:11px;font-weight:600;background:var(--raise2);color:var(--muted);
+  font-size:12px;font-weight:600;background:var(--raise2);color:var(--muted);
   border-radius:999px;padding:1px 7px}
 #app.coachdark .rail .rbadge{background:rgba(143,163,188,.16);color:#B6C6D8}
 .stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(168px,1fr));gap:14px;margin-bottom:12px}
@@ -3308,7 +3309,7 @@ html.coldock .aidock-fab{display:none}
 .stat .d{font-size:var(--text-sm);color:var(--muted);margin-top:2px}
 .track{display:flex;align-items:center;gap:0;margin-top:13px}
 .track .step{display:flex;align-items:center;gap:7px;flex:1;min-width:0}
-.track .dot{width:17px;height:17px;border-radius:999px;border:2px solid var(--rule-strong);flex:0 0 auto;display:grid;place-items:center;font-size:9px;color:#fff}
+.track .dot{width:17px;height:17px;border-radius:999px;border:2px solid var(--rule-strong);flex:0 0 auto;display:grid;place-items:center;font-size:10px;color:#fff}
 .track .step.done .dot{background:var(--good);border-color:var(--good)}
 .track .lbl{font-size:var(--text-xs);font-weight:600;color:var(--faint);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .track .step.done .lbl{color:var(--ink-2)}
@@ -4863,10 +4864,12 @@ body.reg-coach .rail button.on{font-weight:600}
 /* Full-screen stadium hero (owner 2026-08-30 v5: explore hero, centred, no
    search) */
 .herofull{padding:0;border-bottom:0;background:#0B0D0F}
-.herofull .hero-panel{position:relative;min-height:100svh;
-  /* Full 100svh, NOT minus the topbar (owner 2026-08-31): with the in-flow
-     sticky topbar above, subtracting it left a sliver of the next band inside
-     the first screen. At 100svh the stadium owns the entire first viewport. */
+.herofull .hero-panel{position:relative;min-height:100svh;min-height:100lvh;
+  /* 100lvh (large viewport), not 100svh alone (owner 2026-09-19): on phones
+     the browser chrome collapses as you scroll, the small viewport grows, and
+     a 100svh panel leaves a sliver of the next band inside the first screen.
+     100lvh sizes to the largest viewport so the stadium owns the whole first
+     screen with chrome shown OR collapsed; svh stays as the fallback. */
   display:flex;align-items:center;justify-content:center;overflow:hidden;
   border-radius:0;margin:0;width:100%}
 .herofull-in{position:relative;z-index:1;width:100%;text-align:center;padding:0 20px}
@@ -4950,7 +4953,7 @@ body.reg-coach .rail button.on{font-weight:600}
   padding:11px 0;border-top:1px solid var(--rule);font-size:13px}
 .dsc-line:first-of-type{border-top:0}
 .dsc-line b{font-weight:600}
-.dsc-pill{font-size:11px;padding:3px 9px;border-radius:999px;background:var(--raise2);color:var(--muted)}
+.dsc-pill{font-size:12px;padding:3px 9px;border-radius:999px;background:var(--raise2);color:var(--muted)}
 .dsc-pill.on{background:rgba(71,85,105,.14);color:var(--slate-ink)}
 .dsc-pill.off{background:var(--warn-tint);color:var(--warn)}
 .dsc-big{font-family:var(--mono);font-size:34px;letter-spacing:-.02em;margin:2px 0}
@@ -5669,14 +5672,14 @@ body.reg-coach .rail button.on{font-weight:600}
   color:var(--muted);background:#F1F5F9;border:1px solid var(--rule);border-radius:999px;padding:3px 9px}
 .sig-scheduling .sc-grid{display:grid;grid-template-columns:26px repeat(7,1fr);gap:4px}
 .sig-scheduling .sc-day{font-size:var(--text-xs);font-weight:700;color:var(--muted);text-align:center;padding-bottom:2px}
-.sig-scheduling .sc-time{font-size:10px;font-weight:600;color:var(--muted);align-self:center;text-align:right;padding-right:4px}
+.sig-scheduling .sc-time{font-size:11px;font-weight:600;color:var(--muted);align-self:center;text-align:right;padding-right:4px}
 .sig-scheduling .sc-cell{height:30px;border:1px solid var(--rule);border-radius:6px;background:transparent}
 .sig-scheduling .sc-open{position:relative;overflow:hidden;cursor:grab}
 .sig-scheduling .sc-open::before{content:"";position:absolute;left:0;right:0;top:0;height:3px;background:var(--ps)}
-.sig-scheduling .sc-open span{display:block;font-size:9px;font-weight:700;color:var(--ps-ink);text-align:center;margin-top:8px}
+.sig-scheduling .sc-open span{display:block;font-size:10px;font-weight:700;color:var(--ps-ink);text-align:center;margin-top:8px}
 .sig-scheduling .sc-open:hover{border-color:var(--ps-ink)}
 .sig-scheduling .sc-open:hover::after{content:"Drag to move";position:absolute;left:50%;bottom:calc(100% + 4px);
-  transform:translateX(-50%);white-space:nowrap;font-size:10px;font-weight:600;color:var(--paper);
+  transform:translateX(-50%);white-space:nowrap;font-size:11px;font-weight:600;color:var(--paper);
   background:var(--ink);border-radius:5px;padding:3px 7px;z-index:2;pointer-events:none}
 .sig-scheduling.dragging .sc-open{cursor:grabbing}
 .sig-scheduling .sc-legend{display:flex;align-items:center;gap:7px;margin-top:12px;font-size:var(--text-xs);color:var(--muted)}
@@ -5697,7 +5700,7 @@ body.reg-coach .rail button.on{font-weight:600}
 .sig-payments[data-step="3"] .py-steps::after{width:calc(100% - 14px)}
 .sig-payments .py-step{position:relative;z-index:1;display:flex;flex-direction:column;align-items:center;gap:6px;flex:1}
 .sig-payments .py-node{width:14px;height:14px;border-radius:50%;background:var(--paper);border:2px solid var(--rule);transition:.25s}
-.sig-payments .py-lbl{font-size:10px;font-weight:600;color:var(--muted);white-space:nowrap;transition:.25s}
+.sig-payments .py-lbl{font-size:12px;font-weight:600;color:var(--muted);white-space:nowrap;transition:.25s}
 .sig-payments[data-step="1"] .py-step:nth-child(-n+1) .py-node,
 .sig-payments[data-step="2"] .py-step:nth-child(-n+2) .py-node,
 .sig-payments[data-step="3"] .py-step:nth-child(-n+3) .py-node{background:var(--ps);border-color:var(--ps)}
@@ -5727,7 +5730,7 @@ body.reg-coach .rail button.on{font-weight:600}
   color:var(--muted);padding:8px 4px;border-bottom:1px solid var(--rule);cursor:pointer;user-select:none;white-space:nowrap}
 .sig-roster th.num{text-align:right}
 .sig-roster th:hover{color:var(--ink)}
-.sig-roster th .ro-car{color:var(--ps-ink);font-size:9px;margin-left:3px}
+.sig-roster th .ro-car{color:var(--ps-ink);font-size:10px;margin-left:3px}
 .sig-roster th.on{color:var(--ink)}
 .sig-roster td{font-size:var(--text-sm);color:var(--ink);padding:12px 4px;border-bottom:1px solid var(--rule)}
 .sig-roster td.nm{font-weight:700}
@@ -5752,8 +5755,8 @@ body.reg-coach .rail button.on{font-weight:600}
   padding:8px;font-weight:600;font-size:var(--text-xs);cursor:pointer}
 .sig-session-notes .sn-thread{border-left:3px solid var(--ps);padding-left:10px;display:flex;flex-direction:column;gap:6px}
 .sig-session-notes .sn-bubble{background:#F1F5F9;border-radius:10px;padding:9px;font-size:var(--text-xs);line-height:1.45;color:var(--ink)}
-.sig-session-notes .sn-from{font-size:9px;font-weight:700;letter-spacing:.03em;text-transform:uppercase;color:var(--muted);margin-bottom:4px}
-.sig-session-notes .sn-status{font-size:9px;font-weight:700;color:var(--ps-ink);display:flex;align-items:center;gap:5px}
+.sig-session-notes .sn-from{font-size:10px;font-weight:700;letter-spacing:.03em;text-transform:uppercase;color:var(--muted);margin-bottom:4px}
+.sig-session-notes .sn-status{font-size:10px;font-weight:700;color:var(--ps-ink);display:flex;align-items:center;gap:5px}
 .sig-session-notes .sn-status::before{content:"";width:6px;height:6px;border-radius:50%;background:var(--ps);flex:0 0 auto}
 @media(max-width:520px){.sig-session-notes .sn-cols{grid-template-columns:1fr}}
 @media(max-width:860px){.sig-session-notes{margin-left:0;max-width:none}}
@@ -14966,9 +14969,9 @@ function modalHTML(){
         ["explore","Product","Everything Sporv runs for a club"],
         ["pricing","Pricing","Plans and what each includes"],
         ["about","Help","Contact and support"]])}
-      <button class="acswitch" data-portal="coach">
-        <span><b>Switch to coaching</b><small>See the club workspace</small></span>
-        <span class="acr-chev" aria-hidden="true"></span></button>
+      ${/* "Switch to coaching" removed (owner 2026-09-19): the consumer
+           marketplace is dead, so a guest portal-switch button is vestigial.
+           Guests reach the club workspace through Get started / sign-in. */""}
     </div>`);
   }
   if(m.type==="account_legacy"){
