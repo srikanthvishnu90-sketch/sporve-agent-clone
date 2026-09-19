@@ -25,7 +25,7 @@
 <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16.png">
 <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
 <link rel="manifest" href="/site.webmanifest">
-<meta name="sporve-build" content="162c4daecee05e21">
+<meta name="sporve-build" content="f246f0e898e4d995">
 </head>
 <body>
 <noscript><h1>Sporv — Every sport. One app.</h1><p>Sporv connects families and athletes with coaches, trainers, camps, and teams across more than 20 sports. Please enable JavaScript to use the app.</p></noscript>
@@ -750,7 +750,10 @@ img{max-width:100%;display:block}
   .nav-left .tnav-row .tnav:not(.tnav-cta):not([data-prodtoggle]){display:none}
   .nav-left .tnav-row{gap:0}
   .navlogin,.getstarted,.acct-name{display:none}  /* auth cluster → sheet */
-  .topbar .acct{display:flex}      /* hamburger shows on mobile, guest or not —
+  /* `.topbar.guest .acct{display:none}` (0,3,0) out-specifies a bare
+     `.topbar .acct` (0,2,0), so the logged-out hamburger stayed hidden on
+     mobile. Re-state the guest variant at equal-or-higher specificity. */
+  .topbar.guest .acct,.topbar .acct{display:flex}  /* hamburger shows on mobile, guest or not —
                                    the account sheet owns auth there (owner 2026-09-19) */
   .acct,.acct:has(.acct-name){width:44px;padding:0;gap:0}
   .acct .burger{display:grid}
@@ -913,6 +916,13 @@ img{max-width:100%;display:block}
   font-size:var(--text-hero-lp);line-height:1;letter-spacing:-.01em;
   color:var(--on-dark);max-width:none;margin:0}
 #app .hero-ai span{color:var(--slate)}
+/* Mobile hero (owner 2026-09-19): at 390px the condensed uppercase headline
+   clipped on the right under the panel's overflow:hidden. Shrink the clamp's
+   floor on narrow screens and let the two phrases balance across lines. */
+@media(max-width:560px){
+  :root{--text-hero-lp:clamp(27px,8.5vw,40px)}
+  #app .hero-ai{text-wrap:balance;overflow-wrap:break-word}
+}
 /* Centred hero (owner 2026-08-23, Devin reference): primary text centred, the
    search field sitting centred below with generous air — the panel's own scrim
    is re-graded to a centre pool (below) so the darkness follows the type. */
