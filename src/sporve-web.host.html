@@ -1458,7 +1458,7 @@ img{max-width:100%;display:block}
    fills differ. Log in = near-black quiet; Get started = steel. Literals on
    the dark bar per colour law; equal reserved width kills layout shift. */
 .cta-pair{margin-left:auto;display:inline-flex;gap:10px;justify-content:flex-end;min-width:216px}
-.tnav-row .cta{height:38px;padding:0 16px;border-radius:8px;border:1px solid transparent;
+.tnav-row .cta{height:34px;padding:0 14px;border-radius:8px;border:1px solid transparent;
   display:inline-flex;align-items:center;font-family:var(--nav-face);font-size:14px;
   font-weight:600;font-style:normal;text-transform:none;letter-spacing:0;cursor:pointer;
   transition:background .16s,border-color .16s,color .16s}
@@ -2307,9 +2307,9 @@ button.tnav.tnav-cta:hover{background:#FFFFFF;color:#0B0D0F;border-color:#FFFFFF
 /* pp-name is an <h3>; the id-level #app.reg-tabs h3 rule (1,1,1) forces Archivo
    700 and silently beats a bare .pp-name class — the documented dead-CSS trap.
    Scope these two display rules under #app.pricing-stage so the serif wins. */
-#app.pricing-stage .pp-name{font-family:var(--serif);font-size:var(--text-xl);color:var(--ink);font-weight:400;letter-spacing:0}
+#app.pricing-stage .pp-name{font-family:var(--sans);font-size:17px;color:var(--ink);font-weight:600;letter-spacing:-.01em;text-transform:none}
 .pp-price{display:flex;align-items:baseline;gap:6px;margin:20px 0 0}
-#app.pricing-stage .pp-price b{font-family:var(--serif);font-size:var(--text-2xl);font-weight:400;color:var(--ink);letter-spacing:-.01em;line-height:1;font-variant-numeric:tabular-nums}
+#app.pricing-stage .pp-price b{font-family:var(--sans);font-size:clamp(36px,3vw,44px);font-weight:700;color:var(--ink);letter-spacing:-.02em;line-height:1;font-variant-numeric:tabular-nums}
 .pp-price span{font-family:var(--sans);color:var(--muted);font-size:var(--text-sm);font-weight:500}
 .pp-desc{font-family:var(--sans);color:var(--muted);font-size:var(--text-base);line-height:1.5;margin:16px 0 0;min-height:42px}
 .pp-feats{list-style:none;display:flex;flex-direction:column;gap:13px;margin:26px 0 0;flex:1}
@@ -2317,7 +2317,7 @@ button.tnav.tnav-cta:hover{background:#FFFFFF;color:#0B0D0F;border-color:#FFFFFF
 .pp-feats li svg{flex:none;margin-top:2px;color:var(--ink)}
 .pp-cta{margin-top:34px}
 .pp-card.pp-rec .pp-cta.btn{width:100%;height:52px;border-radius:999px;background:var(--ink);color:#fff;
-  font-family:var(--sans);font-weight:500;font-size:var(--text-base);border:0}
+  font-family:var(--sans);font-weight:600;font-size:var(--text-base);border:0;text-transform:none;letter-spacing:-.008em}
 .pp-card.pp-rec .pp-cta.btn:hover{background:#000}
 .pp-cta-alt{width:100%;background:none;border:0;color:var(--ink);text-align:center;
   font-family:var(--sans);font-weight:500;font-size:var(--text-base);cursor:pointer;padding:8px 0}

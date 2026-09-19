@@ -155,3 +155,10 @@ a grep of the built file — because template literals are invisible in
 **When you find a new recurring defect:** add its rule here, add its tripwire to
 `smoke.sh` if mechanically checkable, and reference this file — do not let the
 rule live only in a chat.
+
+## Pricing typography ladder (owner 2026-09-19 — reframed off Stripe/Linear/Vercel/Notion)
+- The PRICE is the hero of each card (36–44px, Inter 700, tabular nums), never the plan name.
+- Plan names are modest labels: 17px, Inter 600, sentence case — never large display caps.
+- Card CTAs are sentence case ("Start free"), 16px, 600.
+- Body/feature text stays 15–16px; differentiation comes from weight/size/color, not extra families.
+- Site ships exactly 3 webfont families: Inter (UI/body), Roboto Condensed (display H1s only), JetBrains Mono (technical labels).
