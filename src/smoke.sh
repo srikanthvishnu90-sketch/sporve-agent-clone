@@ -415,6 +415,12 @@ if curl -sI "http://127.0.0.1:$CSPPORT/index.html" | grep -qi "^content-security
     OK:0)  pass "api: reached Supabase under the real CSP; no published programs yet (expected pre-launch)" ;;
     OK:*)  pass "api: reached Supabase under the real CSP and read live programs" ;;
     ERR:0:*) fail "api: request blocked before leaving the browser — connect-src does not allow the Supabase origin" ;;
+    # anon lost all grants on public.programs when the surface became
+    # sign-in-only (pentest hardening, 2026-09-10). Reaching Supabase and
+    # being refused at the grant level is the correct answer for a signed-out
+    # browser: it proves the request left the page under the real CSP and the
+    # database enforced.
+    ERR:401:*permission*denied*) pass "api: reached Supabase; anon correctly refused (sign-in-only surface)" ;;
     ERR:*) fail "api: backend rejected the request — $ping" ;;
     *)     fail "api: liveness probe returned nothing (harness or network problem)" ;;
   esac
