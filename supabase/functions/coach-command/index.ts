@@ -151,6 +151,60 @@ const ALL_TOOLS = [...READ_TOOLS, ...WRITE_TOOLS];
 const READ_SET = new Set<string>(READ_TOOLS);
 const WRITE_SET = new Set<string>(WRITE_TOOLS);
 
+/* ── G4 write guards ───────────────────────────────────────────────────────
+   GATES.md G4: every write path declares (1) its precondition, (2) its
+   inverse, and (3) where its receipt is written. This registry is the
+   machine-readable declaration for the deterministic write tools (the
+   READ-shaped tools that execute a single inline write instead of returning
+   a proposal). The loud-failure test (tests/e2e/write-receipt.spec.mjs)
+   asserts each listed write reports failure — never success — when its
+   insert/delete returns no receipt, so a silent no-op can never be reported
+   as done. */
+export const WRITE_GUARDS = [
+  {
+    tool: "remember_fact",
+    writes: "org_memory — one row per durable fact",
+    precondition: "orgId present; fact trimmed to 3–500 chars; an exact duplicate returns the existing row instead of inserting",
+    inverse: "forget_fact with the returned memory_id deletes the row",
+    receipt: "memory_id — returned only when insert + select('id').single() succeeds; saved:false otherwise",
+  },
+  {
+    tool: "forget_fact",
+    writes: "org_memory — deletes one row",
+    precondition: "orgId present; memory_id is in the owned-memory id set assembled from this turn's context",
+    inverse: "none — the fact text is not retained after delete; the coach re-teaches it with remember_fact",
+    receipt: "deleted count from the delete's select('id'); deleted:0 with an error when the id is unknown or the delete fails",
+  },
+  {
+    tool: "draft_lapsed_outreach",
+    writes: "outbound_messages — one DRAFTED rebook_nudge row per reachable lapsed family (inert until the coach presses Send per row in the Approvals tab; lifecycle-approve remains the sole delivery path)",
+    precondition: "orgId present; non-empty template; at least one reachable lapsed family from find_lapsed_families",
+    inverse: "delete the drafted rows by the returned draft_ids (the coach discards them from the Approvals tab)",
+    receipt: "draft_ids[] and queued count — queued:0 with an error when the insert returns no rows",
+  },
+  {
+    tool: "create_document",
+    writes: "coach_documents — one row holding the markdown the coach asked for",
+    precondition: "orgId present; non-empty title (≤200 chars) and body (≤20000 chars)",
+    inverse: "delete the coach_documents row by the returned document_id",
+    receipt: "document_id — created:false when the insert fails; the chat Download card renders only from this receipt",
+  },
+  {
+    tool: "find_facilities",
+    writes: "agent_findings — deduplicated 'venues' rows for the shortlist",
+    precondition: "coach-named location supplied; GOOGLE_PLACES_KEY configured; dedup by source_ref so re-runs never duplicate",
+    inverse: "delete the agent_findings rows by their source_ref values",
+    receipt: "saved_as_findings count; saving is best-effort — the chat shortlist renders from the search results regardless",
+  },
+  {
+    tool: "find_clients",
+    writes: "agent_findings — deduplicated prospect rows for the discovery shortlist",
+    precondition: "owner RLS scope; dedup by source_ref so re-runs never duplicate",
+    inverse: "delete the agent_findings rows by their source_ref values",
+    receipt: "saved_as_findings count; the shortlist renders from the search results regardless",
+  },
+] as const;
+
 // Arg keys that carry an id the model must have gotten from the assembled context.
 // Any value here that is NOT owned by this coach's org is scrubbed (below).
 const ID_ARG_KEYS = ["service_id", "program_id", "session_id", "booking_id", "conversation_id", "slot_id", "athlete_id", "location_id", "memory_id"];
@@ -285,7 +339,7 @@ async function findClients(q: string, prov: ProvCtx, userClient: any, orgId: str
    READ-shaped like find_clients: deterministic, owner-scoped, receipt-checked.
    The model may only claim "remembered" when saved === true. */
 // deno-lint-ignore no-explicit-any
-async function rememberFact(fact: string, userClient: any, orgId: string | null, uid: string) {
+export async function rememberFact(fact: string, userClient: any, orgId: string | null, uid: string) {
   const f = String(fact ?? "").trim().slice(0, 500);
   if (!orgId) return { saved: false, error: "No organization found." };
   if (f.length < 3) return { saved: false, error: "The fact is too short to remember." };
@@ -304,7 +358,7 @@ async function rememberFact(fact: string, userClient: any, orgId: string | null,
   } catch (_e) { return { saved: false, error: "The memory didn't save." }; }
 }
 // deno-lint-ignore no-explicit-any
-async function forgetFact(memoryId: string, userClient: any, orgId: string | null, ownedMemoryIds: Set<string>) {
+export async function forgetFact(memoryId: string, userClient: any, orgId: string | null, ownedMemoryIds: Set<string>) {
   const mid = String(memoryId ?? "").trim();
   if (!orgId) return { deleted: 0, error: "No organization found." };
   if (!mid || !ownedMemoryIds.has(mid)) return { deleted: 0, error: "That memory wasn't found." };
@@ -323,7 +377,7 @@ async function forgetFact(memoryId: string, userClient: any, orgId: string | nul
    benchmark scores: research -> shortlist -> draft per family -> queue ->
    coach presses Send per row in the Approvals tab -> receipt per delivery. */
 // deno-lint-ignore no-explicit-any
-async function findLapsedFamilies(days: number, userClient: any, orgId: string | null) {
+export async function findLapsedFamilies(days: number, userClient: any, orgId: string | null) {
   const d = Math.min(Math.max(Math.round(Number(days) || 30), 7), 365);
   if (!orgId) return { days: d, families: [], error: "No organization found." };
   const today = new Date().toISOString().slice(0, 10);
@@ -377,7 +431,7 @@ async function findLapsedFamilies(days: number, userClient: any, orgId: string |
   return { days: d, families, total_reachable: families.length, unreachable };
 }
 // deno-lint-ignore no-explicit-any
-async function draftLapsedOutreach(args: Record<string, unknown>, userClient: any, orgId: string | null, businessName: string) {
+export async function draftLapsedOutreach(args: Record<string, unknown>, userClient: any, orgId: string | null, businessName: string) {
   const template = String(args.template ?? "").trim().slice(0, 2000);
   const subject = String(args.subject ?? "We'd love to see you back").trim().slice(0, 120) || "We'd love to see you back";
   if (!orgId) return { queued: 0, error: "No organization found." };
@@ -408,8 +462,11 @@ async function draftLapsedOutreach(args: Record<string, unknown>, userClient: an
   const { data, error } = await userClient.from("outbound_messages").insert(rows).select("id");
   // D2 receipt: only report queued when the insert actually succeeded.
   if (error || !data) return { queued: 0, error: "The drafts didn't queue." };
+  // deno-lint-ignore no-explicit-any
+  const ids = ((data ?? []) as { id: string }[]).map((d) => d.id);
   return {
-    queued: (data as unknown[]).length,
+    queued: ids.length,
+    draft_ids: ids,
     families: families.map((f) => ({ child: f.child_first_name, guardian: f.guardian_first_name })),
     review_at: "Approvals tab",
   };
@@ -451,7 +508,7 @@ async function extractContactEmail(website: string): Promise<{ email: string | n
   return { email: null, source: null };
 }
 // deno-lint-ignore no-explicit-any
-async function findFacilities(location: string, userClient: any, orgId: string | null) {
+export async function findFacilities(location: string, userClient: any, orgId: string | null) {
   const KEY = Deno.env.get("GOOGLE_PLACES_KEY");
   const loc = String(location ?? "").trim().slice(0, 120);
   if (!loc) return { facilities: [], error: "no_location" };
@@ -541,7 +598,7 @@ async function findFacilities(location: string, userClient: any, orgId: string |
    document the coach asked for is a durable thing, not a send. Returns the
    receipt the model must cite before claiming the file exists. */
 // deno-lint-ignore no-explicit-any
-async function createDocument(args: Record<string, unknown>, userClient: any, orgId: string | null) {
+export async function createDocument(args: Record<string, unknown>, userClient: any, orgId: string | null) {
   const title = String(args.title ?? "").trim().slice(0, 200);
   const bodyMd = String(args.body ?? args.text ?? "").trim().slice(0, 20000);
   const format = ["handout", "letter", "note"].includes(String(args.format)) ? String(args.format) : "handout";
