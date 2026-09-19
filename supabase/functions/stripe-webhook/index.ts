@@ -157,21 +157,76 @@ async function billingProviderId(
   return (data?.provider_id as string | undefined) ?? null;
 }
 
+// [CRITICAL-PATH: money] The money gate. apply_stripe_billing_event RETURNS
+// text and NEVER raises — every verdict below used to come back as
+// `{ error: null }` and therefore as HTTP 200, so Stripe stopped retrying and
+// nobody was told. The map is explicit and closed; anything not listed is
+// REJECTED, never assumed applied.
+//
+//   applied:<plan>/<status>   -> 200 (the projection was written)
+//   duplicate                 -> 200 (idempotent no-op, event already in ledger)
+//   stale                     -> 200 + console.error (out-of-order snapshot; a
+//                                newer one already won, nothing to repair)
+//   ignored_bad_plan:<plan>   -> REJECTED
+//   ignored_unknown_status:<s>-> REJECTED
+//   provider_not_found        -> REJECTED + loud BILLING_PROVIDER_NOT_FOUND
+//   anything else / no string -> REJECTED
+//
+// REJECTED = HTTP 200 + a durable webhook_dead_letter row + console.error with
+// a stable marker, NOT a 5xx. Why: the RPC already inserted the event into
+// payment_event_ledger as outcome='ignored' before returning, so a Stripe
+// retry only ever comes back 'duplicate' (a 5xx would buy exactly one
+// pointless retry and then the same silent 200). Retrying 'ignored_bad_plan'
+// forever also accomplishes nothing — the plan stays wrong until a human fixes
+// the subscription metadata. The silent 200 was the bug; the fix is a
+// queryable row (docs/runbooks/billing-ledger-detection.sql, the
+// no-stale-dead-letters invariant) plus the admin repair RPC
+// reprocess_billing_ledger_event, which deliberately bypasses the duplicate
+// gate. The response body carries `rejected` so the Stripe dashboard's
+// delivery log shows it too. If the dead-letter write itself fails we THROW,
+// which the outer catch turns into a 500 — a rejection is never lost silently.
+const BILLING_REJECTED_MARKER = "BILLING_WEBHOOK_REJECTED";
+const BILLING_PROVIDER_NOT_FOUND_MARKER = "BILLING_PROVIDER_NOT_FOUND";
+
+async function rejectBillingEvent(
+  event: Stripe.Event,
+  payloadHash: string,
+  reason: string,
+  loud = false,
+): Promise<string> {
+  const marker = loud ? `${BILLING_PROVIDER_NOT_FOUND_MARKER} ` : "";
+  console.error(
+    `${BILLING_REJECTED_MARKER} ${marker}${reason} event=${event.id} type=${event.type}`,
+  );
+  const { error } = await admin.rpc("record_webhook_dead_letter", {
+    p_event_id: event.id,
+    p_event_type: event.type,
+    p_payload_sha256: payloadHash,
+    p_error: `${BILLING_REJECTED_MARKER}: ${reason}`,
+    p_occurred_at: new Date(event.created * 1000).toISOString(),
+  });
+  if (error) {
+    throw new Error(`billing dead-letter failed for ${reason}: ${error.message}`);
+  }
+  return reason;
+}
+
+// Returns null when acknowledged, or the rejection reason (already
+// dead-lettered) so the HTTP response can carry it.
 async function applyBillingEvent(
   event: Stripe.Event,
   sub: Stripe.Subscription,
   payloadHash: string,
   statusOverride: string | null = null,
-) {
+): Promise<string | null> {
   const providerId = await billingProviderId(sub);
   if (!providerId) {
-    // Not ours (or pre-metadata): acknowledge so Stripe stops retrying, but
-    // leave a trace for reconciliation.
-    console.error("billing event with unresolvable provider:", event.id, sub.id);
-    return;
+    // Not ours (or pre-metadata). Same class as provider_not_found one step
+    // earlier: no silent acknowledgement — dead-letter it loudly.
+    return rejectBillingEvent(event, payloadHash, "provider_unresolvable", true);
   }
   const price = sub.items?.data?.[0]?.price ?? null;
-  const { error } = await admin.rpc("apply_stripe_billing_event", {
+  const { data, error } = await admin.rpc("apply_stripe_billing_event", {
     p_event_id: event.id,
     p_event_type: event.type,
     p_provider_id: providerId,
@@ -193,6 +248,26 @@ async function applyBillingEvent(
     p_occurred_at: new Date(event.created * 1000).toISOString(),
   });
   if (error) throw new Error(`billing ledger failed: ${error.message}`);
+
+  const verdict = typeof data === "string" ? data : null;
+  if (verdict === "duplicate" || (verdict?.startsWith("applied:") ?? false)) {
+    return null;
+  }
+  if (verdict === "stale") {
+    console.error(`billing event stale (newer snapshot already applied): event=${event.id} sub=${sub.id}`);
+    return null;
+  }
+  if (verdict === "provider_not_found") {
+    return rejectBillingEvent(event, payloadHash, verdict, true);
+  }
+  if (
+    verdict?.startsWith("ignored_bad_plan:") ||
+    verdict?.startsWith("ignored_unknown_status:")
+  ) {
+    return rejectBillingEvent(event, payloadHash, verdict);
+  }
+  const unrecognized = verdict === null ? JSON.stringify(data ?? null) : verdict;
+  return rejectBillingEvent(event, payloadHash, `unrecognized:${String(unrecognized).slice(0, 120)}`);
 }
 
 Deno.serve(async (req) => {
@@ -249,6 +324,9 @@ Deno.serve(async (req) => {
     return new Response("Invalid signature", { status: 401 });
   }
 
+  // Set by a billing verdict that was REJECTED (dead-lettered); surfaced in
+  // the acknowledgement body so Stripe's delivery log shows it.
+  let rejected: string | null = null;
   try {
     const expectedLivemode = (Deno.env.get("STRIPE_SECRET_KEY") ?? "").startsWith("sk_live_");
     if (event.livemode !== expectedLivemode) {
@@ -326,7 +404,7 @@ Deno.serve(async (req) => {
             : s.subscription?.id ?? null;
           if (subId) {
             const sub = await stripe.subscriptions.retrieve(subId);
-            await applyBillingEvent(event, sub, payloadHash);
+            rejected = await applyBillingEvent(event, sub, payloadHash);
           }
           break;
         }
@@ -466,14 +544,14 @@ Deno.serve(async (req) => {
       case "customer.subscription.created":
       case "customer.subscription.updated": {
         const sub = event.data.object as Stripe.Subscription;
-        await applyBillingEvent(event, sub, payloadHash);
+        rejected = await applyBillingEvent(event, sub, payloadHash);
         break;
       }
       case "customer.subscription.deleted": {
         const sub = event.data.object as Stripe.Subscription;
         // Deleted = definitively over; project 'canceled' regardless of the
         // snapshot's status field.
-        await applyBillingEvent(event, sub, payloadHash, "canceled");
+        rejected = await applyBillingEvent(event, sub, payloadHash, "canceled");
         break;
       }
       case "invoice.payment_failed": {
@@ -486,7 +564,7 @@ Deno.serve(async (req) => {
           // Stripe may not have flipped the subscription yet when the invoice
           // fails; grace policy is 'past_due keeps the plan until period end',
           // so record past_due explicitly rather than a racy 'active'.
-          await applyBillingEvent(
+          rejected = await applyBillingEvent(
             event,
             sub,
             payloadHash,
@@ -521,7 +599,7 @@ Deno.serve(async (req) => {
     return new Response("handler error", { status: 500 });
   }
 
-  return new Response(JSON.stringify({ received: true }), {
+  return new Response(JSON.stringify(rejected ? { received: true, rejected } : { received: true }), {
     status: 200,
     headers: { "Content-Type": "application/json" },
   });
