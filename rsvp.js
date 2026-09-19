@@ -3,7 +3,7 @@
    credential. Exposes its pure parts on window.SporvRsvp for tests. */
 (function () {
   "use strict";
-  var API = "https://tseszaprvtvqrkfpditu.supabase.co/functions/v1/guardian-link";
+  var API = "https://hzbhjkcqwawgqtspueuw.supabase.co/functions/v1/guardian-link";
   var TOKEN_RE = /^[0-9a-f]{64}$/;
 
   function tokenFrom(search) {
