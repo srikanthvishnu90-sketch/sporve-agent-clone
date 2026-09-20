@@ -87,7 +87,7 @@ test('2+3. signup: every button works, and what is entered is saved and shown af
   await click('[data-obwrong]', '1b · different email'); assert.equal((await state(page)).step, '1');
   await page.fill('#obEm', 'coach@example.com'); await click('#obSend', '1 · Continue'); await click('[data-obcode]', '1b · enter code');
   await page.fill('#obTok', '000000'); await page.locator('#obCode button[type=submit]').click();
-  await page.waitForFunction(() => !!S.ob?.err, null, { timeout: 15000 }); // two verify round trips on a loaded CI runner can exceed 8s (owner ruling 2026-09-18)
+  await page.waitForFunction(() => !!S.ob?.err, null, { timeout: 30000 }); // wrong-code path does TWO sequential verify round trips by design (type=email, then type=magiclink fallback); each can exceed 8s on a loaded CI runner (owner ruling 2026-09-18). Back-to-back 15s timeouts on 2026-09-20 (pr-checks runs 35520172659, 35520342266) with a byte-identical built page — runner-load flake, not a product regression. 30s still fails a real hang.
   assert.match((await state(page)).text, /not accepted/, 'a wrong code says so');
   await page.fill('#obTok', '123456'); await page.locator('#obCode button[type=submit]').click(); clicked.add('1b · Sign in');
   await page.waitForFunction(() => S.auth?.status === 'verified' && S.ob?.step === '2', null, { timeout: 15000 });
