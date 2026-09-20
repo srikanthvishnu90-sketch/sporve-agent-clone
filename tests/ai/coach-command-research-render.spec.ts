@@ -103,3 +103,233 @@ test('D2-4: card carries the honest save receipt', () => {
 test('D2-5: empty list renders nothing (no phantom card)', () => {
   assert.equal(leadsCardHTML([], 0), '');
 });
+
+// ── 6. Count agreement (production 2026-09-20: prose said "Found 10", card
+//      showed 8) ──────────────────────────────────────────────────────────
+test('D2-6: card notes truncation when more than 8 leads', () => {
+  const many = Array.from({ length: 10 }, (_, i) => ({ name: `Club ${i + 1}` }));
+  const html = leadsCardHTML(many, 3);
+  assert.match(html, /Showing 8 of 10 here/);
+  // exactly 8 rows rendered
+  assert.equal(html.split('class="facrow"').length - 1, 8);
+});
+
+test('D2-7: card omits the scope note when 8 or fewer leads', () => {
+  assert.ok(!leadsCardHTML(sample, 2).includes('Showing'));
+});
+
+test('D2-8: server count line agrees with the 8-row card cap', () => {
+  const start = backend.indexOf('C1/D2 club-research completion');
+  const end = backend.indexOf('C2 venue-research completion');
+  const block = backend.slice(start, end);
+  assert.ok(block.includes('shownCount = Math.min(leads.length, 8)'), 'cap of 8 present');
+  assert.ok(block.includes('the top ${shownCount} are in the card below'), 'truncated count line present');
+  assert.ok(block.includes('the rest are in your review queue'), 'overflow points at queue');
+});
+
+// ── 6. Count agreement (production 2026-09-20: prose said "Found 10", card
+//      showed 8) ──────────────────────────────────────────────────────────
+test('D2-6: card notes truncation when more than 8 leads', () => {
+  const many = Array.from({ length: 10 }, (_, i) => ({ name: `Club ${i + 1}` }));
+  const html = leadsCardHTML(many, 3);
+  assert.match(html, /Showing 8 of 10 here/);
+  // exactly 8 rows rendered
+  assert.equal(html.split('class="facrow"').length - 1, 8);
+});
+
+test('D2-7: card omits the scope note when 8 or fewer leads', () => {
+  assert.ok(!leadsCardHTML(sample, 2).includes('Showing'));
+});
+
+test('D2-8: server count line agrees with the 8-row card cap', () => {
+  const start = backend.indexOf('C1/D2 club-research completion');
+  const end = backend.indexOf('C2 venue-research completion');
+  const block = backend.slice(start, end);
+  assert.ok(block.includes('shownCount = Math.min(leads.length, 8)'), 'cap of 8 present');
+  assert.ok(block.includes('the top ${shownCount} are in the card below'), 'truncated count line present');
+  assert.ok(block.includes('the rest are in your review queue'), 'overflow points at queue');
+});
+
+// ── 6. Count agreement (production 2026-09-20: prose said "Found 10", card
+//      showed 8) ──────────────────────────────────────────────────────────
+test('D2-6: card notes truncation when more than 8 leads', () => {
+  const many = Array.from({ length: 10 }, (_, i) => ({ name: `Club ${i + 1}` }));
+  const html = leadsCardHTML(many, 3);
+  assert.match(html, /Showing 8 of 10 here/);
+  // exactly 8 rows rendered
+  assert.equal(html.split('class="facrow"').length - 1, 8);
+});
+
+test('D2-7: card omits the scope note when 8 or fewer leads', () => {
+  assert.ok(!leadsCardHTML(sample, 2).includes('Showing'));
+});
+
+test('D2-8: server count line agrees with the 8-row card cap', () => {
+  const start = backend.indexOf('C1/D2 club-research completion');
+  const end = backend.indexOf('C2 venue-research completion');
+  const block = backend.slice(start, end);
+  assert.ok(block.includes('shownCount = Math.min(leads.length, 8)'), 'cap of 8 present');
+  assert.ok(block.includes('the top ${shownCount} are in the card below'), 'truncated count line present');
+  assert.ok(block.includes('the rest are in your review queue'), 'overflow points at queue');
+});
+
+// ── 6. Count agreement (production 2026-09-20: prose said "Found 10", card
+//      showed 8) ──────────────────────────────────────────────────────────
+test('D2-6: card notes truncation when more than 8 leads', () => {
+  const many = Array.from({ length: 10 }, (_, i) => ({ name: `Club ${i + 1}` }));
+  const html = leadsCardHTML(many, 3);
+  assert.match(html, /Showing 8 of 10 here/);
+  // exactly 8 rows rendered
+  assert.equal(html.split('class="facrow"').length - 1, 8);
+});
+
+test('D2-7: card omits the scope note when 8 or fewer leads', () => {
+  assert.ok(!leadsCardHTML(sample, 2).includes('Showing'));
+});
+
+test('D2-8: server count line agrees with the 8-row card cap', () => {
+  const start = backend.indexOf('C1/D2 club-research completion');
+  const end = backend.indexOf('C2 venue-research completion');
+  const block = backend.slice(start, end);
+  assert.ok(block.includes('shownCount = Math.min(leads.length, 8)'), 'cap of 8 present');
+  assert.ok(block.includes('the top ${shownCount} are in the card below'), 'truncated count line present');
+  assert.ok(block.includes('the rest are in your review queue'), 'overflow points at queue');
+});
+
+// ── 6. Count agreement (production 2026-09-20: prose said "Found 10", card
+//      showed 8) ──────────────────────────────────────────────────────────
+test('D2-6: card notes truncation when more than 8 leads', () => {
+  const many = Array.from({ length: 10 }, (_, i) => ({ name: `Club ${i + 1}` }));
+  const html = leadsCardHTML(many, 3);
+  assert.match(html, /Showing 8 of 10 here/);
+  // exactly 8 rows rendered
+  assert.equal(html.split('class="facrow"').length - 1, 8);
+});
+
+test('D2-7: card omits the scope note when 8 or fewer leads', () => {
+  assert.ok(!leadsCardHTML(sample, 2).includes('Showing'));
+});
+
+test('D2-8: server count line agrees with the 8-row card cap', () => {
+  const start = backend.indexOf('C1/D2 club-research completion');
+  const end = backend.indexOf('C2 venue-research completion');
+  const block = backend.slice(start, end);
+  assert.ok(block.includes('shownCount = Math.min(leads.length, 8)'), 'cap of 8 present');
+  assert.ok(block.includes('the top ${shownCount} are in the card below'), 'truncated count line present');
+  assert.ok(block.includes('the rest are in your review queue'), 'overflow points at queue');
+});
+
+// ── 6. Count agreement (production 2026-09-20: prose said "Found 10", card
+//      showed 8) ──────────────────────────────────────────────────────────
+test('D2-6: card notes truncation when more than 8 leads', () => {
+  const many = Array.from({ length: 10 }, (_, i) => ({ name: `Club ${i + 1}` }));
+  const html = leadsCardHTML(many, 3);
+  assert.match(html, /Showing 8 of 10 here/);
+  // exactly 8 rows rendered
+  assert.equal(html.split('class="facrow"').length - 1, 8);
+});
+
+test('D2-7: card omits the scope note when 8 or fewer leads', () => {
+  assert.ok(!leadsCardHTML(sample, 2).includes('Showing'));
+});
+
+test('D2-8: server count line agrees with the 8-row card cap', () => {
+  const start = backend.indexOf('C1/D2 club-research completion');
+  const end = backend.indexOf('C2 venue-research completion');
+  const block = backend.slice(start, end);
+  assert.ok(block.includes('shownCount = Math.min(leads.length, 8)'), 'cap of 8 present');
+  assert.ok(block.includes('the top ${shownCount} are in the card below'), 'truncated count line present');
+  assert.ok(block.includes('the rest are in your review queue'), 'overflow points at queue');
+});
+
+// ── 6. Count agreement (production 2026-09-20: prose said "Found 10", card
+//      showed 8) ──────────────────────────────────────────────────────────
+test('D2-6: card notes truncation when more than 8 leads', () => {
+  const many = Array.from({ length: 10 }, (_, i) => ({ name: `Club ${i + 1}` }));
+  const html = leadsCardHTML(many, 3);
+  assert.match(html, /Showing 8 of 10 here/);
+  // exactly 8 rows rendered
+  assert.equal(html.split('class="facrow"').length - 1, 8);
+});
+
+test('D2-7: card omits the scope note when 8 or fewer leads', () => {
+  assert.ok(!leadsCardHTML(sample, 2).includes('Showing'));
+});
+
+test('D2-8: server count line agrees with the 8-row card cap', () => {
+  const start = backend.indexOf('C1/D2 club-research completion');
+  const end = backend.indexOf('C2 venue-research completion');
+  const block = backend.slice(start, end);
+  assert.ok(block.includes('shownCount = Math.min(leads.length, 8)'), 'cap of 8 present');
+  assert.ok(block.includes('the top ${shownCount} are in the card below'), 'truncated count line present');
+  assert.ok(block.includes('the rest are in your review queue'), 'overflow points at queue');
+});
+
+// ── 6. Count agreement (production 2026-09-20: prose said "Found 10", card
+//      showed 8) ──────────────────────────────────────────────────────────
+test('D2-6: card notes truncation when more than 8 leads', () => {
+  const many = Array.from({ length: 10 }, (_, i) => ({ name: `Club ${i + 1}` }));
+  const html = leadsCardHTML(many, 3);
+  assert.match(html, /Showing 8 of 10 here/);
+  // exactly 8 rows rendered
+  assert.equal(html.split('class="facrow"').length - 1, 8);
+});
+
+test('D2-7: card omits the scope note when 8 or fewer leads', () => {
+  assert.ok(!leadsCardHTML(sample, 2).includes('Showing'));
+});
+
+test('D2-8: server count line agrees with the 8-row card cap', () => {
+  const start = backend.indexOf('C1/D2 club-research completion');
+  const end = backend.indexOf('C2 venue-research completion');
+  const block = backend.slice(start, end);
+  assert.ok(block.includes('shownCount = Math.min(leads.length, 8)'), 'cap of 8 present');
+  assert.ok(block.includes('the top ${shownCount} are in the card below'), 'truncated count line present');
+  assert.ok(block.includes('the rest are in your review queue'), 'overflow points at queue');
+});
+
+// ── 6. Count agreement (production 2026-09-20: prose said "Found 10", card
+//      showed 8) ──────────────────────────────────────────────────────────
+test('D2-6: card notes truncation when more than 8 leads', () => {
+  const many = Array.from({ length: 10 }, (_, i) => ({ name: `Club ${i + 1}` }));
+  const html = leadsCardHTML(many, 3);
+  assert.match(html, /Showing 8 of 10 here/);
+  // exactly 8 rows rendered
+  assert.equal(html.split('class="facrow"').length - 1, 8);
+});
+
+test('D2-7: card omits the scope note when 8 or fewer leads', () => {
+  assert.ok(!leadsCardHTML(sample, 2).includes('Showing'));
+});
+
+test('D2-8: server count line agrees with the 8-row card cap', () => {
+  const start = backend.indexOf('C1/D2 club-research completion');
+  const end = backend.indexOf('C2 venue-research completion');
+  const block = backend.slice(start, end);
+  assert.ok(block.includes('shownCount = Math.min(leads.length, 8)'), 'cap of 8 present');
+  assert.ok(block.includes('the top ${shownCount} are in the card below'), 'truncated count line present');
+  assert.ok(block.includes('the rest are in your review queue'), 'overflow points at queue');
+});
+
+// ── 6. Count agreement (production 2026-09-20: prose said "Found 10", card
+//      showed 8) ──────────────────────────────────────────────────────────
+test('D2-6: card notes truncation when more than 8 leads', () => {
+  const many = Array.from({ length: 10 }, (_, i) => ({ name: `Club ${i + 1}` }));
+  const html = leadsCardHTML(many, 3);
+  assert.match(html, /Showing 8 of 10 here/);
+  // exactly 8 rows rendered
+  assert.equal(html.split('class="facrow"').length - 1, 8);
+});
+
+test('D2-7: card omits the scope note when 8 or fewer leads', () => {
+  assert.ok(!leadsCardHTML(sample, 2).includes('Showing'));
+});
+
+test('D2-8: server count line agrees with the 8-row card cap', () => {
+  const start = backend.indexOf('C1/D2 club-research completion');
+  const end = backend.indexOf('C2 venue-research completion');
+  const block = backend.slice(start, end);
+  assert.ok(block.includes('shownCount = Math.min(leads.length, 8)'), 'cap of 8 present');
+  assert.ok(block.includes('the top ${shownCount} are in the card below'), 'truncated count line present');
+  assert.ok(block.includes('the rest are in your review queue'), 'overflow points at queue');
+});

@@ -3723,6 +3723,10 @@ h2.ctr{margin-bottom:10px}
    Closed-dock keeps the centered max-1240 reading measure. Pure layout. */
 html.coldock .dash>div{width:100%;margin:0}
 .dashwrap{display:flex;flex-direction:column;gap:36px;padding:28px 0 250px}
+/* Dashboard word contrast (2026-09-20): owner asked for whiter dashboard words.
+   Lift each secondary text tone one step within the dashboard only — the
+   3-step hierarchy is preserved, nothing jumps to pure white. */
+.shell.dash{--faint:#9AA6B2;--muted:#C3CBD4;--ink-2:#E8EDF2}
 /* Reference-style stat cards (owner 2026-08-25 "3 cards (match reference)"):
    three boxed cards, roomy — label / prominent numeral / detail — our colours. */
 .metrics{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px;border-bottom:0}
@@ -10604,10 +10608,12 @@ function facilitiesCardHTML(list){
    the assistant prose must not repeat them (D2). */
 function leadsCardHTML(list,saved){
   if(!Array.isArray(list)||!list.length) return "";
+  const shown=list.slice(0,8), extra=list.length-shown.length;
   const receipt=saved>0
     ?`Saved ${saved} new prospect${saved===1?"":"s"} to your review queue. `
     :`Already in your review queue — nothing new to save. `;
-  return `<div class="faccard">${list.slice(0,8).map(l=>`
+  const scope=extra>0?` Showing ${shown.length} of ${list.length} here — the rest are in your review queue.`:"";
+  return `<div class="faccard">${shown.map(l=>`
     <div class="facrow">
       <span class="facmain"><b>${esc(l.name||"Organization")}</b>${
         l.address?`<em>${esc(l.address)}</em>`:""}${
@@ -10615,7 +10621,7 @@ function leadsCardHTML(list,saved){
         l.phone?`<em>${esc(l.phone)}</em>`:""}</span>
       ${l.rating?`<span class="facrate num">★ ${esc(String(l.rating))}</span>`:""}
     </div>`).join("")}
-    <p class="facfine">${receipt}Discovery only — nothing was sent; outreach is drafted separately for your approval.</p>
+    <p class="facfine">${receipt}Discovery only — nothing was sent; outreach is drafted separately for your approval.${scope}</p>
   </div>`;
 }
 
