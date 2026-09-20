@@ -345,12 +345,12 @@ const DRAFT_SYSTEM = [
   "{COMPACT_CONTEXT}",
   "",
   "RULES:",
-  "- to = the recipient descriptor EXACTLY as the coach said it. For 'below X% attendance' filters: each ATTENDANCE line already shows the server-computed rate as 'Name: present/total (Z%)' — COPY the rate, never recompute it. Include ONLY athletes whose listed rate is STRICTLY below X (56% is below 60%; 69% and 75% are NOT). Join names with ' and '.",
+  "- to = RESOLVED recipient names, never the coach's raw phrase. If the coach named athletes ('Mia Rossi and Ava Novak'), use those names. If the coach gave a FILTER ('parents of players below 60% attendance'), resolve it yourself from the ATTENDANCE block and put the matching full names here (e.g. 'Mia Rossi and Ava Novak'). NEVER put a raw filter phrase ('parents of players with attendance below 60%') in to — the server cannot resolve it and the draft will fail. For 'below X% attendance': each ATTENDANCE line already shows the server-computed rate as 'Name: present/total (Z%)' — COPY the rate, never recompute it. Include ONLY athletes whose listed rate is STRICTLY below X (56% is below 60%; 69% and 75% are NOT). Join names with ' and '. Team-wide messages: use the team name from CONTEXT (e.g. 'U12 Thunderbolts').",
   "- body = PLAIN, WARM, SHORT — a note a busy parent reads in 3 seconds. Echo the coach's key facts VERBATIM (times, dates, places). When the message is about a session, name the resolved session (team + weekday + date) in the opening line.",
   "- End body with one line starting 'Why: ' naming the reason, from the coach's instruction or CONTEXT only.",
   "- Bulk messages (more than one family): use {guardian} for the guardian's first name, {child} for the athlete's first name, {business} for the club name.",
   "- Ambiguous session ('Sunday', 'practice', 'Saturday') = the NEXT upcoming session in CONTEXT. Never ask which session.",
-  "- Work around missing details — DRAFT, don't stall: unknown time for a new session → write 'time to be confirmed — just reply to this message'; unknown minor detail → use the resolved session's facts.",
+  "- Work around missing details — DRAFT, don't stall: unknown time for a new session → write 'time to be confirmed — just reply to this message'; unknown minor detail → use the resolved session's facts. 'Message Mia's parent about Saturday' → draft a warm REMINDER about the next Saturday session from CONTEXT (team + date + time in the opening line). Asking 'what should the message say?' when the session is known is a FAILED turn — never do it.",
   "- clarify INSTEAD of a draft ONLY when the WHO matches two or more people, or the WHAT is entirely missing and cannot be worked around (e.g. 'remind the coaches about the schedule change' when no change was ever described).",
   "- NEVER output clarify to ask permission to draft. NEVER ask 'should I draft this?'.",
   "- Output PLAIN TEXT in body — no markdown headings, no bold.",
@@ -572,7 +572,12 @@ export async function draftLapsedOutreach(args: Record<string, unknown>, userCli
   }));
   const { data, error } = await userClient.from("outbound_messages").insert(rows).select("id");
   // D2 receipt: only report queued when the insert actually succeeded.
-  if (error || !data) return { queued: 0, error: "The drafts didn't queue." };
+  // Surface the real failure in the turn log — an honest error beats a mystery.
+  if (error || !data) {
+    const detail = error ? String((error as { message?: unknown }).message ?? error).slice(0, 220) : "no rows returned";
+    console.error("coach-command draft insert failed:", detail);
+    return { queued: 0, error: `The drafts didn't queue (${detail}).` };
+  }
   // deno-lint-ignore no-explicit-any
   const ids = ((data ?? []) as { id: string }[]).map((d) => d.id);
   return {
@@ -752,7 +757,11 @@ export async function draftMessageBulk(args: Record<string, unknown>, userClient
   }));
   const { data, error } = await userClient.from("outbound_messages").insert(rows).select("id");
   // D2/G4 receipt: only report queued when the insert actually succeeded.
-  if (error || !data) return { queued: 0, error: "The drafts didn't queue." };
+  if (error || !data) {
+    const detail = error ? String((error as { message?: unknown }).message ?? error).slice(0, 220) : "no rows returned";
+    console.error("coach-command draft insert failed:", detail);
+    return { queued: 0, error: `The drafts didn't queue (${detail}).` };
+  }
   // deno-lint-ignore no-explicit-any
   const ids = ((data ?? []) as { id: string }[]).map((x) => x.id);
   return {
