@@ -74,6 +74,20 @@ verify_jwt = false
 [functions.google-oauth-callback]
 verify_jwt = false
 
+# Microsoft redirects the customer's browser here with no Authorization header,
+# so the platform gateway must not reject it. The function authenticates the
+# round trip itself: a single-use, ten-minute state row minted by
+# microsoft-oauth-start. Without a matching state it does nothing at all.
+[functions.microsoft-oauth-callback]
+verify_jwt = false
+
+# Intuit redirects the customer's browser here with no Authorization header,
+# so the platform gateway must not reject it. The function authenticates the
+# round trip itself: a single-use, ten-minute state row minted by
+# intuit-oauth-start. Without a matching state it does nothing at all.
+[functions.intuit-oauth-callback]
+verify_jwt = false
+
 # service_role only, invoked by the cron runner. It checks the bearer token
 # against the service key itself, so the gateway check is belt-and-braces.
 [functions.gmail-scan]
