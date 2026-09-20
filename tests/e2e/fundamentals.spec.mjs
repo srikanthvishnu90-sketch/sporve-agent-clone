@@ -87,10 +87,10 @@ test('2+3. signup: every button works, and what is entered is saved and shown af
   await click('[data-obwrong]', '1b · different email'); assert.equal((await state(page)).step, '1');
   await page.fill('#obEm', 'coach@example.com'); await click('#obSend', '1 · Continue'); await click('[data-obcode]', '1b · enter code');
   await page.fill('#obTok', '000000'); await page.locator('#obCode button[type=submit]').click();
-  await page.waitForFunction(() => !!S.ob?.err, null, { timeout: 30000 }); // wrong-code path does TWO sequential verify round trips by design (type=email, then type=magiclink fallback); each can exceed 8s on a loaded CI runner (owner ruling 2026-09-18). Back-to-back 15s timeouts on 2026-09-20 (pr-checks runs 35520172659, 35520342266) with a byte-identical built page — runner-load flake, not a product regression. 30s still fails a real hang.
+  await page.waitForFunction(() => !!S.ob?.err, null, { timeout: 30000 }); // wrong-code path does TWO sequential verify round trips by design (type=email, then type=magiclink fallback); each can exceed 8s on a loaded CI runner (owner ruling 2026-09-18). 30s still fails a real hang.
   assert.match((await state(page)).text, /not accepted/, 'a wrong code says so');
   await page.fill('#obTok', '123456'); await page.locator('#obCode button[type=submit]').click(); clicked.add('1b · Sign in');
-  await page.waitForFunction(() => S.auth?.status === 'verified' && S.ob?.step === '2', null, { timeout: 15000 });
+  await page.waitForFunction(() => S.auth?.status === 'verified' && S.ob?.step === '2', null, { timeout: 30000 }); // correct-code path does verify → session → step 2; back-to-back 15s timeouts on 2026-09-20 (pr-checks runs 35520342266, 35520619737, both at this exact wait) with a byte-identical built page — runner-load flake, not a product regression. The earlier 30s bump was mis-aimed at the wrong-code wait above, which never timed out. 30s still fails a real hang.
   // ── step 2: what you run ──
   await noteButtons('2');
   assert.ok(await page.locator('#obNext').isDisabled(), 'Continue waits for consent');
