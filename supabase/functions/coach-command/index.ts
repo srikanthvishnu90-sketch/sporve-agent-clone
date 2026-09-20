@@ -349,20 +349,22 @@ const DRAFT_SYSTEM = [
   "- body = PLAIN, WARM, SHORT — a note a busy parent reads in 3 seconds. Echo the coach's key facts VERBATIM (times, dates, places). When the message is about a session, name the resolved session (team + weekday + date) in the opening line.",
   "- End body with one line starting 'Why: ' naming the reason, from the coach's instruction or CONTEXT only.",
   "- Bulk messages (more than one family): use {guardian} for the guardian's first name, {child} for the athlete's first name, {business} for the club name.",
-  "- Ambiguous session ('Sunday', 'practice', 'Saturday') = the NEXT upcoming session in CONTEXT. Never ask which session.",
+  "- Session resolution is PINNED — when a PINNED SESSION line is present it is the exact session: copy its day, date, and time VERBATIM, never combine facts from different sessions (e.g. never write 'Sunday, 26 September': 26 September is a Saturday). When no PINNED SESSION line is present: a weekday the coach names ('Sunday', 'Saturday') = the upcoming session whose date falls on that weekday; a weekday with no matching session = the next <weekday> after today with 'time to be confirmed'; no weekday named = the next upcoming session in CONTEXT. Never ask which session.
+- When the coach's message uses an attendance filter ('below 60%'), the PINNED RECIPIENTS line gives each matched athlete's server-computed rate — cite those rates in the body or the Why line, copied verbatim (e.g. 'Mia Rossi 7/16 (44%)'). Copy the rate, never recompute it.",
   "- Work around missing details — DRAFT, don't stall: unknown time for a new session → write 'time to be confirmed — just reply to this message'; unknown minor detail → use the resolved session's facts. 'Message Mia's parent about Saturday' → draft a warm REMINDER about the next Saturday session from CONTEXT (team + date + time in the opening line). Asking 'what should the message say?' when the session is known is a FAILED turn — never do it.",
   "- clarify INSTEAD of a draft ONLY when the WHO matches two or more people, or the WHAT is entirely missing and cannot be worked around (e.g. 'remind the coaches about the schedule change' when no change was ever described).",
   "- NEVER output clarify to ask permission to draft. NEVER ask 'should I draft this?'.",
   "- Output PLAIN TEXT in body — no markdown headings, no bold.",
   "",
   "WORKED EXAMPLES (follow these exactly):",
-  "EXAMPLE 1 — filter:",
+  "EXAMPLE 1 — filter + weekday with no matching session:",
   "Coach message: 'Message the parents of players with attendance below 60% about an extra training session on Sunday.'",
-  "CONTEXT ATTENDANCE: Mia Rossi: 7/16 (44%), Ava Novak: 9/16 (56%), Sofia Marino: 11/16 (69%), Lucas Meyer: 12/16 (75%).",
-  "CONTEXT SESSIONS: U12 Sunday Training 2026-09-27 (time to be confirmed).",
-  "CORRECT: to='Mia Rossi and Ava Novak', body names Sunday, September 27 and says 'time to be confirmed — just reply to this message'.",
+  "PINNED RECIPIENTS: Mia Rossi and Ava Novak. PINNED ATTENDANCE: Mia Rossi 7/16 (44%); Ava Novak 9/16 (56%). Sofia Marino (69%) and Lucas Meyer (75%) are NOT below 60% — never include them.",
+  "PINNED SESSION: Extra training session — Sunday, 2026-09-27 (no time set).",
+  "CORRECT: to='Mia Rossi and Ava Novak', body opens naming Sunday, September 27, says 'time to be confirmed — just reply to this message', and ends with a line starting 'Why: ' citing the pinned attendance (e.g. 'Why: Mia Rossi 7/16 (44%) and Ava Novak 9/16 (56%) are below 60% attendance — extra session to help them catch up.').",
   "WRONG: to='parents of players with attendance below 60%' (raw phrase — the server cannot resolve it, the draft fails).",
-  "WRONG: asking which Sunday or what time (the session default resolves it).",
+  "WRONG: 'Sunday, 26 September from 10:00-11:30' (mixing the coach's weekday with a different session's date and time — never combine facts from different sessions).",
+  "WRONG: asking which Sunday or what time (the pinned facts already resolve it).",
   "EXAMPLE 2 — known session:",
   "Coach message: 'Message Mia's parent about Saturday.'",
   "CONTEXT SESSIONS: U12 Saturday Practice 2026-09-26 10:00 AM–11:30 AM.",
@@ -1016,6 +1018,111 @@ function fmtTime(t: unknown): string {
 }
 const DOW = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
 
+/* ── v21 deterministic pinning: exact facts the writer copies verbatim ──────
+   The narrow draft-writer must never do date arithmetic, recompute rates, or
+   mix facts across sessions (it once wrote "Sunday, 26 September" — 26 Sept is
+   a Saturday — by combining the coach's weekday with the Saturday session's
+   date and time). The server resolves everything below from its own data and
+   the writer copies it verbatim. Pure functions — unit-tested in node. */
+const WEEKDAYS = ["sunday", "monday", "tuesday", "wednesday", "thursday", "friday", "saturday"];
+const WEEKDAY_NAMES = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
+
+/** Day-of-week index (0=Sunday) for a YYYY-MM-DD string, -1 when unparseable. */
+function dowOf(dateStr: string): number {
+  const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(String(dateStr ?? ""));
+  if (!m) return -1;
+  return new Date(Date.UTC(+m[1], +m[2] - 1, +m[3])).getUTCDay();
+}
+
+/** Next date (YYYY-MM-DD) strictly after `from` falling on weekday `dow`. */
+function nextWeekdayDate(dow: number, from: string): string {
+  const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(String(from ?? ""));
+  const base = m ? Date.UTC(+m[1], +m[2] - 1, +m[3]) : Date.now();
+  const baseDow = new Date(base).getUTCDay();
+  let delta = (dow - baseDow + 7) % 7;
+  if (delta === 0) delta = 7; // strictly after today — an announced session is in the future
+  return new Date(base + delta * 86400000).toISOString().slice(0, 10);
+}
+
+/** One exact, copy-verbatim session line for the draft-writer. */
+function formatSessionHint(title: string, dateStr: string, startTime: string, endTime: string): string {
+  const wd = WEEKDAY_NAMES[dowOf(dateStr)] ?? "";
+  const t = String(startTime ?? "").trim();
+  const e = String(endTime ?? "").trim();
+  const timePart = t ? ` ${fmtTime(t)}${e ? "–" + fmtTime(e) : ""}` : " (no time set)";
+  return `${String(title ?? "session")} — ${wd ? wd + ", " : ""}${String(dateStr ?? "").trim()}${timePart}`.trim();
+}
+
+/* Attendance filter pinning ("below 60%" / "above 80%"): resolve against the
+   server-computed attLines so the writer copies names AND rates verbatim.
+   Strictly below/above — 60% itself is NOT below 60%. */
+function pinAttendanceFilter(text: string, attLines: string[]): {
+  to: string | null; rates: string[]; finding: string | null;
+} {
+  const fm = /\b(below|under|less than|above|over|more than)\s+(\d{1,3})\s*%/i.exec(text);
+  if (!fm || !attLines.length) return { to: null, rates: [], finding: null };
+  const wantBelow = /below|under|less/i.test(fm[1]);
+  const x = parseInt(fm[2], 10);
+  const names: string[] = [];
+  const rates: string[] = [];
+  for (const ln of attLines) {
+    const lm = /^-\s*(.+?):\s*(\d+\/\d+\s*\(\d+%\))/.exec(ln);
+    if (!lm) continue;
+    const rate = parseInt(/(\d+)%/.exec(lm[2])?.[1] ?? "0", 10);
+    if ((wantBelow && rate < x) || (!wantBelow && rate > x)) {
+      names.push(lm[1].trim());
+      rates.push(`${lm[1].trim()} ${lm[2].trim()}`);
+    }
+  }
+  if (!names.length) return { to: null, rates: [], finding: null };
+  const dir = wantBelow ? "below" : "above";
+  return {
+    to: names.join(" and "),
+    rates,
+    finding: `${rates.join(" and ")} ${names.length === 1 ? "is" : "are"} ${dir} ${x}% attendance`,
+  };
+}
+
+/* Deterministic session resolution:
+   - Coach names a weekday -> the upcoming session whose DATE falls on that
+     weekday (computed from the date, never the title).
+   - No session on that weekday (e.g. announcing an EXTRA session) -> the next
+     <weekday> strictly after today, with no time set (writer renders it as
+     "time to be confirmed").
+   - No weekday named -> the next upcoming session (existing behavior).
+   Returns a copy-verbatim hint line, or null when there is nothing to pin. */
+function resolveSessionHint(
+  text: string,
+  sessions: Record<string, unknown>[],
+  todayStr: string,
+): string | null {
+  const dm = /\b(monday|tuesday|wednesday|thursday|friday|saturday|sunday)\b/i.exec(text);
+  const list = Array.isArray(sessions) ? sessions : [];
+  if (dm) {
+    const dow = WEEKDAYS.indexOf(dm[1].toLowerCase());
+    const hit = list.find((s) => dowOf(String(s.start_date ?? "")) === dow);
+    if (hit) {
+      return formatSessionHint(
+        String(hit.title ?? "session"),
+        String(hit.start_date ?? "").trim(),
+        String(hit.start_time ?? ""),
+        String(hit.end_time ?? ""),
+      );
+    }
+    return formatSessionHint("Extra training session", nextWeekdayDate(dow, todayStr), "", "");
+  }
+  if (list.length) {
+    const s = list[0];
+    return formatSessionHint(
+      String(s.title ?? "session"),
+      String(s.start_date ?? "").trim(),
+      String(s.start_time ?? ""),
+      String(s.end_time ?? ""),
+    );
+  }
+  return null;
+}
+
 /* ── v17 deterministic repair: pin what the server already knows ────────────
    The narrow draft-writer sometimes asks a clarifying question the server can
    answer itself: an attendance filter ("below 60%") resolvable from attLines,
@@ -1030,22 +1137,12 @@ function pinDraftFacts(
   attLines: string[],
   rosterFull: { first_name: string }[],
   sessions: Record<string, unknown>[],
-): { to: string | null; sessionHint: string | null } {
+  todayStr: string,
+): { to: string | null; rates: string[]; finding: string | null; sessionHint: string | null; whyFinding: string | null } {
   let to: string | null = null;
   // 1. Attendance filter: "below NN%" / "under NN%" / "above NN%".
-  const fm = /\b(below|under|less than|above|over|more than)\s+(\d{1,3})\s*%/i.exec(text);
-  if (fm && attLines.length) {
-    const wantBelow = /below|under|less/i.test(fm[1]);
-    const x = parseInt(fm[2], 10);
-    const names: string[] = [];
-    for (const ln of attLines) {
-      const lm = /^-\s*(.+?):\s*\d+\/\d+\s*\((\d+)%\)/.exec(ln);
-      if (!lm) continue;
-      const rate = parseInt(lm[2], 10);
-      if ((wantBelow && rate < x) || (!wantBelow && rate > x)) names.push(lm[1].trim());
-    }
-    if (names.length) to = names.join(" and ");
-  }
+  const att = pinAttendanceFilter(text, attLines);
+  if (att.to) to = att.to;
   // 2. First name matching exactly one roster athlete ("Mia" → "Mia Rossi").
   //    Full names come from attLines ("- Mia Rossi: 7/16 (44%)").
   if (!to && rosterFull.length) {
@@ -1070,29 +1167,12 @@ function pinDraftFacts(
       }
     }
   }
-  // 3. Weekday naming a known upcoming session ("about Saturday").
-  let sessionHint: string | null = null;
-  const dm = /\b(monday|tuesday|wednesday|thursday|friday|saturday|sunday)\b/i.exec(text);
-  if (dm && Array.isArray(sessions) && sessions.length) {
-    const day = dm[1].toLowerCase();
-    const hit = (sessions as Record<string, unknown>[]).find((s) =>
-      `${String(s.title ?? "")} ${String(s.start_date ?? "")}`.toLowerCase().includes(day),
-    ) ?? (sessions as Record<string, unknown>[])[0];
-    if (hit) {
-      // v20: spell out the weekday from the date — the writer once combined
-      // "Sunday" with 2026-09-26 (a Saturday). Exact facts, never mixed.
-      const dm2 = /^(\d{4})-(\d{2})-(\d{2})/.exec(String(hit.start_date ?? ""));
-      const wd = dm2
-        ? ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"][
-            new Date(Date.UTC(+dm2[1], +dm2[2] - 1, +dm2[3])).getUTCDay()
-          ]
-        : "";
-      const t = String(hit.start_time ?? "").trim();
-      sessionHint =
-        `${String(hit.title ?? "session")} — ${wd ? wd + ", " : ""}${String(hit.start_date ?? "").trim()}${t ? " " + t + (hit.end_time ? "–" + String(hit.end_time) : "") : " (no time set)"}`.trim();
-    }
-  }
-  return { to, sessionHint };
+  // 3. Session: deterministic weekday/date resolution (v21 — date-derived,
+  //    never title-matched; a weekday with no scheduled session pins the next
+  //    such weekday after today with no time set).
+  const sessionHint = resolveSessionHint(text, sessions, todayStr);
+  const whyFinding = att.finding ?? (sessionHint ? `reminder about ${sessionHint}` : null);
+  return { to, rates: att.rates, finding: att.finding, sessionHint, whyFinding };
 }
 
 Deno.serve(async (req) => {
@@ -1498,8 +1578,12 @@ Deno.serve(async (req) => {
         const todayStr = new Date().toISOString().slice(0, 10);
         const nextSessions = (Array.isArray(sessions) ? sessions : [])
           .slice(0, 3)
-          .map((s: Record<string, unknown>) =>
-            `- ${String(s.title ?? "session")} ${String(s.start_date ?? "")} ${String(s.start_time ?? "")}${s.end_time ? "–" + String(s.end_time) : ""}`.trim());
+          .map((s: Record<string, unknown>) => {
+            const ds = String(s.start_date ?? "");
+            const t = String(s.start_time ?? "").trim();
+            const e = String(s.end_time ?? "").trim();
+            return `- ${String(s.title ?? "session")} ${WEEKDAY_NAMES[dowOf(ds)] ?? ""} ${ds}${t ? ` ${fmtTime(t)}${e ? "–" + fmtTime(e) : ""}` : " (no time set)"}`.trim();
+          });
         const rosterNames = (Array.isArray(rosterFull) ? rosterFull : [])
           .map((m: { first_name: string }) => String(m.first_name ?? "").trim()).filter(Boolean);
         const compactCtx = [
@@ -1508,6 +1592,20 @@ Deno.serve(async (req) => {
           attLines.length ? `ATTENDANCE (each line: present/total plus server-computed rate (Z%) — copy the rate, never recompute):\n${attLines.join("\n")}` : "ATTENDANCE: (none recorded).",
           rosterNames.length ? `ROSTER FIRST NAMES: ${rosterNames.join(", ")}` : "ROSTER: (empty).",
         ].join("\n");
+        // v21: pin exact facts BEFORE the first writer call — the writer copies
+        // them verbatim instead of doing date arithmetic or rate math. This is
+        // what fixes the "Sunday, 26 September" class of mix-ups: the first
+        // call used to draft with no pinning at all.
+        const pinned = pinDraftFacts(text, attLines, rosterFull, sessions as Record<string, unknown>[], todayStr);
+        const whyFinding = pinned.whyFinding;
+        const pinBlock =
+          (pinned.to
+            ? `\nPINNED RECIPIENTS — final, use EXACTLY as the to field, do not question or re-derive: ${pinned.to}`
+              + (pinned.rates.length ? `\nPINNED ATTENDANCE — server-computed rates for the matched athletes; cite them in the body or the Why line, copied verbatim: ${pinned.rates.join("; ")}` : "")
+            : "") +
+          (pinned.sessionHint
+            ? `\nPINNED SESSION — final: ${pinned.sessionHint}. Copy the day, date, and time VERBATIM — they are exact facts. NEVER combine facts from different sessions (e.g. never write 'Sunday, 26 September': 26 September is a Saturday). Write about EXACTLY what the coach asked — if they announce extra or new training, announce it (day + date from the hint above; if it says '(no time set)', write 'time to be confirmed — just reply to this message'); if they want a reminder, remind. Do NOT substitute a different session, and do NOT ask what the message should say.`
+            : "");
         // Local: one narrow writer call. Returns the parsed tool input.
         const runWriter = async (userMsg: string, systemExtra: string) => {
           const r = await fetch(`${SUPABASE_URL}/functions/v1/${GATEWAY_FN}`, {
@@ -1536,8 +1634,14 @@ Deno.serve(async (req) => {
         // Returns true when the turn is fully handled.
         const disposeWriter = async (d: Record<string, unknown>): Promise<boolean> => {
           const dto = String(d.to ?? "").trim();
-          const dbody = String(d.body ?? "").trim();
+          let dbody = String(d.body ?? "").trim();
           if (!dto || !dbody) return false;
+          // Why-line backstop (v21): the draft contract requires a trailing
+          // "Why: " line naming the finding; the writer sometimes omits it —
+          // append it deterministically from the pinned facts.
+          if (whyFinding && !/^why:/im.test(dbody)) {
+            dbody = dbody.replace(/\s+$/, "") + `\nWhy: ${whyFinding}.`;
+          }
           const dsubject = String(d.subject ?? "").trim();
           // Resolve first so the event type matches reality (bulk vs single);
           // draftMessageBulk re-resolves internally (one extra read, harmless).
@@ -1565,18 +1669,16 @@ Deno.serve(async (req) => {
           return true;
         };
 
-        const first = await runWriter(`Coach message: ${text}`, "");
+        const first = await runWriter(`Coach message: ${text}`, pinBlock);
         const clarifyQ = first.ok ? String(first.d.clarify ?? "").trim() : "";
         if (clarifyQ) {
-          // v17: pin what the server already knows and force ONE retry with
-          // questions forbidden. Only a twice-stuck clarify reaches the coach
-          // (e.g. "remind the coaches about the schedule change" when no
-          // change was ever described — genuinely unanswerable).
-          const pinned = pinDraftFacts(text, attLines, rosterFull, sessions as Record<string, unknown>[]);
+          // v21: the first call already carried the pinned facts; on retry
+          // reuse the same pins and forbid questions. Only a twice-stuck
+          // clarify reaches the coach (e.g. "remind the coaches about the
+          // schedule change" when no change was ever described — genuinely
+          // unanswerable).
           if (pinned.to || pinned.sessionHint) {
-            const retryMsg = `Coach message: ${text}` +
-              (pinned.to ? `\nPINNED RECIPIENTS — final, use EXACTLY as the to field, do not question or re-derive: ${pinned.to}` : "") +
-              (pinned.sessionHint ? `\nThe session the coach means is: ${pinned.sessionHint}. Copy the day, date, and time VERBATIM from that line — they are exact facts. NEVER combine facts from different sessions (e.g. never write 'Sunday, 26 September': 26 September is a Saturday). Write about EXACTLY what the coach asked — if they announce extra or new training, announce it (day + date from the hint above; if it says '(no time set)', write 'time to be confirmed — just reply to this message'); if they want a reminder, remind. Do NOT substitute a different session, and do NOT ask what the message should say.` : "");
+            const retryMsg = `Coach message: ${text}${pinBlock}`;
             const second = await runWriter(retryMsg,
               "\nRETRY — your previous answer asked a clarifying question. That was WRONG. " +
               "You MUST output write_draft now. The PINNED facts above are final. " +
