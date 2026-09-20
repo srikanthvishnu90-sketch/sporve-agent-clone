@@ -1042,17 +1042,59 @@ Deno.serve(async (req) => {
     for (const s of staffList) ctx.push(`- ${s.name ?? "(unnamed)"} (${s.role})`);
     ctx.push("");
     // Attendance summary (completed sessions; latest mark wins per athlete/day).
-    const att = await q(`WITH ranked AS (
-        SELECT ar.member_id, ar.state,
-               ROW_NUMBER() OVER (PARTITION BY ar.member_id, e.starts_at::date ORDER BY ar.marked_at DESC NULLS LAST, ar.id DESC) AS rn
-        FROM attendance_record ar JOIN event e ON e.id = ar.event_id
-        WHERE ar.provider_id = '${org.id}' AND e.status = 'completed')
-      SELECT (ta.first_name || ' ' || ta.last_name) AS nm,
-             COUNT(*) FILTER (WHERE ranked.state = 'present') AS present, COUNT(*) AS total
-      FROM ranked JOIN team_athletes ta ON ta.id = ranked.member_id
-      WHERE rn = 1 GROUP BY 1 ORDER BY 1`);
+    // Query-builder + JS aggregation — there is no raw-SQL helper in this
+    // function (a previous version called an undefined `q()`, which 500'd every
+    // turn). Latest mark per (athlete, date) wins, ordered by marked_at then id.
+    let attLines: string[] = [];
+    if (orgId) {
+      try {
+        const { data: evRows } = await userClient.from("event")
+          .select("id, starts_at").eq("provider_id", orgId).eq("status", "completed").limit(500);
+        const evDate = new Map<string, string>();
+        for (const e of (Array.isArray(evRows) ? evRows : []) as Record<string, unknown>[]) {
+          const s = String((e as Record<string, unknown>).starts_at ?? "");
+          if (e.id && s) evDate.set(String(e.id), s.slice(0, 10));
+        }
+        if (evDate.size) {
+          const { data: arRows } = await userClient.from("attendance_record")
+            .select("id, event_id, member_id, state, marked_at")
+            .eq("provider_id", orgId).in("event_id", [...evDate.keys()]).limit(5000);
+          // Latest mark per (member, date) wins: sort by marked_at then id, keep last.
+          const rows = ((Array.isArray(arRows) ? arRows : []) as Record<string, unknown>[])
+            .filter((r) => evDate.has(String(r.event_id)) && r.member_id)
+            .sort((a, b) => {
+              const ma = String(a.marked_at ?? ""), mb = String(b.marked_at ?? "");
+              if (ma !== mb) return ma < mb ? -1 : 1;
+              return String(a.id) < String(b.id) ? -1 : 1;
+            });
+          const latest = new Map<string, Record<string, unknown>>();
+          for (const r of rows) {
+            latest.set(`${String(r.member_id)}|${evDate.get(String(r.event_id))}`, r);
+          }
+          const { data: nmRows } = await userClient.from("team_athletes")
+            .select("id, first_name, last_name").eq("provider_id", orgId).limit(500);
+          const nmById = new Map<string, string>();
+          for (const m of (Array.isArray(nmRows) ? nmRows : []) as Record<string, unknown>[]) {
+            nmById.set(String(m.id), `${String(m.first_name ?? "").trim()} ${String(m.last_name ?? "").trim()}`.trim());
+          }
+          const agg = new Map<string, { present: number; total: number }>();
+          for (const r of latest.values()) {
+            const nm = nmById.get(String(r.member_id)) || String(r.member_id);
+            const a = agg.get(nm) ?? { present: 0, total: 0 };
+            a.total += 1;
+            if (String(r.state) === "present") a.present += 1;
+            agg.set(nm, a);
+          }
+          attLines = [...agg.entries()].sort((x, y) => x[0].localeCompare(y[0]))
+            .map(([nm, a]) => `- ${nm}: ${a.present}/${a.total}`);
+        }
+      } catch {
+        // Attendance is enrichment, not the turn: a failure here must never 500 the assistant.
+        attLines = [];
+      }
+    }
     ctx.push("ATTENDANCE (completed sessions, present/total — use for 'below X%' filters):");
-    ctx.push(att.length ? att.map((a: any) => `- ${a.nm}: ${a.present}/${a.total}`).join("\n") : "(no attendance recorded)");
+    ctx.push(attLines.length ? attLines.join("\n") : "(no attendance recorded)");
     ctx.push("");
     ctx.push("MEMORY (durable facts the coach taught you across sessions — apply without being reminded):");
     ctx.push(memories.length
