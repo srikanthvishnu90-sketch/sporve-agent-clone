@@ -430,6 +430,22 @@ export function isVenueResearchTurn(text: string, intent: string): boolean {
   const find = /\b(find|search|discover|look\s+for|near)\b/i.test(text);
   return venue && rent && find;
 }
+// True when the coach asks for COACHING KNOWLEDGE (A1/A2/A3 class turns):
+// drills, practice/session plans, technique coaching points, rules
+// explanations — answers the coach LEARNS from, no tools needed. These
+// turns must DELIVER, never answer with only a clarifying question
+// (v36: the v31 prompt-level age-mismatch rule did not stop a U14-plan
+// clarify on 2026-09-20 — the server retries once with a deliver-now
+// directive). Excludes message drafts, documents, and research turns.
+export function isCoachingKnowledgeTurn(text: string, intent: string): boolean {
+  if (intent === "refuse") return false;
+  const knowledge = /\b(practice\s+plan|session\s+plan|training\s+plan|drills?|warm-?ups?|scrimmage|technique|coaching\s+points?|offside|rules?|formations?|tactics?|coach(?:ing|es)?)\b/i.test(text) ||
+    /\bexplain\s+\w+\s+for\b/i.test(text);
+  const request = /\b(give|make|create|write|plan|prepare|suggest|recommend|need|want|show|explain|describe|what|how|help)\b/i.test(text);
+  const draftOrDoc = /\b(handout|document|pdf|letter|flyer|message|text|email|e-mail|send|notify|remind|draft|queue)\b/i.test(text);
+  const research = isClubResearchTurn(text, intent) || isVenueResearchTurn(text, intent);
+  return knowledge && request && !draftOrDoc && !research;
+}
 // True when the model emitted draft_message/draft_bulk_message but the tool
 // returned queued: 0 — no real draft happened (D1-run2 class bug: empty body
 // or unresolvable audience), so the deterministic draft-writer must complete
@@ -1563,7 +1579,10 @@ Deno.serve(async (req) => {
     //    with the draft cut mid-sentence. The gateway now reports `truncated`;
     //    on truncation we retry once with headroom, and if it is STILL cut we
     //    fail honestly instead of rendering a broken draft.
-    const gatewayTurn = async (maxTokens: number) => {
+    const gatewayTurn = async (maxTokens: number, retryNote?: string) => {
+      const turnMessages = retryNote
+        ? [...messages, { role: "user", content: [{ type: "text", text: retryNote }] }]
+        : messages;
       const gResp = await fetch(`${SUPABASE_URL}/functions/v1/${GATEWAY_FN}`, {
         method: "POST",
         headers: {
@@ -1576,7 +1595,7 @@ Deno.serve(async (req) => {
           task: "agent_turn",
           feature: "coach_command",
           system: SYSTEM,
-          messages,
+          messages: turnMessages,
           tools: [TURN_TOOL],
           tool_choice: { type: "tool", name: "coach_turn" },
           maxTokens,
@@ -1588,6 +1607,26 @@ Deno.serve(async (req) => {
     let { gResp, g } = await gatewayTurn(1600);
     if (gResp.ok && g?.truncated === true) {
       ({ gResp, g } = await gatewayTurn(3500));
+    }
+    // v36 (A2): coaching-knowledge turns (practice plans, drills, rules
+    // explainers) must DELIVER — never answer with only a clarifying
+    // question. The v31 prompt-level age-mismatch rule was not enough: on
+    // 2026-09-20 the model still asked a question instead of producing the
+    // U14 plan. One retry with an explicit deliver-now directive; a
+    // twice-stuck clarify reaches the coach honestly.
+    if (gResp.ok && g?.truncated !== true) {
+      const firstCall = Array.isArray(g?.toolCalls) ? g.toolCalls[0] : null;
+      const firstOut = (firstCall?.input ?? {}) as Record<string, unknown>;
+      const firstIntent = String(firstOut.intent ?? "").toLowerCase();
+      const firstTools = Array.isArray(firstOut.tool_calls) ? firstOut.tool_calls : [];
+      if (firstIntent === "clarify" && firstTools.length === 0 &&
+          isCoachingKnowledgeTurn(text, firstIntent)) {
+        ({ gResp, g } = await gatewayTurn(1600,
+          "RETRY — your previous answer asked a clarifying question instead of delivering the requested coaching content. That was WRONG. " +
+          "Deliver the full requested plan/answer NOW in reply_text with intent='read' — setup, steps, coaching points, progressions, and timings as the request needs. " +
+          "If the requested age group differs from the roster's, deliver for the REQUESTED age group and note the mismatch in one line. " +
+          "NEVER output intent='clarify' on this retry."));
+      }
     }
     if (!gResp.ok) {
       if (gResp.status === 429) return json({ error: "AI request limit reached. Please try again shortly." }, 429);
