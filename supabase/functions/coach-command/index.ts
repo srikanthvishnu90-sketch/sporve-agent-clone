@@ -345,7 +345,7 @@ const DRAFT_SYSTEM = [
   "{COMPACT_CONTEXT}",
   "",
   "RULES:",
-  "- to = the recipient descriptor EXACTLY as the coach said it. For 'below X% attendance' filters: compute (present/total)*100 per athlete from ATTENDANCE, list each as 'Name: present/total = Z%', and include ONLY athletes STRICTLY below X (69% is NOT below 60%). Join names with ' and '.",
+  "- to = the recipient descriptor EXACTLY as the coach said it. For 'below X% attendance' filters: each ATTENDANCE line already shows the server-computed rate as 'Name: present/total (Z%)' — COPY the rate, never recompute it. Include ONLY athletes whose listed rate is STRICTLY below X (56% is below 60%; 69% and 75% are NOT). Join names with ' and '.",
   "- body = PLAIN, WARM, SHORT — a note a busy parent reads in 3 seconds. Echo the coach's key facts VERBATIM (times, dates, places). When the message is about a session, name the resolved session (team + weekday + date) in the opening line.",
   "- End body with one line starting 'Why: ' naming the reason, from the coach's instruction or CONTEXT only.",
   "- Bulk messages (more than one family): use {guardian} for the guardian's first name, {child} for the athlete's first name, {business} for the club name.",
@@ -1230,14 +1230,17 @@ Deno.serve(async (req) => {
             agg.set(nm, a);
           }
           attLines = [...agg.entries()].sort((x, y) => x[0].localeCompare(y[0]))
-            .map(([nm, a]) => `- ${nm}: ${a.present}/${a.total}`);
+            .map(([nm, a]) => {
+              const pct = a.total > 0 ? Math.round((a.present / a.total) * 100) : 0;
+              return `- ${nm}: ${a.present}/${a.total} (${pct}%)`;
+            });
         }
       } catch {
         // Attendance is enrichment, not the turn: a failure here must never 500 the assistant.
         attLines = [];
       }
     }
-    ctx.push("ATTENDANCE (completed sessions, present/total — use for 'below X%' filters):");
+    ctx.push("ATTENDANCE (completed sessions — each line shows present/total plus the server-computed rate (Z%); copy the rate, never recompute):");
     ctx.push(attLines.length ? attLines.join("\n") : "(no attendance recorded)");
     ctx.push("");
     ctx.push("MEMORY (durable facts the coach taught you across sessions — apply without being reminded):");
@@ -1373,12 +1376,20 @@ Deno.serve(async (req) => {
     //    the model is good at); deterministic code below disposes it via
     //    draftMessageBulk with a receipt. Never runs on refuse; never
     //    double-drafts when the model already emitted the tool. ──────────────
-    const draftRequested = out.draft_requested === true;
+    //    v14: the model does not set draft_requested reliably, so a
+    //    conservative server-side intent regex backstops it. Negative guards
+    //    keep read-shaped questions ("did you message them?") out.
+    const draftVerb = /\b(send|message|text|email|e-mail|remind|notify|tell|let\s+\S+\s+know|heads?\s*up|ping|write\s+to)\b/i;
+    const draftAudience = /\b(parent|parents|guardian|guardians|coach|coaches|team|everyone|all\b|mia|ava|sofi|ethan|noah|isla|lucas|liam|oliver|maya|novak|rossi|marino|wright|haddad|bergstrom|meyer|okafor|chen|smith|keller|wu|u12|thunderbolts)\b/i;
+    const draftPastTense = /\b(did\s+(you|the|it)|have\s+you|has\s+the|show\s+me|history|already\s+sent|was\s+sent|did\s+it\s+send)\b/i;
+    const looksLikeDraftRequest =
+      out.draft_requested === true ||
+      (draftVerb.test(text) && draftAudience.test(text) && !draftPastTense.test(text));
     const hasDraftTool = rawCalls.some((tc) => {
       const t = String((tc as Record<string, unknown>)?.tool ?? "");
       return t === "draft_message" || t === "draft_bulk_message";
     });
-    if (draftRequested && !hasDraftTool && intent !== "refuse") {
+    if (looksLikeDraftRequest && !hasDraftTool && intent !== "refuse") {
       try {
         const todayStr = new Date().toISOString().slice(0, 10);
         const nextSessions = (Array.isArray(sessions) ? sessions : [])
@@ -1390,7 +1401,7 @@ Deno.serve(async (req) => {
         const compactCtx = [
           `Today: ${todayStr}.`,
           nextSessions.length ? `UPCOMING SESSIONS:\n${nextSessions.join("\n")}` : "UPCOMING SESSIONS: (none listed).",
-          attLines.length ? `ATTENDANCE (present/total):\n${attLines.join("\n")}` : "ATTENDANCE: (none recorded).",
+          attLines.length ? `ATTENDANCE (each line: present/total plus server-computed rate (Z%) — copy the rate, never recompute):\n${attLines.join("\n")}` : "ATTENDANCE: (none recorded).",
           rosterNames.length ? `ROSTER FIRST NAMES: ${rosterNames.join(", ")}` : "ROSTER: (empty).",
         ].join("\n");
         const dResp = await fetch(`${SUPABASE_URL}/functions/v1/${GATEWAY_FN}`, {
