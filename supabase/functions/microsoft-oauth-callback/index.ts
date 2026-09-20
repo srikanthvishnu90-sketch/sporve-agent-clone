@@ -1,16 +1,16 @@
-// Completes a Google connection. Google redirects the customer's BROWSER here,
-// so this is a GET that ends in a redirect, not a JSON API.
+// Completes a Microsoft 365 connection. Microsoft redirects the customer's
+// BROWSER here, so this is a GET that ends in a redirect, not a JSON API.
 //
 // SELF-CONTAINED: `sb.py deploy` uploads only this directory, so every helper
 // this function needs is inlined below (the scope table from
-// supabase/functions/_shared/connector-registry.mjs). The registry stays the
-// source of truth; the tables here mirror it verbatim.
+// supabase/functions/_shared/connector-registry.mjs).
 //
 // It is the only unauthenticated function in the connector path, which is why
 // the state is doing all the work: the state row was minted by
-// google-oauth-start for one signed-in user, it is single-use, and it expires
-// in ten minutes. Without a matching state this function does nothing at all —
-// it never trusts a code, an org id, or a redirect target from the query string.
+// microsoft-oauth-start for one signed-in user, it is single-use, and it
+// expires in ten minutes. Without a matching state this function does nothing
+// at all — it never trusts a code, an org id, or a redirect target from the
+// query string.
 
 // ── registry mirror (supabase/functions/_shared/connector-registry.mjs) ──
 export const FORBIDDEN_SCOPES: string[] = [
@@ -34,39 +34,20 @@ export function assertNoSendScope(scopes: string[] | undefined): void {
   if (bad.length) throw new Error(`refusing to request a send-capable scope: ${bad.join(', ')}`);
 }
 
-/** The five Google connectors, sharing one OAuth client. Scopes from CONNECTORS. */
+/** The single Microsoft connector. Scopes from CONNECTORS.microsoft365. */
 export const SCOPES_BY_KIND: Record<string, string[]> = {
-  gmail: [
-    'https://www.googleapis.com/auth/gmail.readonly',
-  ],
-  google_calendar: [
-    'https://www.googleapis.com/auth/calendar.readonly',
-    'https://www.googleapis.com/auth/calendar.events',
-  ],
-  google_sheets: [
-    'https://www.googleapis.com/auth/spreadsheets.readonly',
-  ],
-  google_drive: [
-    'https://www.googleapis.com/auth/drive.readonly',
-  ],
-  google_business_profile: [
-    'https://www.googleapis.com/auth/business.manage',
-  ],
+  microsoft365: ['offline_access', 'Mail.Read', 'Calendars.ReadWrite', 'User.Read'],
 };
 
 /**
- * write mode per kind, from the registry: gmail is 'none' because we hold no
- * Gmail write scope at all; calendar is 'apply' for approved schedule changes;
- * sheets and drive are read-only; business profile composes corrections a
- * human approves ('draft'), never sends. There is deliberately no 'send' —
- * the database check constraint refuses it independently.
+ * 'apply' from the registry: we may change a calendar the human approved. We
+ * hold Mail.Read only — we never request Mail.Send/Mail.ReadWrite and we
+ * never use a send endpoint. NOTE: the live org_connectors_no_send check
+ * constraint currently restricts microsoft365 to ('none','draft'); a
+ * coordinator migration must reconcile it before 'apply' can be recorded.
  */
 export const WRITE_MODE_BY_KIND: Record<string, string> = {
-  gmail: 'none',
-  google_calendar: 'apply',
-  google_sheets: 'none',
-  google_drive: 'none',
-  google_business_profile: 'draft',
+  microsoft365: 'apply',
 };
 
 export function writeModeFor(kind: string): string {
@@ -74,14 +55,28 @@ export function writeModeFor(kind: string): string {
 }
 
 export function isConnectorKind(v: unknown): v is string {
-  return typeof v === 'string' && Object.hasOwn(SCOPES_BY_KIND, v);
+  return v === 'microsoft365';
 }
 
 /**
- * Google returns the scopes it actually granted, which can be fewer than the
- * ones asked for — a customer can untick one on the consent screen. Storing
- * the granted set, not the requested set, is what keeps the product from
- * claiming a capability the token does not have.
+ * The read scope that justifies the connector. scopes[0] in the registry list
+ * is offline_access (a token-refresh scope, not a read), so the meaningful
+ * read is Mail.Read — the same position the Google kinds' scopes[0] holds.
+ */
+export function requiredReadScope(kind: string): string {
+  if (kind === 'microsoft365') return 'Mail.Read';
+  return '';
+}
+
+export function hasRequiredRead(kind: string, granted: string[] | undefined): boolean {
+  const required = requiredReadScope(kind);
+  return !!required && (granted || []).includes(required);
+}
+
+/**
+ * Microsoft returns the scopes it actually granted, which can be fewer than
+ * the ones asked for. Storing the granted set keeps the product from claiming
+ * a capability the token does not have.
  */
 export function grantedScopes(
   token: { scope?: string } | null | undefined, requested: string[],
@@ -90,20 +85,21 @@ export function grantedScopes(
   return granted.length ? granted : requested;
 }
 
-/** A connector is only useful if its read scope survived the consent screen. */
-export function hasRequiredRead(kind: string, granted: string[] | undefined): boolean {
-  const scopes = SCOPES_BY_KIND[kind];
-  return !!scopes && (granted || []).includes(scopes[0]);
-}
+export type MicrosoftConfig = {
+  clientId: string; clientSecret: string; redirectUri: string; tenant: string;
+};
 
-export type GoogleConfig = { clientId: string; clientSecret: string; redirectUri: string };
-
-export function googleConfig(): GoogleConfig | null {
-  const clientId = Deno.env.get('GOOGLE_OAUTH_CLIENT_ID');
-  const clientSecret = Deno.env.get('GOOGLE_OAUTH_CLIENT_SECRET');
+export function microsoftConfig(): MicrosoftConfig | null {
+  const clientId = Deno.env.get('MS_OAUTH_CLIENT_ID');
+  const clientSecret = Deno.env.get('MS_OAUTH_CLIENT_SECRET');
   const base = Deno.env.get('SUPABASE_URL');
   if (!clientId || !clientSecret || !base) return null;
-  return { clientId, clientSecret, redirectUri: `${base}/functions/v1/google-oauth-callback` };
+  const tenant = Deno.env.get('MS_OAUTH_TENANT') ?? 'common';
+  return { clientId, clientSecret, redirectUri: `${base}/functions/v1/microsoft-oauth-callback`, tenant };
+}
+
+export function tokenEndpoint(tenant: string): string {
+  return `https://login.microsoftonline.com/${encodeURIComponent(tenant)}/oauth2/v2.0/token`;
 }
 
 export type TokenResponse = {
@@ -114,33 +110,33 @@ export type TokenResponse = {
   token_type?: string;
 };
 
-export async function exchangeCode(cfg: GoogleConfig, code: string): Promise<TokenResponse> {
-  const res = await fetch('https://oauth2.googleapis.com/token', {
+export async function exchangeCode(cfg: MicrosoftConfig, code: string): Promise<TokenResponse> {
+  const res = await fetch(tokenEndpoint(cfg.tenant), {
     method: 'POST',
     headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
     body: new URLSearchParams({
-      code,
       client_id: cfg.clientId,
       client_secret: cfg.clientSecret,
+      code,
       redirect_uri: cfg.redirectUri,
       grant_type: 'authorization_code',
     }),
   });
-  // Google's error body can echo the request, including the code. Never
+  // Microsoft's error body can echo the request, including the code. Never
   // include it in a thrown message or a log line.
   if (!res.ok) throw new Error(`token exchange failed (${res.status})`);
   return await res.json() as TokenResponse;
 }
 
-/** Which mailbox or calendar this actually is, for the "Connected as" line. */
+/** Who this Microsoft account is, for the "Connected as" line. */
 export async function whoAmI(accessToken: string): Promise<string | null> {
   try {
-    const res = await fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
+    const res = await fetch('https://graph.microsoft.com/v1.0/me?$select=userPrincipalName,mail', {
       headers: { Authorization: `Bearer ${accessToken}` },
     });
     if (!res.ok) return null;
-    const body = await res.json() as { email?: string };
-    return body.email ?? null;
+    const body = await res.json() as { userPrincipalName?: string; mail?: string };
+    return body.mail ?? body.userPrincipalName ?? null;
   } catch {
     return null;
   }
@@ -179,8 +175,8 @@ async function handler(req: Request): Promise<Response> {
   const code = url.searchParams.get('code') ?? '';
   const denied = url.searchParams.get('error');
 
-  const cfg = googleConfig();
-  if (!cfg) return back('failed', 'google', 'not_configured');
+  const cfg = microsoftConfig();
+  if (!cfg) return back('failed', 'microsoft365', 'not_configured');
 
   // Dynamic import keeps this module importable under node --test (the npm:
   // scheme is Deno-only); Deno caches the module after first load.
@@ -190,17 +186,14 @@ async function handler(req: Request): Promise<Response> {
     { auth: { persistSession: false, autoRefreshToken: false } },
   );
 
-  // Claim first, even when Google reported an error, so a cancelled consent
-  // screen cannot leave a live state behind for someone else to replay.
+  // Claim first, even when Microsoft reported an error, so a cancelled
+  // consent screen cannot leave a live state behind for someone else to replay.
   const { data: claimed, error: claimError } = await admin
     .rpc('connector_claim_oauth_state', { p_state: state });
   const row = Array.isArray(claimed) ? claimed[0] : claimed;
-  if (claimError || !row) return back('failed', 'google', 'expired');
-  // Narrow through a local: the RPC's row is untyped, and reading .kind twice
-  // would leave `kind` as any, which is how a scope lookup silently accepts
-  // something that is not a Google connector at all.
+  if (claimError || !row) return back('failed', 'microsoft365', 'expired');
   const rawKind: unknown = row.kind;
-  if (!isConnectorKind(rawKind)) return back('failed', 'google', 'unknown_connector');
+  if (!isConnectorKind(rawKind)) return back('failed', 'microsoft365', 'unknown_connector');
   const kind = rawKind;
 
   // access_denied is the customer clicking Cancel. Not an error worth a
@@ -210,13 +203,10 @@ async function handler(req: Request): Promise<Response> {
   try {
     const token = await exchangeCode(cfg, code);
     const granted = grantedScopes(token, SCOPES_BY_KIND[kind]);
-    // Defensive: the callback verifies the granted set too, not just the
-    // requested one, so a confused consent screen can never smuggle in a
-    // send scope we did not ask for.
     assertNoSendScope(granted);
 
-    // A consent screen lets someone untick a scope. A connector without its
-    // read scope would sit there saying Connected and produce nothing, which
+    // A consent screen lets someone untick a scope. Without Mail.Read the
+    // connector would sit there saying Connected and produce nothing, which
     // is worse than refusing.
     if (!hasRequiredRead(kind, granted)) return back('failed', kind, 'missing_scope');
 
@@ -236,7 +226,7 @@ async function handler(req: Request): Promise<Response> {
       }, { onConflict: 'provider_id,kind' })
       .select('id').single();
     if (upsertError || !connector) {
-      console.error('google-oauth-callback: could not record the connection');
+      console.error('microsoft-oauth-callback: could not record the connection');
       return back('failed', kind, 'not_recorded');
     }
 
@@ -249,7 +239,7 @@ async function handler(req: Request): Promise<Response> {
       // rather than leaving a green tile with nothing behind it.
       await admin.from('org_connectors')
         .update({ status: 'error', updated_at: new Date().toISOString() }).eq('id', connector.id);
-      console.error('google-oauth-callback: could not store the token');
+      console.error('microsoft-oauth-callback: could not store the token');
       return back('failed', kind, 'not_stored');
     }
 
@@ -260,9 +250,9 @@ async function handler(req: Request): Promise<Response> {
 
     return back('connected', kind);
   } catch (_error) {
-    // Google's error bodies can echo the request, including the code. Never
-    // log or forward one.
-    console.error('google-oauth-callback: exchange failed');
+    // Microsoft's error bodies can echo the request, including the code.
+    // Never log or forward one.
+    console.error('microsoft-oauth-callback: exchange failed');
     return back('failed', kind, 'exchange_failed');
   }
 }

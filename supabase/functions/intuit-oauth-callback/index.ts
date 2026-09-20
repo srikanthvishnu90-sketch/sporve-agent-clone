@@ -1,16 +1,21 @@
-// Completes a Google connection. Google redirects the customer's BROWSER here,
-// so this is a GET that ends in a redirect, not a JSON API.
+// Completes a QuickBooks (Intuit) connection. Intuit redirects the customer's
+// BROWSER here, so this is a GET that ends in a redirect, not a JSON API.
 //
 // SELF-CONTAINED: `sb.py deploy` uploads only this directory, so every helper
 // this function needs is inlined below (the scope table from
-// supabase/functions/_shared/connector-registry.mjs). The registry stays the
-// source of truth; the tables here mirror it verbatim.
+// supabase/functions/_shared/connector-registry.mjs).
 //
 // It is the only unauthenticated function in the connector path, which is why
 // the state is doing all the work: the state row was minted by
-// google-oauth-start for one signed-in user, it is single-use, and it expires
+// intuit-oauth-start for one signed-in user, it is single-use, and it expires
 // in ten minutes. Without a matching state this function does nothing at all —
 // it never trusts a code, an org id, or a redirect target from the query string.
+//
+// Intuit appends `realmId` (the QuickBooks company id) to the callback query
+// string. It is REQUIRED for every QuickBooks API call and is captured here.
+// org_connectors has no column that fits it (external_account is the
+// "Connected as" display; scopes is a text[]), so until a coordinator
+// migration adds one it is validated for presence and NOT persisted.
 
 // ── registry mirror (supabase/functions/_shared/connector-registry.mjs) ──
 export const FORBIDDEN_SCOPES: string[] = [
@@ -34,39 +39,14 @@ export function assertNoSendScope(scopes: string[] | undefined): void {
   if (bad.length) throw new Error(`refusing to request a send-capable scope: ${bad.join(', ')}`);
 }
 
-/** The five Google connectors, sharing one OAuth client. Scopes from CONNECTORS. */
+/** The single QuickBooks connector. Scope from CONNECTORS.quickbooks. */
 export const SCOPES_BY_KIND: Record<string, string[]> = {
-  gmail: [
-    'https://www.googleapis.com/auth/gmail.readonly',
-  ],
-  google_calendar: [
-    'https://www.googleapis.com/auth/calendar.readonly',
-    'https://www.googleapis.com/auth/calendar.events',
-  ],
-  google_sheets: [
-    'https://www.googleapis.com/auth/spreadsheets.readonly',
-  ],
-  google_drive: [
-    'https://www.googleapis.com/auth/drive.readonly',
-  ],
-  google_business_profile: [
-    'https://www.googleapis.com/auth/business.manage',
-  ],
+  quickbooks: ['com.intuit.quickbooks.accounting'],
 };
 
-/**
- * write mode per kind, from the registry: gmail is 'none' because we hold no
- * Gmail write scope at all; calendar is 'apply' for approved schedule changes;
- * sheets and drive are read-only; business profile composes corrections a
- * human approves ('draft'), never sends. There is deliberately no 'send' —
- * the database check constraint refuses it independently.
- */
+/** 'none' from the registry: read-only, nothing is ever written back. */
 export const WRITE_MODE_BY_KIND: Record<string, string> = {
-  gmail: 'none',
-  google_calendar: 'apply',
-  google_sheets: 'none',
-  google_drive: 'none',
-  google_business_profile: 'draft',
+  quickbooks: 'none',
 };
 
 export function writeModeFor(kind: string): string {
@@ -74,14 +54,18 @@ export function writeModeFor(kind: string): string {
 }
 
 export function isConnectorKind(v: unknown): v is string {
-  return typeof v === 'string' && Object.hasOwn(SCOPES_BY_KIND, v);
+  return v === 'quickbooks';
+}
+
+/** The read scope each kind must still hold after the consent screen. */
+export function hasRequiredRead(kind: string, granted: string[] | undefined): boolean {
+  const scopes = SCOPES_BY_KIND[kind];
+  return !!scopes && (granted || []).includes(scopes[0]);
 }
 
 /**
- * Google returns the scopes it actually granted, which can be fewer than the
- * ones asked for — a customer can untick one on the consent screen. Storing
- * the granted set, not the requested set, is what keeps the product from
- * claiming a capability the token does not have.
+ * Intuit returns the scopes it actually granted. Storing the granted set
+ * keeps the product from claiming a capability the token does not have.
  */
 export function grantedScopes(
   token: { scope?: string } | null | undefined, requested: string[],
@@ -90,20 +74,14 @@ export function grantedScopes(
   return granted.length ? granted : requested;
 }
 
-/** A connector is only useful if its read scope survived the consent screen. */
-export function hasRequiredRead(kind: string, granted: string[] | undefined): boolean {
-  const scopes = SCOPES_BY_KIND[kind];
-  return !!scopes && (granted || []).includes(scopes[0]);
-}
+export type IntuitConfig = { clientId: string; clientSecret: string; redirectUri: string };
 
-export type GoogleConfig = { clientId: string; clientSecret: string; redirectUri: string };
-
-export function googleConfig(): GoogleConfig | null {
-  const clientId = Deno.env.get('GOOGLE_OAUTH_CLIENT_ID');
-  const clientSecret = Deno.env.get('GOOGLE_OAUTH_CLIENT_SECRET');
+export function intuitConfig(): IntuitConfig | null {
+  const clientId = Deno.env.get('INTUIT_CLIENT_ID');
+  const clientSecret = Deno.env.get('INTUIT_CLIENT_SECRET');
   const base = Deno.env.get('SUPABASE_URL');
   if (!clientId || !clientSecret || !base) return null;
-  return { clientId, clientSecret, redirectUri: `${base}/functions/v1/google-oauth-callback` };
+  return { clientId, clientSecret, redirectUri: `${base}/functions/v1/intuit-oauth-callback` };
 }
 
 export type TokenResponse = {
@@ -114,36 +92,30 @@ export type TokenResponse = {
   token_type?: string;
 };
 
-export async function exchangeCode(cfg: GoogleConfig, code: string): Promise<TokenResponse> {
-  const res = await fetch('https://oauth2.googleapis.com/token', {
+export async function exchangeCode(cfg: IntuitConfig, code: string): Promise<TokenResponse> {
+  const res = await fetch('https://oauth.platform.intuit.com/oauth2/v1/tokens/bearer', {
     method: 'POST',
-    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+    headers: {
+      'Content-Type': 'application/x-www-form-urlencoded',
+      // Intuit authenticates the client with a Basic header, not form fields.
+      Authorization: 'Basic ' + btoa(`${cfg.clientId}:${cfg.clientSecret}`),
+    },
     body: new URLSearchParams({
-      code,
-      client_id: cfg.clientId,
-      client_secret: cfg.clientSecret,
-      redirect_uri: cfg.redirectUri,
       grant_type: 'authorization_code',
+      code,
+      redirect_uri: cfg.redirectUri,
     }),
   });
-  // Google's error body can echo the request, including the code. Never
+  // Intuit's error body can echo the request, including the code. Never
   // include it in a thrown message or a log line.
   if (!res.ok) throw new Error(`token exchange failed (${res.status})`);
   return await res.json() as TokenResponse;
 }
 
-/** Which mailbox or calendar this actually is, for the "Connected as" line. */
-export async function whoAmI(accessToken: string): Promise<string | null> {
-  try {
-    const res = await fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
-      headers: { Authorization: `Bearer ${accessToken}` },
-    });
-    if (!res.ok) return null;
-    const body = await res.json() as { email?: string };
-    return body.email ?? null;
-  } catch {
-    return null;
-  }
+/** The realmId Intuit sends on the callback; required for every API call. */
+export function realmIdFromQuery(url: URL): string | null {
+  const r = url.searchParams.get('realmId');
+  return r && r.length > 0 ? r : null;
 }
 
 function siteUrl(): string {
@@ -179,8 +151,8 @@ async function handler(req: Request): Promise<Response> {
   const code = url.searchParams.get('code') ?? '';
   const denied = url.searchParams.get('error');
 
-  const cfg = googleConfig();
-  if (!cfg) return back('failed', 'google', 'not_configured');
+  const cfg = intuitConfig();
+  if (!cfg) return back('failed', 'quickbooks', 'not_configured');
 
   // Dynamic import keeps this module importable under node --test (the npm:
   // scheme is Deno-only); Deno caches the module after first load.
@@ -190,34 +162,29 @@ async function handler(req: Request): Promise<Response> {
     { auth: { persistSession: false, autoRefreshToken: false } },
   );
 
-  // Claim first, even when Google reported an error, so a cancelled consent
+  // Claim first, even when Intuit reported an error, so a cancelled consent
   // screen cannot leave a live state behind for someone else to replay.
   const { data: claimed, error: claimError } = await admin
     .rpc('connector_claim_oauth_state', { p_state: state });
   const row = Array.isArray(claimed) ? claimed[0] : claimed;
-  if (claimError || !row) return back('failed', 'google', 'expired');
-  // Narrow through a local: the RPC's row is untyped, and reading .kind twice
-  // would leave `kind` as any, which is how a scope lookup silently accepts
-  // something that is not a Google connector at all.
+  if (claimError || !row) return back('failed', 'quickbooks', 'expired');
   const rawKind: unknown = row.kind;
-  if (!isConnectorKind(rawKind)) return back('failed', 'google', 'unknown_connector');
+  if (!isConnectorKind(rawKind)) return back('failed', 'quickbooks', 'unknown_connector');
   const kind = rawKind;
 
-  // access_denied is the customer clicking Cancel. Not an error worth a
-  // stack trace, and the tile must stay honestly disconnected.
   if (denied || !code) return back('failed', kind, denied === 'access_denied' ? 'cancelled' : 'no_code');
+
+  // The QuickBooks company id. Without it the token is useless — every QBO
+  // API call addresses a company — so its absence is a hard failure, not
+  // something to connect around.
+  const realmId = realmIdFromQuery(url);
+  if (!realmId) return back('failed', kind, 'no_realm');
 
   try {
     const token = await exchangeCode(cfg, code);
     const granted = grantedScopes(token, SCOPES_BY_KIND[kind]);
-    // Defensive: the callback verifies the granted set too, not just the
-    // requested one, so a confused consent screen can never smuggle in a
-    // send scope we did not ask for.
     assertNoSendScope(granted);
 
-    // A consent screen lets someone untick a scope. A connector without its
-    // read scope would sit there saying Connected and produce nothing, which
-    // is worse than refusing.
     if (!hasRequiredRead(kind, granted)) return back('failed', kind, 'missing_scope');
 
     // No refresh token means the connection dies the moment the access token
@@ -225,18 +192,21 @@ async function handler(req: Request): Promise<Response> {
     // quietly breaking in an hour.
     if (!token.refresh_token) return back('failed', kind, 'no_refresh_token');
 
-    const account = token.access_token ? await whoAmI(token.access_token) : null;
+    // NOTE: realmId is deliberately not written here — org_connectors has no
+    // column for it (see header comment). Persisting it into external_account
+    // or scopes would corrupt those contracts. A coordinator migration adds
+    // the column; this function then writes it alongside the upsert.
 
     const { data: connector, error: upsertError } = await admin
       .from('org_connectors')
       .upsert({
         provider_id: row.provider_id, kind, status: 'connected', write_mode: writeModeFor(kind),
-        external_account: account, scopes: granted, connected_by: row.user_id,
+        external_account: null, scopes: granted, connected_by: row.user_id,
         connected_at: new Date().toISOString(), revoked_at: null, updated_at: new Date().toISOString(),
       }, { onConflict: 'provider_id,kind' })
       .select('id').single();
     if (upsertError || !connector) {
-      console.error('google-oauth-callback: could not record the connection');
+      console.error('intuit-oauth-callback: could not record the connection');
       return back('failed', kind, 'not_recorded');
     }
 
@@ -249,7 +219,7 @@ async function handler(req: Request): Promise<Response> {
       // rather than leaving a green tile with nothing behind it.
       await admin.from('org_connectors')
         .update({ status: 'error', updated_at: new Date().toISOString() }).eq('id', connector.id);
-      console.error('google-oauth-callback: could not store the token');
+      console.error('intuit-oauth-callback: could not store the token');
       return back('failed', kind, 'not_stored');
     }
 
@@ -260,9 +230,9 @@ async function handler(req: Request): Promise<Response> {
 
     return back('connected', kind);
   } catch (_error) {
-    // Google's error bodies can echo the request, including the code. Never
+    // Intuit's error bodies can echo the request, including the code. Never
     // log or forward one.
-    console.error('google-oauth-callback: exchange failed');
+    console.error('intuit-oauth-callback: exchange failed');
     return back('failed', kind, 'exchange_failed');
   }
 }

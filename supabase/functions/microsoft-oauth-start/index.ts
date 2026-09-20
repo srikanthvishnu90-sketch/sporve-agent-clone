@@ -1,21 +1,15 @@
-// Begins a Google connection. Returns the consent URL; connects nothing.
+// Begins a Microsoft 365 connection. Returns the consent URL; connects nothing.
 //
 // SELF-CONTAINED: `sb.py deploy` uploads only this directory, so every helper
 // this function needs is inlined below (copies of
 // supabase/functions/_shared/http.ts and the scope table from
 // supabase/functions/_shared/connector-registry.mjs). The registry stays the
-// source of truth; the tables here mirror it verbatim — a drift between the
-// two is a bug, and the node tests in supabase/functions/tests hold the
-// no-send invariant to account.
+// source of truth; the tables here mirror it verbatim.
 //
-// The three things this function exists to get right:
-//   1. It refuses honestly when no OAuth client is configured (503 with a
-//      message the UI can print), instead of sending the user to a Google
-//      error page.
-//   2. It mints a one-time, expiring state row BEFORE redirecting, so the
-//      callback can only ever complete a round trip this function started.
-//   3. It asks for read + draft scopes and nothing more. assertNoSendScope
-//      makes a send scope a runtime failure, not a review miss.
+// Scopes are Mail.Read (never Mail.ReadWrite — Microsoft's ReadWrite includes
+// creating drafts AND sending them), Calendars.ReadWrite for approved calendar
+// changes, User.Read for the "Connected as" line, and offline_access for the
+// refresh token. assertNoSendScope makes a send scope a runtime failure.
 
 // ── registry mirror (supabase/functions/_shared/connector-registry.mjs) ──
 export const FORBIDDEN_SCOPES: string[] = [
@@ -39,33 +33,14 @@ export function assertNoSendScope(scopes: string[] | undefined): void {
   if (bad.length) throw new Error(`refusing to request a send-capable scope: ${bad.join(', ')}`);
 }
 
-/** The five Google connectors, sharing one OAuth client. Scopes from CONNECTORS. */
+/** The single Microsoft connector. Scopes from CONNECTORS.microsoft365. */
 export const SCOPES_BY_KIND: Record<string, string[]> = {
-  gmail: [
-    'https://www.googleapis.com/auth/gmail.readonly',
-  ],
-  google_calendar: [
-    'https://www.googleapis.com/auth/calendar.readonly',
-    'https://www.googleapis.com/auth/calendar.events',
-  ],
-  google_sheets: [
-    'https://www.googleapis.com/auth/spreadsheets.readonly',
-  ],
-  google_drive: [
-    'https://www.googleapis.com/auth/drive.readonly',
-  ],
-  google_business_profile: [
-    'https://www.googleapis.com/auth/business.manage',
-  ],
+  microsoft365: ['offline_access', 'Mail.Read', 'Calendars.ReadWrite', 'User.Read'],
 };
 
-/** write values from the registry (gmail none, calendar apply, sheets/drive none, GBP draft). */
+/** 'apply' from the registry: we may change a calendar the human approved. Never mail. */
 export const WRITE_MODE_BY_KIND: Record<string, string> = {
-  gmail: 'none',
-  google_calendar: 'apply',
-  google_sheets: 'none',
-  google_drive: 'none',
-  google_business_profile: 'draft',
+  microsoft365: 'apply',
 };
 
 export function writeModeFor(kind: string): string {
@@ -73,41 +48,43 @@ export function writeModeFor(kind: string): string {
 }
 
 export function isConnectorKind(v: unknown): v is string {
-  return typeof v === 'string' && Object.hasOwn(SCOPES_BY_KIND, v);
+  return v === 'microsoft365';
 }
 
-/** The read scope each kind must still hold after the consent screen. */
-export function hasRequiredRead(kind: string, granted: string[] | undefined): boolean {
-  const scopes = SCOPES_BY_KIND[kind];
-  return !!scopes && (granted || []).includes(scopes[0]);
-}
+export type MicrosoftConfig = {
+  clientId: string; clientSecret: string; redirectUri: string; tenant: string;
+};
 
-export type GoogleConfig = { clientId: string; clientSecret: string; redirectUri: string };
-
-export function googleConfig(): GoogleConfig | null {
-  const clientId = Deno.env.get('GOOGLE_OAUTH_CLIENT_ID');
-  const clientSecret = Deno.env.get('GOOGLE_OAUTH_CLIENT_SECRET');
+export function microsoftConfig(): MicrosoftConfig | null {
+  const clientId = Deno.env.get('MS_OAUTH_CLIENT_ID');
+  const clientSecret = Deno.env.get('MS_OAUTH_CLIENT_SECRET');
   const base = Deno.env.get('SUPABASE_URL');
   if (!clientId || !clientSecret || !base) return null;
-  return { clientId, clientSecret, redirectUri: `${base}/functions/v1/google-oauth-callback` };
+  // `common` lets both work and personal accounts sign in; the tenant is
+  // configurable because a club on a school M365 may be single-tenant.
+  const tenant = Deno.env.get('MS_OAUTH_TENANT') ?? 'common';
+  return { clientId, clientSecret, redirectUri: `${base}/functions/v1/microsoft-oauth-callback`, tenant };
+}
+
+export function authorizeEndpoint(tenant: string): string {
+  return `https://login.microsoftonline.com/${encodeURIComponent(tenant)}/oauth2/v2.0/authorize`;
+}
+
+export function tokenEndpoint(tenant: string): string {
+  return `https://login.microsoftonline.com/${encodeURIComponent(tenant)}/oauth2/v2.0/token`;
 }
 
 export function buildAuthorizeUrl(
-  cfg: GoogleConfig, scopes: string[], state: string, loginHint?: string,
+  cfg: MicrosoftConfig, scopes: string[], state: string, loginHint?: string,
 ): string {
   assertNoSendScope(scopes);
-  const u = new URL('https://accounts.google.com/o/oauth2/v2/auth');
+  const u = new URL(authorizeEndpoint(cfg.tenant));
   u.searchParams.set('client_id', cfg.clientId);
-  u.searchParams.set('redirect_uri', cfg.redirectUri);
   u.searchParams.set('response_type', 'code');
+  u.searchParams.set('redirect_uri', cfg.redirectUri);
+  u.searchParams.set('response_mode', 'query');
   u.searchParams.set('scope', scopes.join(' '));
   u.searchParams.set('state', state);
-  // offline + consent is what actually returns a refresh token. Without
-  // prompt=consent Google omits it on a repeat authorisation and the
-  // connection silently stops working when the access token expires.
-  u.searchParams.set('access_type', 'offline');
-  u.searchParams.set('prompt', 'consent');
-  u.searchParams.set('include_granted_scopes', 'true');
   if (loginHint) u.searchParams.set('login_hint', loginHint);
   return u.toString();
 }
@@ -240,11 +217,9 @@ async function handler(req: Request): Promise<Response> {
       }
       if (!isConnectorKind(kind)) return json({ error: 'Unknown connector.' }, 400);
 
-      const cfg = googleConfig();
+      const cfg = microsoftConfig();
       if (!cfg) {
-        // Honest, not broken. The UI prints this rather than showing a tile
-        // that pretends to work.
-        return json({ error: 'Google connections are not available yet.', code: 'not_configured' }, 503);
+        return json({ error: 'Microsoft connections are not available yet.', code: 'not_configured' }, 503);
       }
 
       const admin = createClient(
@@ -254,7 +229,7 @@ async function handler(req: Request): Promise<Response> {
       );
 
       const { data: withinLimit, error: rateError } = await admin.rpc('consume_edge_rate_limit', {
-        p_actor_key: `user:${auth.user.id}`, p_scope: 'google-oauth-start:minute', p_limit: 10, p_window_seconds: 60,
+        p_actor_key: `user:${auth.user.id}`, p_scope: 'microsoft-oauth-start:minute', p_limit: 10, p_window_seconds: 60,
       });
       if (rateError) return json({ error: 'Connections are temporarily unavailable.' }, 503);
       if (withinLimit !== true) return json({ error: 'Too many attempts. Try again in a minute.' }, 429);
@@ -268,18 +243,12 @@ async function handler(req: Request): Promise<Response> {
       if (!provider) return json({ error: 'Set up your organization first.' }, 409);
 
       // Entitlements decide, never a plan name compared in code (invariant
-      // I2): the plan is only a key into the entitlements row.
-      //
-      // FAILS CLOSED ON PURPOSE. plan_entitlements.connectors does not exist
-      // in production yet — it arrives with docs/red-drafts/2026-09-08-plan-
-      // entitlements.sql. Until it does, this returns 503 rather than handing
-      // out mailbox access with no paywall behind it. That is the whole
-      // complaint about decorative enforcement, and it would be a strange
-      // place to start making it true.
+      // I2). FAILS CLOSED: without a deployed plan_entitlements row this is a
+      // 503, never mailbox access with no paywall behind it.
       const { data: ent, error: entError } = await admin
         .from('plan_entitlements').select('connectors').eq('plan', provider.plan ?? 'free').maybeSingle();
       if (entError) {
-        console.error('google-oauth-start: entitlements unavailable');
+        console.error('microsoft-oauth-start: entitlements unavailable');
         return json({ error: 'Connections are not available yet.', code: 'entitlements_not_deployed' }, 503);
       }
       const allowed: string[] = Array.isArray(ent?.connectors) ? ent!.connectors : [];
@@ -308,7 +277,7 @@ async function handler(req: Request): Promise<Response> {
     }, 20000);
   } catch (error) {
     if (error instanceof HttpInputError) return json({ error: error.message }, error.status);
-    console.error('google-oauth-start: unavailable');
+    console.error('microsoft-oauth-start: unavailable');
     return json({ error: 'Connections are temporarily unavailable.' }, 503);
   }
 }
