@@ -704,18 +704,20 @@ export async function resolveAudience(to: string, userClient: any, orgId: string
   if (parts.length > 1) {
     const all: AudienceRecipient[] = [];
     const problems: string[] = [];
+    const displayNames: string[] = [];
     for (const part of parts) {
       const hits = d.members.filter((m) => {
         const fn = fullName(m);
         return fn === part || fn.startsWith(part + " ") || (part.length >= 3 && fn.includes(part));
       });
       if (hits.length !== 1) { problems.push(hits.length > 1 ? `"${part}" matches ${hits.length} athletes` : `no athlete named "${part}"`); continue; }
+      displayNames.push(`${String(hits[0].first_name ?? "").trim()} ${String(hits[0].last_name ?? "").trim()}`.trim());
       all.push(...toRecipients(hits));
     }
     if (problems.length) return { recipients: [], error: problems.join("; ") + " — please clarify the names." };
     const r = all.filter((x, i, a) => a.findIndex((y) => y.guardian_id === x.guardian_id) === i);
     if (!r.length) return { recipients: [], error: "None of those athletes have a linked guardian to message." };
-    return { recipients: r, audience: parts.join(", ") + "'s families" };
+    return { recipients: r, audience: displayNames.join(", ") + "'s families" };
   }
   const nameHits = d.members.filter((m) => {
     const fn = fullName(m);
