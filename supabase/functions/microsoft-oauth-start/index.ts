@@ -6,9 +6,10 @@
 // supabase/functions/_shared/connector-registry.mjs). The registry stays the
 // source of truth; the tables here mirror it verbatim.
 //
-// Scopes are Mail.Read (never Mail.ReadWrite — Microsoft's ReadWrite includes
-// creating drafts AND sending them), Calendars.ReadWrite for approved calendar
-// changes, User.Read for the "Connected as" line, and offline_access for the
+// Scopes are Mail.Read (never the read-write mail scope — Microsoft's
+// read-write grant includes creating drafts AND sending them),
+// Calendars.ReadWrite for approved calendar changes, User.Read for the
+// "Connected as" line, and offline_access for the
 // refresh token. assertNoSendScope makes a send scope a runtime failure.
 
 // ── registry mirror (supabase/functions/_shared/connector-registry.mjs) ──

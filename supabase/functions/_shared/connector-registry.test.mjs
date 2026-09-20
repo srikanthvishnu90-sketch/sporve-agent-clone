@@ -113,11 +113,15 @@ test('asking for a send scope throws, whichever provider it belongs to', () => {
 
 test('no edge function hardcodes a scope instead of using the registry', () => {
   // The registry is worthless if a function writes its own scope string.
+  // The guard's own FORBIDDEN_SCOPES denylist is allowed to name the
+  // forbidden scopes — that is what it is for — so strip that one
+  // declaration before scanning; anything else still trips the wire.
   const dir = new URL('../', import.meta.url);
   for (const entry of readdirSync(dir, { withFileTypes: true })) {
     if (!entry.isDirectory() || entry.name === '_shared') continue;
-    let src;
-    try { src = readFileSync(new URL(`${entry.name}/index.ts`, dir), 'utf8'); } catch { continue; }
+    let raw;
+    try { raw = readFileSync(new URL(`${entry.name}/index.ts`, dir), 'utf8'); } catch { continue; }
+    const src = raw.replace(/export const FORBIDDEN_SCOPES[^;]*;/s, '');
     for (const forbidden of FORBIDDEN_SCOPES) {
       assert.ok(!src.includes(forbidden), `${entry.name} references ${forbidden}`);
     }

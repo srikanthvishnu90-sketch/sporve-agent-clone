@@ -41,10 +41,11 @@ export const SCOPES_BY_KIND: Record<string, string[]> = {
 
 /**
  * 'apply' from the registry: we may change a calendar the human approved. We
- * hold Mail.Read only — we never request Mail.Send/Mail.ReadWrite and we
- * never use a send endpoint. NOTE: the live org_connectors_no_send check
- * constraint currently restricts microsoft365 to ('none','draft'); a
- * coordinator migration must reconcile it before 'apply' can be recorded.
+ * hold Mail.Read only — we never request a send-capable or read-write mail
+ * scope and we never use a send endpoint. NOTE: the live
+ * org_connectors_no_send check constraint currently restricts microsoft365
+ * to ('none','draft'); a coordinator migration must reconcile it before
+ * 'apply' can be recorded.
  */
 export const WRITE_MODE_BY_KIND: Record<string, string> = {
   microsoft365: 'apply',
