@@ -338,6 +338,52 @@ const DRAFT_TOOL = {
   },
 };
 
+/* ── Lapsed-outreach template writer (2026-09-20, v30) ───────────────────────
+   Narrow tool for the F1 completion below: the model reliably calls
+   find_lapsed_families but sometimes narrates "ready to queue" without ever
+   calling draft_lapsed_outreach. The server then composes the template
+   itself so the research -> shortlist -> draft -> queue loop always
+   completes with a receipt. */
+const LAPSED_TEMPLATE_TOOL = {
+  name: "write_lapsed_template",
+  description:
+    "Write the lapsed-family reactivation message template as JSON.",
+  input_schema: {
+    type: "object",
+    additionalProperties: false,
+    properties: {
+      template: {
+        type: "string",
+        description:
+          "The message template using ONLY these slots: {guardian} {child} {days} {business}.",
+      },
+      subject: { type: "string", description: "Short subject line." },
+    },
+    required: ["template"],
+  },
+};
+
+/* ── v30 turn predicates (pure; extracted verbatim by tests/ai specs) ───────── */
+// True when the coach's turn asks for lapsed-family OUTREACH (not just the
+// shortlist): a lapsed-family word AND a draft/queue word. A bare
+// "who are my lapsed families?" must NOT trigger drafting.
+export function isLapsedOutreachTurn(text: string, intent: string): boolean {
+  return intent !== "refuse" &&
+    /\b(lapsed|inactive|gone quiet|drifted|win.?back|re-?engag|reactivat)/i.test(text) &&
+    /\b(draft|queue|message|text|email|e-mail|reach out|send|note|nudge)\b/i.test(text);
+}
+// True when the model emitted draft_message/draft_bulk_message but the tool
+// returned queued: 0 — no real draft happened (D1-run2 class bug: empty body
+// or unresolvable audience), so the deterministic draft-writer must complete
+// the turn instead of the model's false "ready" claim standing.
+// deno-lint-ignore no-explicit-any
+export function isDraftToolFailed(cleaned: any[]): boolean {
+  return cleaned.some((tc) =>
+    (tc?.tool === "draft_message" || tc?.tool === "draft_bulk_message") &&
+    Number((tc?.result as Record<string, unknown> | undefined)?.queued ?? 0) === 0,
+  );
+}
+
 const DRAFT_SYSTEM = [
   "You are the draft-writer for a youth-sports coach's assistant. The coach asked for a message. Your ONLY job: output write_draft with the message as JSON — or ONE clarifying question if you truly cannot draft.",
   "",
@@ -392,7 +438,7 @@ const SYSTEM = [
   "- Reference ONLY ids that appear in the CONTEXT block. Never invent, guess, or carry over an id. If you don't have the id, ask.",
   "- find_clients (RESEARCH): when the coach asks to find ANY external organizations — clubs, teams, leagues, programs, prospects, leads, feeder programs, venues, partner orgs — call find_clients with args.query describing exactly what they asked for (e.g. 'youth soccer clubs in Chicago'). This is your research tool: use it instead of refusing or claiming you cannot search outside Sporv. Present the list plainly with the contact info the tool returned (name, address, phone, website). When the coach says 'save them to my queue', the tool already attempted the save — say they were saved ONLY if the tool result shows saved_as_findings > 0, and cite the count; otherwise say 'here they are; tap to save the ones you want' and NEVER claim they were saved. Never promise outreach; messages are always drafted separately for approval.",
   "- MEMORY (E1): the MEMORY block in CONTEXT lists durable facts the coach taught you across sessions — apply them without being reminded. When the coach states a durable fact, preference, or standing instruction ('remember that…', 'my assistant coach is…', 'we always…', 'note that…'), call remember_fact with args.fact = one plain sentence. Say it was remembered ONLY if the result shows saved: true — otherwise say it didn't save and why. When the coach asks what you remember, call list_memory and list the facts. When the coach says to forget something, call forget_fact with the memory_id from the MEMORY block or list_memory. Never store a child's full name, contact details, or anything the coach didn't state as durable.",
-  "- LAPSED FAMILIES (F1): when the coach asks about lapsed/inactive families or rebooking outreach, call find_lapsed_families (args.days defaults to 30). Present the shortlist plainly — first names, days since last session. To draft the outreach, call draft_lapsed_outreach with args.days and args.template = your message using ONLY these slots: {guardian} {child} {days} {business}. Keep it warm, short, and parent-readable; never invent session details. The tool queues one personalized DRAFTED message per family. Say drafts were queued ONLY if the result shows queued > 0, name the Approvals tab as where the coach presses Send on each, and NEVER claim anything was sent — delivery happens only after the coach's own approval, and every delivery writes a receipt.",
+  "- LAPSED FAMILIES (F1): when the coach asks about lapsed/inactive families or rebooking outreach, call find_lapsed_families (args.days defaults to 30). Present the shortlist plainly — first names, days since last session. To draft the outreach, call draft_lapsed_outreach with args.days and args.template = your message using ONLY these slots: {guardian} {child} {days} {business}. Keep it warm, short, and parent-readable; never invent session details. The tool queues one personalized DRAFTED message per family. If the coach asked for outreach drafts and you do not call draft_lapsed_outreach yourself, the server completes the loop for you (it drafts the template and queues with receipt) — but prefer calling it yourself. Say drafts were queued ONLY if the result shows queued > 0, name the Approvals tab as where the coach presses Send on each, and NEVER claim anything was sent — delivery happens only after the coach's own approval, and every delivery writes a receipt.",
   "- VENUE RESEARCH (C2): when the coach asks to find a gym/training space to rent for their team, call find_facilities with args.location = the PLACE THE COACH NAMED (e.g. 'Lake Zurich, Illinois'). NEVER infer the location from the coach's profile, earlier turns, or personal context. If the coach says 'near me' and no service area is set, ask ONE concise question — which town? (intent='clarify'). Present the ranked shortlist plainly with what the research actually found. Say prospects were saved ONLY if saved_as_findings > 0. Mark prices and availability as unknown when not found — never invent them. Then prepare the personalized inquiry as PLAIN TEXT in your reply (not a tool): address it using the verified contact email the research returned, personalize ONLY with verified facts (venue name, address, what they offer), keep it short, and note it is ready for the coach to send themselves. Never send anything autonomously.",
   "- DOCUMENTS (F2): when the coach asks for a handout, letter, or parent-facing document, call create_document with args.title and args.body = the full content as markdown (headings, short lines, no invented facts — only what the coach stated or the CONTEXT supports). Resolve an ambiguous session reference the same way as drafts: use the next upcoming session from CONTEXT and name it in the document — do NOT ask clarifying questions when a useful document can be built from available facts. Say it was created ONLY if the result shows document_id — then name the title and say the Download button is below. Never claim a file exists without that receipt.",
   "- CONNECTED ACCOUNTS (read_connected, 2026-09-20): when the answer lives in the club's connected accounts, call read_connected with args.kind = the connector and args.params = the query fields — gmail (recent parent emails, params={q}), google_calendar (upcoming events, params={start,end}), google_sheets (params={spreadsheet_id, range}), google_drive (files/waivers, params={q}), microsoft365 (Outlook, params={section:'mail'|'calendar'}), quickbooks (read-only, params={query} starting with 'select '), google_business_profile (listings + reviews), sms (inbound texts). READ-ONLY; when the result carries an error (not connected / failed), relay it plainly — never invent the data. SCHEDULING/CONFLICT RULE: whenever you check availability, propose times, or move a session, FIRST call read_connected kind='google_calendar' with a time window and verify no conflict in the returned events — never propose a time you haven't checked.",
@@ -1584,7 +1630,14 @@ Deno.serve(async (req) => {
       const t = String((tc as Record<string, unknown>)?.tool ?? "");
       return t === "draft_message" || t === "draft_bulk_message";
     });
-    if (looksLikeDraftRequest && !hasDraftTool && intent !== "refuse") {
+    // v30: the model sometimes emits draft_message/draft_bulk_message with an
+    // empty body (or an unresolvable audience) — the tool then returns
+    // queued: 0 and the model's reply_text claims readiness anyway (D1-run2
+    // class bug). A failed draft tool means no real draft happened, so let
+    // the deterministic draft-writer below complete the turn with a
+    // receipt-checked outcome instead of the model's false claim.
+    const draftToolFailed = isDraftToolFailed(cleaned);
+    if (looksLikeDraftRequest && (!hasDraftTool || draftToolFailed) && intent !== "refuse") {
       try {
         const todayStr = new Date().toISOString().slice(0, 10);
         const nextSessions = (Array.isArray(sessions) ? sessions : [])
@@ -1702,11 +1755,105 @@ Deno.serve(async (req) => {
             reply = `I can draft that — first I need: ${clarifyQ}`;
           }
         } else if (first.ok) {
-          await disposeWriter(first.d);
+          const disposed = await disposeWriter(first.d);
+          if (!disposed && draftToolFailed) {
+            // The model's own draft attempt failed AND the writer produced
+            // nothing usable — never let the model's "ready" claim stand.
+            reply = "I couldn't queue that draft — the message came back empty. Tell me again what you'd like it to say and I'll draft it.";
+          }
         }
         // else: gateway failed or empty draft — keep the model's original reply.
       } catch (e) {
         console.error("coach-command: deterministic draft fallback failed:", e);
+        // Graceful: the model's original reply stands.
+      }
+    }
+
+    // ── Lapsed-outreach completion (v30): the model reliably calls
+    //    find_lapsed_families but sometimes narrates "ready to queue" without
+    //    calling draft_lapsed_outreach — the F1 loop (research -> shortlist ->
+    //    draft per family -> queue) then silently drops. When the turn asked
+    //    for lapsed-family OUTREACH (not just the shortlist) and the shortlist
+    //    came back non-empty but no draft_lapsed_outreach call with a template
+    //    was made, compose the template deterministically (narrow writer) and
+    //    queue with receipt. Never runs on refuse; never double-queues (only
+    //    when no templated draft call happened, so nothing was queued yet).
+    //    Rows stay DRAFTED — lifecycle-approve remains the sole delivery path.
+    const looksLikeLapsedOutreach = isLapsedOutreachTurn(text, intent);
+    const lapsedFind = cleaned.find(
+      (tc) => String((tc as Record<string, unknown>)?.tool ?? "") === "find_lapsed_families",
+    );
+    const lapsedDraftCalled = rawCalls.some((tc) => {
+      if (String((tc as Record<string, unknown>)?.tool ?? "") !== "draft_lapsed_outreach") return false;
+      const a = (tc as Record<string, unknown>)?.args as Record<string, unknown> | undefined;
+      return String(a?.template ?? "").trim().length > 0;
+    });
+    // The generic draft fallback above may already have queued drafts for
+    // this turn — never queue a second set.
+    const draftAlreadyQueued = cleaned.some((tc) => {
+      const t = String((tc as Record<string, unknown>)?.tool ?? "");
+      const r = (tc as Record<string, unknown>)?.result as Record<string, unknown> | null;
+      return (t === "draft_message" || t === "draft_bulk_message") && Number(r?.queued ?? 0) > 0;
+    });
+    if (looksLikeLapsedOutreach && lapsedFind && !lapsedDraftCalled && !draftAlreadyQueued) {
+      try {
+        const findResult = (lapsedFind as Record<string, unknown>)?.result as Record<string, unknown> | null;
+        const fams = (findResult?.families ?? []) as Record<string, unknown>[];
+        const biz = String((prov as Record<string, unknown> | undefined)?.business_name ?? "");
+        if (fams.length) {
+          const famLines = fams.slice(0, 10).map((f) =>
+            `- ${String(f.child_first_name ?? "athlete")} (guardian ${String(f.guardian_first_name ?? "there")}, lapsed ${String(f.days_lapsed ?? "?")} days)`,
+          ).join("\n");
+          const wr = await fetch(`${SUPABASE_URL}/functions/v1/${GATEWAY_FN}`, {
+            method: "POST",
+            headers: {
+              "apikey": ANON_KEY,
+              "Authorization": authHeader,
+              "Content-Type": "application/json",
+              ...(INTERNAL_SECRET ? { "x-sporve-internal": INTERNAL_SECRET } : {}),
+            },
+            body: JSON.stringify({
+              task: "agent_turn",
+              feature: "coach_command_lapsed_template",
+              system: "You write a short, warm reactivation text for a youth-sports club. Output ONLY the write_lapsed_template tool call as JSON. Rules: template uses ONLY these slots: {guardian} {child} {days} {business}. Keep it under 400 characters, warm and parent-readable, with one clear call to action (reply to rebook). Never invent session dates, prices, or coach names. No emojis.",
+              messages: [{ role: "user", content: `Club: ${biz || "the club"}. Lapsed families:\n${famLines}\n\nWrite the reactivation template.` }],
+              tools: [LAPSED_TEMPLATE_TOOL],
+              tool_choice: { type: "tool", name: "write_lapsed_template" },
+              maxTokens: 400,
+            }),
+          });
+          const wg = await wr.json().catch(() => ({}));
+          const wcall = Array.isArray((wg as Record<string, unknown>)?.toolCalls)
+            ? ((wg as Record<string, unknown>).toolCalls as Record<string, unknown>[])[0]
+            : null;
+          const winput = ((wcall?.input ?? {}) as Record<string, unknown>);
+          const wtemplate = String(winput.template ?? "").trim();
+          if (wr.ok && wtemplate) {
+            const lapsedArgs = (lapsedFind as Record<string, unknown>)?.args as Record<string, unknown> | undefined;
+            const lapsedResult = await draftLapsedOutreach(
+              { days: Number(lapsedArgs?.days) || 30, template: wtemplate, subject: String(winput.subject ?? "") },
+              userClient, orgId, biz,
+            ) as Record<string, unknown>;
+            cleaned.push({
+              tool: "draft_lapsed_outreach",
+              args: { days: Number(lapsedArgs?.days) || 30, template: wtemplate, auto: true },
+              kind: "read",
+              result: lapsedResult,
+            });
+            const q = Number(lapsedResult.queued ?? 0);
+            if (q > 0) {
+              const names = ((lapsedResult.families ?? []) as Record<string, unknown>[])
+                .map((f) => String(f.child ?? "")).filter(Boolean).join(", ");
+              reply = `I've queued ${q} reactivation draft${q === 1 ? "" : "s"}${names ? ` for ${names}` : ""} — review and approve in the Approvals tab.`;
+            } else {
+              reply = `I found ${fams.length} lapsed ${fams.length === 1 ? "family" : "families"} but couldn't queue the drafts: ${String(lapsedResult.error ?? lapsedResult.note ?? "unknown error")}.`;
+            }
+          }
+          // else: writer failed — keep the model's original reply (it already
+          // named the shortlist, which is honest as far as it goes).
+        }
+      } catch (e) {
+        console.error("coach-command: lapsed-outreach completion failed:", e);
         // Graceful: the model's original reply stands.
       }
     }
