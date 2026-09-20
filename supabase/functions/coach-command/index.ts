@@ -137,11 +137,23 @@ const READ_TOOLS = [
   // client renders the download card + files-list entry. args:
   // { title: string, body: string (markdown), format?: 'handout'|'letter' }.
   "create_document",
+  // Comms (2026-09-20). resolve_audience is a pure read: resolves a recipient
+  // descriptor ("Mia Rossi", "all parents", "U12 Thunderbolts", "coaches") to
+  // concrete recipients. draft_message / draft_bulk_message are READ-shaped
+  // with a deterministic write (the draft_lapsed_outreach precedent): they
+  // resolve the audience and insert one DRAFTED row per recipient into
+  // outbound_messages — inert until the coach presses Send per row in the
+  // Approvals tab; lifecycle-approve remains the sole delivery path; the
+  // agent never sends (I1). args: resolve_audience { to: string };
+  // draft_message { to: string, subject?: string, body: string };
+  // draft_bulk_message { to: string, subject?: string, body: string
+  //   (may use {guardian} {child} {business} slots) }.
+  "resolve_audience", "draft_message", "draft_bulk_message",
 ] as const;
 const WRITE_TOOLS = [
   "set_profile_image", "set_gallery_image", "draft_bio", "set_policy", "create_service",
   "open_slot", "close_slot", "add_availability_exception", "cancel_booking",
-  "draft_message", "draft_bulk_message", "draft_recap", "camp_broadcast", "draft_waitlist_offer",
+  "draft_recap", "camp_broadcast", "draft_waitlist_offer",
   // Agentic session note. A PROPOSAL like every other write: the coach approves
   // it in the chat card, and the client's create_note rail (MOD_NOTES) writes
   // the row. args: { athlete: <name>, title?: <string>, body: <note content> }.
@@ -181,6 +193,27 @@ export const WRITE_GUARDS = [
     precondition: "orgId present; non-empty template; at least one reachable lapsed family from find_lapsed_families",
     inverse: "delete the drafted rows by the returned draft_ids (the coach discards them from the Approvals tab)",
     receipt: "draft_ids[] and queued count — queued:0 with an error when the insert returns no rows",
+  },
+  {
+    tool: "draft_message",
+    writes: "outbound_messages — one DRAFTED coach_draft row per resolved recipient (inert until the coach presses Send per row in the Approvals tab; lifecycle-approve remains the sole delivery path; the agent never sends, I1)",
+    precondition: "orgId present; non-empty body; args.to resolves to at least one reachable guardian or staff member via resolveAudience",
+    inverse: "delete the drafted rows by the returned draft_ids (the coach discards them from the Approvals tab)",
+    receipt: "draft_ids[] and queued count — queued:0 with an error when no recipients resolve or the insert returns no rows",
+  },
+  {
+    tool: "draft_bulk_message",
+    writes: "outbound_messages — one DRAFTED coach_bulk_draft row per resolved recipient (same inert-until-approved semantics as draft_message)",
+    precondition: "orgId present; non-empty body; args.to resolves to at least one reachable recipient",
+    inverse: "delete the drafted rows by the returned draft_ids",
+    receipt: "draft_ids[] and queued count — queued:0 with an error when the insert returns no rows",
+  },
+  {
+    tool: "resolve_audience",
+    writes: "nothing — pure read",
+    precondition: "orgId present",
+    inverse: "n/a",
+    receipt: "recipients[] (possibly empty) with an error string when nothing resolves",
   },
   {
     tool: "create_document",
@@ -258,21 +291,23 @@ const SYSTEM = [
   "THE LAW — you PROPOSE, deterministic code DISPOSES:",
   "- You NEVER execute a write, send a message, move money, or cancel anything. Write/draft tools are PROPOSALS the coach approves with a tap; set needs_confirmation=true for any of them.",
   "- One turn = at most ONE write/draft tool. Reads may be combined.",
-  "- Parent-visible message drafts (draft_message/draft_bulk_message/draft_recap/camp_broadcast/draft_waitlist_offer) must be PLAIN, WARM, and SHORT — a note a busy parent reads in 3 seconds. Put the draft in args.body.",
+  "- MESSAGES (draft_message / draft_bulk_message, 2026-09-20): when the coach asks you to message, email, notify, or remind someone, call draft_message with args.to = who should get it — an athlete's name ('Mia Rossi'), a team name ('U12 Thunderbolts'), 'all parents', or 'coaches' — plus optional args.subject and args.body = the message itself. Use draft_bulk_message for the same when the message goes to a group. The tool resolves the recipients and queues one DRAFTED row per recipient in the Approvals tab (deterministic write, receipt-checked). The draft must be PLAIN, WARM, and SHORT — a note a busy parent reads in 3 seconds — echo the coach's key facts verbatim, name the resolved session in the opening line when the message is about a session, and end with the 'Why: ' line. Say drafts were queued ONLY if the result shows queued > 0 — then name the recipients and point to the Approvals tab. NEVER claim anything was sent — delivery happens only after the coach's own approval. If the tool returns an error (no match, ambiguous name), relay it plainly and ask — never guess a recipient. You may call resolve_audience first when you need to check who 'to' resolves to before drafting.",
+  "- draft_recap / camp_broadcast / draft_waitlist_offer remain PROPOSALS the coach approves in the chat card (unchanged).",
   "- create_note drafts a private session note for one athlete: args.athlete = the athlete's name as the coach said it (resolved against the roster client-side; if it matches two people, ask — intent='clarify'), optional args.title, and args.body = the note content (what to work on / what happened). It is a PROPOSAL the coach approves; never say it is saved.",
   "",
   "HARD RULES (safety-relevant marketplace — do not break):",
   "- NEVER state a price, time, day, or availability that is not in the CONTEXT block. If a needed fact is missing, ask the coach (intent='clarify') — never guess or invent.",
   "- DRAFT FIDELITY: when drafting from the coach's instruction, echo the instruction's key facts (time, date, place, names) VERBATIM in the draft. If any fact conflicts with the CONTEXT block, stop and ask (intent='clarify') — never invert, swap, or 'fix' a fact the coach stated.",
   "- AMBIGUOUS SESSION (D1 determinism, 2026-09-19): when the coach says 'practice' or 'session' without naming which one and the CONTEXT lists upcoming sessions, resolve to the NEXT upcoming session of the relevant team and draft immediately — do NOT ask which session unless two or more upcoming sessions could plausibly match. Name the resolved session (team + weekday + date) in the draft's opening line so the coach can correct you if you picked wrong. The draft must still echo the coach's stated facts verbatim.",
+  "- DRAFT WHY-LINE (D1, 2026-09-20): every parent-visible draft ends with one plain line starting 'Why: ' that names the finding behind the message — the reason it exists, stated ONLY from the coach's instruction or the CONTEXT block (e.g. 'Why: Saturday practice moved to 10am, same field'). If the coach gave no reason, the why-line names the triggering fact itself. Never omit it, never invent a reason.",
   "- ATTENDANCE MATH (B1 determinism, 2026-09-19): when the coach asks for attendance analysis from CSV or roster data, count systematically and show every count. For each player list 'Name: attended/total sessions' (e.g. 'Mia Rossi: 7/16'). Compute each player's percentage as (attended ÷ total) × 100, rounded to one decimal place. Before stating the overall rate, verify the sums: the sum of all players' attended counts must equal the grand total attended, and the sum of all players' total sessions must equal the grand total sessions. State the overall attendance as (grand attended ÷ grand total) × 100, rounded to one decimal. Never estimate a count, never round a count, never invent a player or a session.",
   "- AMBIGUOUS TARGET: if a name matches two or more people on the roster (e.g. two 'James'), DO NOT guess — ask which one (intent='clarify'). Only act on an unambiguous match.",
   "- Reference ONLY ids that appear in the CONTEXT block. Never invent, guess, or carry over an id. If you don't have the id, ask.",
-  "- find_clients: when the coach asks to find clients, prospects, leads, feeder programs, leagues or partner orgs nearby, call find_clients with args.query describing what they want (e.g. 'youth soccer leagues'). Present the list plainly. Say they were saved to the review queue ONLY if the tool result shows saved_as_findings > 0 — otherwise say 'here they are; tap to save the ones you want' and NEVER claim they were saved. Never promise outreach; messages are always drafted separately for approval.",
+  "- find_clients (RESEARCH): when the coach asks to find ANY external organizations — clubs, teams, leagues, programs, prospects, leads, feeder programs, venues, partner orgs — call find_clients with args.query describing exactly what they asked for (e.g. 'youth soccer clubs in Chicago'). This is your research tool: use it instead of refusing or claiming you cannot search outside Sporv. Present the list plainly with the contact info the tool returned (name, address, phone, website). When the coach says 'save them to my queue', the tool already attempted the save — say they were saved ONLY if the tool result shows saved_as_findings > 0, and cite the count; otherwise say 'here they are; tap to save the ones you want' and NEVER claim they were saved. Never promise outreach; messages are always drafted separately for approval.",
   "- MEMORY (E1): the MEMORY block in CONTEXT lists durable facts the coach taught you across sessions — apply them without being reminded. When the coach states a durable fact, preference, or standing instruction ('remember that…', 'my assistant coach is…', 'we always…', 'note that…'), call remember_fact with args.fact = one plain sentence. Say it was remembered ONLY if the result shows saved: true — otherwise say it didn't save and why. When the coach asks what you remember, call list_memory and list the facts. When the coach says to forget something, call forget_fact with the memory_id from the MEMORY block or list_memory. Never store a child's full name, contact details, or anything the coach didn't state as durable.",
   "- LAPSED FAMILIES (F1): when the coach asks about lapsed/inactive families or rebooking outreach, call find_lapsed_families (args.days defaults to 30). Present the shortlist plainly — first names, days since last session. To draft the outreach, call draft_lapsed_outreach with args.days and args.template = your message using ONLY these slots: {guardian} {child} {days} {business}. Keep it warm, short, and parent-readable; never invent session details. The tool queues one personalized DRAFTED message per family. Say drafts were queued ONLY if the result shows queued > 0, name the Approvals tab as where the coach presses Send on each, and NEVER claim anything was sent — delivery happens only after the coach's own approval, and every delivery writes a receipt.",
   "- VENUE RESEARCH (C2): when the coach asks to find a gym/training space to rent for their team, call find_facilities with args.location = the PLACE THE COACH NAMED (e.g. 'Lake Zurich, Illinois'). NEVER infer the location from the coach's profile, earlier turns, or personal context. If the coach says 'near me' and no service area is set, ask ONE concise question — which town? (intent='clarify'). Present the ranked shortlist plainly with what the research actually found. Say prospects were saved ONLY if saved_as_findings > 0. Mark prices and availability as unknown when not found — never invent them. Then prepare the personalized inquiry as PLAIN TEXT in your reply (not a tool): address it using the verified contact email the research returned, personalize ONLY with verified facts (venue name, address, what they offer), keep it short, and note it is ready for the coach to send themselves. Never send anything autonomously.",
-  "- DOCUMENTS (F2): when the coach asks for a handout, letter, or parent-facing document, call create_document with args.title and args.body = the full content as markdown (headings, short lines, no invented facts — only what the coach stated or the CONTEXT supports). Say it was created ONLY if the result shows document_id — then name the title and say the Download button is below. Never claim a file exists without that receipt.",
+  "- DOCUMENTS (F2): when the coach asks for a handout, letter, or parent-facing document, call create_document with args.title and args.body = the full content as markdown (headings, short lines, no invented facts — only what the coach stated or the CONTEXT supports). Resolve an ambiguous session reference the same way as drafts: use the next upcoming session from CONTEXT and name it in the document — do NOT ask clarifying questions when a useful document can be built from available facts. Say it was created ONLY if the result shows document_id — then name the title and say the Download button is below. Never claim a file exists without that receipt.",
   "- Coaching knowledge is IN SCOPE and a core job: drills, practice plans, technique coaching points, rules explanations for parents — answer these directly and well (intent='read', no tool_calls needed). For drills, practice plans, and parent explainers, COMPLETENESS BEATS BREVITY: include setup, steps, coaching points, progressions, and timings in short labeled lines — the ≤60-word transactional cap does NOT apply to these. Refuse ONLY: weather, jokes, coding, general non-sports questions, another coach's data — in ONE sentence (intent='refuse', no tool_calls).",
   "- Never reference a family beyond their FIRST NAME. Never touch or mention background-check / verification status.",
   "",
@@ -282,9 +317,9 @@ const SYSTEM = [
 ].join("\n");
 
 /* ── find_clients — the search agent's harvest stage, in the chat ──────────
-   (owner directive 2026-09-04). Places Text Search only for now; the
-   Firecrawl web-search leg is staged until FIRECRAWL_API_KEY exists. Leads
-   are DATA saved as agent_findings under the coach's own RLS — discovery
+   (owner directive 2026-09-04). Places Text Search only for now; FIRECRAWL_API_KEY
+   is configured, so a Firecrawl web-search enrichment leg can be added later.
+   Leads are DATA saved as agent_findings under the coach's own RLS — discovery
    never contacts anyone; outreach remains the human-approved draft rail. */
 type ProvCtx = { id?: string; business_name?: string; location?: string | null; sports?: string[] | null } | null;
 // deno-lint-ignore no-explicit-any
@@ -470,6 +505,171 @@ export async function draftLapsedOutreach(args: Record<string, unknown>, userCli
     queued: ids.length,
     draft_ids: ids,
     families: families.map((f) => ({ child: f.child_first_name, guardian: f.guardian_first_name })),
+    review_at: "Approvals tab",
+  };
+}
+
+/* ── Comms recipient resolution + deterministic drafting (2026-09-20) ─────
+   The agent's job: figure out WHO gets the message, then queue the draft.
+   resolveAudience maps a plain-language descriptor to concrete recipients;
+   draftMessage/draftBulkMessage resolve + insert one DRAFTED row per
+   recipient into outbound_messages (the draft_lapsed_outreach precedent).
+   Rows are inert until the coach presses Send per row in the Approvals tab;
+   lifecycle-approve remains the sole delivery path; the agent never sends
+   (I1, DB trigger 000200). */
+type AudienceRecipient = {
+  kind: "guardian" | "staff";
+  guardian_id: string | null;
+  member_id: string | null;
+  staff_name: string | null;
+  guardian_first_name: string | null;
+  member_first_name: string | null;
+  team: string | null;
+};
+// deno-lint-ignore no-explicit-any
+async function loadAudienceData(userClient: any, orgId: string) {
+  const { data: tmRows } = await userClient.from("teams").select("id, name").eq("provider_id", orgId).limit(40);
+  const teams = (Array.isArray(tmRows) ? tmRows : []) as Record<string, unknown>[];
+  const { data: taRows } = await userClient.from("team_athletes")
+    .select("id, first_name, last_name, team_id").eq("provider_id", orgId).limit(200);
+  const members = (Array.isArray(taRows) ? taRows : []) as Record<string, unknown>[];
+  const teamById = new Map(teams.map((t) => [String(t.id), String(t.name ?? "")]));
+  let linkByMember = new Map<string, string>();
+  const gById = new Map<string, { first_name: string; email: string | null }>();
+  const mIds = members.map((m) => String(m.id));
+  if (mIds.length) {
+    const { data: links } = await userClient.from("guardian_links").select("member_id, guardian_id").in("member_id", mIds);
+    for (const l of (links ?? []) as Record<string, unknown>[]) linkByMember.set(String(l.member_id), String(l.guardian_id));
+    const gIds = [...new Set(linkByMember.values())];
+    if (gIds.length) {
+      const { data: guards } = await userClient.from("guardians").select("id, first_name, email").in("id", gIds);
+      for (const g of (guards ?? []) as Record<string, unknown>[]) {
+        gById.set(String(g.id), { first_name: String(g.first_name ?? ""), email: (g.email as string) ?? null });
+      }
+    }
+  }
+  const { data: omRows } = await userClient.from("organization_members")
+    .select("role, trainer_profile").eq("organization_id", orgId).eq("is_active", true).limit(40);
+  const staff = ((Array.isArray(omRows) ? omRows : []) as Record<string, unknown>[]).map((r) => {
+    const tp = (r.trainer_profile ?? {}) as Record<string, unknown>;
+    const name = String(tp.name ?? [tp.first_name, tp.last_name].filter(Boolean).join(" ") ?? "").trim();
+    return { name: name || null, role: String(r.role ?? "staff") };
+  });
+  return { teams, members, teamById, linkByMember, gById, staff };
+}
+// deno-lint-ignore no-explicit-any
+export async function resolveAudience(to: string, userClient: any, orgId: string | null) {
+  const raw = String(to ?? "").trim();
+  if (!orgId) return { recipients: [], error: "No organization found." };
+  if (!raw) return { recipients: [], error: "Tell me who should get this message." };
+  const t = raw.toLowerCase();
+  const d = await loadAudienceData(userClient, orgId);
+  const fullName = (m: Record<string, unknown>) =>
+    `${String(m.first_name ?? "").trim()} ${String(m.last_name ?? "").trim()}`.trim().toLowerCase();
+  const toRecipients = (members: Record<string, unknown>[]): AudienceRecipient[] => {
+    const out: AudienceRecipient[] = [];
+    for (const m of members) {
+      const gid = d.linkByMember.get(String(m.id));
+      const g = gid ? d.gById.get(gid) : undefined;
+      if (!gid || !g) continue; // unreachable: no linked guardian
+      out.push({
+        kind: "guardian", guardian_id: gid, member_id: String(m.id), staff_name: null,
+        guardian_first_name: g.first_name || null, member_first_name: String(m.first_name ?? "") || null,
+        team: d.teamById.get(String(m.team_id ?? "")) ?? null,
+      });
+    }
+    return out;
+  };
+  // Group descriptors.
+  if (["all", "everyone", "everybody", "all parents", "all families", "all guardians", "parents", "families"].includes(t)) {
+    const r = toRecipients(d.members);
+    if (!r.length) return { recipients: [], error: "Your roster is empty — no families to message yet." };
+    return { recipients: r, audience: "all families" };
+  }
+  if (["coaches", "coach", "staff", "team staff", "all staff", "all coaches"].includes(t)) {
+    if (!d.staff.length) return { recipients: [], error: "No staff members are on the roster yet." };
+    return {
+      recipients: d.staff.map((s) => ({
+        kind: "staff" as const, guardian_id: null, member_id: null, staff_name: s.name,
+        guardian_first_name: null, member_first_name: null, team: null,
+      })),
+      audience: "staff",
+    };
+  }
+  // Team name → that team's families.
+  const teamHit = d.teams.find((tm) => String(tm.name ?? "").toLowerCase() === t)
+    ?? d.teams.find((tm) => t.length >= 3 && String(tm.name ?? "").toLowerCase().includes(t));
+  if (teamHit) {
+    const members = d.members.filter((m) => String(m.team_id ?? "") === String(teamHit.id));
+    const r = toRecipients(members);
+    if (!r.length) return { recipients: [], error: `The ${teamHit.name} roster has no reachable families yet.` };
+    return { recipients: r, audience: String(teamHit.name) };
+  }
+  // Athlete name → that athlete's guardian(s).
+  const nameHits = d.members.filter((m) => {
+    const fn = fullName(m);
+    return fn === t || fn.startsWith(t + " ") || (t.length >= 3 && fn.includes(t));
+  });
+  if (nameHits.length > 1) {
+    return {
+      recipients: [],
+      error: `That name matches ${nameHits.length} athletes — which one?`,
+      candidates: nameHits.map((m) => `${String(m.first_name ?? "")} ${String(m.last_name ?? "")}`.trim()),
+    };
+  }
+  if (nameHits.length === 1) {
+    const r = toRecipients(nameHits);
+    if (!r.length) return { recipients: [], error: "That athlete has no linked guardian to message." };
+    return { recipients: r, audience: `${String(nameHits[0].first_name ?? "")}'s family` };
+  }
+  return {
+    recipients: [],
+    error: `I couldn't find "${raw}" — name an athlete, a team, "all parents", or "coaches".`,
+  };
+}
+// deno-lint-ignore no-explicit-any
+export async function draftMessageBulk(args: Record<string, unknown>, userClient: any, orgId: string | null, businessName: string, eventType: string) {
+  const body = String(args.body ?? "").trim().slice(0, 2000);
+  const subject = String(args.subject ?? "").trim().slice(0, 120);
+  const to = String(args.to ?? "").trim();
+  if (!orgId) return { queued: 0, error: "No organization found." };
+  if (!body) return { queued: 0, error: "The message body is empty." };
+  if (!to) return { queued: 0, error: "Tell me who should get this message." };
+  const resolved = await resolveAudience(to, userClient, orgId);
+  const recipients = (resolved.recipients ?? []) as AudienceRecipient[];
+  if (!recipients.length) return { queued: 0, error: (resolved as Record<string, unknown>).error ?? "No recipients found.", candidates: (resolved as Record<string, unknown>).candidates ?? undefined };
+  const fill = (r: AudienceRecipient) => body
+    .replaceAll("{guardian}", String(r.guardian_first_name ?? r.staff_name ?? "there"))
+    .replaceAll("{child}", String(r.member_first_name ?? "your athlete"))
+    .replaceAll("{business}", businessName || "us")
+    .slice(0, 2000);
+  const rows = recipients.map((r) => ({
+    provider_id: orgId,
+    event_type: eventType,
+    status: "drafted",
+    scheduled_for: new Date().toISOString(),
+    content: {
+      subject: subject || null,
+      body: fill(r),
+      guardian_id: r.guardian_id,
+      member_id: r.member_id,
+      staff_name: r.staff_name,
+      audience: (resolved as Record<string, unknown>).audience ?? to,
+      source: "coach_command_draft",
+    },
+  }));
+  const { data, error } = await userClient.from("outbound_messages").insert(rows).select("id");
+  // D2/G4 receipt: only report queued when the insert actually succeeded.
+  if (error || !data) return { queued: 0, error: "The drafts didn't queue." };
+  // deno-lint-ignore no-explicit-any
+  const ids = ((data ?? []) as { id: string }[]).map((x) => x.id);
+  return {
+    queued: ids.length,
+    draft_ids: ids,
+    audience: (resolved as Record<string, unknown>).audience ?? to,
+    recipients: recipients.map((r) => r.kind === "staff"
+      ? `staff: ${r.staff_name ?? "a coach"}`
+      : `${r.guardian_first_name ?? "guardian"} (${r.member_first_name ?? "athlete"}${r.team ? ", " + r.team : ""})`),
     review_at: "Approvals tab",
   };
 }
@@ -726,6 +926,46 @@ Deno.serve(async (req) => {
     }
     const roster = [...nameCounts.entries()].map(([first_name, count]) => ({ first_name, count }));
 
+    // Full roster from team_athletes (imported rosters live here, not only in
+    // bookings) + guardian mapping + staff, so the model can resolve "who gets
+    // this message". FIRST NAMES ONLY in context — never more PII.
+    let teams: Record<string, unknown>[] = [];
+    let rosterFull: { id: string; first_name: string; team: string | null; guardian: string | null }[] = [];
+    let staffList: { name: string | null; role: string }[] = [];
+    if (orgId) {
+      const { data: tmRows } = await userClient.from("teams").select("id, name").eq("provider_id", orgId).limit(40);
+      teams = (Array.isArray(tmRows) ? tmRows : []) as Record<string, unknown>[];
+      const teamById = new Map(teams.map((t) => [String(t.id), String(t.name ?? "")]));
+      const { data: taRows } = await userClient.from("team_athletes")
+        .select("id, first_name, team_id").eq("provider_id", orgId).limit(200);
+      const members = (Array.isArray(taRows) ? taRows : []) as Record<string, unknown>[];
+      const mIds = members.map((m) => String(m.id));
+      const linkByMember = new Map<string, string>();
+      const gNameById = new Map<string, string>();
+      if (mIds.length) {
+        const { data: links } = await userClient.from("guardian_links").select("member_id, guardian_id").in("member_id", mIds);
+        for (const l of (links ?? []) as Record<string, unknown>[]) linkByMember.set(String(l.member_id), String(l.guardian_id));
+        const gIds = [...new Set(linkByMember.values())];
+        if (gIds.length) {
+          const { data: guards } = await userClient.from("guardians").select("id, first_name").in("id", gIds);
+          for (const g of (guards ?? []) as Record<string, unknown>[]) gNameById.set(String(g.id), String(g.first_name ?? ""));
+        }
+      }
+      rosterFull = members.map((m) => ({
+        id: String(m.id),
+        first_name: String(m.first_name ?? ""),
+        team: teamById.get(String(m.team_id ?? "")) ?? null,
+        guardian: gNameById.get(linkByMember.get(String(m.id)) ?? "") ?? null,
+      }));
+      const { data: omRows } = await userClient.from("organization_members")
+        .select("role, trainer_profile").eq("organization_id", orgId).eq("is_active", true).limit(40);
+      staffList = ((Array.isArray(omRows) ? omRows : []) as Record<string, unknown>[]).map((r) => {
+        const tp = (r.trainer_profile ?? {}) as Record<string, unknown>;
+        const nm = String(tp.name ?? [tp.first_name, tp.last_name].filter(Boolean).join(" ") ?? "").trim();
+        return { name: nm || null, role: String(r.role ?? "staff") };
+      });
+    }
+
     // E1 durable memory — cross-session facts the coach taught the agent.
     const { data: memRows } = orgId
       ? await userClient
@@ -772,8 +1012,16 @@ Deno.serve(async (req) => {
       ctx.push(`- id=${b.id} ${b.first_name ?? "(no name)"} ${b.slot_date ? `${b.slot_date} ${b.slot_time ?? ""}` : ""} status=${b.status}`);
     }
     ctx.push("");
-    ctx.push("ROSTER (first names; a name with count>1 is AMBIGUOUS — ask which one):");
-    ctx.push(roster.length ? roster.map((r) => `${r.first_name}×${r.count}`).join(", ") : "(empty)");
+    ctx.push(teams.length ? "TEAMS (address a whole team with args.to = the team name):" : "TEAMS: (none).");
+    for (const t of teams) ctx.push(`- "${t.name}"`);
+    ctx.push("");
+    ctx.push("ROSTER (athletes — first names only; team and guardian first name in parens; a first name appearing twice is AMBIGUOUS — ask which one):");
+    ctx.push(rosterFull.length
+      ? rosterFull.map((r) => `- ${r.first_name}${r.team ? ` [${r.team}]` : ""}${r.guardian ? ` (guardian: ${r.guardian})` : " (no linked guardian)"}`).join("\n")
+      : "(empty)");
+    ctx.push("");
+    ctx.push(staffList.length ? "STAFF (message them with args.to='coaches'):" : "STAFF: (just you).");
+    for (const s of staffList) ctx.push(`- ${s.name ?? "(unnamed)"} (${s.role})`);
     ctx.push("");
     ctx.push("MEMORY (durable facts the coach taught you across sessions — apply without being reminded):");
     ctx.push(memories.length
@@ -877,6 +1125,9 @@ Deno.serve(async (req) => {
         else if (tool === "draft_lapsed_outreach") result = await draftLapsedOutreach(args, userClient, orgId, String(prov?.business_name ?? ""));
         else if (tool === "find_facilities") result = await findFacilities(String(args.location ?? ""), userClient, orgId);
         else if (tool === "create_document") result = await createDocument(args, userClient, orgId);
+        else if (tool === "resolve_audience") result = await resolveAudience(String((args as Record<string, unknown>)?.to ?? ""), userClient, orgId);
+        else if (tool === "draft_message") result = await draftMessageBulk(args, userClient, orgId, String(prov?.business_name ?? ""), "coach_draft");
+        else if (tool === "draft_bulk_message") result = await draftMessageBulk(args, userClient, orgId, String(prov?.business_name ?? ""), "coach_bulk_draft");
         cleaned.push({ tool, args, kind: "read", result });
       }
     }
