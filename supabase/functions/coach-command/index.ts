@@ -1079,8 +1079,17 @@ function pinDraftFacts(
       `${String(s.title ?? "")} ${String(s.start_date ?? "")}`.toLowerCase().includes(day),
     ) ?? (sessions as Record<string, unknown>[])[0];
     if (hit) {
+      // v20: spell out the weekday from the date — the writer once combined
+      // "Sunday" with 2026-09-26 (a Saturday). Exact facts, never mixed.
+      const dm2 = /^(\d{4})-(\d{2})-(\d{2})/.exec(String(hit.start_date ?? ""));
+      const wd = dm2
+        ? ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"][
+            new Date(Date.UTC(+dm2[1], +dm2[2] - 1, +dm2[3])).getUTCDay()
+          ]
+        : "";
+      const t = String(hit.start_time ?? "").trim();
       sessionHint =
-        `${String(hit.title ?? "session")} ${String(hit.start_date ?? "")} ${String(hit.start_time ?? "")}${hit.end_time ? "–" + String(hit.end_time) : ""}`.trim();
+        `${String(hit.title ?? "session")} — ${wd ? wd + ", " : ""}${String(hit.start_date ?? "").trim()}${t ? " " + t + (hit.end_time ? "–" + String(hit.end_time) : "") : " (no time set)"}`.trim();
     }
   }
   return { to, sessionHint };
@@ -1567,7 +1576,7 @@ Deno.serve(async (req) => {
           if (pinned.to || pinned.sessionHint) {
             const retryMsg = `Coach message: ${text}` +
               (pinned.to ? `\nPINNED RECIPIENTS — final, use EXACTLY as the to field, do not question or re-derive: ${pinned.to}` : "") +
-              (pinned.sessionHint ? `\nThe session the coach means is: ${pinned.sessionHint}. Write about EXACTLY what the coach asked — if they announce extra or new training, announce it (day + date from the hint above; if it has no time, write 'time to be confirmed — just reply to this message'); if they want a reminder, remind. Do NOT substitute a different session, and do NOT ask what the message should say.` : "");
+              (pinned.sessionHint ? `\nThe session the coach means is: ${pinned.sessionHint}. Copy the day, date, and time VERBATIM from that line — they are exact facts. NEVER combine facts from different sessions (e.g. never write 'Sunday, 26 September': 26 September is a Saturday). Write about EXACTLY what the coach asked — if they announce extra or new training, announce it (day + date from the hint above; if it says '(no time set)', write 'time to be confirmed — just reply to this message'); if they want a reminder, remind. Do NOT substitute a different session, and do NOT ask what the message should say.` : "");
             const second = await runWriter(retryMsg,
               "\nRETRY — your previous answer asked a clarifying question. That was WRONG. " +
               "You MUST output write_draft now. The PINNED facts above are final. " +
