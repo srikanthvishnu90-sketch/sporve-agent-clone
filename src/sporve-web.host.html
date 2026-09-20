@@ -12602,8 +12602,12 @@ function coachEarningsPage(){
 }
 
 function coachApprovalsPage(){
+  /* Refresh the draft queue on EVERY visit (2026-09-20): once-per-session
+     hydration showed a stale empty list after the agent queued drafts. */
+  if(realSignedIn()) hydrateQueue();
   const ui=window.COACH_UI;
   const live=(S.coachQueue||[]).slice();
+  const queueErr=S.queueError;
   const drafts=queueIsLive()?[]:approvalDrafts();
   const sent=S.approvalSent||[];
   const label={booking_confirmed:"Booking confirmed",reminder_24h:"24-hour reminder",post_session:"Post-session recap",no_show_followup:"No-show follow-up",rebook_nudge:"Rebooking nudge"};
@@ -12632,11 +12636,17 @@ function coachApprovalsPage(){
       emptyTitle:"Nothing waiting",emptyBody:"Sporv drafts eligible reminders and recaps, but sends nothing without approval.",
     });
   }
-  const blocks=[ui.Block({
+  const blocks=[];
+  if(queueErr) blocks.push(ui.Block({
+    title:"Queue did not load",
+    subtitle:"The draft list could not be read. Your drafts are still saved.",
+    body:ui.html(`<p style="color:var(--muted);font-size:var(--text-sm)">${esc(queueErr)} Open this tab again to retry.</p>`),
+  }));
+  blocks.push(ui.Block({
     title:"Approval queue",
     subtitle:"Every row requires an explicit decision; no draft is sent merely because it appears here.",
     body:queue,
-  })];
+  }));
   if(sent.length) blocks.push(ui.Block({
     title:"Approval history",
     subtitle:"Read-only record of drafts this coach explicitly approved and sent.",
@@ -21363,8 +21373,12 @@ function hydrateFor(surface){
 function hydrateQueue(){
   if(!window.SporveCoach||!window.SporveAuth||!window.SporveAuth.isSignedIn()) return Promise.resolve();
   return window.SporveCoach.queue().then(function(rows){
-    S.coachQueue=rows||[]; render();
-  }).catch(function(){});
+    S.coachQueue=rows||[]; S.queueError=null; render();
+  }).catch(function(e){
+    /* Honest failure (2026-09-20): a failed read must never render as an
+       empty queue — the coach would conclude nothing was drafted. */
+    S.queueError=(e&&e.message)||"Could not reach the server."; render();
+  });
 }
 
 hydrateReturn();
