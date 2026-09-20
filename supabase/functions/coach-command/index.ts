@@ -359,15 +359,15 @@ const DRAFT_SYSTEM = [
   "EXAMPLE 1 — filter + weekday with no matching session:",
   "Coach message: 'Message the parents of players with attendance below 60% about an extra training session on Sunday.'",
   "PINNED RECIPIENTS: Mia Rossi and Ava Novak. PINNED ATTENDANCE: Mia Rossi 7/16 (44%); Ava Novak 9/16 (56%). Sofia Marino (69%) and Lucas Meyer (75%) are NOT below 60% — never include them.",
-  "PINNED SESSION: Extra training session — Sunday, 2026-09-27 (no time set).",
-  "CORRECT: to='Mia Rossi and Ava Novak', body opens naming Sunday, September 27, says 'time to be confirmed — just reply to this message', and ends with a line starting 'Why: ' citing the pinned attendance (e.g. 'Why: Mia Rossi 7/16 (44%) and Ava Novak 9/16 (56%) are below 60% attendance — extra session to help them catch up.').",
+  "PINNED SESSION: Extra training session — Sunday, 27 September 2026 (no time set).",
+  "CORRECT: to='Mia Rossi and Ava Novak', body opens naming Sunday, 27 September 2026, says 'time to be confirmed — just reply to this message', and ends with a line starting 'Why: ' citing the pinned attendance (e.g. 'Why: Mia Rossi 7/16 (44%) and Ava Novak 9/16 (56%) are below 60% attendance — extra session to help them catch up.').",
   "WRONG: to='parents of players with attendance below 60%' (raw phrase — the server cannot resolve it, the draft fails).",
   "WRONG: 'Sunday, 26 September from 10:00-11:30' (mixing the coach's weekday with a different session's date and time — never combine facts from different sessions).",
   "WRONG: asking which Sunday or what time (the pinned facts already resolve it).",
   "EXAMPLE 2 — known session:",
   "Coach message: 'Message Mia's parent about Saturday.'",
   "CONTEXT SESSIONS: U12 Saturday Practice 2026-09-26 10:00 AM–11:30 AM.",
-  "CORRECT: to='Mia Rossi', body='Hi {guardian}, quick reminder: U12 Saturday Practice is this Saturday, September 26, 10:00–11:30 AM. See you on the field! Why: weekly practice reminder.'",
+  "CORRECT: to='Mia Rossi', body='Hi {guardian}, quick reminder: U12 Saturday Practice is this Saturday, 26 September 2026, 10:00–11:30 AM. See you on the field! Why: weekly practice reminder.'",
   "WRONG: clarify='What should the message say?' (the session is known — asking is a failed turn).",
 ].join("\n");
 
@@ -1025,12 +1025,25 @@ const DOW = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "
    the writer copies it verbatim. Pure functions — unit-tested in node. */
 const WEEKDAYS = ["sunday", "monday", "tuesday", "wednesday", "thursday", "friday", "saturday"];
 const WEEKDAY_NAMES = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
+const MONTHS = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
 
 /** Day-of-week index (0=Sunday) for a YYYY-MM-DD string, -1 when unparseable. */
 function dowOf(dateStr: string): number {
   const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(String(dateStr ?? ""));
   if (!m) return -1;
   return new Date(Date.UTC(+m[1], +m[2] - 1, +m[3])).getUTCDay();
+}
+
+/** Long-form session date the writer copies verbatim, e.g. "Sunday, 27 September 2026".
+    The weekday is computed from the actual date — never hardcoded. Falls back to
+    the raw string when the date is unparseable. */
+function longDate(dateStr: string): string {
+  const raw = String(dateStr ?? "").trim();
+  const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(raw);
+  if (!m) return raw;
+  const dow = dowOf(raw);
+  if (dow < 0) return raw;
+  return `${WEEKDAY_NAMES[dow]}, ${+m[3]} ${MONTHS[+m[2] - 1]} ${m[1]}`;
 }
 
 /** Next date (YYYY-MM-DD) strictly after `from` falling on weekday `dow`. */
@@ -1045,11 +1058,10 @@ function nextWeekdayDate(dow: number, from: string): string {
 
 /** One exact, copy-verbatim session line for the draft-writer. */
 function formatSessionHint(title: string, dateStr: string, startTime: string, endTime: string): string {
-  const wd = WEEKDAY_NAMES[dowOf(dateStr)] ?? "";
   const t = String(startTime ?? "").trim();
   const e = String(endTime ?? "").trim();
   const timePart = t ? ` ${fmtTime(t)}${e ? "–" + fmtTime(e) : ""}` : " (no time set)";
-  return `${String(title ?? "session")} — ${wd ? wd + ", " : ""}${String(dateStr ?? "").trim()}${timePart}`.trim();
+  return `${String(title ?? "session")} — ${longDate(dateStr)}${timePart}`.trim();
 }
 
 /* Attendance filter pinning ("below 60%" / "above 80%"): resolve against the

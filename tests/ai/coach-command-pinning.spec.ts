@@ -130,10 +130,11 @@ function extractConst(name: string): string {
   return m[0];
 }
 
-const FN_NAMES = ['fmtTime', 'dowOf', 'nextWeekdayDate', 'formatSessionHint', 'pinAttendanceFilter', 'resolveSessionHint', 'pinDraftFacts'];
+const FN_NAMES = ['fmtTime', 'dowOf', 'nextWeekdayDate', 'longDate', 'formatSessionHint', 'pinAttendanceFilter', 'resolveSessionHint', 'pinDraftFacts'];
 const modSrc =
   extractConst('WEEKDAYS') + '\n' +
   extractConst('WEEKDAY_NAMES') + '\n' +
+  extractConst('MONTHS') + '\n' +
   FN_NAMES.map(extractFn).join('\n\n') +
   `\nexport { ${FN_NAMES.join(', ')} };\n`;
 
@@ -155,19 +156,19 @@ const ROSTER = [{ first_name: 'Mia' }, { first_name: 'Ava' }];
 test('R1: "Sunday" with no Sunday session pins the next Sunday after today, with no time set', () => {
   assert.equal(
     pin.resolveSessionHint("Message the parents of players with attendance below 60% about an extra training session on Sunday.", SAT, '2026-09-20'),
-    'Extra training session — Sunday, 2026-09-27 (no time set)');
+    'Extra training session — Sunday, 27 September 2026 (no time set)');
 });
 
 test('R2: "Saturday" pins the Saturday session by its date, never the title', () => {
   assert.equal(
     pin.resolveSessionHint("Message Mia's parent about Saturday.", SAT, '2026-09-20'),
-    'U12 Saturday Practice — Saturday, 2026-09-26 10:00 AM–11:30 AM');
+    'U12 Saturday Practice — Saturday, 26 September 2026 10:00 AM–11:30 AM');
 });
 
 test('R3: no weekday named pins the next upcoming session unchanged', () => {
   assert.equal(
     pin.resolveSessionHint('Practice moved to 10am, same field — draft a parent note.', SAT, '2026-09-20'),
-    'U12 Saturday Practice — Saturday, 2026-09-26 10:00 AM–11:30 AM');
+    'U12 Saturday Practice — Saturday, 26 September 2026 10:00 AM–11:30 AM');
 });
 
 test('R4: below-60% resolves to Mia Rossi and Ava Novak only, with exact server-computed rates', () => {
@@ -186,10 +187,23 @@ test('R5: pinDraftFacts returns recipients, rates, session hint, and the Why fin
     };
   assert.equal(p.to, 'Ava Novak and Mia Rossi');
   assert.deepEqual(p.rates, ['Ava Novak 9/16 (56%)', 'Mia Rossi 7/16 (44%)']);
-  assert.equal(p.sessionHint, 'Extra training session — Sunday, 2026-09-27 (no time set)');
+  assert.equal(p.sessionHint, 'Extra training session — Sunday, 27 September 2026 (no time set)');
+  assert.ok(!/\b\d{4}-\d{2}-\d{2}\b/.test(p.sessionHint),
+    'the pinned session never carries an ISO date — the writer copies it verbatim');
   assert.ok(!(p.sessionHint.includes('2026-09-26') || p.sessionHint.includes('10:00')),
     'the pinned session never mixes in the Saturday session facts');
   assert.equal(p.whyFinding, 'Ava Novak 9/16 (56%) and Mia Rossi 7/16 (44%) are below 60% attendance');
+});
+
+test('R6: pinned session dates render in long form, weekday computed from the date', () => {
+  assert.equal(pin.longDate('2026-09-27'), 'Sunday, 27 September 2026');
+  assert.equal(pin.longDate('2026-09-26'), 'Saturday, 26 September 2026');
+  assert.equal(pin.longDate('2026-12-25'), 'Friday, 25 December 2026');
+  assert.equal(
+    pin.formatSessionHint('Extra training session', '2026-09-27', '', ''),
+    'Extra training session — Sunday, 27 September 2026 (no time set)');
+  assert.ok(!/\b\d{4}-\d{2}-\d{2}\b/.test(pin.formatSessionHint('Extra training session', '2026-09-27', '', '')),
+    'formatSessionHint never emits an ISO date');
 });
 
 test('pinning is present in the source call path (facts pinned before the first writer call)', () => {
