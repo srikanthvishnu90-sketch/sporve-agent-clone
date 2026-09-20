@@ -25,7 +25,7 @@
 <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16.png">
 <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
 <link rel="manifest" href="/site.webmanifest">
-<meta name="sporve-build" content="d910f0a9d29d797e">
+<meta name="sporve-build" content="b60f8a209830ec40">
 </head>
 <body>
 <noscript><h1>Sporv — Every sport. One app.</h1><p>Sporv connects families and athletes with coaches, trainers, camps, and teams across more than 20 sports. Please enable JavaScript to use the app.</p></noscript>
@@ -10765,6 +10765,13 @@ function aiDockHTML(){
                  get_roster:"your roster",whos_booked:"who's booked"};
                const shown=(m.tools||[]).filter(x=>LB[x]);
                return shown.length?`<div class="aidock-toolsline">Checked ${shown.map(x=>LB[x]).join(", ")}</div>`:"";})()}
+             ${/* Draft outcome (F1, 2026-09-20): the real queued-count-or-error
+                  from the deterministic draft write — the model's reply_text is
+                  one-shot and blind, so this line is the source of truth. */""}
+             ${m.draftOutcome?(()=>{const d=m.draftOutcome;
+               return d.queued>0
+                 ?`<div class="aidock-toolsline">Queued ${d.queued} draft${d.queued===1?"":"s"}${d.audience?` for ${esc(d.audience)}`:""} — review in Approvals</div><button class="btn ghost sm" data-coachtab="approvals" style="align-self:flex-start">Open Approvals</button>`
+                 :`<div class="aidock-toolsline">Couldn't queue the draft${d.error?`: ${esc(d.error)}`:" — no recipients resolved"}.</div>`;})():""}
              <div class="bub them md${m.err?" bub-err":""}">${mdCoach(m.text)}</div>
              ${m.err&&m.retry?`<button class="btn ghost sm" data-airetry="${i}" style="align-self:flex-start">Try again</button>`:""}
              ${m.nav?`<button class="btn ghost sm" data-coachtab="${esc(m.nav.tab)}" style="align-self:flex-start">${esc(m.nav.label)}</button>`:""}
@@ -12925,15 +12932,22 @@ function loadConnectors(){
   window.SporveAPI.fn("connectors-available",{}).then(r=>{
     S.cxLoading=false;
     S.cxStatus={available:Array.isArray(r&&r.available)?r.available:[],
-                connected:Array.isArray(r&&r.connected)?r.connected:[]};
+                connected:Array.isArray(r&&r.connected)?r.connected:[],
+                connectors:Array.isArray(r&&r.connectors)?r.connectors:[]};
     render();
-  },()=>{S.cxLoading=false;S.cxStatus={available:[],connected:[],failed:true};render();});
+  },()=>{S.cxLoading=false;S.cxStatus={available:[],connected:[],connectors:[],failed:true};render();});
 }
-/* One connector's truth, in the order the UI should trust it:
+/* One connector's server row, in the order the UI should trust it:
    the server's own record first, then the derived signals, then nothing. */
+function cxTile(kind){
+  const st=S.cxStatus;
+  if(!st||!Array.isArray(st.connectors))return null;
+  return st.connectors.find(c=>c.kind===kind)||null;
+}
 function cxServer(kind){
-  const st=S.cxStatus;if(!st)return null;
-  return (st.connected||[]).find(c=>c.kind===kind)||null;
+  const c=cxTile(kind);
+  return c&&c.state==="connected"
+    ?{kind:c.kind,external_account:c.external_account,connected_at:c.connected_at}:null;
 }
 function cxOffered(kind){
   const st=S.cxStatus;
@@ -12941,7 +12955,8 @@ function cxOffered(kind){
      per-deployment credentials are offered. Guessing the others would be the
      hardcoded list this function exists to remove. */
   if(!st) return kind==="stripe"||kind==="website"||kind==="file_import";
-  return (st.available||[]).includes(kind);
+  const c=cxTile(kind);
+  return !!c&&(c.state==="available"||c.state==="connected");
 }
 function loadOrgSettings(){
   const pv=S.coachProvider;
@@ -13071,32 +13086,61 @@ function coachSettingsPage(){
       row(esc(a.key)+" · "+esc(typeof a.new_value==="string"?a.new_value:JSON.stringify(a.new_value)).slice(0,40),"",
         `<span class="stmut num">${esc((a.changed_at||"").slice(0,10))}</span>`)).join("")||row("No changes yet","","")):row("Loading…","","")}</div>`;
   }
-  /* CONNECTORS tab (owner 2026-09-09). The same eleven tiles as the signup
-     Connect step, in the place a director comes back to. Two differences that
-     only matter here: a connected tile can carry a LAST-READ line, and a
-     failing one carries a DATED failure — a connector that broke on Tuesday
-     and says nothing is worse than no connector at all.
+  /* CONNECTORS tab (owner 2026-09-09). All eleven tiles come from the
+     connectors-available edge function, which is the only thing that knows
+     both (a) which providers this deployment configured and (b) which the
+     caller's org has connected. The reads/writes line on each tile is the
+     server's verbatim copy — the UI never paraphrases what the scopes permit.
 
-     State is still derived, not stored: org_connectors does not exist in
-     production yet (it is staged as a red draft). So this reads the same three
-     real signals the signup step reads, and everything else says "Not yet"
-     rather than inventing a sync time. When the tables land, only cxState
-     changes. */
+     Stripe, website and CSV keep their existing flows (Stripe onboarding, the
+     site wizard, the import sheet); the server only advises their state. */
   if(tab==="connectors"){
     loadConnectors();
-    /* Google tiles read the server's own record, never a local guess. Three
-       states fall out of it: a connected row (green, with the mailbox it is
-       actually reading), the connector offered but not connected (a real
-       Connect button), or not offered by this deployment at all (Not yet). */
-    const gmailOn=cxServer("gmail"), calOn=cxServer("google_calendar");
+    const day=v=>{if(!v)return null;
+      const d=typeof v==="number"?new Date(v):new Date(String(v));
+      return isNaN(d)?null:d.toISOString().slice(0,10);};
+    const serverTiles=(S.cxStatus&&Array.isArray(S.cxStatus.connectors))?S.cxStatus.connectors:[];
+    const cxFor=k=>serverTiles.find(c=>c.kind===k)||null;
     const batches=(S.importBatches||[]).filter(x=>!x.undone);
     /* An import batch records `at` as epoch milliseconds, not an ISO string —
        checked against where S.importBatches is written, not assumed. */
     const lastImport=batches.map(b=>b.at).filter(Boolean).sort((a,b)=>b-a)[0];
     const site=(setKVget("site_extraction",{})||{});
-    const day=v=>{if(!v)return null;
-      const d=typeof v==="number"?new Date(v):new Date(String(v));
-      return isNaN(d)?null:d.toISOString().slice(0,10);};
+    /* Server-driven tile for the eight connectors whose state comes from the
+       server. States: connected (green, with account + date), error (dated
+       failure + Retry), available with a connect_url (a real Connect button),
+       available without one (the server's honest note, no dead button),
+       not_configured (no dead button — the tile names what is missing). */
+    const cxrTile=(c)=>{
+      const cls=c.state==="connected"?" on":"";
+      const busy=S.cxBusy===c.kind;
+      let right,sub="";
+      if(c.state==="connected"){
+        right=`<span class="cxr-st">Connected</span>`;
+        if(c.external_account)sub+=`<small class="num">${esc(c.external_account)}</small>`;
+        const d=day(c.connected_at);if(d)sub+=`<small class="num">Connected ${esc(d)}</small>`;
+      }else if(c.state==="error"){
+        right=c.connect_url
+          ?`<button class="btn sm" data-cxconnect="${esc(c.kind)}"${busy?" disabled":""}>${busy?"Opening…":"Retry"}</button>`
+          :`<span class="cxr-st">Needs attention</span>`;
+        const d=day(c.last_error_at);
+        sub=`<small style="color:var(--danger,#C4685E)">Stopped${d?" "+esc(d):""} — ${esc(c.last_error||"Sync failed")}</small>`;
+      }else if(c.state==="available"&&c.connect_url){
+        right=`<button class="btn sm" data-cxconnect="${esc(c.kind)}"${busy?" disabled":""}>${busy?"Opening…":"Connect"}</button>`;
+      }else if(c.state==="not_configured"&&c.requires_approval){
+        right=`<span class="cxr-st">Not yet</span>`;
+        sub=`<small>${esc(c.requires_approval)} — Sporv is waiting on Google to approve this API access, so there is no Connect button to click yet.</small>`;
+      }else if(c.state==="not_configured"){
+        right=`<span class="cxr-st">Not yet</span>`;
+        sub=`<small>${esc(c.note||"Not switched on for this deployment yet.")}</small>`;
+      }else{
+        right=`<span class="cxr-st">Available</span>`;
+        if(c.note)sub=`<small>${esc(c.note)}</small>`;
+      }
+      return `<div class="cxr${cls}">
+        <div class="cxr-l"><b>${esc(c.label)}</b><small><b>Reads:</b> ${esc(c.reads)}</small><small><b>Writes:</b> ${esc(c.writes)}</small>${sub}</div>
+        <div class="cxr-r">${right}</div></div>`;
+    };
     const tile=(o)=>`<div class="cxr${o.on?" on":""}${o.soon?" soon":""}">
       <div class="cxr-l"><b>${esc(o.name)}</b><small>${o.desc}</small>
         ${o.on&&o.last?`<small class="num">Last read ${esc(o.last)}</small>`:""}
@@ -13107,8 +13151,13 @@ function coachSettingsPage(){
           :`<button class="btn sm" ${o.attr||""}${S.connectBusy&&o.attr&&o.attr.indexOf("connectpayouts")>-1?" disabled":""}>${esc(o.cta||"Connect")}</button>`)}</div></div>`;
     const group=(h,d,tiles)=>`<div class="sthead" style="margin-top:22px"><h2>${esc(h)}</h2><p>${d}</p></div>
       <div class="stcard">${tiles.join("")}</div>`;
+    const emailTiles=["gmail","google_calendar","microsoft365","sms"].map(cxFor).filter(Boolean);
+    const recordTiles=["google_sheets","google_drive","quickbooks","google_business_profile"].map(cxFor).filter(Boolean);
+    const anyOn=ts=>ts.some(c=>c.state==="connected");
     body=`<div class="sthead"><h2>Connectors</h2><p>What Sporv reads from, and what it is allowed to write back.
         Nothing here can send on its own — the strongest write any connector holds is a draft you approve.</p></div>
+      ${S.cxLoading?`<div class="stnote">Checking which connections are live…</div>`:""}
+      ${(S.cxStatus&&S.cxStatus.failed)?`<div class="err">Could not reach the connection status. Reload the page to try again.</div>`:""}
       ${group("Money","Where dues actually move.",[
         tile({name:"Stripe",on:!!pv.stripe_charges_enabled,attr:'data-connectpayouts="1"',
           manage:"https://dashboard.stripe.com",
@@ -13121,28 +13170,12 @@ function coachSettingsPage(){
         tile({name:"CSV or export file",on:batches.length>0,last:day(lastImport),attr:'data-cximport="1"',cta:"Import",
           desc:batches.length?`${batches.length} import${batches.length===1?"":"s"} on record. We never ask for your password to TeamSnap or SportsEngine and never sign in as you.`
             :"Reads a roster export from SportsEngine, TeamSnap, LeagueApps, Spond or a plain sheet. We never ask for your password to those tools."})])}
-      ${group("Email and calendar",gmailOn||calOn
+      ${group("Email and calendar",anyOn(emailTiles)
           ?"Sporv reads these and drafts from them. It can never send."
-          :"Not yet available on this deployment. When these land, the write side is drafts only.",[
-        tile({name:"Gmail",on:!!gmailOn,soon:!gmailOn&&!cxOffered("gmail"),
-          last:day(gmailOn&&gmailOn.connected_at),
-          attr:'data-cxgoogle="gmail"',cta:S.cxBusy==="gmail"?"Opening Google…":"Connect Gmail",
-          desc:gmailOn
-            ?`Reading ${esc(gmailOn.external_account||"your mailbox")} for parent email, tournament PDFs and league notices. Replies are drafted in your Sporv queue, not your mailbox — the access is read-only, so Sporv holds no permission to send.`
-            :"Reads inbound parent email, tournament PDFs and league notices, then drafts the replies in your Sporv queue. Read-only access — Sporv is never granted permission to send from your mailbox."}),
-        tile({name:"Google Calendar",on:!!calOn,soon:!calOn&&!cxOffered("google_calendar"),
-          last:day(calOn&&calOn.connected_at),
-          attr:'data-cxgoogle="google_calendar"',cta:S.cxBusy==="google_calendar"?"Opening Google…":"Connect Calendar",
-          desc:calOn
-            ?`Reading ${esc(calOn.external_account||"your calendar")} for practices, games and conflicts. Changes are drafted as proposals you apply.`
-            :"Reads practices, games and conflicts, and drafts schedule changes for you to apply."}),
-        tile({name:"Outlook and Microsoft 365",soon:1,desc:"Mail and calendar together, same rules."}),
-        tile({name:"Text messages",soon:1,desc:"Will read what families text your Sporv number and draft the reply."})])}
-      ${group("Records","Read-only when they land. Sporv never writes into your files.",[
-        tile({name:"Google Sheets",soon:1,desc:"The spreadsheet your club actually runs on."}),
-        tile({name:"Google Drive",soon:1,desc:"Waivers, forms and PDFs you already store."}),
-        tile({name:"QuickBooks",soon:1,desc:"What your treasurer needs to reconcile."}),
-        tile({name:"Google Business Profile",soon:1,desc:"Your listing and reviews. Drafts the corrections."})])}
+          :"Connect your inbox so the agent has something to watch. Sporv reads these and drafts from them — it can never send.",
+        emailTiles.map(cxrTile))}
+      ${group("Records","Your records and listings. Each tile states what it reads and the most it can ever write back — which tops out at a draft you approve.",
+        recordTiles.map(cxrTile))}
       ${S.connectError?`<div class="err" style="margin-top:10px">${esc(S.connectError)}</div>`:""}
       <div class="stnote" style="margin-top:18px"><b>We never hold your login to another tool.</b>
         Sporv does not ask for your TeamSnap or SportsEngine password and does not sign in as you.
@@ -14655,10 +14688,22 @@ function modalHTML(){
        blocks setup. */
     if(w.step==="connect"){
       loadConnectors();
-      /* Same server truth as Settings → Connectors: a Google tile is offered
-         only if this deployment has an OAuth client, and reads Connected only
-         from the database. Signup must not promise more than settings does. */
-      const gmailOn=cxServer("gmail"), calOn=cxServer("google_calendar");
+      /* Same server truth as Settings → Connectors: a tile offers Connect
+         only when the server handed that kind a working connect_url, and
+         reads Connected only from the database. Signup must not promise more
+         than settings does. No hardcoded "coming soon" here either. */
+      const cxTileS=(kind)=>{
+        const c=(S.cxStatus&&Array.isArray(S.cxStatus.connectors)?S.cxStatus.connectors:[]).find(x=>x.kind===kind);
+        const on=!!(c&&c.state==="connected");
+        const go=!!(c&&c.state==="available"&&c.connect_url);
+        let desc=c?`Reads: ${esc(c.reads)} Writes: ${esc(c.writes)}`:"";
+        if(on&&c)desc=`Reading ${esc(c.external_account||"your account")} — ${esc(c.reads)}`;
+        if(c&&c.requires_approval&&!on)desc+=` ${esc(c.requires_approval)}: Sporv is waiting on Google to approve this API access.`;
+        if(c&&c.note&&!on&&!go)desc+=` ${esc(c.note)}`;
+        return {name:c?c.label:kind,on,soon:!on&&!go,
+          attr:go?`data-cxconnect="${kind}"`:"",
+          busy:S.cxBusy===kind?"Opening…":"",cta:"Connect",desc};
+      };
       const stripeOn=!!(pv&&pv.stripe_charges_enabled);
       const siteOn=!!w.extracted;
       const rosterOn=(S.importBatches||[]).some(x=>!x.undone);
@@ -14684,25 +14729,11 @@ function modalHTML(){
           tile({name:"CSV or export file",on:rosterOn,attr:'data-suw-import="1"',cta:"Import",
             desc:"Reads a roster export from SportsEngine, TeamSnap, LeagueApps, Spond or a plain sheet. We never ask for your password to those tools and never sign in as you."})])}
         ${group("Email and calendar",[
-          tile({name:"Gmail",on:!!gmailOn,soon:!gmailOn&&!cxOffered("gmail"),
-            attr:'data-cxgoogle="gmail"',cta:S.cxBusy==="gmail"?"Opening Google…":"Connect",
-            desc:gmailOn
-              ?`Reading ${esc(gmailOn.external_account||"your mailbox")}. Replies are drafted in your Sporv queue, not your mailbox — read-only access, so Sporv holds no permission to send.`
-              :"Reads inbound parent email, tournament PDFs and league notices, then drafts the replies in your Sporv queue. Read-only access — Sporv is never granted permission to send from your mailbox."}),
-          tile({name:"Google Calendar",on:!!calOn,soon:!calOn&&!cxOffered("google_calendar"),
-            attr:'data-cxgoogle="google_calendar"',cta:S.cxBusy==="google_calendar"?"Opening Google…":"Connect",
-            desc:calOn
-              ?`Reading ${esc(calOn.external_account||"your calendar")} for practices, games and conflicts. Changes are drafted for you to apply.`
-              :"Reads practices, games and conflicts, and drafts schedule changes for you to apply."}),
-          tile({name:"Outlook and Microsoft 365",soon:1,
-            desc:"Mail and calendar together, same rules. Organization plan."}),
-          tile({name:"Text messages",soon:1,
-            desc:"Will read what families text your Sporv number and draft the reply."})])}
+          cxTileS("gmail"),cxTileS("google_calendar"),
+          cxTileS("microsoft365"),cxTileS("sms")])}
         ${group("Records",[
-          tile({name:"Google Sheets",soon:1,desc:"Reads the spreadsheet your club actually runs on. Read-only."}),
-          tile({name:"Google Drive",soon:1,desc:"Reads waivers, forms and PDFs you already store. Read-only."}),
-          tile({name:"QuickBooks",soon:1,desc:"Reads what your treasurer needs to reconcile. Read-only."}),
-          tile({name:"Google Business Profile",soon:1,desc:"Reads your listing and reviews, drafts the corrections."})])}
+          cxTileS("google_sheets"),cxTileS("google_drive"),
+          cxTileS("quickbooks"),cxTileS("google_business_profile")])}
         ${S.connectError?`<div class="err" style="margin-top:8px">${esc(S.connectError)}</div>`:""}
         <div class="imp-actions" style="margin-top:4px">
           <button class="btn ghost sm" type="button" data-suw-next="2">Back</button>
@@ -17500,23 +17531,33 @@ document.querySelectorAll('.sig-ai-coach').forEach(sigAiCoachWire);
      tile reopens the setup wizard at its URL step. Nothing new to maintain. */
   $("[data-cximport]").forEach(b=>b.onclick=()=>{
     S.importWiz={step:1,people:[]};S.modal={type:"importclients"};render();});
-  /* Google connect. The server mints the consent URL — the client never holds
-     a client id, a scope list, or anything else worth tampering with. Every
-     refusal is printed as the server worded it, because "your plan does not
-     include this connector" and "Google connections are not available yet"
-     are different problems and a generic failure hides which one you have. */
-  $("[data-cxgoogle]").forEach(b=>b.onclick=()=>{
-    const kind=b.dataset.cxgoogle;
+  /* Connector connect. The server mints the consent URL — the client never holds
+     a client id, a scope list, or anything else worth tampering with. The start
+     function is read from the server's connect_url, so a tile only offers Connect
+     when the server handed it a working flow; the kind travels in the POST body.
+     The consent page opens in a new tab — this tab keeps its place, and the
+     Connectors tiles re-read the server on the next render. Every refusal is
+     printed as the server worded it, because "your plan does not include this
+     connector" and "Google connections are not available yet" are different
+     problems and a generic failure hides which one you have. */
+  $("[data-cxconnect]").forEach(b=>b.onclick=()=>{
+    const kind=b.dataset.cxconnect;
     if(S.cxBusy) return;
+    const c=cxTile(kind);
+    if(!c||!c.connect_url){
+      S.connectError="This connector can't be connected yet.";render();return;}
     if(!(window.SporveAPI&&window.SporveAPI.isSignedIn&&window.SporveAPI.isSignedIn())){
       S.connectError="Sign in first.";render();return;}
+    const m=String(c.connect_url).match(/\/functions\/v1\/([A-Za-z0-9_-]+)/);
+    const startFn=m?m[1]:"google-oauth-start";
     S.cxBusy=kind;S.connectError=null;render();
-    window.SporveAPI.fn("google-oauth-start",{kind,redirect_to:location.origin+"/"}).then(r=>{
-      if(r&&r.url){ location.href=r.url; return; }
-      S.cxBusy=null;S.connectError="Could not start the Google connection.";render();
+    window.SporveAPI.fn(startFn,{kind,redirect_to:location.origin+"/"}).then(r=>{
+      S.cxBusy=null;
+      if(r&&r.url){ window.open(r.url,"_blank","noopener");render();return; }
+      S.connectError="Could not start the connection.";render();
     },err=>{
       S.cxBusy=null;
-      S.connectError=(err&&err.message)||"Could not start the Google connection.";
+      S.connectError=(err&&err.message)||"Could not start the connection.";
       render();
     });
   });
@@ -20021,6 +20062,18 @@ function askCoach(q){
       const tools=calls.filter(c=>c&&c.kind==="read").map(c=>String(c.tool||""));
       const write=calls.find(c=>c&&c.kind==="write");
       const proposal=write?{tool:String(write.tool||""),args:(write.args&&typeof write.args==="object")?write.args:{},state:"open"}:null;
+      /* Draft outcome (F1, 2026-09-20): draft_message/draft_bulk_message are
+         read-shaped tools with a deterministic write. The model's reply_text is
+         written one-shot BEFORE the tool runs, so it cannot report the outcome —
+         render the real result (queued count or error) from the tool result here,
+         never the model's blind prose. */
+      const draftCall=calls.find(c=>c&&c.kind==="read"&&(c.tool==="draft_message"||c.tool==="draft_bulk_message"));
+      const draftRes=draftCall&&draftCall.result&&typeof draftCall.result==="object"?draftCall.result:null;
+      const draftOutcome=draftRes?{tool:String(draftCall.tool||""),
+        queued:+(draftRes.queued||0),
+        audience:String(draftRes.audience||""),
+        recipients:Array.isArray(draftRes.recipients)?draftRes.recipients.map(String).slice(0,12):[],
+        error:String(draftRes.error||"")}:null;
       /* Gym finder (Feature 1): the find_facilities READ returns a real shortlist;
          render it as a card, not just the model's prose. */
       const facRead=calls.find(c=>c&&c.kind==="read"&&c.tool==="find_facilities");
@@ -20039,7 +20092,7 @@ function askCoach(q){
       const document=(docRead&&docRead.result&&docRead.result.created&&docRead.result.document_id)
         ?{document_id:String(docRead.result.document_id),title:String(docRead.result.title||"Document"),format:String(docRead.result.format||"handout")}:null;
       S.chatThinking=false;
-      S.chat=[...S.chat,{role:"coach",text:reply,tools,proposal,facilities,leads,leadsSaved,document}];
+      S.chat=[...S.chat,{role:"coach",text:reply,tools,proposal,facilities,leads,leadsSaved,document,draftOutcome}];
       chatArchive(); /* F2 persistence (2026-09-19): archive the AI response, not just the user turn */
       /* Reply landed while the dock was closed → badge the FAB so the coach
          sees there's something waiting; cleared when they reopen. */
@@ -30662,7 +30715,8 @@ function hydrateReturn(){
   if(cxKind){
     var cxStatus = q.get("status"), cxReason = q.get("reason");
     scrub();
-    var label = {gmail:"Gmail",google_calendar:"Google Calendar"}[cxKind]||"That connector";
+    var label = {gmail:"Gmail",google_calendar:"Google Calendar",
+      google_sheets:"Google Sheets",google_drive:"Google Drive"}[cxKind]||"That connector";
     if(cxStatus==="connected"){
       /* Drop any cached probe so the tile re-reads the server rather than
          showing the state it had before the round trip. */

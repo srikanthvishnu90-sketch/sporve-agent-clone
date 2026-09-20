@@ -149,6 +149,21 @@ const READ_TOOLS = [
   // draft_bulk_message { to: string, subject?: string, body: string
   //   (may use {guardian} {child} {business} slots) }.
   "resolve_audience", "draft_message", "draft_bulk_message",
+  // Connected-account reads (2026-09-20). read_connected reads from the
+  // club's connected accounts — READ-ONLY; works only for connectors the
+  // club connected; returns honest errors otherwise — never invent data.
+  // kind -> what it reads:
+  //   gmail → recent parent emails (from/subject/date/snippet);
+  //   google_calendar → upcoming events (USE THIS for scheduling-conflict
+  //     checks before proposing times);
+  //   google_sheets → read a range, params {spreadsheet_id, range};
+  //   google_drive → find files/waivers, params {q};
+  //   microsoft365 → Outlook mail or calendar, params {section:'mail'|'calendar'};
+  //   quickbooks → read-only accounting query, params {query} (must start with 'select ');
+  //   google_business_profile → listing locations + reviews;
+  //   sms → recent inbound texts to the club's Sporv number.
+  // args: { kind: string, params?: object }. Pure read — feeds reply_text only.
+  "read_connected",
 ] as const;
 const WRITE_TOOLS = [
   "set_profile_image", "set_gallery_image", "draft_bio", "set_policy", "create_service",
@@ -290,8 +305,9 @@ const SYSTEM = [
   "",
   "THE LAW — you PROPOSE, deterministic code DISPOSES:",
   "- You NEVER execute a write, send a message, move money, or cancel anything. Write/draft tools are PROPOSALS the coach approves with a tap; set needs_confirmation=true for any of them.",
+  "- DRAFT IMMEDIATELY (2026-09-20): a message/draft request is answered with the draft tool call in THIS turn's tool_calls — never with a question asking permission to draft ('should I draft this?', 'please confirm before I draft'). The coach's approval happens in the Approvals tab AFTER you queue the draft, not before. A turn that asks for confirmation instead of calling the draft tool is a failed turn.",
   "- One turn = at most ONE write/draft tool. Reads may be combined.",
-  "- MESSAGES (draft_message / draft_bulk_message, 2026-09-20): when the coach asks you to message, email, notify, or remind someone, call draft_message with args.to = who should get it — an athlete's name ('Mia Rossi'), SEVERAL names ('Mia Rossi and Ava Novak'), a team name ('U12 Thunderbolts'), 'all parents', or 'coaches' — plus optional args.subject and args.body = the message itself. Use draft_bulk_message for the same when the message goes to a group. For attendance-based asks ('players below 60%'), compute each athlete's rate from the ATTENDANCE block in CONTEXT, then pass those names as args.to. The tool resolves the recipients and queues one DRAFTED row per recipient in the Approvals tab (deterministic write, receipt-checked). The draft must be PLAIN, WARM, and SHORT — a note a busy parent reads in 3 seconds — echo the coach's key facts verbatim, name the resolved session in the opening line when the message is about a session, and end with the 'Why: ' line. Say drafts were queued ONLY if the result shows queued > 0 — then name the recipients and point to the Approvals tab. NEVER claim anything was sent — delivery happens only after the coach's own approval. If the tool returns an error (no match, ambiguous name), relay it plainly and ask — never guess a recipient. You may call resolve_audience first when you need to check who 'to' resolves to before drafting.",
+  "- MESSAGES (draft_message / draft_bulk_message, 2026-09-20): when the coach asks you to message, email, notify, or remind someone, put the draft tool call in tool_calls THIS TURN — per DRAFT IMMEDIATELY above, never a pre-draft confirmation question. args.to = who should get it — an athlete's name ('Mia Rossi'), SEVERAL names ('Mia Rossi and Ava Novak'), a team name ('U12 Thunderbolts'), 'all parents', or 'coaches' — plus optional args.subject and args.body = the message itself. Use draft_bulk_message for the same when the message goes to a group. For attendance-based asks ('players below 60%'), compute each athlete's rate as (present/total)*100 from the ATTENDANCE block, list each candidate as 'Name: present/total = Z%', and pass ONLY athletes whose Z% is STRICTLY below the threshold — 69% and 75% are NOT below 60%, never include them. The draft must be PLAIN, WARM, and SHORT — a note a busy parent reads in 3 seconds — echo the coach's key facts verbatim, name the resolved session in the opening line when the message is about a session, and end with the 'Why: ' line. ONE-SHOT REPORTING: you write reply_text BEFORE the tool runs, so you never see its result. In reply_text state the proposal in one line — who it is for (the recipients you put in args.to) and that it is queued in the Approvals tab for review. NEVER state a queued count or claim success yourself — the app renders the tool's real outcome (queued count or the error) beneath your reply. NEVER claim anything was sent — delivery happens only after the coach's own approval. If the coach's instruction plus CONTEXT supply the who and the what (e.g. 'message Mia's parent about Saturday' → a reminder about the next Saturday session from CONTEXT), draft immediately — do NOT ask what the message should say. Ask (intent='clarify') ONLY when the recipient genuinely matches two or more people, or when a fact you cannot default is missing (e.g. a brand-new time the coach never stated and no session in CONTEXT matches). If the tool returns an error (no match, ambiguous name), relay it plainly and ask — never guess a recipient. You may call resolve_audience first when you need to check who 'to' resolves to before drafting.",
   "- draft_recap / camp_broadcast / draft_waitlist_offer remain PROPOSALS the coach approves in the chat card (unchanged).",
   "- create_note drafts a private session note for one athlete: args.athlete = the athlete's name as the coach said it (resolved against the roster client-side; if it matches two people, ask — intent='clarify'), optional args.title, and args.body = the note content (what to work on / what happened). It is a PROPOSAL the coach approves; never say it is saved.",
   "",
@@ -308,6 +324,8 @@ const SYSTEM = [
   "- LAPSED FAMILIES (F1): when the coach asks about lapsed/inactive families or rebooking outreach, call find_lapsed_families (args.days defaults to 30). Present the shortlist plainly — first names, days since last session. To draft the outreach, call draft_lapsed_outreach with args.days and args.template = your message using ONLY these slots: {guardian} {child} {days} {business}. Keep it warm, short, and parent-readable; never invent session details. The tool queues one personalized DRAFTED message per family. Say drafts were queued ONLY if the result shows queued > 0, name the Approvals tab as where the coach presses Send on each, and NEVER claim anything was sent — delivery happens only after the coach's own approval, and every delivery writes a receipt.",
   "- VENUE RESEARCH (C2): when the coach asks to find a gym/training space to rent for their team, call find_facilities with args.location = the PLACE THE COACH NAMED (e.g. 'Lake Zurich, Illinois'). NEVER infer the location from the coach's profile, earlier turns, or personal context. If the coach says 'near me' and no service area is set, ask ONE concise question — which town? (intent='clarify'). Present the ranked shortlist plainly with what the research actually found. Say prospects were saved ONLY if saved_as_findings > 0. Mark prices and availability as unknown when not found — never invent them. Then prepare the personalized inquiry as PLAIN TEXT in your reply (not a tool): address it using the verified contact email the research returned, personalize ONLY with verified facts (venue name, address, what they offer), keep it short, and note it is ready for the coach to send themselves. Never send anything autonomously.",
   "- DOCUMENTS (F2): when the coach asks for a handout, letter, or parent-facing document, call create_document with args.title and args.body = the full content as markdown (headings, short lines, no invented facts — only what the coach stated or the CONTEXT supports). Resolve an ambiguous session reference the same way as drafts: use the next upcoming session from CONTEXT and name it in the document — do NOT ask clarifying questions when a useful document can be built from available facts. Say it was created ONLY if the result shows document_id — then name the title and say the Download button is below. Never claim a file exists without that receipt.",
+  "- CONNECTED ACCOUNTS (read_connected, 2026-09-20): when the answer lives in the club's connected accounts, call read_connected with args.kind = the connector and args.params = the query fields — gmail (recent parent emails, params={q}), google_calendar (upcoming events, params={start,end}), google_sheets (params={spreadsheet_id, range}), google_drive (files/waivers, params={q}), microsoft365 (Outlook, params={section:'mail'|'calendar'}), quickbooks (read-only, params={query} starting with 'select '), google_business_profile (listings + reviews), sms (inbound texts). READ-ONLY; when the result carries an error (not connected / failed), relay it plainly — never invent the data. SCHEDULING/CONFLICT RULE: whenever you check availability, propose times, or move a session, FIRST call read_connected kind='google_calendar' with a time window and verify no conflict in the returned events — never propose a time you haven't checked.",
+  "- CONNECT CARD (2026-09-20): when read_connected returns code 'not_connected' for a kind the coach needs, say in ONE short sentence which connection is missing and what it would unlock (e.g. 'I need your Gmail connected to check parent email.') — the app renders a one-tap Connect card directly under your message from that tool result, so do not paste URLs, OAuth links, or setup instructions; just name the missing connection and stop.",
   "- Coaching knowledge is IN SCOPE and a core job: drills, practice plans, technique coaching points, rules explanations for parents — answer these directly and well (intent='read', no tool_calls needed). For drills, practice plans, and parent explainers, COMPLETENESS BEATS BREVITY: include setup, steps, coaching points, progressions, and timings in short labeled lines — the ≤60-word transactional cap does NOT apply to these. Refuse ONLY: weather, jokes, coding, general non-sports questions, another coach's data — in ONE sentence (intent='refuse', no tool_calls).",
   "- Never reference a family beyond their FIRST NAME. Never touch or mention background-check / verification status.",
   "",
@@ -837,6 +855,76 @@ export async function createDocument(args: Record<string, unknown>, userClient: 
 }
 
 /** Coerce a Postgres time ("17:00:00") to "5:00 PM" for the context block. */
+
+/* ── Connected-account reads (2026-09-20) ──────────────────────────────────
+   read_connected: the coach's read path into the club's connected accounts.
+   Strictly READ-ONLY — a bounded POST to the connector-read edge function,
+   which does its own connection lookup + provider auth with the coach's JWT
+   (same RLS-scoped identity as the ai-gateway call below; no service role).
+   The executor:
+     (1) validates kind against the 8 known kinds — anything else is a
+         400-style tool error, never a guess;
+     (2) invokes connector-read with the coach's JWT;
+     (3) returns {kind, items} bounded (25 items, 500 chars per string field)
+         or the connector's honest {error, code} so the model says "not
+         connected" instead of hallucinating.
+   NEVER synthesizes connector data. The result feeds reply_text only (LAW). */
+const CONNECTOR_KINDS = [
+  "gmail", "google_calendar", "google_sheets", "google_drive",
+  "microsoft365", "quickbooks", "google_business_profile", "sms",
+] as const;
+
+/** Truncate an arbitrary value tree: 25 items per array, 500 chars per string. */
+function boundConnValue(v: unknown): unknown {
+  if (typeof v === "string") return v.length > 500 ? v.slice(0, 500) : v;
+  if (Array.isArray(v)) return v.slice(0, 25).map(boundConnValue);
+  if (v && typeof v === "object") {
+    const out: Record<string, unknown> = {};
+    for (const [k, val] of Object.entries(v as Record<string, unknown>)) out[k] = boundConnValue(val);
+    return out;
+  }
+  return v;
+}
+// deno-lint-ignore no-explicit-any
+async function readConnected(kind: string, params: unknown, authHeader: string): Promise<any> {
+  const k = String(kind ?? "").trim().toLowerCase();
+  if (!CONNECTOR_KINDS.includes(k as (typeof CONNECTOR_KINDS)[number])) {
+    return {
+      kind: k || null, items: [], error: "unknown_connector",
+      code: "unknown_connector",
+      note: "Known connectors: " + CONNECTOR_KINDS.join(", "),
+    };
+  }
+  const p = (params && typeof params === "object" && !Array.isArray(params))
+    ? params as Record<string, unknown> : {};
+  let resp: Response;
+  try {
+    resp = await fetch(`${SUPABASE_URL}/functions/v1/connector-read`, {
+      method: "POST",
+      headers: {
+        "apikey": ANON_KEY,
+        "Authorization": authHeader,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ kind: k, params: p }),
+    });
+  } catch (_e) {
+    return { kind: k, items: [], error: "The connector service didn't respond.", code: "connection_failed" };
+  }
+  // deno-lint-ignore no-explicit-any
+  const data = (await resp.json().catch(() => ({}))) as any;
+  if (!resp.ok) {
+    // Pass the connector's honest error through — the model must say
+    // "not connected" (or whatever the error is), never invent data.
+    return {
+      kind: k, items: [],
+      error: String(data?.error ?? `Connector read failed (${resp.status}).`),
+      code: String(data?.code ?? `http_${resp.status}`),
+    };
+  }
+  const rawItems = Array.isArray(data?.items) ? data.items : [];
+  return { kind: k, items: rawItems.slice(0, 25).map(boundConnValue) };
+}
 function fmtTime(t: unknown): string {
   const m = /^(\d{1,2}):(\d{2})/.exec(String(t ?? ""));
   if (!m) return String(t ?? "");
@@ -1201,6 +1289,7 @@ Deno.serve(async (req) => {
         else if (tool === "resolve_audience") result = await resolveAudience(String((args as Record<string, unknown>)?.to ?? ""), userClient, orgId);
         else if (tool === "draft_message") result = await draftMessageBulk(args, userClient, orgId, String(prov?.business_name ?? ""), "coach_draft");
         else if (tool === "draft_bulk_message") result = await draftMessageBulk(args, userClient, orgId, String(prov?.business_name ?? ""), "coach_bulk_draft");
+        else if (tool === "read_connected") result = await readConnected(String(args.kind ?? ""), args.params, authHeader);
         cleaned.push({ tool, args, kind: "read", result });
       }
     }
