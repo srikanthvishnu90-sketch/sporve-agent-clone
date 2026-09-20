@@ -409,6 +409,27 @@ export function isDocumentTurn(text: string, intent: string): boolean {
   const pastTense = /\b(did\s+(you|the|it)|have\s+you|show\s+me|where\s+is|find\s+the|open\s+the)\b/i.test(text);
   return docWord && makeWord && !pastTense;
 }
+// True when the coach asks to FIND external clubs/orgs (C1/D2 research turn).
+// Excludes "my teams / my club / my roster" (the coach's OWN org — a roster
+// read, not research) and past-tense lookups.
+export function isClubResearchTurn(text: string, intent: string): boolean {
+  if (intent === "refuse") return false;
+  if (/\bmy\s+(teams?|clubs?|roster|athletes|players|squad)\b/i.test(text)) return false;
+  const org = /\b(clubs?|teams?|leagues?|programs?|organizations?|prospects?|leads?)\b/i.test(text);
+  const find = /\b(find|search|discover|look\s+for|prospect)\b/i.test(text);
+  const pastTense = /\b(did\s+(you|the|it)|have\s+you|show\s+me|where\s+is)\b/i.test(text);
+  return org && find && !pastTense;
+}
+// True when the coach asks to FIND rentable training space (C2 research
+// turn): a venue word + a rent word + find/near. "Book a field for Saturday"
+// (scheduling the club's own field) is NOT a research turn.
+export function isVenueResearchTurn(text: string, intent: string): boolean {
+  if (intent === "refuse") return false;
+  const venue = /\b(gyms?|fields?|facility|facilities|training\s+space|courts?|arenas?|rinks?)\b/i.test(text);
+  const rent = /\b(rent|rental|book|lease)\b/i.test(text);
+  const find = /\b(find|search|discover|look\s+for|near)\b/i.test(text);
+  return venue && rent && find;
+}
 // True when the model emitted draft_message/draft_bulk_message but the tool
 // returned queued: 0 — no real draft happened (D1-run2 class bug: empty body
 // or unresolvable audience), so the deterministic draft-writer must complete
@@ -1817,7 +1838,7 @@ Deno.serve(async (req) => {
     //    when no templated draft call happened, so nothing was queued yet).
     //    Rows stay DRAFTED — lifecycle-approve remains the sole delivery path.
     const looksLikeLapsedOutreach = isLapsedOutreachTurn(text, intent);
-    const lapsedFind = cleaned.find(
+    let lapsedFind = cleaned.find(
       (tc) => String((tc as Record<string, unknown>)?.tool ?? "") === "find_lapsed_families",
     );
     const lapsedDraftCalled = rawCalls.some((tc) => {
@@ -1832,6 +1853,26 @@ Deno.serve(async (req) => {
       const r = (tc as Record<string, unknown>)?.result as Record<string, unknown> | null;
       return (t === "draft_message" || t === "draft_bulk_message") && Number(r?.queued ?? 0) > 0;
     });
+    // v34: the model sometimes calls NO tools at all on a lapsed-outreach
+    // turn (it narrates a shortlist from roster context instead). Run the
+    // shortlist server-side so the completion below still fires with real
+    // data — never let a narrated shortlist stand in for the tool.
+    if (looksLikeLapsedOutreach && !lapsedFind && !lapsedDraftCalled && !draftAlreadyQueued) {
+      try {
+        const daysM = text.match(/(\d+)\s*days?/i);
+        const daysArg = daysM ? Math.min(Math.max(parseInt(daysM[1], 10), 7), 365) : 30;
+        const famRes = await findLapsedFamilies(daysArg, userClient, orgId) as Record<string, unknown>;
+        cleaned.push({
+          tool: "find_lapsed_families",
+          args: { days: daysArg, auto: true },
+          kind: "read",
+          result: famRes,
+        });
+        lapsedFind = cleaned[cleaned.length - 1];
+      } catch (e) {
+        console.error("coach-command: server lapsed shortlist failed:", e);
+      }
+    }
     if (looksLikeLapsedOutreach && lapsedFind && !lapsedDraftCalled && !draftAlreadyQueued) {
       try {
         const findResult = (lapsedFind as Record<string, unknown>)?.result as Record<string, unknown> | null;
@@ -1888,6 +1929,13 @@ Deno.serve(async (req) => {
           }
           // else: writer failed — keep the model's original reply (it already
           // named the shortlist, which is honest as far as it goes).
+        } else {
+          // v34: the shortlist tool ran and found nobody lapsed. Say so
+          // honestly — never let a narrated shortlist stand when the tool
+          // says the list is empty.
+          const daysShown = (lapsedFind as Record<string, unknown>)?.args as Record<string, unknown> | undefined;
+          const d = Number(daysShown?.days) || 30;
+          reply = `I checked bookings — no families have lapsed in the last ${d} days. Everyone on the roster has a recent session.`;
         }
       } catch (e) {
         console.error("coach-command: lapsed-outreach completion failed:", e);
@@ -1974,6 +2022,147 @@ Deno.serve(async (req) => {
       } catch (e) {
         console.error("coach-command: document completion failed:", e);
         // Graceful: the model's original reply stands.
+      }
+    }
+
+    /* ── C1/D2 club-research completion (2026-09-20, v34) ─────────────────
+       The model refuses or improvises instead of calling find_clients
+       (production: "I can't search the web…", zero tool calls). Run the
+       research server-side and present it with a receipt-honest save line. */
+    const looksLikeClubResearch = isClubResearchTurn(text, intent);
+    const clubResearchDone = cleaned.some(
+      (tc) => String((tc as Record<string, unknown>)?.tool ?? "") === "find_clients",
+    );
+    if (looksLikeClubResearch && !clubResearchDone) {
+      try {
+        const q = text
+          .replace(/\b(and\s+)?save\s+them\s+to\s+my\s+queue\b/i, "")
+          .replace(/\bwith\s+contact\s+info\b/i, "")
+          .replace(/^(find|search\s+for|search|look\s+for|discover)\b/i, "")
+          .trim().slice(0, 120) || "youth soccer clubs";
+        const res = await findClients(q, prov as ProvCtx, userClient, orgId) as Record<string, unknown>;
+        cleaned.push({ tool: "find_clients", args: { query: q, auto: true }, kind: "read", result: res });
+        const leads = ((res.leads ?? []) as Record<string, unknown>[]);
+        if (res.error) {
+          reply = `I couldn't search club listings right now: ${String(res.error)}`;
+        } else if (!leads.length) {
+          reply = `I didn't find matching clubs for "${q}". Try a different area or sport.`;
+        } else {
+          const lines = leads.slice(0, 10).map((l) => {
+            const contact = [l.phone, l.website].filter(Boolean).map(String).join(" · ");
+            return `- ${String(l.name ?? "")}${l.address ? ` — ${String(l.address)}` : ""}${contact ? ` (${contact})` : ""}`;
+          });
+          const saved = Number(res.saved_as_findings ?? 0);
+          reply =
+            `Here are ${leads.length} clubs I found:\n${lines.join("\n")}\n` +
+            (saved > 0
+              ? `Saved ${saved} to your queue.`
+              : `They're already in your queue — nothing new to save.`);
+        }
+      } catch (e) {
+        console.error("coach-command: club-research completion failed:", e);
+      }
+    }
+
+    /* ── C2 venue-research completion (2026-09-20, v34) ───────────────────
+       Same refusal pattern as clubs: the model won't call find_facilities.
+       Run it server-side; when the turn also asks for an outreach draft,
+       append a deterministic personalized inquiry (plain text, verified
+       facts only, marked placeholders) — ready for the coach to send. */
+    const looksLikeVenueResearch = isVenueResearchTurn(text, intent);
+    const venueResearchDone = cleaned.some(
+      (tc) => String((tc as Record<string, unknown>)?.tool ?? "") === "find_facilities",
+    );
+    if (looksLikeVenueResearch && !venueResearchDone) {
+      try {
+        const mLoc = text.match(/\bnear\s+([^,.!?]{2,80})/i);
+        let loc = (mLoc?.[1] ?? "").trim().replace(/\s+(for|to)\s+.*$/i, "").trim();
+        if (/^me$/i.test(loc)) loc = "";
+        if (!loc) loc = String((prov as Record<string, unknown> | undefined)?.location ?? "").trim();
+        if (!loc) {
+          reply = "Which town should I search for rentable training space near?";
+        } else {
+          const res = await findFacilities(loc, userClient, orgId) as Record<string, unknown>;
+          cleaned.push({ tool: "find_facilities", args: { location: loc, auto: true }, kind: "read", result: res });
+          const facs = ((res.facilities ?? []) as Record<string, unknown>[]);
+          if (res.error) {
+            reply = `I couldn't search training space near ${loc} right now: ${String(res.error)}`;
+          } else if (!facs.length) {
+            reply = `I didn't find rentable training space near ${loc}. Try a nearby town.`;
+          } else {
+            const lines = facs.slice(0, 3).map((f, i) => {
+              const bits = [`${i + 1}. ${String(f.name ?? "")}`];
+              if (f.address) bits.push(String(f.address));
+              if (f.distance_mi != null) bits.push(`${String(f.distance_mi)} mi`);
+              if (f.email) bits.push(`contact: ${String(f.email)}`);
+              else if (f.phone) bits.push(String(f.phone));
+              return `- ${bits.join(" — ")}`;
+            });
+            const saved = Number(res.saved_as_findings ?? 0);
+            let out = `Training space near ${loc}:\n${lines.join("\n")}\n` +
+              (saved > 0 ? `Saved ${saved} to your queue.` : `Already in your queue — nothing new to save.`) +
+              `\nRates and availability aren't published — ask the venue directly.`;
+            if (/\b(draft|email|e-mail|inquiry|write\s+to|contact)\b/i.test(text)) {
+              const top = facs.find((f) => String(f.email ?? "").trim()) ?? facs[0];
+              const vName = String(top.name ?? "the venue");
+              const vAddr = String(top.address ?? "");
+              const vEmail = String(top.email ?? "").trim();
+              const biz = String((prov as Record<string, unknown> | undefined)?.business_name ?? "our club");
+              out += `\n\nHere's a draft inquiry${vEmail ? ` for ${vEmail}` : ""} — ready for you to send yourself:\n` +
+                `Subject: Training space inquiry — ${vName}\n\n` +
+                `Hi ${vName} team,\n\n` +
+                `I'm with ${biz}, a youth soccer club. We're looking for indoor training space for our [AGE GROUP] team ([NUMBER] athletes).\n\n` +
+                `Your facility${vAddr ? ` at ${vAddr}` : ""} looks like a strong fit for us.\n\n` +
+                `Could you share:\n` +
+                `- availability for [DATES, e.g. weekday evenings]\n` +
+                `- hourly rate for [DURATION, e.g. 90-minute sessions]\n` +
+                `- what's included (goals, balls, changing rooms)\n\n` +
+                `You can reach me at [YOUR EMAIL / PHONE].\n\n` +
+                `Thanks,\n[YOUR NAME]\n${biz}\n\n` +
+                `Tell me your age group, dates, and times and I'll tailor this further.`;
+            }
+            reply = out;
+          }
+        }
+      } catch (e) {
+        console.error("coach-command: venue-research completion failed:", e);
+      }
+    }
+
+    /* ── D1 Why-line backstop for model-emitted drafts (2026-09-20, v34) ─
+       The v21 backstop only ran inside the deterministic writer path. When
+       the model emits draft_message/draft_bulk_message itself, a missing
+       Why-line stayed missing (production D1 retest). Repair the queued rows
+       in place — they are inert drafts, and the Why-line is a required
+       system field, not coach content. */
+    const modelDrafted = cleaned.filter((tc) => {
+      const t = String((tc as Record<string, unknown>)?.tool ?? "");
+      const r = (tc as Record<string, unknown>)?.result as Record<string, unknown> | null;
+      return (t === "draft_message" || t === "draft_bulk_message") &&
+        Number(r?.queued ?? 0) > 0 && Array.isArray(r?.draft_ids);
+    });
+    if (modelDrafted.length) {
+      try {
+        const todayStr = new Date().toISOString().slice(0, 10);
+        const pinned = pinDraftFacts(text, attLines, rosterFull, sessions as Record<string, unknown>[], todayStr);
+        const whyFinding = pinned.whyFinding;
+        if (whyFinding) {
+          const ids = [...new Set(modelDrafted.flatMap((tc) =>
+            ((((tc as Record<string, unknown>).result) as Record<string, unknown>).draft_ids as string[])))];
+          const { data: rows } = await userClient.from("outbound_messages").select("id, content").in("id", ids);
+          for (const row of ((rows ?? []) as Record<string, unknown>[])) {
+            const content = (row.content ?? {}) as Record<string, unknown>;
+            const body = String(content.body ?? "");
+            if (!/^why:/im.test(body)) {
+              const newBody = body.replace(/\s+$/, "") + `\nWhy: ${whyFinding}.`;
+              await userClient.from("outbound_messages")
+                .update({ content: { ...content, body: newBody } })
+                .eq("id", String(row.id));
+            }
+          }
+        }
+      } catch (e) {
+        console.error("coach-command: why-line backstop failed:", e);
       }
     }
 

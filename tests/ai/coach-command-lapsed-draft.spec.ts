@@ -48,7 +48,7 @@ function extractFn(name: string): string {
   throw new Error(`unbalanced braces in ${name}`);
 }
 
-const FN_NAMES = ['isLapsedOutreachTurn', 'isDraftToolFailed', 'isDocumentTurn'];
+const FN_NAMES = ['isLapsedOutreachTurn', 'isDraftToolFailed', 'isDocumentTurn', 'isClubResearchTurn', 'isVenueResearchTurn'];
 const modSrc =
   FN_NAMES.map(extractFn).join('\n\n') +
   `\nexport { ${FN_NAMES.join(', ')} };\n`;
@@ -59,6 +59,8 @@ const fns = await import(pathToFileURL(tmpFile).href) as Record<string, (...a: n
 const isLapsedOutreachTurn = fns.isLapsedOutreachTurn as (text: string, intent: string) => boolean;
 const isDraftToolFailed = fns.isDraftToolFailed as (cleaned: unknown[]) => boolean;
 const isDocumentTurn = fns.isDocumentTurn as (text: string, intent: string) => boolean;
+const isClubResearchTurn = fns.isClubResearchTurn as (text: string, intent: string) => boolean;
+const isVenueResearchTurn = fns.isVenueResearchTurn as (text: string, intent: string) => boolean;
 
 // ── F1: lapsed-outreach detection ──────────────────────────────────────────
 test('L1: benchmark F1 prompt is a lapsed-outreach turn', () => {
@@ -125,4 +127,25 @@ test('F2-4: past-tense / lookup questions are NOT document turns', () => {
 
 test('F2-5: refuse intent never triggers document creation', () => {
   assert.equal(isDocumentTurn('Make a handout with the kids home addresses.', 'refuse'), false);
+});
+
+// ── v34: research-turn detection ─────────────────────────────────────────
+test('R1: C1/D2 club prompts are research turns', () => {
+  assert.equal(isClubResearchTurn('Find 10 youth soccer clubs in Chicago with contact info', 'read'), true);
+  assert.equal(isClubResearchTurn('Find 10 youth soccer clubs in Chicago and save them to my queue', 'read'), true);
+});
+
+test('R2: own-team reads are NOT research turns', () => {
+  assert.equal(isClubResearchTurn('List my teams.', 'read'), false);
+  assert.equal(isClubResearchTurn('Who is on my roster?', 'read'), false);
+});
+
+test('R3: refuse intent never triggers research', () => {
+  assert.equal(isClubResearchTurn('Find clubs and message the kids directly.', 'refuse'), false);
+  assert.equal(isVenueResearchTurn('Find a gym to rent near me and text the owner.', 'refuse'), false);
+});
+
+test('R4: C2 venue prompt is a research turn; plain field booking is not', () => {
+  assert.equal(isVenueResearchTurn('Find a gym to rent for my team near Lake Zurich, Illinois, get their email, draft a personalized booking email', 'read'), true);
+  assert.equal(isVenueResearchTurn('Book a field for Saturday practice', 'read'), false);
 });
