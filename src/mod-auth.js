@@ -225,12 +225,13 @@
          address becomes a provider (staff) account with its own EMPTY org —
          handle_new_user() (migration 001065) ignores any other role. The
          request resolves identically for unknown addresses (anti-enumeration);
-         a transport failure rejects so the screen can say so. */
+         a transport failure rejects so the screen can say so.
+         2026-09-20: Send 6-digit OTP CODE (not magic link) to match the sign-in
+         UI's code field. Omitting email_redirect_to makes Supabase send a code. */
       return post("/auth/v1/otp", {
         email: String(email || "").trim(),
         create_user: true,
         data: Object.assign({ role: "provider" }, meta || {}),
-        options: { email_redirect_to: redirectTo || window.location.origin },
       }).then(function () { return true; }).catch(function (e) {
         if (e && e.status && e.status < 500 && e.status !== 429) return true;   // per-address outcomes are never revealed
         throw e;
