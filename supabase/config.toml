@@ -79,6 +79,12 @@ verify_jwt = false
 [functions.gmail-scan]
 verify_jwt = false
 
+# User-facing read dispatcher for connected third parties. The gateway
+# verifies the JWT (verify_jwt stays true); the function re-verifies it to
+# learn WHO the caller is, since connector rows are per-org.
+[functions.connector-read]
+verify_jwt = true
+
 # ncsi-webhook authenticates the vendor with NCSI_WEBHOOK_SECRET (constant-time), not a JWT; fails closed when unset.
 [functions.ncsi-webhook]
 verify_jwt = false
