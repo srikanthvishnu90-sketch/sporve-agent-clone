@@ -48,7 +48,7 @@ function extractFn(name: string): string {
   throw new Error(`unbalanced braces in ${name}`);
 }
 
-const FN_NAMES = ['isLapsedOutreachTurn', 'isDraftToolFailed'];
+const FN_NAMES = ['isLapsedOutreachTurn', 'isDraftToolFailed', 'isDocumentTurn'];
 const modSrc =
   FN_NAMES.map(extractFn).join('\n\n') +
   `\nexport { ${FN_NAMES.join(', ')} };\n`;
@@ -58,6 +58,7 @@ writeFileSync(tmpFile, modSrc);
 const fns = await import(pathToFileURL(tmpFile).href) as Record<string, (...a: never[]) => unknown>;
 const isLapsedOutreachTurn = fns.isLapsedOutreachTurn as (text: string, intent: string) => boolean;
 const isDraftToolFailed = fns.isDraftToolFailed as (cleaned: unknown[]) => boolean;
+const isDocumentTurn = fns.isDocumentTurn as (text: string, intent: string) => boolean;
 
 // ── F1: lapsed-outreach detection ──────────────────────────────────────────
 test('L1: benchmark F1 prompt is a lapsed-outreach turn', () => {
@@ -98,4 +99,30 @@ test('D2: successful draft tool does NOT count as failed', () => {
 test('D3: unrelated read tools never count as failed', () => {
   assert.equal(isDraftToolFailed([{ tool: 'find_lapsed_families', kind: 'read', result: { families: [] } }]), false);
   assert.equal(isDraftToolFailed([]), false);
+});
+
+// ── F2: document-turn detection ────────────────────────────────────────────
+test('F2-1: benchmark F2 prompt is a document turn', () => {
+  assert.equal(
+    isDocumentTurn("Make a parent handout for Saturday's practice plan", 'read'),
+    true);
+});
+
+test('F2-2: document synonyms match (generate a PDF / create a letter)', () => {
+  assert.equal(isDocumentTurn('Generate a PDF with the team rules.', 'read'), true);
+  assert.equal(isDocumentTurn('Create a welcome letter for new families.', 'read'), true);
+});
+
+test('F2-3: message drafts are NOT document turns', () => {
+  assert.equal(isDocumentTurn('Draft a parent note about Saturday practice.', 'read'), false);
+  assert.equal(isDocumentTurn('Send a message to all parents.', 'read'), false);
+});
+
+test('F2-4: past-tense / lookup questions are NOT document turns', () => {
+  assert.equal(isDocumentTurn('Did you create the handout?', 'read'), false);
+  assert.equal(isDocumentTurn('Show me the permission slip document.', 'read'), false);
+});
+
+test('F2-5: refuse intent never triggers document creation', () => {
+  assert.equal(isDocumentTurn('Make a handout with the kids home addresses.', 'refuse'), false);
 });

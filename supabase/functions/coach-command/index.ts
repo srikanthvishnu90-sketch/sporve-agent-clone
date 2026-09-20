@@ -363,6 +363,33 @@ const LAPSED_TEMPLATE_TOOL = {
   },
 };
 
+/* ── Document writer (2026-09-20, v33) ──────────────────────────────────────
+   Narrow second-call tool for the F2 completion below: the model reliably
+   NARRATES document creation ("I'll create a handout…", "ready for your
+   approval") instead of emitting create_document, and once stalled
+   mid-sentence. When the server detects a document turn with no real
+   create_document call, it writes the document itself via this tool and
+   disposes through createDocument with receipt. */
+const DOC_WRITER_TOOL = {
+  name: "write_document",
+  description:
+    "Write the parent-facing document the coach asked for as JSON.",
+  input_schema: {
+    type: "object",
+    additionalProperties: false,
+    properties: {
+      title: { type: "string", description: "Document title, ≤200 chars." },
+      body: {
+        type: "string",
+        description:
+          "Full document content as markdown (headings, short lines). Use ONLY facts from the pinned session block and the coach's message — never invent dates, times, prices, or coach names.",
+      },
+      format: { type: "string", description: "'handout', 'letter', or 'note'." },
+    },
+    required: ["title", "body"],
+  },
+};
+
 /* ── v30 turn predicates (pure; extracted verbatim by tests/ai specs) ───────── */
 // True when the coach's turn asks for lapsed-family OUTREACH (not just the
 // shortlist): a lapsed-family word AND a draft/queue word. A bare
@@ -371,6 +398,16 @@ export function isLapsedOutreachTurn(text: string, intent: string): boolean {
   return intent !== "refuse" &&
     /\b(lapsed|inactive|gone quiet|drifted|win.?back|re-?engag|reactivat)/i.test(text) &&
     /\b(draft|queue|message|text|email|e-mail|reach out|send|note|nudge)\b/i.test(text);
+}
+// True when the coach's turn asks for a parent-facing DOCUMENT to be created
+// (handout, pdf, letter…) — not a message draft. "note" is deliberately
+// excluded (it usually means a message draft); the draft fallback owns those.
+export function isDocumentTurn(text: string, intent: string): boolean {
+  if (intent === "refuse") return false;
+  const docWord = /\b(handout|document|pdf|letter|flyer|worksheet|packet)\b/i.test(text);
+  const makeWord = /\b(make|create|generate|prepare|write|build|give me)\b/i.test(text);
+  const pastTense = /\b(did\s+(you|the|it)|have\s+you|show\s+me|where\s+is|find\s+the|open\s+the)\b/i.test(text);
+  return docWord && makeWord && !pastTense;
 }
 // True when the model emitted draft_message/draft_bulk_message but the tool
 // returned queued: 0 — no real draft happened (D1-run2 class bug: empty body
@@ -440,7 +477,7 @@ const SYSTEM = [
   "- MEMORY (E1): the MEMORY block in CONTEXT lists durable facts the coach taught you across sessions — apply them without being reminded. When the coach states a durable fact, preference, or standing instruction ('remember that…', 'my assistant coach is…', 'we always…', 'note that…'), call remember_fact with args.fact = one plain sentence. Say it was remembered ONLY if the result shows saved: true — otherwise say it didn't save and why. When the coach asks what you remember, call list_memory and list the facts. When the coach says to forget something, call forget_fact with the memory_id from the MEMORY block or list_memory. Never store a child's full name, contact details, or anything the coach didn't state as durable.",
   "- LAPSED FAMILIES (F1): when the coach asks about lapsed/inactive families or rebooking outreach, call find_lapsed_families (args.days defaults to 30). Present the shortlist plainly — first names, days since last session. To draft the outreach, call draft_lapsed_outreach with args.days and args.template = your message using ONLY these slots: {guardian} {child} {days} {business}. Keep it warm, short, and parent-readable; never invent session details. The tool queues one personalized DRAFTED message per family. If the coach asked for outreach drafts and you do not call draft_lapsed_outreach yourself, the server completes the loop for you (it drafts the template and queues with receipt) — but prefer calling it yourself. Say drafts were queued ONLY if the result shows queued > 0, name the Approvals tab as where the coach presses Send on each, and NEVER claim anything was sent — delivery happens only after the coach's own approval, and every delivery writes a receipt.",
   "- VENUE RESEARCH (C2): when the coach asks to find a gym/training space to rent for their team, call find_facilities with args.location = the PLACE THE COACH NAMED (e.g. 'Lake Zurich, Illinois'). NEVER infer the location from the coach's profile, earlier turns, or personal context. If the coach says 'near me' and no service area is set, ask ONE concise question — which town? (intent='clarify'). Present the ranked shortlist plainly with what the research actually found. Say prospects were saved ONLY if saved_as_findings > 0. Mark prices and availability as unknown when not found — never invent them. Then prepare the personalized inquiry as PLAIN TEXT in your reply (not a tool): address it using the verified contact email the research returned, personalize ONLY with verified facts (venue name, address, what they offer), keep it short, and note it is ready for the coach to send themselves. Never send anything autonomously.",
-  "- DOCUMENTS (F2): when the coach asks for a handout, letter, or parent-facing document, call create_document with args.title and args.body = the full content as markdown (headings, short lines, no invented facts — only what the coach stated or the CONTEXT supports). Resolve an ambiguous session reference the same way as drafts: use the next upcoming session from CONTEXT and name it in the document — do NOT ask clarifying questions when a useful document can be built from available facts. Say it was created ONLY if the result shows document_id — then name the title and say the Download button is below. Never claim a file exists without that receipt.",
+  "- DOCUMENTS (F2): when the coach asks for a handout, letter, or parent-facing document, call create_document with args.title and args.body = the full content as markdown (headings, short lines, no invented facts — only what the coach stated or the CONTEXT supports). Documents are NOT approval-gated and need NO permission — never say 'ready for your approval' or ask to generate; either call create_document yourself or keep your reply to one short line and the server completes it with receipt. Resolve an ambiguous session reference the same way as drafts: use the next upcoming session from CONTEXT and name it in the document — do NOT ask clarifying questions when a useful document can be built from available facts. Say it was created ONLY if the result shows document_id — then name the title and say the Download button is below. Never claim a file exists without that receipt.",
   "- CONNECTED ACCOUNTS (read_connected, 2026-09-20): when the answer lives in the club's connected accounts, call read_connected with args.kind = the connector and args.params = the query fields — gmail (recent parent emails, params={q}), google_calendar (upcoming events, params={start,end}), google_sheets (params={spreadsheet_id, range}), google_drive (files/waivers, params={q}), microsoft365 (Outlook, params={section:'mail'|'calendar'}), quickbooks (read-only, params={query} starting with 'select '), google_business_profile (listings + reviews), sms (inbound texts). READ-ONLY; when the result carries an error (not connected / failed), relay it plainly — never invent the data. SCHEDULING/CONFLICT RULE: whenever you check availability, propose times, or move a session, FIRST call read_connected kind='google_calendar' with a time window and verify no conflict in the returned events — never propose a time you haven't checked.",
   "- CONNECT CARD (2026-09-20): when read_connected returns code 'not_connected' for a kind the coach needs, say in ONE short sentence which connection is missing and what it would unlock (e.g. 'I need your Gmail connected to check parent email.') — the app renders a one-tap Connect card directly under your message from that tool result, so do not paste URLs, OAuth links, or setup instructions; just name the missing connection and stop.",
   "- Coaching knowledge is IN SCOPE and a core job: drills, practice plans, technique coaching points, rules explanations for parents — answer these directly and well (intent='read', no tool_calls needed). For drills, practice plans, and parent explainers, COMPLETENESS BEATS BREVITY: include setup, steps, coaching points, progressions, and timings in short labeled lines — the ≤60-word transactional cap does NOT apply to these. AGE-MISMATCH RULE (A2): when the coach asks for a plan for an age group that differs from the roster's (e.g. a U14 plan while the roster is U12), DELIVER the full requested plan for the requested age group and note the mismatch in one line — never answer with only a clarification question instead of the plan. Refuse ONLY: weather, jokes, coding, general non-sports questions, another coach's data — in ONE sentence (intent='refuse', no tool_calls).",
@@ -1854,6 +1891,88 @@ Deno.serve(async (req) => {
         }
       } catch (e) {
         console.error("coach-command: lapsed-outreach completion failed:", e);
+        // Graceful: the model's original reply stands.
+      }
+    }
+
+    /* ── F2 document completion (2026-09-20, v33) ─────────────────────────
+       The model narrates document creation instead of calling create_document
+       ("I'll create a handout…", "ready for your approval") and once stalled
+       mid-sentence. When the turn asks for a document and no real
+       create_document happened, the server writes it via the narrow writer
+       and disposes with receipt. Never runs when the draft path already
+       queued (a turn is one intent), and never on refusals. */
+    const looksLikeDocument = isDocumentTurn(text, intent);
+    const docCreated = cleaned.some((tc) => {
+      const t = String((tc as Record<string, unknown>)?.tool ?? "");
+      const r = (tc as Record<string, unknown>)?.result as Record<string, unknown> | null;
+      return t === "create_document" && r?.created === true;
+    });
+    if (looksLikeDocument && !docCreated && !draftAlreadyQueued) {
+      try {
+        const todayStr = new Date().toISOString().slice(0, 10);
+        const nextSessions = (Array.isArray(sessions) ? sessions : [])
+          .slice(0, 3)
+          .map((s: Record<string, unknown>) => {
+            const ds = String(s.start_date ?? "");
+            const t = String(s.start_time ?? "").trim();
+            const e = String(s.end_time ?? "").trim();
+            return `- ${String(s.title ?? "session")} ${WEEKDAY_NAMES[dowOf(ds)] ?? ""} ${ds}${t ? ` ${fmtTime(t)}${e ? "–" + fmtTime(e) : ""}` : " (no time set)"}`.trim();
+          });
+        const bizName = String((prov as Record<string, unknown> | undefined)?.business_name ?? "");
+        const pinBlock = [
+          `Today: ${todayStr}.`,
+          nextSessions.length
+            ? `UPCOMING SESSIONS (copy day/date/time VERBATIM, never invent):\n${nextSessions.join("\n")}`
+            : "UPCOMING SESSIONS: (none listed).",
+          bizName ? `CLUB: ${bizName}.` : "",
+        ].filter(Boolean).join("\n");
+        const wr = await fetch(`${SUPABASE_URL}/functions/v1/${GATEWAY_FN}`, {
+          method: "POST",
+          headers: {
+            "apikey": ANON_KEY,
+            "Authorization": authHeader,
+            "Content-Type": "application/json",
+            ...(INTERNAL_SECRET ? { "x-sporve-internal": INTERNAL_SECRET } : {}),
+          },
+          body: JSON.stringify({
+            task: "agent_turn",
+            feature: "coach_command_document",
+            system:
+              "You write parent-facing handouts for a youth-sports club. Output ONLY the write_document tool call as JSON. Rules: title ≤200 chars; body = the full document as markdown with headings and short lines; use ONLY facts from the pinned block and the coach's message — never invent dates, times, prices, or coach names; warm and scannable; no emojis.\n\nPINNED FACTS (the only facts you may use):\n" + pinBlock,
+            messages: [{ role: "user", content: `Coach request: ${text}\n\nWrite the document.` }],
+            tools: [DOC_WRITER_TOOL],
+            tool_choice: { type: "tool", name: "write_document" },
+            maxTokens: 2000,
+          }),
+        });
+        const wg = await wr.json().catch(() => ({}));
+        const wcall = Array.isArray((wg as Record<string, unknown>)?.toolCalls)
+          ? ((wg as Record<string, unknown>).toolCalls as Record<string, unknown>[])[0]
+          : null;
+        const winput = ((wcall?.input ?? {}) as Record<string, unknown>);
+        const wtitle = String(winput.title ?? "").trim();
+        const wbody = String(winput.body ?? "").trim();
+        if (wr.ok && wtitle && wbody) {
+          const docResult = await createDocument(
+            { title: wtitle, body: wbody, format: String(winput.format ?? "handout") },
+            userClient, orgId,
+          ) as Record<string, unknown>;
+          cleaned.push({
+            tool: "create_document",
+            args: { title: wtitle, format: String(winput.format ?? "handout"), auto: true },
+            kind: "read",
+            result: docResult,
+          });
+          if (docResult.created === true) {
+            reply = `I've created "${String(docResult.title ?? wtitle)}" — the Download button is below.`;
+          } else {
+            reply = `I couldn't create that document: ${String(docResult.error ?? "unknown error")}.`;
+          }
+        }
+        // else: writer failed — keep the model's original reply.
+      } catch (e) {
+        console.error("coach-command: document completion failed:", e);
         // Graceful: the model's original reply stands.
       }
     }
