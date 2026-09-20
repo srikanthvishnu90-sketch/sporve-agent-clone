@@ -10600,17 +10600,22 @@ function facilitiesCardHTML(list){
 /* Client-discovery shortlist (owner 2026-09-04). Renders the find_clients
    read result — real orgs from the search agent's harvest leg, saved as
    review-queue findings. Discovery only: outreach is always a separate
-   human-approved draft. */
+   human-approved draft. This card is the SINGLE rendering of the results;
+   the assistant prose must not repeat them (D2). */
 function leadsCardHTML(list,saved){
   if(!Array.isArray(list)||!list.length) return "";
+  const receipt=saved>0
+    ?`Saved ${saved} new prospect${saved===1?"":"s"} to your review queue. `
+    :`Already in your review queue — nothing new to save. `;
   return `<div class="faccard">${list.slice(0,8).map(l=>`
     <div class="facrow">
       <span class="facmain"><b>${esc(l.name||"Organization")}</b>${
         l.address?`<em>${esc(l.address)}</em>`:""}${
-        l.website?`<em>${esc(l.website)}</em>`:""}</span>
+        l.website?`<em>${esc(l.website)}</em>`:""}${
+        l.phone?`<em>${esc(l.phone)}</em>`:""}</span>
       ${l.rating?`<span class="facrate num">★ ${esc(String(l.rating))}</span>`:""}
     </div>`).join("")}
-    <p class="facfine">${saved?`Saved ${saved} new prospect${saved===1?"":"s"} to your review queue. `:""}Discovery only — nothing was sent; outreach is drafted separately for your approval.</p>
+    <p class="facfine">${receipt}Discovery only — nothing was sent; outreach is drafted separately for your approval.</p>
   </div>`;
 }
 
