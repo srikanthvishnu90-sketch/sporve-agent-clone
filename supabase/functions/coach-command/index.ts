@@ -1014,6 +1014,76 @@ function fmtTime(t: unknown): string {
 }
 const DOW = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
 
+/* ── v17 deterministic repair: pin what the server already knows ────────────
+   The narrow draft-writer sometimes asks a clarifying question the server can
+   answer itself: an attendance filter ("below 60%") resolvable from attLines,
+   a first name matching exactly one roster athlete ("Mia" → "Mia Rossi"), or
+   a weekday naming a known upcoming session. When the writer returns clarify,
+   pinDraftFacts extracts those answers so the server can force ONE retry with
+   questions forbidden. Returns nulls when nothing is pinnable — then the
+   coach genuinely must answer (e.g. "remind the coaches about the schedule
+   change" when no change was ever described). */
+function pinDraftFacts(
+  text: string,
+  attLines: string[],
+  rosterFull: { first_name: string }[],
+  sessions: Record<string, unknown>[],
+): { to: string | null; sessionHint: string | null } {
+  let to: string | null = null;
+  // 1. Attendance filter: "below NN%" / "under NN%" / "above NN%".
+  const fm = /\b(below|under|less than|above|over|more than)\s+(\d{1,3})\s*%/i.exec(text);
+  if (fm && attLines.length) {
+    const wantBelow = /below|under|less/i.test(fm[1]);
+    const x = parseInt(fm[2], 10);
+    const names: string[] = [];
+    for (const ln of attLines) {
+      const lm = /^-\s*(.+?):\s*\d+\/\d+\s*\((\d+)%\)/.exec(ln);
+      if (!lm) continue;
+      const rate = parseInt(lm[2], 10);
+      if ((wantBelow && rate < x) || (!wantBelow && rate > x)) names.push(lm[1].trim());
+    }
+    if (names.length) to = names.join(" and ");
+  }
+  // 2. First name matching exactly one roster athlete ("Mia" → "Mia Rossi").
+  //    Full names come from attLines ("- Mia Rossi: 7/16 (44%)").
+  if (!to && rosterFull.length) {
+    const fullByFirst = new Map<string, string>();
+    for (const ln of attLines) {
+      const lm = /^-\s*(.+?):/.exec(ln);
+      if (lm) {
+        const full = lm[1].trim();
+        const first = full.split(/\s+/)[0].toLowerCase();
+        if (first && !fullByFirst.has(first)) fullByFirst.set(first, full);
+      }
+    }
+    const counts = new Map<string, number>();
+    for (const r of rosterFull) {
+      const f = String(r.first_name ?? "").trim().toLowerCase();
+      if (f) counts.set(f, (counts.get(f) ?? 0) + 1);
+    }
+    for (const [first, n] of counts) {
+      if (n === 1 && new RegExp(`\\b${first.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}\\b`, "i").test(text)) {
+        to = fullByFirst.get(first) ?? (first.charAt(0).toUpperCase() + first.slice(1));
+        break;
+      }
+    }
+  }
+  // 3. Weekday naming a known upcoming session ("about Saturday").
+  let sessionHint: string | null = null;
+  const dm = /\b(monday|tuesday|wednesday|thursday|friday|saturday|sunday)\b/i.exec(text);
+  if (dm && Array.isArray(sessions) && sessions.length) {
+    const day = dm[1].toLowerCase();
+    const hit = (sessions as Record<string, unknown>[]).find((s) =>
+      `${String(s.title ?? "")} ${String(s.start_date ?? "")}`.toLowerCase().includes(day),
+    ) ?? (sessions as Record<string, unknown>[])[0];
+    if (hit) {
+      sessionHint =
+        `${String(hit.title ?? "session")} ${String(hit.start_date ?? "")} ${String(hit.start_time ?? "")}${hit.end_time ? "–" + String(hit.end_time) : ""}`.trim();
+    }
+  }
+  return { to, sessionHint };
+}
+
 Deno.serve(async (req) => {
   const started = Date.now();
   if (req.method === "OPTIONS") return new Response("ok", { headers: cors });
@@ -1427,34 +1497,37 @@ Deno.serve(async (req) => {
           attLines.length ? `ATTENDANCE (each line: present/total plus server-computed rate (Z%) — copy the rate, never recompute):\n${attLines.join("\n")}` : "ATTENDANCE: (none recorded).",
           rosterNames.length ? `ROSTER FIRST NAMES: ${rosterNames.join(", ")}` : "ROSTER: (empty).",
         ].join("\n");
-        const dResp = await fetch(`${SUPABASE_URL}/functions/v1/${GATEWAY_FN}`, {
-          method: "POST",
-          headers: {
-            "apikey": ANON_KEY,
-            "Authorization": authHeader,
-            "Content-Type": "application/json",
-            ...(INTERNAL_SECRET ? { "x-sporve-internal": INTERNAL_SECRET } : {}),
-          },
-          body: JSON.stringify({
-            task: "agent_turn",
-            feature: "coach_command_draft",
-            system: DRAFT_SYSTEM.replace("{COMPACT_CONTEXT}", compactCtx),
-            messages: [{ role: "user", content: `Coach message: ${text}` }],
-            tools: [DRAFT_TOOL],
-            tool_choice: { type: "tool", name: "write_draft" },
-            maxTokens: 800,
-          }),
-        });
-        const dg = await dResp.json().catch(() => ({}));
-        const dcall = Array.isArray(dg?.toolCalls) ? dg.toolCalls[0] : null;
-        const d = ((dcall?.input ?? {}) as Record<string, unknown>);
-        const clarifyQ = String(d.clarify ?? "").trim();
-        if (dResp.ok && clarifyQ) {
-          reply = `I can draft that — first I need: ${clarifyQ}`;
-        } else if (dResp.ok && String(d.to ?? "").trim() && String(d.body ?? "").trim()) {
-          const dto = String(d.to).trim();
+        // Local: one narrow writer call. Returns the parsed tool input.
+        const runWriter = async (userMsg: string, systemExtra: string) => {
+          const r = await fetch(`${SUPABASE_URL}/functions/v1/${GATEWAY_FN}`, {
+            method: "POST",
+            headers: {
+              "apikey": ANON_KEY,
+              "Authorization": authHeader,
+              "Content-Type": "application/json",
+              ...(INTERNAL_SECRET ? { "x-sporve-internal": INTERNAL_SECRET } : {}),
+            },
+            body: JSON.stringify({
+              task: "agent_turn",
+              feature: "coach_command_draft",
+              system: DRAFT_SYSTEM.replace("{COMPACT_CONTEXT}", compactCtx) + systemExtra,
+              messages: [{ role: "user", content: userMsg }],
+              tools: [DRAFT_TOOL],
+              tool_choice: { type: "tool", name: "write_draft" },
+              maxTokens: 800,
+            }),
+          });
+          const g = await r.json().catch(() => ({}));
+          const call = Array.isArray(g?.toolCalls) ? g.toolCalls[0] : null;
+          return { ok: r.ok, d: ((call?.input ?? {}) as Record<string, unknown>) };
+        };
+        // Local: dispose a writer output — queue the draft, receipt-checked.
+        // Returns true when the turn is fully handled.
+        const disposeWriter = async (d: Record<string, unknown>): Promise<boolean> => {
+          const dto = String(d.to ?? "").trim();
+          const dbody = String(d.body ?? "").trim();
+          if (!dto || !dbody) return false;
           const dsubject = String(d.subject ?? "").trim();
-          const dbody = String(d.body).trim();
           // Resolve first so the event type matches reality (bulk vs single);
           // draftMessageBulk re-resolves internally (one extra read, harmless).
           const pre = await resolveAudience(dto, userClient, orgId);
@@ -1478,6 +1551,34 @@ Deno.serve(async (req) => {
           } else {
             reply = `I couldn't queue that draft: ${String(result.error ?? "no recipients resolved")}.`;
           }
+          return true;
+        };
+
+        const first = await runWriter(`Coach message: ${text}`, "");
+        const clarifyQ = first.ok ? String(first.d.clarify ?? "").trim() : "";
+        if (clarifyQ) {
+          // v17: pin what the server already knows and force ONE retry with
+          // questions forbidden. Only a twice-stuck clarify reaches the coach
+          // (e.g. "remind the coaches about the schedule change" when no
+          // change was ever described — genuinely unanswerable).
+          const pinned = pinDraftFacts(text, attLines, rosterFull, sessions as Record<string, unknown>[]);
+          if (pinned.to || pinned.sessionHint) {
+            const retryMsg = `Coach message: ${text}` +
+              (pinned.to ? `\nPINNED RECIPIENTS — final, use EXACTLY as the to field, do not question or re-derive: ${pinned.to}` : "") +
+              (pinned.sessionHint ? `\nWrite a warm reminder about this session and name it in the opening line: ${pinned.sessionHint}. Do NOT ask what the message should say.` : "");
+            const second = await runWriter(retryMsg,
+              "\nRETRY — your previous answer asked a clarifying question. That was WRONG. " +
+              "You MUST output write_draft now. The PINNED facts above are final. " +
+              "NEVER output clarify on this retry.");
+            const rClarify = second.ok ? String(second.d.clarify ?? "").trim() : "";
+            if (rClarify || !(await disposeWriter(second.d))) {
+              reply = `I can draft that — first I need: ${rClarify || clarifyQ}`;
+            }
+          } else {
+            reply = `I can draft that — first I need: ${clarifyQ}`;
+          }
+        } else if (first.ok) {
+          await disposeWriter(first.d);
         }
         // else: gateway failed or empty draft — keep the model's original reply.
       } catch (e) {
