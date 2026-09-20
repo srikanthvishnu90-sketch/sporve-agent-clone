@@ -1662,6 +1662,13 @@ Deno.serve(async (req) => {
     if (hasWrite) intent = "proposed";
     else if (cleaned.length > 0) intent = "read";
     // (empty tool_calls keeps the model's 'clarify'/'refuse'.)
+    // v35: the intent classifier mislabels research requests as 'refuse'
+    // (it believes research is out of scope). Research tools exist and the
+    // server completes these turns deterministically — never refuse them.
+    if (intent === "refuse" &&
+        (isClubResearchTurn(text, "read") || isVenueResearchTurn(text, "read"))) {
+      intent = "read";
+    }
 
     let reply = typeof out.reply_text === "string" ? out.reply_text.trim() : "";
     if (!reply) reply = intent === "refuse" ? "That's outside what I can help with here." : "Could you clarify what you'd like me to do?";
