@@ -295,19 +295,75 @@ const TURN_TOOL = {
           required: ["tool", "args"],
         },
       },
+      draft_requested: {
+        type: "boolean",
+        description:
+          "CLASSIFICATION ONLY — true when the coach is asking you to message, email, notify, or remind someone (a draft is wanted), even if you are unsure of a detail. When true and you do not emit the draft tool yourself, the server drafts deterministically for you (narrow draft-writer call + receipt-checked queue into the Approvals tab) and replaces your reply_text with the outcome. So: set it true, keep reply_text to one short line naming who the message is for, and NEVER ask permission to draft.",
+      },
     },
     required: ["intent", "reply_text", "needs_confirmation", "confidence", "tool_calls"],
   },
 };
+
+/* ── Deterministic draft fallback (2026-09-20, v12) ─────────────────────────
+   Haiku classifies a message request reliably but will not EMIT the draft
+   tool call — it writes the draft as prose and asks permission instead, which
+   queues nothing. So the turn is split: call 1 (above) classifies via
+   draft_requested; when true and no draft tool was emitted, call 2 below
+   does the ONE thing Haiku is good at (writing the draft as JSON) and
+   deterministic code disposes it via draftMessageBulk. The model never sees
+   tool results; the server reports the real receipt. */
+const DRAFT_TOOL = {
+  name: "write_draft",
+  description:
+    "Write the coach's message draft as JSON, or return ONE clarifying question when drafting is genuinely impossible.",
+  input_schema: {
+    type: "object",
+    additionalProperties: false,
+    properties: {
+      to: {
+        type: "string",
+        description:
+          "Recipient descriptor EXACTLY as the coach said it ('all parents', 'Mia Rossi and Ava Novak', 'coaches', 'U12 Thunderbolts'). Never resolve names yourself — deterministic code resolves them.",
+      },
+      subject: { type: "string", description: "Short subject line; may be empty." },
+      body: { type: "string", description: "The draft message body." },
+      clarify: {
+        type: "string",
+        description:
+          "ONE short question — set ONLY when a draft is impossible (ambiguous WHO, or a WHAT that is entirely missing and cannot be worked around). When set, to/subject/body may be empty strings. NEVER use this to ask permission to draft.",
+      },
+    },
+    required: ["to", "subject", "body"],
+  },
+};
+
+const DRAFT_SYSTEM = [
+  "You are the draft-writer for a youth-sports coach's assistant. The coach asked for a message. Your ONLY job: output write_draft with the message as JSON — or ONE clarifying question if you truly cannot draft.",
+  "",
+  "COMPACT CONTEXT (the only facts you may use):",
+  "{COMPACT_CONTEXT}",
+  "",
+  "RULES:",
+  "- to = the recipient descriptor EXACTLY as the coach said it. For 'below X% attendance' filters: compute (present/total)*100 per athlete from ATTENDANCE, list each as 'Name: present/total = Z%', and include ONLY athletes STRICTLY below X (69% is NOT below 60%). Join names with ' and '.",
+  "- body = PLAIN, WARM, SHORT — a note a busy parent reads in 3 seconds. Echo the coach's key facts VERBATIM (times, dates, places). When the message is about a session, name the resolved session (team + weekday + date) in the opening line.",
+  "- End body with one line starting 'Why: ' naming the reason, from the coach's instruction or CONTEXT only.",
+  "- Bulk messages (more than one family): use {guardian} for the guardian's first name, {child} for the athlete's first name, {business} for the club name.",
+  "- Ambiguous session ('Sunday', 'practice', 'Saturday') = the NEXT upcoming session in CONTEXT. Never ask which session.",
+  "- Work around missing details — DRAFT, don't stall: unknown time for a new session → write 'time to be confirmed — just reply to this message'; unknown minor detail → use the resolved session's facts.",
+  "- clarify INSTEAD of a draft ONLY when the WHO matches two or more people, or the WHAT is entirely missing and cannot be worked around (e.g. 'remind the coaches about the schedule change' when no change was ever described).",
+  "- NEVER output clarify to ask permission to draft. NEVER ask 'should I draft this?'.",
+  "- Output PLAIN TEXT in body — no markdown headings, no bold.",
+].join("\n");
 
 const SYSTEM = [
   "You are the AI assistant embedded in a youth-sports COACH's app. The coach states an outcome; you call coach_turn exactly once with the read results and/or the write PROPOSAL that accomplishes it.",
   "",
   "THE LAW — you PROPOSE, deterministic code DISPOSES:",
   "- You NEVER execute a write, send a message, move money, or cancel anything. Write/draft tools are PROPOSALS the coach approves with a tap; set needs_confirmation=true for any of them.",
-  "- DRAFT IMMEDIATELY (2026-09-20): a message/draft request is answered with the draft tool call in THIS turn's tool_calls — never with a question asking permission to draft ('should I draft this?', 'please confirm before I draft'). The coach's approval happens in the Approvals tab AFTER you queue the draft, not before. A turn that asks for confirmation instead of calling the draft tool is a failed turn.",
+  "- DRAFT IMMEDIATELY (2026-09-20, v12): when the coach asks you to message, email, notify, or remind someone, set draft_requested=true. Then EITHER emit the draft_message/draft_bulk_message tool call yourself OR leave tool_calls empty — when draft_requested is true and no draft tool was emitted, the server drafts deterministically for you (narrow draft-writer + receipt-checked queue into the Approvals tab) and replaces your reply_text with the real outcome. Either way, NEVER ask 'should I draft this?' or 'please confirm before I draft'. The coach's approval happens in the Approvals tab AFTER the draft is queued, not before.",
   "- One turn = at most ONE write/draft tool. Reads may be combined.",
-  "- MESSAGES (draft_message / draft_bulk_message, 2026-09-20): when the coach asks you to message, email, notify, or remind someone, put the draft tool call in tool_calls THIS TURN — per DRAFT IMMEDIATELY above, never a pre-draft confirmation question. args.to = who should get it — an athlete's name ('Mia Rossi'), SEVERAL names ('Mia Rossi and Ava Novak'), a team name ('U12 Thunderbolts'), 'all parents', or 'coaches' — plus optional args.subject and args.body = the message itself. Use draft_bulk_message for the same when the message goes to a group. For attendance-based asks ('players below 60%'), compute each athlete's rate as (present/total)*100 from the ATTENDANCE block, list each candidate as 'Name: present/total = Z%', and pass ONLY athletes whose Z% is STRICTLY below the threshold — 69% and 75% are NOT below 60%, never include them. The draft must be PLAIN, WARM, and SHORT — a note a busy parent reads in 3 seconds — echo the coach's key facts verbatim, name the resolved session in the opening line when the message is about a session, and end with the 'Why: ' line. ONE-SHOT REPORTING: you write reply_text BEFORE the tool runs, so you never see its result. In reply_text state the proposal in one line — who it is for (the recipients you put in args.to) and that it is queued in the Approvals tab for review. NEVER state a queued count or claim success yourself — the app renders the tool's real outcome (queued count or the error) beneath your reply. NEVER claim anything was sent — delivery happens only after the coach's own approval. If the coach's instruction plus CONTEXT supply the who and the what (e.g. 'message Mia's parent about Saturday' → a reminder about the next Saturday session from CONTEXT), draft immediately — do NOT ask what the message should say. Ask (intent='clarify') ONLY when the recipient genuinely matches two or more people, or when a fact you cannot default is missing (e.g. a brand-new time the coach never stated and no session in CONTEXT matches). If the tool returns an error (no match, ambiguous name), relay it plainly and ask — never guess a recipient. You may call resolve_audience first when you need to check who 'to' resolves to before drafting.",
+  "- MESSAGES (draft_message / draft_bulk_message, 2026-09-20, v12): when the coach asks you to message, email, notify, or remind someone, set draft_requested=true (see DRAFT IMMEDIATELY). args.to = who should get it — an athlete's name ('Mia Rossi'), SEVERAL names ('Mia Rossi and Ava Novak'), a team name ('U12 Thunderbolts'), 'all parents', or 'coaches' — plus optional args.subject and args.body = the message itself; use draft_bulk_message when the message goes to a group. When you set draft_requested=true without emitting the draft tool, the server drafts for you: keep reply_text to ONE short line naming who the message is for — it is replaced by the real outcome (queued count from the receipt, or the one question the draft-writer needs answered). NEVER claim anything was sent — delivery happens only after the coach's own approval in the Approvals tab. If the coach's instruction plus CONTEXT supply the who and the what, the draft goes out — do NOT spend your turn asking what the message should say. Ask (intent='clarify', draft_requested=true) ONLY when the recipient genuinely matches two or more people, or when a fact you cannot default is missing (e.g. a brand-new time the coach never stated and no session in CONTEXT matches).",
   "- draft_recap / camp_broadcast / draft_waitlist_offer remain PROPOSALS the coach approves in the chat card (unchanged).",
   "- create_note drafts a private session note for one athlete: args.athlete = the athlete's name as the coach said it (resolved against the roster client-side; if it matches two people, ask — intent='clarify'), optional args.title, and args.body = the note content (what to work on / what happened). It is a PROPOSAL the coach approves; never say it is saved.",
   "",
@@ -1309,6 +1365,93 @@ Deno.serve(async (req) => {
     if (!reply) reply = intent === "refuse" ? "That's outside what I can help with here." : "Could you clarify what you'd like me to do?";
     let confidence = typeof out.confidence === "number" && Number.isFinite(out.confidence) ? out.confidence : 0.5;
     confidence = Math.min(1, Math.max(0, confidence));
+
+    // ── Deterministic draft fallback (v12): the model classified this turn as
+    //    a message request (draft_requested) but emitted no draft tool — the
+    //    observed Haiku behavior is to ask permission instead, which queues
+    //    nothing. A second NARROW call writes the draft as JSON (prose is what
+    //    the model is good at); deterministic code below disposes it via
+    //    draftMessageBulk with a receipt. Never runs on refuse; never
+    //    double-drafts when the model already emitted the tool. ──────────────
+    const draftRequested = out.draft_requested === true;
+    const hasDraftTool = rawCalls.some((tc) => {
+      const t = String((tc as Record<string, unknown>)?.tool ?? "");
+      return t === "draft_message" || t === "draft_bulk_message";
+    });
+    if (draftRequested && !hasDraftTool && intent !== "refuse") {
+      try {
+        const todayStr = new Date().toISOString().slice(0, 10);
+        const nextSessions = (Array.isArray(sessions) ? sessions : [])
+          .slice(0, 3)
+          .map((s: Record<string, unknown>) =>
+            `- ${String(s.title ?? "session")} ${String(s.start_date ?? "")} ${String(s.start_time ?? "")}${s.end_time ? "–" + String(s.end_time) : ""}`.trim());
+        const rosterNames = (Array.isArray(rosterFull) ? rosterFull : [])
+          .map((m: { first_name: string }) => String(m.first_name ?? "").trim()).filter(Boolean);
+        const compactCtx = [
+          `Today: ${todayStr}.`,
+          nextSessions.length ? `UPCOMING SESSIONS:\n${nextSessions.join("\n")}` : "UPCOMING SESSIONS: (none listed).",
+          attLines.length ? `ATTENDANCE (present/total):\n${attLines.join("\n")}` : "ATTENDANCE: (none recorded).",
+          rosterNames.length ? `ROSTER FIRST NAMES: ${rosterNames.join(", ")}` : "ROSTER: (empty).",
+        ].join("\n");
+        const dResp = await fetch(`${SUPABASE_URL}/functions/v1/${GATEWAY_FN}`, {
+          method: "POST",
+          headers: {
+            "apikey": ANON_KEY,
+            "Authorization": authHeader,
+            "Content-Type": "application/json",
+            ...(INTERNAL_SECRET ? { "x-sporve-internal": INTERNAL_SECRET } : {}),
+          },
+          body: JSON.stringify({
+            task: "agent_turn",
+            feature: "coach_command_draft",
+            system: DRAFT_SYSTEM.replace("{COMPACT_CONTEXT}", compactCtx),
+            messages: [{ role: "user", content: `Coach message: ${text}` }],
+            tools: [DRAFT_TOOL],
+            tool_choice: { type: "tool", name: "write_draft" },
+            maxTokens: 800,
+          }),
+        });
+        const dg = await dResp.json().catch(() => ({}));
+        const dcall = Array.isArray(dg?.toolCalls) ? dg.toolCalls[0] : null;
+        const d = ((dcall?.input ?? {}) as Record<string, unknown>);
+        const clarifyQ = String(d.clarify ?? "").trim();
+        if (dResp.ok && clarifyQ) {
+          reply = `I can draft that — first I need: ${clarifyQ}`;
+        } else if (dResp.ok && String(d.to ?? "").trim() && String(d.body ?? "").trim()) {
+          const dto = String(d.to).trim();
+          const dsubject = String(d.subject ?? "").trim();
+          const dbody = String(d.body).trim();
+          // Resolve first so the event type matches reality (bulk vs single);
+          // draftMessageBulk re-resolves internally (one extra read, harmless).
+          const pre = await resolveAudience(dto, userClient, orgId);
+          const n = ((pre as Record<string, unknown>).recipients as unknown[] ?? []).length;
+          const isBulk = n > 1;
+          const evt = isBulk ? "coach_bulk_draft" : "coach_draft";
+          const result = await draftMessageBulk(
+            { to: dto, subject: dsubject, body: dbody },
+            userClient, orgId, String(prov?.business_name ?? ""), evt,
+          ) as Record<string, unknown>;
+          cleaned.push({
+            tool: isBulk ? "draft_bulk_message" : "draft_message",
+            args: { to: dto, subject: dsubject, body: dbody },
+            kind: "read",
+            result,
+          });
+          const queued = Number(result.queued ?? 0);
+          if (queued > 0) {
+            const aud = String(result.audience ?? dto);
+            reply = `I've queued ${queued} draft${queued === 1 ? "" : "s"} for ${aud} — review, edit, and approve ${queued === 1 ? "it" : "them"} in the Approvals tab.`;
+          } else {
+            reply = `I couldn't queue that draft: ${String(result.error ?? "no recipients resolved")}.`;
+          }
+        }
+        // else: gateway failed or empty draft — keep the model's original reply.
+      } catch (e) {
+        console.error("coach-command: deterministic draft fallback failed:", e);
+        // Graceful: the model's original reply stands.
+      }
+    }
+
     const latencyMs = Date.now() - started;
 
     // ── Log the turn (as the coach — RLS-scoped insert; no service role). ──────
