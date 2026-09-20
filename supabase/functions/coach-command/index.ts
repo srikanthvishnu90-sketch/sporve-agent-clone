@@ -1567,7 +1567,7 @@ Deno.serve(async (req) => {
           if (pinned.to || pinned.sessionHint) {
             const retryMsg = `Coach message: ${text}` +
               (pinned.to ? `\nPINNED RECIPIENTS — final, use EXACTLY as the to field, do not question or re-derive: ${pinned.to}` : "") +
-              (pinned.sessionHint ? `\nWrite a warm reminder about this session and name it in the opening line: ${pinned.sessionHint}. Do NOT ask what the message should say.` : "");
+              (pinned.sessionHint ? `\nThe session the coach means is: ${pinned.sessionHint}. Write about EXACTLY what the coach asked — if they announce extra or new training, announce it (day + date from the hint above; if it has no time, write 'time to be confirmed — just reply to this message'); if they want a reminder, remind. Do NOT substitute a different session, and do NOT ask what the message should say.` : "");
             const second = await runWriter(retryMsg,
               "\nRETRY — your previous answer asked a clarifying question. That was WRONG. " +
               "You MUST output write_draft now. The PINNED facts above are final. " +
