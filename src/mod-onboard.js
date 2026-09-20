@@ -38,6 +38,9 @@
   const isPlaceholderOrg = (n) => !n || PLACEHOLDER_ORG.includes(String(n).trim());
   const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
   const EMAIL_RX = /^[^@\s]+@[^@\s]+\.[^@\s]+$/;
+  /* Generation counter for the resend "Sent again" flash: the fade-out must
+     not clobber a newer resend's flash. */
+  let resentSeq = 0;
   const API = () => window.SporveAPI, AUTH = () => window.SporveAuth;
   const signedIn = () => !!(AUTH() && AUTH().isSignedIn && AUTH().isSignedIn());
   /* S is the host's top-level `const` — a global lexical binding, NOT a window
@@ -308,7 +311,13 @@
     q("[data-oblogin]").forEach((a) => a.onclick = (e) => { e.preventDefault(); S.modal = { type: "authsheet" }; render(); });
     q("[data-obpw]").forEach((a) => a.onclick = (e) => { e.preventDefault(); S.authIdentifier = o.email; S.modal = { type: "login" }; render(); });
     q("[data-obfoot]").forEach((a) => a.onclick = (e) => { e.preventDefault(); const arg = a.dataset.obfoot.split(":")[1]; if(!arg) return; window.open(location.origin + "/?page=" + encodeURIComponent(arg), "_blank", "noopener"); });
-    q("[data-obresend]").forEach((b) => b.onclick = () => { o.resent = true; AUTH().magicLink(o.email, window.location.origin + "/", { role: "provider" }).catch(() => {}); render(); setTimeout(() => { o.resent = false; render(); }, 1800); });
+    /* The "Sent again" flash fade-out must NOT re-render the form: render()
+       rebuilds #obTok from state, so a re-render landing between an
+       automation's focus and its text entry (or a fast typist's keystrokes)
+       silently drops the typed code — the field keeps its previous value and
+       the submit then fails as a wrong code. Only the button label changes
+       here, so update it in place (flaky test 14, 2026-09-20). */
+    q("[data-obresend]").forEach((b) => b.onclick = () => { o.resent = true; AUTH().magicLink(o.email, window.location.origin + "/", { role: "provider" }).catch(() => {}); render(); const my = ++resentSeq; setTimeout(() => { if (my !== resentSeq) return; o.resent = false; const rb = document.querySelector('[data-obresend]'); if (rb) rb.textContent = "Resend link"; }, 1800); });
     q("[data-obwrong]").forEach((b) => b.onclick = () => { o.step = "1"; o.sent = false; o.err = null; o.code = false; o.tok = ""; render(); });
     q("[data-obcode]").forEach((b) => b.onclick = () => { o.code = true; render(); });
     /* AUDIT 2026-09-17 (self-caught while fixing P1-1): the code field kept its
