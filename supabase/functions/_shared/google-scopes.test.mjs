@@ -91,12 +91,18 @@ test('gmail records no write capability, because it has none', () => {
 test('no edge function smuggles a send scope past the shared list', () => {
   // A tripwire, not a style check: the rule is worthless if one function
   // hardcodes its own scope string instead of importing GOOGLE_SCOPES.
+  // The guard's own FORBIDDEN_SCOPES denylist is allowed to name the
+  // forbidden scopes — that is what it is for — so strip that one
+  // declaration before scanning. A send scope referenced anywhere else
+  // (a request list, a default, a comment with a live scope string) still
+  // trips the wire.
   for (const f of [
     'supabase/functions/google-oauth-start/index.ts',
     'supabase/functions/google-oauth-callback/index.ts',
     'supabase/functions/_shared/google-oauth.ts',
   ]) {
-    const src = readFileSync(new URL(`../../../${f}`, import.meta.url), 'utf8');
+    const raw = readFileSync(new URL(`../../../${f}`, import.meta.url), 'utf8');
+    const src = raw.replace(/export const FORBIDDEN_SCOPES[^;]*;/s, '');
     for (const forbidden of FORBIDDEN_SCOPES) {
       assert.ok(!src.includes(forbidden), `${f} references ${forbidden}`);
     }
