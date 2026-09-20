@@ -25,7 +25,7 @@
 <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16.png">
 <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
 <link rel="manifest" href="/site.webmanifest">
-<meta name="sporve-build" content="b60f8a209830ec40">
+<meta name="sporve-build" content="b273456656736cb7">
 </head>
 <body>
 <noscript><h1>Sporv — Every sport. One app.</h1><p>Sporv connects families and athletes with coaches, trainers, camps, and teams across more than 20 sports. Please enable JavaScript to use the app.</p></noscript>
@@ -3113,6 +3113,37 @@ html.coldock .aidock-fab{display:none}
 .cxr.on .cxr-st{color:#6FA982}
 .cxr.soon{opacity:.62}
 .cxr .btn.sm{white-space:nowrap}
+
+/* ── connector prominence kit (2026-09-20) ───────────────────────────
+   Owner: connectors must be as prominent as in Muse — never hunted for.
+   Monogram marks are letters, never emoji (design rule 13). All new text
+   ships at the 14px floor (rule 10); spacing follows the 8px grid (rule 3). */
+.cxmark{flex:none;width:40px;height:40px;border-radius:12px;background:var(--raise2);
+  color:var(--ink);display:grid;place-items:center;font-weight:700;font-size:18px;line-height:1}
+.cxmark-dark{background:#232B34;color:#F5F7F9}
+/* one-tap picker sheet rows reuse .cxr (same renderer as settings tiles) */
+.cxr .cxmark{margin-top:2px}
+/* inline connect card, rendered inside the dark chat panel (rule 6: a
+   lighter surface step + hairline, never a light border) */
+.aidock-cxcard{display:flex;align-items:center;gap:12px;background:#1B2129;
+  border:1px solid #2A313B;border-radius:12px;padding:12px 16px;width:100%;text-align:left}
+.aidock-cxmeta{flex:1;min-width:0}
+.aidock-cxmeta b{display:block;font-size:var(--text-base);font-weight:600;color:#F5F7F9}
+.aidock-cxmeta span{display:block;font-size:var(--text-sm);color:#A9B4C0;line-height:1.45;margin-top:2px}
+.aidock-cxact{flex:none}
+.aidock-cxnote{font-size:var(--text-sm);color:#8B95A1}
+.aidock-cxst{font-family:var(--mono);font-size:var(--text-xs);text-transform:uppercase;
+  letter-spacing:.07em;color:var(--good)}
+/* glanceable status: dot on the rail Connect item + pill in the chat header */
+.cxdot{flex:none;width:8px;height:8px;border-radius:50%;background:var(--faint);margin-left:auto}
+.cxdot.some{background:var(--gold)}
+.cxdot.all{background:var(--good)}
+.cxpill{display:inline-flex;align-items:center;gap:8px;height:32px;padding:0 12px;
+  border-radius:999px;border:1px solid #2A313B;background:#1B2129;color:#C3CBD4;
+  font-size:var(--text-sm);font-weight:600;cursor:pointer;flex:none}
+.cxpill .cxpdot{width:8px;height:8px;border-radius:50%;background:var(--gold)}
+.cxpill.all{color:#8FD6A4;border-color:#2E5240;background:#14261C}
+.cxpill.all .cxpdot{background:var(--good)}
 
 /* ── mobile top bar (owner 2026-09-09): the tabs and the Log in / Get started
    pair cannot fit beside the logo on a phone, so below 760px they leave the bar
@@ -10779,6 +10810,10 @@ function aiDockHTML(){
              ${m.facilities?facilitiesCardHTML(m.facilities):""}
              ${m.leads?leadsCardHTML(m.leads,m.leadsSaved):""}
              ${m.document?documentCardHTML(m.document):""}
+             ${/* INLINE CONNECT CARD (2026-09-20): beneath the reply whenever
+                  this turn's read_connected result carried
+                  {code:'not_connected'}. Same Connect flow as the tiles. */""}
+             ${(m.connectKinds||[]).map(k=>aiConnectCardHTML(k)).join("")}
              ${(m.picks||[]).map(id=>{
                const p=PROGRAMS.find(x=>x.id===id);
                return p?`<button class="aidock-pick" data-open="${esc(p.id)}">
@@ -10863,6 +10898,10 @@ function aiDockHTML(){
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
                  stroke-width="1.9" stroke-linecap="round" aria-hidden="true">
               <path d="M12 5v14M5 12h14"/></svg></button>
+          <button type="button" class="aidock-ic" data-cxopen="1" aria-label="Connect a tool" title="Connect a tool">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                 stroke-width="1.9" stroke-linecap="round" aria-hidden="true">
+              <rect x="3" y="3" width="7" height="7" rx="2"/><rect x="14" y="3" width="7" height="7" rx="2"/><rect x="3" y="14" width="7" height="7" rx="2"/><rect x="14" y="14" width="7" height="7" rx="2"/></svg></button>
           <button type="button" class="aidock-ic" data-aivoice="1" aria-label="Dictate a message">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor"
                  stroke-width="1.8" stroke-linecap="round" aria-hidden="true">
@@ -10915,6 +10954,10 @@ function aiDockHTML(){
            controls are gated off in this mode — one set of window controls. */""}
       ${colMode?`<div class="aidock-head">
         <span class="aidock-head-t">Sporv AI</span>
+        ${/* GLANCEABLE STATUS (2026-09-20): green "Connected" when the key
+             connectors are in, otherwise a "Connect" pill — one tap to the
+             integrations surface either way. */""}
+        ${cxPillHTML()}
         <span style="flex:1"></span>
         <button type="button" class="aimax-ic" data-ainew="1" aria-label="New chat" title="New chat">
           <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor"
@@ -10948,6 +10991,10 @@ function aiDockHTML(){
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
                  stroke-width="1.9" stroke-linecap="round" aria-hidden="true">
               <path d="M12 5v14M5 12h14"/></svg></button>
+          <button type="button" class="aidock-ic" data-cxopen="1" aria-label="Connect a tool" title="Connect a tool">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                 stroke-width="1.9" stroke-linecap="round" aria-hidden="true">
+              <rect x="3" y="3" width="7" height="7" rx="2"/><rect x="14" y="3" width="7" height="7" rx="2"/><rect x="3" y="14" width="7" height="7" rx="2"/><rect x="14" y="14" width="7" height="7" rx="2"/></svg></button>
           <button type="button" class="aidock-ic" data-aivoice="1" aria-label="Dictate a message">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor"
                  stroke-width="1.8" stroke-linecap="round" aria-hidden="true">
@@ -11210,6 +11257,9 @@ function coachSearchHTML(){
 
 function coachHTML(){
   const t=S.coachTab;
+  /* The connector status cache warms here so the rail's glanceable dot is
+     live on first paint; loadConnectors() is a guarded no-op once loaded. */
+  loadConnectors();
   /* The gate sits here, above every branch, so a private tab cannot be reached
      by any route that sets S.coachTab — including module code and the AI bar. */
   if(isCoachGuest()&&COACH_PRIVATE[t]){
@@ -11240,6 +11290,7 @@ function coachHTML(){
     operations:'<circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M4.9 4.9l2.1 2.1M17 17l2.1 2.1M19.1 4.9L17 7M7 17l-2.1 2.1"/>',
     media:'<rect x="3" y="4" width="18" height="16" rx="2"/><circle cx="8.5" cy="9.5" r="1.8"/><path d="M3 17l5-4.5 4 3.5 3-2.5 6 5"/>',
     profile:'<circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M4.9 4.9l2.1 2.1M17 17l2.1 2.1M19.1 4.9L17 7M7 17l-2.1 2.1"/>',
+    link:'<path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/>',
   };
   const rIcon=k=>`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"
     stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${RI[k]||RI.operations}</svg>`;
@@ -11305,6 +11356,11 @@ function coachHTML(){
         <span class="num">${gs.done} of ${gs.total}</span>
       </button>
       <div class="raildiv"></div>
+      ${/* ONE-TAP CONNECT (2026-09-20, owner directive): the integrations
+           surface lives on the main nav, not buried in settings. The dot is
+           the glanceable status — green when the key connectors (inbox +
+           calendar) are connected, amber when partial, grey until checked. */""}
+      <button class="${t==="connect"?"on":""}" data-ctab="connect" aria-label="Connect your tools">${rIcon("link")}<span>Connect</span><span class="cxdot ${cxKeyStatus()}" aria-hidden="true"></span></button>
       <button class="${t==="settings"?"on":""}" data-ctab="settings">${rIcon("profile")}<span>Settings</span></button>
     </nav>
     <div>${isCoachGuest()?`<div class="previewbar" role="status">
@@ -13030,6 +13086,209 @@ function loadOrgPeople(){
     .catch(()=>{S.orgPeople=[];S.orgPeopleLoaded=true;render();})
     .finally(()=>{S.orgPeopleLoading=false;});
 }
+/* ── Connector prominence kit (2026-09-20) ──────────────────────────────────
+   Owner directive: connectors must be AS PROMINENT as in Muse — the user
+   never hunts for how to connect something. These are the shared builders:
+     connectorsGroupsHTML — THE one tile renderer. Settings → Connectors, the
+       top-level Connect surface, and the composer picker sheet all render the
+       same grouped tiles from the cached connectors-available truth.
+     cxSheetHTML / cxSheetCardHTML — the composer's one-tap picker sheet rows.
+     aiConnectCardHTML — the inline card beneath a chat turn whose
+       read_connected result carried {code:'not_connected',kind}.
+     cxPillHTML / cxKeyStatus — the glanceable status (chat-header pill and
+       the rail dot). Key connectors = the agent's day-one needs: inbox +
+       calendar.
+   The client cache is S.cxStatus via loadConnectors() — one fetch, shared by
+   every surface; loadConnectors() no-ops when loaded or loading. */
+function cxMarkHTML(label,dark){
+  /* Monogram mark — a letter, never emoji (design rule 13). */
+  const ch=String(label||"?").trim().charAt(0).toUpperCase()||"?";
+  return `<span class="cxmark${dark?" cxmark-dark":""}" aria-hidden="true">${esc(ch)}</span>`;
+}
+function cxPlainLine(c){
+  /* One plain-words line from the server's reads/writes copy. */
+  const lc=s=>s.charAt(0).toLowerCase()+s.slice(1);
+  const r=String(c.reads||"").trim(), w=String(c.writes||"").trim();
+  let s="";
+  if(r) s="Reads "+lc(r);
+  if(w){
+    if(/^nothing/i.test(w)) s+=(s?" ":"")+"Writes nothing back.";
+    else s+=(s?" ":"")+"Writes "+lc(w);
+  }
+  return s||String(c.label||"");
+}
+const CX_KEY=["gmail","google_calendar"];
+function cxKeyStatus(){
+  const st=S.cxStatus;
+  if(!st||!Array.isArray(st.connectors)) return "unknown";
+  const n=CX_KEY.filter(k=>{const c=st.connectors.find(x=>x.kind===k);
+    return !!(c&&c.state==="connected");}).length;
+  return n===CX_KEY.length?"all":n>0?"some":"none";
+}
+function connectorsGroupsHTML(introHTML){
+  loadConnectors();
+  const pv=S.coachProvider||{};
+  const day=v=>{if(!v)return null;
+    const d=typeof v==="number"?new Date(v):new Date(String(v));
+    return isNaN(d)?null:d.toISOString().slice(0,10);};
+  const serverTiles=(S.cxStatus&&Array.isArray(S.cxStatus.connectors))?S.cxStatus.connectors:[];
+  const cxFor=k=>serverTiles.find(c=>c.kind===k)||null;
+  const batches=(S.importBatches||[]).filter(x=>!x.undone);
+  /* An import batch records `at` as epoch milliseconds, not an ISO string —
+     checked against where S.importBatches is written, not assumed. */
+  const lastImport=batches.map(b=>b.at).filter(Boolean).sort((a,b)=>b-a)[0];
+  const site=(setKVget("site_extraction",{})||{});
+  /* Server-driven tile for the eight connectors whose state comes from the
+     server. States: connected (green, with account + date), error (dated
+     failure + Retry), available with a connect_url (a real Connect button),
+     available without one (the server's honest note, no dead button),
+     not_configured (no dead button — the tile names what is missing). */
+  const cxrTile=(c)=>{
+    const cls=c.state==="connected"?" on":"";
+    const busy=S.cxBusy===c.kind;
+    let right,sub="";
+    if(c.state==="connected"){
+      right=`<span class="cxr-st">Connected</span>`;
+      if(c.external_account)sub+=`<small class="num">${esc(c.external_account)}</small>`;
+      const d=day(c.connected_at);if(d)sub+=`<small class="num">Connected ${esc(d)}</small>`;
+    }else if(c.state==="error"){
+      right=c.connect_url
+        ?`<button class="btn sm" data-cxconnect="${esc(c.kind)}"${busy?" disabled":""}>${busy?"Opening…":"Retry"}</button>`
+        :`<span class="cxr-st">Needs attention</span>`;
+      const d=day(c.last_error_at);
+      sub=`<small style="color:var(--danger,#C4685E)">Stopped${d?" "+esc(d):""} — ${esc(c.last_error||"Sync failed")}</small>`;
+    }else if(c.state==="available"&&c.connect_url){
+      right=`<button class="btn sm" data-cxconnect="${esc(c.kind)}"${busy?" disabled":""}>${busy?"Opening…":"Connect"}</button>`;
+    }else if(c.state==="not_configured"&&c.requires_approval){
+      right=`<span class="cxr-st">Not yet</span>`;
+      sub=`<small>${esc(c.requires_approval)} — Sporv is waiting on Google to approve this API access, so there is no Connect button to click yet.</small>`;
+    }else if(c.state==="not_configured"){
+      right=`<span class="cxr-st">Not yet</span>`;
+      sub=`<small>${esc(c.note||"Not switched on for this deployment yet.")}</small>`;
+    }else{
+      right=`<span class="cxr-st">Available</span>`;
+      if(c.note)sub=`<small>${esc(c.note)}</small>`;
+    }
+    return `<div class="cxr${cls}">
+      <div class="cxr-l"><b>${esc(c.label)}</b><small><b>Reads:</b> ${esc(c.reads)}</small><small><b>Writes:</b> ${esc(c.writes)}</small>${sub}</div>
+      <div class="cxr-r">${right}</div></div>`;
+  };
+  const tile=(o)=>`<div class="cxr${o.on?" on":""}${o.soon?" soon":""}">
+    <div class="cxr-l"><b>${esc(o.name)}</b><small>${o.desc}</small>
+      ${o.on&&o.last?`<small class="num">Last read ${esc(o.last)}</small>`:""}
+      ${o.err?`<small style="color:var(--danger,#C4685E)">Stopped ${esc(o.errAt||"")} — ${esc(o.err)}</small>`:""}</div>
+    <div class="cxr-r">${o.on
+      ?`<span class="cxr-st">Connected</span>${o.manage?` <a class="btn ghost sm" href="${o.manage}" target="_blank" rel="noopener">Manage</a>`:""}`
+      :(o.soon?`<span class="cxr-st">Not yet</span>`
+        :`<button class="btn sm" ${o.attr||""}${S.connectBusy&&o.attr&&o.attr.indexOf("connectpayouts")>-1?" disabled":""}>${esc(o.cta||"Connect")}</button>`)}</div></div>`;
+  const group=(h,d,tiles)=>`<div class="sthead" style="margin-top:22px"><h2>${esc(h)}</h2><p>${d}</p></div>
+    <div class="stcard">${tiles.join("")}</div>`;
+  const emailTiles=["gmail","google_calendar","microsoft365","sms"].map(cxFor).filter(Boolean);
+  const recordTiles=["google_sheets","google_drive","quickbooks","google_business_profile"].map(cxFor).filter(Boolean);
+  const anyOn=ts=>ts.some(c=>c.state==="connected");
+  return `${introHTML||""}
+    ${S.cxLoading?`<div class="stnote">Checking which connections are live…</div>`:""}
+    ${(S.cxStatus&&S.cxStatus.failed)?`<div class="err">Could not reach the connection status. Reload the page to try again.</div>`:""}
+    ${group("Money","Where dues actually move.",[
+      tile({name:"Stripe",on:!!pv.stripe_charges_enabled,attr:'data-connectpayouts="1"',
+        manage:"https://dashboard.stripe.com",
+        cta:pv.stripe_onboarding_started?"Finish setup":"Connect with Stripe",
+        desc:"Reads charges, refunds, failed payments, card expiry and payouts. Writes charges and invoices you approve. Dues land in your own Stripe account."})])}
+    ${group("Where your roster lives","How members got here, and how to bring more.",[
+      tile({name:"Your website",on:!!site.url,last:day(site.extracted_at),attr:'data-cxsite="1"',cta:"Add site",
+        desc:site.url?`Reading ${esc(site.url)} for programs, prices, schedule and staff. Writes nothing back.`
+          :"Reads your programs, prices, schedule and staff from your public pages. Writes nothing back."}),
+      tile({name:"CSV or export file",on:batches.length>0,last:day(lastImport),attr:'data-cximport="1"',cta:"Import",
+        desc:batches.length?`${batches.length} import${batches.length===1?"":"s"} on record. We never ask for your password to TeamSnap or SportsEngine and never sign in as you.`
+          :"Reads a roster export from SportsEngine, TeamSnap, LeagueApps, Spond or a plain sheet. We never ask for your password to those tools."})])}
+    ${group("Email and calendar",anyOn(emailTiles)
+        ?"Sporv reads these and drafts from them. It can never send."
+        :"Connect your inbox so the agent has something to watch. Sporv reads these and drafts from them — it can never send.",
+      emailTiles.map(cxrTile))}
+    ${group("Records","Your records and listings. Each tile states what it reads and the most it can ever write back — which tops out at a draft you approve.",
+      recordTiles.map(cxrTile))}
+    ${S.connectError?`<div class="err" style="margin-top:10px">${esc(S.connectError)}</div>`:""}
+    <div class="stnote" style="margin-top:18px"><b>We never hold your login to another tool.</b>
+      Sporv does not ask for your TeamSnap or SportsEngine password and does not sign in as you.
+      Roster migration happens through an export you download, or a supervised import we do with you.</div>`;
+}
+/* The top-level Connect surface (2026-09-20): one tap from the main nav rail,
+   wired to the SAME grouped tile renderer as Settings → Connectors. */
+function connectPageHTML(){
+  return `<div class="sec-head" style="margin-top:18px"><h1>Connect</h1>
+    <p>Everything Sporv can read from, in one place. Connect once — the agent
+    drafts from it, and nothing here sends on its own.</p></div>
+    ${connectorsGroupsHTML("")}`;
+}
+/* The composer's one-tap picker sheet: all 11 connectors as cards with a
+   monogram mark, one plain-words line, and a state-aware action — connected
+   gets a checkmark, a working connect_url gets a real Connect button (the
+   same data-cxconnect flow as the settings tiles), anything else gets the
+   server's honest note and NO dead button. */
+function cxSheetCardHTML(c){
+  const busy=S.cxBusy===c.kind;
+  let right,note="";
+  if(c.state==="connected"){
+    right=`<span class="cxr-st" style="color:var(--good)">✓ Connected</span>`;
+  }else if(c.state==="error"&&c.connect_url){
+    right=`<button class="btn sm" data-cxconnect="${esc(c.kind)}"${busy?" disabled":""}>${busy?"Opening…":"Retry"}</button>`;
+    note=`<small style="color:var(--danger,#C4685E)">Stopped — ${esc(c.last_error||"Sync failed")}</small>`;
+  }else if(c.connect_url){
+    right=`<button class="btn sm" data-cxconnect="${esc(c.kind)}"${busy?" disabled":""}>${busy?"Opening…":"Connect"}</button>`;
+  }else{
+    right=`<span class="cxr-st">Not yet</span>`;
+    note=`<small>${esc(c.note||(c.requires_approval?String(c.requires_approval)+" — Sporv is waiting on Google to approve this API access.":null)||"Not switched on for this deployment yet.")}</small>`;
+  }
+  return `<div class="cxr${c.state==="connected"?" on":""}">
+    ${cxMarkHTML(c.label)}
+    <div class="cxr-l"><b>${esc(c.label)}</b><small>${esc(cxPlainLine(c))}</small>${note}</div>
+    <div class="cxr-r">${right}</div></div>`;
+}
+function cxSheetHTML(){
+  loadConnectors();
+  const signedIn=window.SporveAPI&&window.SporveAPI.isSignedIn&&window.SporveAPI.isSignedIn();
+  if(!signedIn) return `<div class="stnote">Sign in to connect your tools.</div>`;
+  const tiles=(S.cxStatus&&Array.isArray(S.cxStatus.connectors))?S.cxStatus.connectors:[];
+  if(!tiles.length) return `<div class="stnote">${S.cxLoading?"Checking which connections are live…":"Connection options are unavailable right now — reload and try again."}</div>`;
+  const groups={};
+  tiles.forEach(c=>{(groups[c.group||"Other"]=groups[c.group||"Other"]||[]).push(c);});
+  return Object.keys(groups).map(g=>
+    `<div class="sthead" style="margin-top:18px"><h2>${esc(g)}</h2></div>
+     <div class="stcard" style="margin-top:8px">${groups[g].map(cxSheetCardHTML).join("")}</div>`).join("");
+}
+/* The inline card (2026-09-20): rendered beneath an assistant turn whose
+   read_connected tool result carried {code:'not_connected'}. Reads from the
+   same cached server truth — label, plain-words line, and the same
+   data-cxconnect flow — so there is never a dead button. Styled for the dark
+   chat panel (design rule 6: a lighter surface step, no light border). */
+function aiConnectCardHTML(kind){
+  loadConnectors();
+  const c=cxTile(kind);
+  const label=c?c.label:String(kind||"").replace(/_/g," ")||"this tool";
+  const busy=S.cxBusy===kind;
+  let right;
+  if(c&&c.state==="connected"){
+    right=`<span class="aidock-cxst">✓ Connected</span>`;
+  }else if(c&&c.connect_url){
+    right=`<button class="btn ghost sm" data-cxconnect="${esc(kind)}"${busy?" disabled":""}>${busy?"Opening…":"Connect"}</button>`;
+  }else{
+    right=`<span class="aidock-cxnote">${esc((c&&(c.note||c.requires_approval))||"Not available yet.")}</span>`;
+  }
+  return `<div class="aidock-cxcard">${cxMarkHTML(label,true)}
+    <span class="aidock-cxmeta"><b>${esc(label)}</b><span>${esc(c?cxPlainLine(c):"Connect it so Sporv can read from it directly.")}</span></span>
+    <span class="aidock-cxact">${right}</span></div>`;
+}
+/* The chat-header status pill (2026-09-20): green "Connected" when the key
+   connectors are connected, otherwise a "Connect" pill — one tap either way
+   to the integrations surface. */
+function cxPillHTML(){
+  loadConnectors();
+  const s=cxKeyStatus();
+  const all=s==="all";
+  return `<button type="button" class="cxpill${all?" all":""}" data-ctab="connect"
+    aria-label="Connector status: ${all?"connected":"not fully connected"} — open Connect">
+    <span class="cxpdot" aria-hidden="true"></span>${all?"Connected":"Connect"}</button>`;
+}
 function coachSettingsPage(){
   loadOrgSettings();
   const pv=S.coachProvider||{};
@@ -13095,91 +13354,9 @@ function coachSettingsPage(){
      Stripe, website and CSV keep their existing flows (Stripe onboarding, the
      site wizard, the import sheet); the server only advises their state. */
   if(tab==="connectors"){
-    loadConnectors();
-    const day=v=>{if(!v)return null;
-      const d=typeof v==="number"?new Date(v):new Date(String(v));
-      return isNaN(d)?null:d.toISOString().slice(0,10);};
-    const serverTiles=(S.cxStatus&&Array.isArray(S.cxStatus.connectors))?S.cxStatus.connectors:[];
-    const cxFor=k=>serverTiles.find(c=>c.kind===k)||null;
-    const batches=(S.importBatches||[]).filter(x=>!x.undone);
-    /* An import batch records `at` as epoch milliseconds, not an ISO string —
-       checked against where S.importBatches is written, not assumed. */
-    const lastImport=batches.map(b=>b.at).filter(Boolean).sort((a,b)=>b-a)[0];
-    const site=(setKVget("site_extraction",{})||{});
-    /* Server-driven tile for the eight connectors whose state comes from the
-       server. States: connected (green, with account + date), error (dated
-       failure + Retry), available with a connect_url (a real Connect button),
-       available without one (the server's honest note, no dead button),
-       not_configured (no dead button — the tile names what is missing). */
-    const cxrTile=(c)=>{
-      const cls=c.state==="connected"?" on":"";
-      const busy=S.cxBusy===c.kind;
-      let right,sub="";
-      if(c.state==="connected"){
-        right=`<span class="cxr-st">Connected</span>`;
-        if(c.external_account)sub+=`<small class="num">${esc(c.external_account)}</small>`;
-        const d=day(c.connected_at);if(d)sub+=`<small class="num">Connected ${esc(d)}</small>`;
-      }else if(c.state==="error"){
-        right=c.connect_url
-          ?`<button class="btn sm" data-cxconnect="${esc(c.kind)}"${busy?" disabled":""}>${busy?"Opening…":"Retry"}</button>`
-          :`<span class="cxr-st">Needs attention</span>`;
-        const d=day(c.last_error_at);
-        sub=`<small style="color:var(--danger,#C4685E)">Stopped${d?" "+esc(d):""} — ${esc(c.last_error||"Sync failed")}</small>`;
-      }else if(c.state==="available"&&c.connect_url){
-        right=`<button class="btn sm" data-cxconnect="${esc(c.kind)}"${busy?" disabled":""}>${busy?"Opening…":"Connect"}</button>`;
-      }else if(c.state==="not_configured"&&c.requires_approval){
-        right=`<span class="cxr-st">Not yet</span>`;
-        sub=`<small>${esc(c.requires_approval)} — Sporv is waiting on Google to approve this API access, so there is no Connect button to click yet.</small>`;
-      }else if(c.state==="not_configured"){
-        right=`<span class="cxr-st">Not yet</span>`;
-        sub=`<small>${esc(c.note||"Not switched on for this deployment yet.")}</small>`;
-      }else{
-        right=`<span class="cxr-st">Available</span>`;
-        if(c.note)sub=`<small>${esc(c.note)}</small>`;
-      }
-      return `<div class="cxr${cls}">
-        <div class="cxr-l"><b>${esc(c.label)}</b><small><b>Reads:</b> ${esc(c.reads)}</small><small><b>Writes:</b> ${esc(c.writes)}</small>${sub}</div>
-        <div class="cxr-r">${right}</div></div>`;
-    };
-    const tile=(o)=>`<div class="cxr${o.on?" on":""}${o.soon?" soon":""}">
-      <div class="cxr-l"><b>${esc(o.name)}</b><small>${o.desc}</small>
-        ${o.on&&o.last?`<small class="num">Last read ${esc(o.last)}</small>`:""}
-        ${o.err?`<small style="color:var(--danger,#C4685E)">Stopped ${esc(o.errAt||"")} — ${esc(o.err)}</small>`:""}</div>
-      <div class="cxr-r">${o.on
-        ?`<span class="cxr-st">Connected</span>${o.manage?` <a class="btn ghost sm" href="${o.manage}" target="_blank" rel="noopener">Manage</a>`:""}`
-        :(o.soon?`<span class="cxr-st">Not yet</span>`
-          :`<button class="btn sm" ${o.attr||""}${S.connectBusy&&o.attr&&o.attr.indexOf("connectpayouts")>-1?" disabled":""}>${esc(o.cta||"Connect")}</button>`)}</div></div>`;
-    const group=(h,d,tiles)=>`<div class="sthead" style="margin-top:22px"><h2>${esc(h)}</h2><p>${d}</p></div>
-      <div class="stcard">${tiles.join("")}</div>`;
-    const emailTiles=["gmail","google_calendar","microsoft365","sms"].map(cxFor).filter(Boolean);
-    const recordTiles=["google_sheets","google_drive","quickbooks","google_business_profile"].map(cxFor).filter(Boolean);
-    const anyOn=ts=>ts.some(c=>c.state==="connected");
-    body=`<div class="sthead"><h2>Connectors</h2><p>What Sporv reads from, and what it is allowed to write back.
-        Nothing here can send on its own — the strongest write any connector holds is a draft you approve.</p></div>
-      ${S.cxLoading?`<div class="stnote">Checking which connections are live…</div>`:""}
-      ${(S.cxStatus&&S.cxStatus.failed)?`<div class="err">Could not reach the connection status. Reload the page to try again.</div>`:""}
-      ${group("Money","Where dues actually move.",[
-        tile({name:"Stripe",on:!!pv.stripe_charges_enabled,attr:'data-connectpayouts="1"',
-          manage:"https://dashboard.stripe.com",
-          cta:pv.stripe_onboarding_started?"Finish setup":"Connect with Stripe",
-          desc:"Reads charges, refunds, failed payments, card expiry and payouts. Writes charges and invoices you approve. Dues land in your own Stripe account."})])}
-      ${group("Where your roster lives","How members got here, and how to bring more.",[
-        tile({name:"Your website",on:!!site.url,last:day(site.extracted_at),attr:'data-cxsite="1"',cta:"Add site",
-          desc:site.url?`Reading ${esc(site.url)} for programs, prices, schedule and staff. Writes nothing back.`
-            :"Reads your programs, prices, schedule and staff from your public pages. Writes nothing back."}),
-        tile({name:"CSV or export file",on:batches.length>0,last:day(lastImport),attr:'data-cximport="1"',cta:"Import",
-          desc:batches.length?`${batches.length} import${batches.length===1?"":"s"} on record. We never ask for your password to TeamSnap or SportsEngine and never sign in as you.`
-            :"Reads a roster export from SportsEngine, TeamSnap, LeagueApps, Spond or a plain sheet. We never ask for your password to those tools."})])}
-      ${group("Email and calendar",anyOn(emailTiles)
-          ?"Sporv reads these and drafts from them. It can never send."
-          :"Connect your inbox so the agent has something to watch. Sporv reads these and drafts from them — it can never send.",
-        emailTiles.map(cxrTile))}
-      ${group("Records","Your records and listings. Each tile states what it reads and the most it can ever write back — which tops out at a draft you approve.",
-        recordTiles.map(cxrTile))}
-      ${S.connectError?`<div class="err" style="margin-top:10px">${esc(S.connectError)}</div>`:""}
-      <div class="stnote" style="margin-top:18px"><b>We never hold your login to another tool.</b>
-        Sporv does not ask for your TeamSnap or SportsEngine password and does not sign in as you.
-        Roster migration happens through an export you download, or a supervised import we do with you.</div>`;
+    /* Same grouped tile renderer as the top-level Connect surface (2026-09-20). */
+    body=connectorsGroupsHTML(`<div class="sthead"><h2>Connectors</h2><p>What Sporv reads from, and what it is allowed to write back.
+        Nothing here can send on its own — the strongest write any connector holds is a draft you approve.</p></div>`);
   }
   if(tab==="money"){
     const pol=pv.refund_policy||"prorate_weeks";
@@ -13384,6 +13561,7 @@ function coachBody(t){
   const pp=SEED.providerProfile;
   if(t==="queue") return coachQueuePage();
   if(t==="settings") return coachSettingsPage();
+  if(t==="connect") return connectPageHTML();
   if(t==="dashboard") return coachHomePage();
   if(t==="roster") return coachClientsPage();
   if(t==="schedule") return coachSchedulePage();
@@ -13964,6 +14142,15 @@ function modalHTML(){
       <p style="text-align:center;color:var(--faint);font-size:var(--t-small);margin-top:11px">
         We'll reply by email — there's no automated scheduling yet.</p>
     </form>`);
+
+  /* The connector picker sheet (2026-09-20): opened from the chat
+     composer's + button. One-tap cards for all 11 connectors, rendered from
+     the cached server truth — a centred dialog with the standard X / scrim /
+     Escape dismissal. */
+  if(m.type==="cxsheet") return wrap("Connect your tools",`
+    <p style="color:var(--muted);margin-bottom:16px;font-size:var(--text-sm)">One tap connects each tool — Sporv reads from it and drafts the work. Nothing here sends on its own.</p>
+    ${cxSheetHTML()}
+    ${S.connectError?`<div class="err" style="margin-top:10px">${esc(S.connectError)}</div>`:""}`);
 
   /* The one auth surface, Airbnb-shaped: identifier field → Continue, a rule
      that says "or", then stacked provider rows. It is always dismissible — the
@@ -17540,6 +17727,9 @@ document.querySelectorAll('.sig-ai-coach').forEach(sigAiCoachWire);
      printed as the server worded it, because "your plan does not include this
      connector" and "Google connections are not available yet" are different
      problems and a generic failure hides which one you have. */
+  /* Connector prominence (2026-09-20): the composer's + button opens the
+     one-tap picker sheet. The cache warms on the same render pass. */
+  $("[data-cxopen]").forEach(b=>b.onclick=()=>{loadConnectors();S.modal={type:"cxsheet"};render();});
   $("[data-cxconnect]").forEach(b=>b.onclick=()=>{
     const kind=b.dataset.cxconnect;
     if(S.cxBusy) return;
@@ -20091,8 +20281,18 @@ function askCoach(q){
       const docRead=calls.find(c=>c&&c.kind==="read"&&c.tool==="create_document");
       const document=(docRead&&docRead.result&&docRead.result.created&&docRead.result.document_id)
         ?{document_id:String(docRead.result.document_id),title:String(docRead.result.title||"Document"),format:String(docRead.result.format||"handout")}:null;
+      /* INLINE CONNECT CARD (2026-09-20): a read_connected result carrying
+         {code:'not_connected'} means the agent reached for a connector the
+         club has not connected. The turn carries the kind(s) so the chat
+         renders a one-tap connect card beneath the reply — the agent's prose
+         points at it. Deduped: one turn can touch several connectors. */
+      const connectKinds=[...new Set(calls
+        .filter(c=>c&&c.tool==="read_connected"&&c.result&&typeof c.result==="object"&&c.result.code==="not_connected")
+        .map(c=>String(c.result.kind||(c.args&&c.args.kind)||"").toLowerCase())
+        .filter(Boolean))];
       S.chatThinking=false;
-      S.chat=[...S.chat,{role:"coach",text:reply,tools,proposal,facilities,leads,leadsSaved,document,draftOutcome}];
+      S.chat=[...S.chat,{role:"coach",text:reply,tools,proposal,facilities,leads,leadsSaved,document,draftOutcome,
+        connectKinds:connectKinds.length?connectKinds:null}];
       chatArchive(); /* F2 persistence (2026-09-19): archive the AI response, not just the user turn */
       /* Reply landed while the dock was closed → badge the FAB so the coach
          sees there's something waiting; cleared when they reopen. */
