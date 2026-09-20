@@ -291,7 +291,7 @@ const SYSTEM = [
   "THE LAW — you PROPOSE, deterministic code DISPOSES:",
   "- You NEVER execute a write, send a message, move money, or cancel anything. Write/draft tools are PROPOSALS the coach approves with a tap; set needs_confirmation=true for any of them.",
   "- One turn = at most ONE write/draft tool. Reads may be combined.",
-  "- MESSAGES (draft_message / draft_bulk_message, 2026-09-20): when the coach asks you to message, email, notify, or remind someone, call draft_message with args.to = who should get it — an athlete's name ('Mia Rossi'), a team name ('U12 Thunderbolts'), 'all parents', or 'coaches' — plus optional args.subject and args.body = the message itself. Use draft_bulk_message for the same when the message goes to a group. The tool resolves the recipients and queues one DRAFTED row per recipient in the Approvals tab (deterministic write, receipt-checked). The draft must be PLAIN, WARM, and SHORT — a note a busy parent reads in 3 seconds — echo the coach's key facts verbatim, name the resolved session in the opening line when the message is about a session, and end with the 'Why: ' line. Say drafts were queued ONLY if the result shows queued > 0 — then name the recipients and point to the Approvals tab. NEVER claim anything was sent — delivery happens only after the coach's own approval. If the tool returns an error (no match, ambiguous name), relay it plainly and ask — never guess a recipient. You may call resolve_audience first when you need to check who 'to' resolves to before drafting.",
+  "- MESSAGES (draft_message / draft_bulk_message, 2026-09-20): when the coach asks you to message, email, notify, or remind someone, call draft_message with args.to = who should get it — an athlete's name ('Mia Rossi'), SEVERAL names ('Mia Rossi and Ava Novak'), a team name ('U12 Thunderbolts'), 'all parents', or 'coaches' — plus optional args.subject and args.body = the message itself. Use draft_bulk_message for the same when the message goes to a group. For attendance-based asks ('players below 60%'), compute each athlete's rate from the ATTENDANCE block in CONTEXT, then pass those names as args.to. The tool resolves the recipients and queues one DRAFTED row per recipient in the Approvals tab (deterministic write, receipt-checked). The draft must be PLAIN, WARM, and SHORT — a note a busy parent reads in 3 seconds — echo the coach's key facts verbatim, name the resolved session in the opening line when the message is about a session, and end with the 'Why: ' line. Say drafts were queued ONLY if the result shows queued > 0 — then name the recipients and point to the Approvals tab. NEVER claim anything was sent — delivery happens only after the coach's own approval. If the tool returns an error (no match, ambiguous name), relay it plainly and ask — never guess a recipient. You may call resolve_audience first when you need to check who 'to' resolves to before drafting.",
   "- draft_recap / camp_broadcast / draft_waitlist_offer remain PROPOSALS the coach approves in the chat card (unchanged).",
   "- create_note drafts a private session note for one athlete: args.athlete = the athlete's name as the coach said it (resolved against the roster client-side; if it matches two people, ask — intent='clarify'), optional args.title, and args.body = the note content (what to work on / what happened). It is a PROPOSAL the coach approves; never say it is saved.",
   "",
@@ -605,7 +605,25 @@ export async function resolveAudience(to: string, userClient: any, orgId: string
     if (!r.length) return { recipients: [], error: `The ${teamHit.name} roster has no reachable families yet.` };
     return { recipients: r, audience: String(teamHit.name) };
   }
-  // Athlete name → that athlete's guardian(s).
+  // Athlete name(s) → those athletes' guardian(s). Accepts comma- and
+  // "and"-separated lists ("Mia Rossi and Ava Novak", "Mia, Ava").
+  const parts = raw.split(/\s*(?:,|\band\b|\&)\s*/i).map((s) => s.trim().toLowerCase()).filter(Boolean);
+  if (parts.length > 1) {
+    const all: AudienceRecipient[] = [];
+    const problems: string[] = [];
+    for (const part of parts) {
+      const hits = d.members.filter((m) => {
+        const fn = fullName(m);
+        return fn === part || fn.startsWith(part + " ") || (part.length >= 3 && fn.includes(part));
+      });
+      if (hits.length !== 1) { problems.push(hits.length > 1 ? `"${part}" matches ${hits.length} athletes` : `no athlete named "${part}"`); continue; }
+      all.push(...toRecipients(hits));
+    }
+    if (problems.length) return { recipients: [], error: problems.join("; ") + " — please clarify the names." };
+    const r = all.filter((x, i, a) => a.findIndex((y) => y.guardian_id === x.guardian_id) === i);
+    if (!r.length) return { recipients: [], error: "None of those athletes have a linked guardian to message." };
+    return { recipients: r, audience: parts.join(", ") + "'s families" };
+  }
   const nameHits = d.members.filter((m) => {
     const fn = fullName(m);
     return fn === t || fn.startsWith(t + " ") || (t.length >= 3 && fn.includes(t));
@@ -1022,6 +1040,19 @@ Deno.serve(async (req) => {
     ctx.push("");
     ctx.push(staffList.length ? "STAFF (message them with args.to='coaches'):" : "STAFF: (just you).");
     for (const s of staffList) ctx.push(`- ${s.name ?? "(unnamed)"} (${s.role})`);
+    ctx.push("");
+    // Attendance summary (completed sessions; latest mark wins per athlete/day).
+    const att = await q(`WITH ranked AS (
+        SELECT ar.member_id, ar.state,
+               ROW_NUMBER() OVER (PARTITION BY ar.member_id, e.starts_at::date ORDER BY ar.marked_at DESC NULLS LAST, ar.id DESC) AS rn
+        FROM attendance_record ar JOIN event e ON e.id = ar.event_id
+        WHERE ar.provider_id = '${org.id}' AND e.status = 'completed')
+      SELECT (ta.first_name || ' ' || ta.last_name) AS nm,
+             COUNT(*) FILTER (WHERE ranked.state = 'present') AS present, COUNT(*) AS total
+      FROM ranked JOIN team_athletes ta ON ta.id = ranked.member_id
+      WHERE rn = 1 GROUP BY 1 ORDER BY 1`);
+    ctx.push("ATTENDANCE (completed sessions, present/total — use for 'below X%' filters):");
+    ctx.push(att.length ? att.map((a: any) => `- ${a.nm}: ${a.present}/${a.total}`).join("\n") : "(no attendance recorded)");
     ctx.push("");
     ctx.push("MEMORY (durable facts the coach taught you across sessions — apply without being reminded):");
     ctx.push(memories.length
