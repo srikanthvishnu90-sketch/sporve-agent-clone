@@ -25,7 +25,7 @@
 <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16.png">
 <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
 <link rel="manifest" href="/site.webmanifest">
-<meta name="sporve-build" content="2ac239a5125e46b7">
+<meta name="sporve-build" content="05f8a01a68533558">
 </head>
 <body>
 <noscript><h1>Sporv — Every sport. One app.</h1><p>Sporv connects families and athletes with coaches, trainers, camps, and teams across more than 20 sports. Please enable JavaScript to use the app.</p></noscript>
@@ -1217,12 +1217,12 @@ img{max-width:100%;display:block}
 .imp-empty{color:var(--faint);font-size:var(--text-sm);margin:12px 0 18px}
 .imp-actions{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-top:16px}
 /* review queue (obligations) */
-.obcard{border:1px solid var(--line);border-radius:12px;padding:14px 16px;margin-top:10px;background:var(--raise)}
-.obtop{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:6px}
+.obcard{border:1px solid var(--line);border-radius:12px;padding:16px;margin-top:12px;background:var(--raise)}
+.obtop{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:8px}
 .obsrc{color:var(--faint);font-size:var(--text-xs)}
 .obtitle{display:block;font-size:var(--text-base);line-height:1.4}
-.obdetail{color:var(--muted);font-size:var(--text-sm);line-height:1.55;margin-top:5px}
-.obacts{display:flex;align-items:center;gap:8px;margin-top:11px;flex-wrap:wrap}
+.obdetail{color:var(--muted);font-size:var(--text-sm);line-height:1.55;margin-top:8px}
+.obacts{display:flex;align-items:center;gap:8px;margin-top:12px;flex-wrap:wrap}
 .err{color:#C4362F}
 .cw .eyebrow,.cw legend.eyebrow{color:#57606E}
 .cw .num,.cw .cob-help{color:#57606E}
@@ -1844,6 +1844,9 @@ button.tnav.tnav-cta:hover{background:#FFFFFF;color:#0B0D0F;border-color:#FFFFFF
    48px is the default height; .sm is the only other, at 36px. */
 .btn{
   display:inline-flex;align-items:center;justify-content:center;gap:8px;
+  flex:none; /* a label never squeezes its button in a tight row */
+  -webkit-appearance:none;appearance:none; /* iOS Safari native chrome
+    overrides custom height/padding and breaks label fit — kill it */
   height:var(--h-ctl);padding:0 20px;border-radius:var(--r-ctl);
   font-weight:600;font-size:var(--t-small);letter-spacing:-.008em;
   /* Primary CTA is SLATE, not orange. The token system's law is that black +
@@ -4314,12 +4317,12 @@ body.reg-coach .greet{font-size:24px}
 .ob2amt{margin-left:auto;font-size:var(--text-sm)}
 .ob2clamp{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;cursor:pointer}
 .ob2clamp.ob2open{-webkit-line-clamp:unset}
-.ob2why{display:flex;align-items:center;gap:8px;margin-top:8px;font-size:var(--text-xs);color:var(--faint);flex-wrap:wrap}
-.ob2sig{font-size:var(--text-xs);color:var(--slate-ink);background:var(--accent-tint,#EEF2F6);border:1px solid var(--rule);border-radius:5px;padding:1px 6px}
+.ob2why{display:flex;align-items:center;gap:8px;margin-top:12px;font-size:var(--text-xs);color:var(--faint);flex-wrap:wrap}
+.ob2sig{font-size:var(--text-xs);color:var(--slate-ink);background:var(--accent-tint,#EEF2F6);border:1px solid var(--rule);border-radius:999px;padding:2px 8px}
 #app.coachdark .ob2sig{color:#9DB0CB;background:rgba(107,127,158,.12);border-color:rgba(107,127,158,.34)}
 .ob2tone{margin-left:auto;display:inline-flex;align-items:center;gap:4px}
 .ob2group{margin-top:12px}
-.ob2gh{display:flex;align-items:center;gap:8px;padding:0 2px 8px}
+.ob2gh{display:flex;align-items:center;gap:8px;padding:0 0 12px}
 .ob2gh>b{font-size:var(--text-xs);font-weight:700;letter-spacing:.09em;text-transform:uppercase;color:var(--faint)}
 .ob2gh .num{font-size:var(--text-xs);color:var(--faint)}
 .obholding{opacity:.45}
@@ -13489,7 +13492,7 @@ function coachQueuePage(){
         <span class="ob2meta">${esc(m.label)}${o.sourceKind&&o.sourceKind!=="agent"?` · from ${esc(OBLIG_SRC[o.sourceKind]||o.sourceKind)}`:""}</span>
         ${o.amountCents!=null?`<span class="ob2amt num">$${(o.amountCents/100).toFixed(o.amountCents%100?2:0)}</span>`:""}
       </div>
-      ${o.guardianName&&o.title?`<b class="obtitle">${esc(o.title)}</b>`:""}
+      ${o.guardianName&&o.title?`<b class="obtitle" style="margin-top:8px">${esc(o.title)}</b>`:""}
       ${o.detail?`<p class="obdetail ob2clamp" data-obexpand="1" style="white-space:pre-line">${esc(o.detail)}</p>`:""}
       <div class="ob2why">
         ${why?`Why <span class="ob2sig num">${esc(why)}</span>`:""}
@@ -13519,7 +13522,7 @@ function coachQueuePage(){
     :"";
   return `<div class="sec-head" style="margin-top:18px"><div>
       <h1>Queue</h1>
-      <p style="color:var(--muted);margin-top:5px;font-size:var(--text-base)">The work Sporv already did for you — review and approve. Nothing is sent or charged until you say so.</p>
+      <p style="color:var(--muted);margin-top:8px;font-size:var(--text-base)">The work Sporv already did for you — review and approve. Nothing is sent or charged until you say so.</p>
     </div>${liveOrg?`<span style="display:flex;gap:8px;align-items:center">
       ${bulkN>3?`<button class="btn ghost sm" data-oblig-approveall="1"${S.bulkApproving?" disabled":""}>${S.bulkApproving?"Approving…":"Approve all "+bulkN}</button>`:""}
       <button class="btn ghost sm" data-agent-read="1"${S.readRunning?" disabled":""}>${S.readRunning?"Scanning…":"Scan now"}</button>
@@ -13868,13 +13871,13 @@ function coachBody(t){
       <div class="sec-head" style="margin:0"><h3>Waiting for you</h3>
         <span class="pill warn">${drafts.length} draft${drafts.length===1?"":"s"}</span></div>
       <div style="display:flex;flex-direction:column;gap:10px;margin-top:12px">
-        ${drafts.map((d,i)=>`<div class="panel" style="display:flex;flex-direction:column;gap:7px">
+        ${drafts.map((d,i)=>`<div class="panel" style="display:flex;flex-direction:column;gap:8px">
           <div class="k" style="${eb}">${esc(d.kind)}</div>
           <div style="color:var(--muted);font-size:var(--text-sm)">${esc(d.to)}</div>
           <div style="color:var(--faint);font-size:var(--text-xs)">✦ Drafted from: ${esc(d.src)}</div>
           <div class="apv-body" contenteditable="true" spellcheck="false" id="apvBody${i}" role="textbox"
             aria-label="Draft message — editable">${esc(d.body)}</div>
-          <div style="display:flex;gap:8px;align-items:center">
+          <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
             <button class="btn sm" data-qapprove="${i}">Approve &amp; send</button>
             <button class="btn ghost sm" data-qdismiss="${i}">Dismiss</button>
             <span style="margin-left:auto;color:var(--faint);font-size:var(--text-xs)">Editable — your edits are what sends.</span>
