@@ -177,10 +177,10 @@
     return `<section class="step on" data-s="4"><h1>Connect what you already use</h1>
       <p class="sub">Read-only where it can be. Nothing is sent from any of these — Sporv drafts, you approve. Skip anything; add it later from Settings.</p>
       <div class="conn">
-        ${tile("gmail", "GM", "Gmail", "Inbound parent email, tournament PDFs, league notices. Read-only scope — it cannot send.", 'data-cxgoogle="gmail"')}
-        ${tile("google_calendar", "GC", "Google Calendar", "Practices, games, conflicts. Changes you approve are written back.", 'data-cxgoogle="google_calendar"')}
-        ${tile("google_sheets", "SH", "Google Sheets", "The spreadsheet your club actually runs on. Read-only.", 'data-cxgoogle="google_sheets"')}
-        ${tile("google_drive", "DR", "Google Drive", "Waivers, forms and PDFs you already store. Read-only.", 'data-cxgoogle="google_drive"')}
+        ${tile("gmail", "GM", "Gmail", "Inbound parent email, tournament PDFs, league notices. Read-only scope — it cannot send.", 'data-cxconnect="gmail"')}
+        ${tile("google_calendar", "GC", "Google Calendar", "Practices, games, conflicts. Changes you approve are written back.", 'data-cxconnect="google_calendar"')}
+        ${tile("google_sheets", "SH", "Google Sheets", "The spreadsheet your club actually runs on. Read-only.", 'data-cxconnect="google_sheets"')}
+        ${tile("google_drive", "DR", "Google Drive", "Waivers, forms and PDFs you already store. Read-only.", 'data-cxconnect="google_drive"')}
         <button class="cn" data-obgo="5"><span class="ic">CSV</span><span class="b"><b>A roster export or CSV</b><small>SportsEngine, TeamSnap, LeagueApps, Spond, or a plain sheet. Next step.</small></span><span class="st">Upload</span></button>
       </div>
       <p class="note"><b>Stripe</b> is connected from Money once you are in — identity checks for payouts take days, so start it early, but it never blocks setup.</p>
@@ -215,6 +215,11 @@
     const o = ob(); if (signedIn() && !o.loaded) resume(); if (!signedIn() && !o.providers) loadProviders();
     if (!signedIn() && o.step !== "1" && o.step !== "1b") o.step = "1";
     const s = o.step, full = s !== "1";
+    /* The step-4 tiles use the same server-gated [data-cxconnect] flow as
+       every other surface: a tile only offers Connect when the server handed
+       it a working connect_url. Warm the cache here so the tiles are live
+       when the step renders; loadConnectors() no-ops once loaded/loading. */
+    if (s === "4" && typeof loadConnectors === "function") loadConnectors();
     const body = { "1": step1, "1b": step1b, "2": step2, "3": step3, "4": step4, "5": step5, "6": step6, "7": step7 }[s]();
     const w = why(s), next = s === "5" ? "Run Sporv" : s === "7" ? "Open dashboard" : "Continue";
     const showNext = !(s === "1" || s === "1b" || (s === "6" && !(S.agentRun && S.agentRun.done)));

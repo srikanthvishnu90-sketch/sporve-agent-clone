@@ -67,6 +67,10 @@ test('the model provider is unavailable: the home renders fully because no block
   await page.waitForFunction(() => typeof S === 'object' && S.auth?.status === 'verified' && !!S.coachProvider, null, { timeout: 15000 });
   await page.evaluate(() => { S.coachTab = 'dashboard'; render(); }); await page.waitForFunction(() => S.dashHome && !S.dashHome.loading, null, { timeout: 10000 });
   const text = await page.evaluate(() => document.body.innerText);
-  assert.match(text, /needs you/i); assert.equal(calls.length, 0, 'the home never called the model'); assert.ok(!log.some((l) => l.kind === 'fn' && /ai|chat|gateway/.test(l.fn)));
+  assert.match(text, /needs you/i); assert.equal(calls.length, 0, 'the home never called the model');
+  /* The model surface is exactly ai-chat / ai-gateway. A loose /ai/ would
+     false-positive on connectors-available ("avai-lable"), which is a
+     registry probe, not a model call. */
+  assert.ok(!log.some((l) => l.kind === 'fn' && /ai-chat|ai-gateway/.test(l.fn)));
   await ctx.close();
 });

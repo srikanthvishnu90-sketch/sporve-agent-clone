@@ -115,7 +115,7 @@ test('2+3. signup: every button works, and what is entered is saved and shown af
   // ── step 4: connect ──
   await noteButtons('4');
   for (const k of ['gmail', 'google_calendar', 'google_sheets', 'google_drive']) {
-    const before = log.length; await click(`[data-cxgoogle="${k}"]`, '4 · connect ' + k);
+    const before = log.length; await click(`[data-cxconnect="${k}"]`, '4 · connect ' + k);
     await page.waitForFunction(() => S.cxBusy === null || S.cxBusy === undefined || true); // the handler hands off to Google (stubbed to a no-op URL) and leaves busy set, as it would before a real navigation
     assert.ok(log.slice(before).some((l) => l.kind === 'fn' && l.fn === 'google-oauth-start' && l.body.kind === k), `${k}: OAuth start was requested`);
     await page.evaluate(() => { S.cxBusy = null; render(); }); await settle(page);

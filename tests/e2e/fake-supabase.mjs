@@ -144,7 +144,26 @@ export async function mount(page, db) {
       return json(fn in answers ? answers[fn] : null);
     }
     // ── functions ──
-    if (path.startsWith('/functions/v1/')) { const fn = path.split('/')[3]; log.push({ kind: 'fn', fn, body }); return json(fn === 'google-oauth-start' ? { url: 'javascript:void(0)' /* a real URL would navigate the test page away; the SPA hands off to it exactly as it would to Google */ } : {}); }
+    if (path.startsWith('/functions/v1/')) {
+      const fn = path.split('/')[3]; log.push({ kind: 'fn', fn, body });
+      /* connectors-available: mirror the real edge function's shape — the
+         tiles the client renders, with connect_url for the OAuth kinds, so
+         the [data-cxconnect] flow under test starts a real OAuth start. */
+      if (fn === 'connectors-available') {
+        const googleKinds = ['gmail', 'google_calendar', 'google_sheets', 'google_drive'];
+        const labels = { gmail: 'Gmail', google_calendar: 'Google Calendar', google_sheets: 'Google Sheets', google_drive: 'Google Drive',
+          stripe: 'Stripe', website: 'Your website', file_import: 'CSV or export file', microsoft365: 'Outlook and Microsoft 365',
+          quickbooks: 'QuickBooks', sms: 'Text messages', google_business_profile: 'Google Business Profile' };
+        const connectors = Object.keys(labels).map((kind) => {
+          const tile = { kind, label: labels[kind], group: 'Test', provider: 'google', oauth: googleKinds.includes(kind),
+            write_mode: 'none', state: 'available' };
+          if (googleKinds.includes(kind)) tile.connect_url = 'https://fake.supabase.co/functions/v1/google-oauth-start?kind=' + kind;
+          return tile;
+        });
+        return json({ available: Object.keys(labels), connected: [], connectors });
+      }
+      return json(fn === 'google-oauth-start' ? { url: 'javascript:void(0)' /* a real URL would navigate the test page away; the SPA hands off to it exactly as it would to Google */ } : {});
+    }
     // ── rest ──
     if (path.startsWith('/rest/v1/')) {
       const table = path.split('/')[3]; const params = url.searchParams; const prefer = req.headers()['prefer'] || '';

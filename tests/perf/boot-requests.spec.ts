@@ -1,6 +1,9 @@
 // tests/perf/boot-requests.spec.ts — audit 2026-09-17 P1-5 (the request half).
-// A returning org's cold boot to its home issues ≤ 4 backend requests: the
-// profile, the workspace row, the roster, the home RPC. Everything a tab reads
+// A returning org's cold boot to its home issues ≤ 5 backend requests: the
+// profile, the workspace row, the roster, the home RPC, and the connector
+// truth probe. The fifth arrived with connector prominence (2026-09-20): the
+// rail's glanceable connector dot is live on first paint, and the probe is
+// one fetch, shared by every surface, once per session. Everything a tab reads
 // loads when that tab renders, once per session. Measured in a real browser
 // over the fake backend from a real http origin.
 import test from 'node:test';
@@ -21,10 +24,10 @@ async function bootTo(tab: string | null) {
   if (tab) { seen.length = 0; await page.evaluate((t: string) => { S.coachTab = t; render(); }, tab); await page.waitForTimeout(800); }
   const after = seen.slice(); await ctx.close(); return { boot, after };
 }
-test('cold boot to the home: 4 requests, named', async () => {
+test('cold boot to the home: 5 requests, named', async () => {
   const { boot } = await bootTo(null);
-  assert.ok(boot.length <= 4, `boot issued ${boot.length}: ${boot.join(' | ')}`);
-  assert.deepEqual([...boot].sort(), ['GET /rest/v1/profiles', 'GET /rest/v1/team_athletes', 'POST /rest/v1/rpc/dashboard_home', 'POST /rest/v1/rpc/my_workspace']);
+  assert.ok(boot.length <= 5, `boot issued ${boot.length}: ${boot.join(' | ')}`);
+  assert.deepEqual([...boot].sort(), ['GET /rest/v1/profiles', 'GET /rest/v1/team_athletes', 'POST /functions/v1/connectors-available', 'POST /rest/v1/rpc/dashboard_home', 'POST /rest/v1/rpc/my_workspace']);
   console.log(`   boot: ${boot.length} request(s)`);
 });
 test('the queue and operations tabs load their own rows when opened, once', async () => {
