@@ -324,7 +324,7 @@ const DRAFT_TOOL = {
       to: {
         type: "string",
         description:
-          "Recipient descriptor EXACTLY as the coach said it ('all parents', 'Mia Rossi and Ava Novak', 'coaches', 'U12 Thunderbolts'). Never resolve names yourself — deterministic code resolves them.",
+          "RESOLVED recipient names — full athlete names from CONTEXT joined with ' and ' (e.g. 'Mia Rossi and Ava Novak'), a team name from CONTEXT (e.g. 'U12 Thunderbolts'), 'all parents', or 'coaches'. When the coach gives a filter ('below 60% attendance'), resolve it against the ATTENDANCE block yourself and put the matching names here. NEVER copy the coach's raw filter phrase — the server cannot resolve it and the draft fails.",
       },
       subject: { type: "string", description: "Short subject line; may be empty." },
       body: { type: "string", description: "The draft message body." },
@@ -354,6 +354,20 @@ const DRAFT_SYSTEM = [
   "- clarify INSTEAD of a draft ONLY when the WHO matches two or more people, or the WHAT is entirely missing and cannot be worked around (e.g. 'remind the coaches about the schedule change' when no change was ever described).",
   "- NEVER output clarify to ask permission to draft. NEVER ask 'should I draft this?'.",
   "- Output PLAIN TEXT in body — no markdown headings, no bold.",
+  "",
+  "WORKED EXAMPLES (follow these exactly):",
+  "EXAMPLE 1 — filter:",
+  "Coach message: 'Message the parents of players with attendance below 60% about an extra training session on Sunday.'",
+  "CONTEXT ATTENDANCE: Mia Rossi: 7/16 (44%), Ava Novak: 9/16 (56%), Sofia Marino: 11/16 (69%), Lucas Meyer: 12/16 (75%).",
+  "CONTEXT SESSIONS: U12 Sunday Training 2026-09-27 (time to be confirmed).",
+  "CORRECT: to='Mia Rossi and Ava Novak', body names Sunday, September 27 and says 'time to be confirmed — just reply to this message'.",
+  "WRONG: to='parents of players with attendance below 60%' (raw phrase — the server cannot resolve it, the draft fails).",
+  "WRONG: asking which Sunday or what time (the session default resolves it).",
+  "EXAMPLE 2 — known session:",
+  "Coach message: 'Message Mia's parent about Saturday.'",
+  "CONTEXT SESSIONS: U12 Saturday Practice 2026-09-26 10:00 AM–11:30 AM.",
+  "CORRECT: to='Mia Rossi', body='Hi {guardian}, quick reminder: U12 Saturday Practice is this Saturday, September 26, 10:00–11:30 AM. See you on the field! Why: weekly practice reminder.'",
+  "WRONG: clarify='What should the message say?' (the session is known — asking is a failed turn).",
 ].join("\n");
 
 const SYSTEM = [
