@@ -12,10 +12,9 @@
 // it never trusts a code, an org id, or a redirect target from the query string.
 //
 // Intuit appends `realmId` (the QuickBooks company id) to the callback query
-// string. It is REQUIRED for every QuickBooks API call and is captured here.
-// org_connectors has no column that fits it (external_account is the
-// "Connected as" display; scopes is a text[]), so until a coordinator
-// migration adds one it is validated for presence and NOT persisted.
+// string. It is REQUIRED for every QuickBooks API call and is captured here,
+// persisted to org_connectors.external_id (external_account stays the
+// "Connected as" display; scopes is a text[]).
 
 // ── registry mirror (supabase/functions/_shared/connector-registry.mjs) ──
 export const FORBIDDEN_SCOPES: string[] = [
@@ -192,16 +191,15 @@ async function handler(req: Request): Promise<Response> {
     // quietly breaking in an hour.
     if (!token.refresh_token) return back('failed', kind, 'no_refresh_token');
 
-    // NOTE: realmId is deliberately not written here — org_connectors has no
-    // column for it (see header comment). Persisting it into external_account
-    // or scopes would corrupt those contracts. A coordinator migration adds
-    // the column; this function then writes it alongside the upsert.
+    // The realmId is persisted to org_connectors.external_id alongside the
+    // upsert — it is required for every QuickBooks API call, and
+    // external_account stays the "Connected as" display.
 
     const { data: connector, error: upsertError } = await admin
       .from('org_connectors')
       .upsert({
         provider_id: row.provider_id, kind, status: 'connected', write_mode: writeModeFor(kind),
-        external_account: null, scopes: granted, connected_by: row.user_id,
+        external_account: null, external_id: realmId, scopes: granted, connected_by: row.user_id,
         connected_at: new Date().toISOString(), revoked_at: null, updated_at: new Date().toISOString(),
       }, { onConflict: 'provider_id,kind' })
       .select('id').single();

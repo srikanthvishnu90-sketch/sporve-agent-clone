@@ -42,10 +42,11 @@ export const SCOPES_BY_KIND: Record<string, string[]> = {
 /**
  * 'apply' from the registry: we may change a calendar the human approved. We
  * hold Mail.Read only — we never request a send-capable or read-write mail
- * scope and we never use a send endpoint. NOTE: the live
- * org_connectors_no_send check constraint currently restricts microsoft365
- * to ('none','draft'); a coordinator migration must reconcile it before
- * 'apply' can be recorded.
+ * scope and we never use a send endpoint. The org_connectors_no_send check
+ * constraint permits 'apply' for microsoft365 (reconciled 2026-09-20):
+ * the no-send invariant is enforced at the OAuth layer by
+ * assertNoSendScope() below, which rejects any grant containing a
+ * send-capable mail scope.
  */
 export const WRITE_MODE_BY_KIND: Record<string, string> = {
   microsoft365: 'apply',

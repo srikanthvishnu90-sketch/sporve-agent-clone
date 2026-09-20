@@ -154,6 +154,7 @@ type ConnectorRow = {
   kind: string;
   status: string;
   external_account: string | null;
+  external_id: string | null;
   scopes: string[] | null;
 };
 
@@ -339,7 +340,10 @@ async function readMicrosoft365(
 async function readQuickBooks(
   token: string, p: { query: string; realm_id?: string }, row: ConnectorRow, signal: AbortSignal,
 ) {
-  const realmId = resolveRealmId(row.external_account, p.realm_id);
+  /* The realm lives on external_id (written by the OAuth callback); the
+     external_account fallback keeps older rows working. An explicit
+     params.realm_id still wins — the caller asked for that company. */
+  const realmId = resolveRealmId(row.external_id ?? row.external_account, p.realm_id);
   if (!realmId) {
     throw inputError(
       400, 'missing_realm_id',
@@ -555,7 +559,7 @@ Deno.serve(async (req) => {
 
       const { data: rows } = await admin
         .from('org_connectors')
-        .select('id, provider_id, kind, status, external_account, scopes')
+        .select('id, provider_id, kind, status, external_account, external_id, scopes')
         .eq('provider_id', providerId)
         .eq('kind', kind)
         .limit(1);
