@@ -7,7 +7,7 @@ import {stripTypeScriptTypes} from 'node:module';
 import {webcrypto} from 'node:crypto';
 import vm from 'node:vm';
 import {resolveAction, modelForEvent, autoOrFallback, enforceLifecycleDraft} from './policy.ts';
-import {withHttpDeadline as deadline, readBoundedJson} from '../_shared/http.ts';
+import {withHttpDeadline as deadline, readBoundedJson} from './_shared/http.ts';
 import {enforceMessageDraftGuardrail} from '../message-draft/guardrail.ts';
 
 const source = stripTypeScriptTypes((await readFile(new URL('./index.ts', import.meta.url), 'utf8'))
@@ -501,7 +501,7 @@ test('late model response cannot store a draft after the claim was requeued',asy
 });
 
 // Exercise the shared helper itself too, not only the injected handler stub.
-const voiceSource=stripTypeScriptTypes((await readFile(new URL('../_shared/coach_voice.ts',import.meta.url),'utf8'))
+const voiceSource=stripTypeScriptTypes((await readFile(new URL('./_shared/coach_voice.ts',import.meta.url),'utf8'))
   .replace(/^import\s+[\s\S]*?;\n/gm,'').replace('export async function buildCoachVoiceProfile','async function buildCoachVoiceProfile'));
 const voiceFamily={childId:'fixture-child',guardianUserId:'fixture-parent'};
 const voiceUpdate={id:'update-a',provider_id:'org-a',child_id:'fixture-child',athletes:{id:'fixture-child',parent_id:'fixture-parent'},approved_by:'owner-a',approved_at:'2026-09-02T00:00:00Z',

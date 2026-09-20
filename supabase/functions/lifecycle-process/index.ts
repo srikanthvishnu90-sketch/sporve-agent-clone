@@ -24,9 +24,9 @@
 // ============================================================================
 
 import { createClient } from "npm:@supabase/supabase-js@2";
-import { deliverPush } from "../_shared/push.ts";
-import { buildCoachVoiceProfile } from "../_shared/coach_voice.ts";
-import { withHttpDeadline, readBoundedJson } from "../_shared/http.ts";
+import { deliverPush } from "./_shared/push.ts";
+import { buildCoachVoiceProfile } from "./_shared/coach_voice.ts";
+import { withHttpDeadline, readBoundedJson } from "./_shared/http.ts";
 import {
   resolveAction,
   modelForEvent,
@@ -47,6 +47,12 @@ const SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 const GATEWAY_FN = Deno.env.get("GATEWAY_FUNCTION_NAME") ?? "ai-gateway";
 const RESEND_API_KEY = Deno.env.get("RESEND_API_KEY") ?? "";
 const MAIL_DOMAIN = Deno.env.get("MAIL_DOMAIN") ?? "mail.sporv.ai";
+// Twilio SMS send credentials (REST + env only — no OAuth, no send scopes).
+// The SMS pass below fires ONLY behind the same approved-only gate as email.
+const TWILIO_ACCOUNT_SID = Deno.env.get("TWILIO_ACCOUNT_SID") ?? "";
+const TWILIO_AUTH_TOKEN = Deno.env.get("TWILIO_AUTH_TOKEN") ?? "";
+const TWILIO_PHONE_NUMBER = Deno.env.get("TWILIO_PHONE_NUMBER") ?? "";
+const SMS_BODY_MAX = 1600;
 const PARENT_BASE_URL = (Deno.env.get("PARENT_BASE_URL") ?? "https://sporv.ai").replace(/\/+$/, "");
 const BATCH = Number(Deno.env.get("LIFECYCLE_BATCH") ?? 25);
 const GENERATION_DB_MS = 8_000;
@@ -108,6 +114,62 @@ async function resolveProvider(admin: Admin, providerId: string, signal: AbortSi
     ownerId: (data as { owner_id?: string } | null)?.owner_id ?? null,
     businessName: (data as { business_name?: string } | null)?.business_name ?? null,
   };
+}
+
+// ── SMS helpers (Twilio) ─────────────────────────────────────────────
+// Base64 without btoa (unavailable in some test harnesses); used only for the
+// Twilio Basic auth header.
+const B64CHARS = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
+function base64Encode(bytes: Uint8Array): string {
+  let out = "";
+  for (let i = 0; i < bytes.length; i += 3) {
+    const a = bytes[i], b = i + 1 < bytes.length ? bytes[i + 1] : 0, c = i + 2 < bytes.length ? bytes[i + 2] : 0;
+    const n = (a << 16) | (b << 8) | c;
+    out += B64CHARS[(n >> 18) & 63] + B64CHARS[(n >> 12) & 63]
+      + (i + 1 < bytes.length ? B64CHARS[(n >> 6) & 63] : "=")
+      + (i + 2 < bytes.length ? B64CHARS[n & 63] : "=");
+  }
+  return out;
+}
+
+/**
+ * Normalize a guardian phone to E.164. Strict by design: the number must
+ * already carry an explicit country code (leading +). A roster number without
+ * one is NOT guessed — the row is held for review so the director fixes the
+ * roster, the same philosophy as "bad address never sends" on the email path.
+ */
+function normalizePhone(raw: unknown): string | null {
+  if (typeof raw !== "string") return null;
+  const trimmed = raw.trim();
+  if (!trimmed.startsWith("+")) return null;
+  const e164 = "+" + trimmed.slice(1).replace(/[^\d]/g, "");
+  return /^\+[1-9]\d{7,14}$/.test(e164) ? e164 : null;
+}
+
+/**
+ * Send one SMS via the Twilio REST API. Called ONLY for rows that cleared the
+ * identical approved-only gate as the email pass (status='approved',
+ * approved_by set, sent_at null, claimed atomically per row). Never called for
+ * drafts, never for athletes/minors — the caller resolves the recipient from
+ * the verified guardians row only.
+ */
+async function sendSmsViaTwilio(to: string, body: string): Promise<{ sid?: string; error?: string }> {
+  const url = `https://api.twilio.com/2010-04-01/Accounts/${TWILIO_ACCOUNT_SID}/Messages.json`;
+  const creds = base64Encode(new TextEncoder().encode(`${TWILIO_ACCOUNT_SID}:${TWILIO_AUTH_TOKEN}`));
+  const form = `To=${encodeURIComponent(to)}&From=${encodeURIComponent(TWILIO_PHONE_NUMBER)}`
+    + `&Body=${encodeURIComponent(body.slice(0, SMS_BODY_MAX))}`;
+  try {
+    const resp = await fetch(url, {
+      method: "POST",
+      headers: { "Authorization": `Basic ${creds}`, "Content-Type": "application/x-www-form-urlencoded" },
+      body: form,
+    });
+    const j = await resp.json().catch(() => ({})) as { sid?: unknown; message?: unknown };
+    if (resp.ok && typeof j.sid === "string" && j.sid) return { sid: j.sid };
+    return { error: `twilio ${resp.status}: ${String(j?.message ?? "send failed")}`.slice(0, 200) };
+  } catch (e) {
+    return { error: `twilio transport: ${String(e)}`.slice(0, 200) };
+  }
 }
 
 /** Service-role reads need their own tenant proof; a foreign key alone is not it. */
@@ -294,12 +356,14 @@ Deno.serve(async (req) => {
       return json({ error: "Forbidden (service role or cron secret only)." }, 403);
     }
 
-    // ── EMAIL DELIVERY PASS (doc 08, spec rev 2026-09-02) ───────────────
+    // ── APPROVED DELIVERY PASS (doc 08, spec rev 2026-09-02; SMS added 2026-09-20)
     // Sends ONLY rows a human approved (approved_by NOT NULL — the Send click).
-    // Window -> send_after; bad address -> needs_review; 3 failures -> failed.
+    // Window -> send_after; bad address/phone -> needs_review; 3 failures -> failed.
+    // Rows with content.channel='sms' take the Twilio branch (same gate, same
+    // window, same atomic claim); every other row keeps the email/in-app path.
     // The processing claim limits overlapping ticks; it does NOT make provider
     // delivery and the database receipt atomic. Reconciliation remains required.
-    const emailSummary = { emailed: 0, emailSkipped: 0, emailFailed: 0, inApp: 0, windowDeferred: 0, needsReview: 0 };
+    const emailSummary = { emailed: 0, emailSkipped: 0, emailFailed: 0, inApp: 0, windowDeferred: 0, needsReview: 0, smsSent: 0, smsFailed: 0 };
     {
       const nowIso = new Date().toISOString();
       const { data: eRows, error: approvedReadError } = await admin.from("outbound_messages")
@@ -318,10 +382,16 @@ Deno.serve(async (req) => {
        // must never abort the tick for every other org. A row that keeps
        // throwing is retried at most 3 times, like the email-failure path.
        try {
-        const c = er.content as { body?: string; subject?: string; to_email?: string; guardian_id?: string; rsvp_token?: string } | null;
+        const c = er.content as { body?: string; subject?: string; to_email?: string; guardian_id?: string; rsvp_token?: string; channel?: string } | null;
         if (typeof c?.body !== "string" || !c.body.trim() || (!c.to_email && !c.guardian_id)) {
           throw new DeliveryPreconditionError("delivery_content_invalid");
         }
+        // SMS drafts carry content.channel='sms' (set at draft/approve time;
+        // outbound_messages has no channel column). They were selected above
+        // ONLY because status='approved' with approved_by set — the identical
+        // human-approval gate as email. They branch to the Twilio path below;
+        // the email path never touches them.
+        const smsChannel = c?.channel === "sms";
         // Spec 13 slice 1: an approved reminder / schedule change carries an
         // 'rsvp' guardian token minted at approval (001071). It becomes the
         // one-tap answer link here, and only here — the token is the secret,
@@ -365,22 +435,27 @@ Deno.serve(async (req) => {
 
         // resolve the guardian: claimed -> in-app now; else email path.
         let claimedUser: string | null = null; let gEmail: string | null = c.to_email ?? null; let gStatus = "ok";
+        let gPhone: string | null = null;
         if (c.guardian_id) {
           const { data: gg, error: guardianError } = await deliveryRead(admin.from("guardians")
-            .select("id, provider_id, user_id, email, email_status")
+            .select("id, provider_id, user_id, email, email_status, phone")
             .eq("id", c.guardian_id).eq("provider_id", er.provider_id).maybeSingle(), "guardian_recipient_unavailable");
-          const gr = gg as { id?: string; provider_id?: string; user_id?: string; email?: string; email_status?: string } | null;
+          const gr = gg as { id?: string; provider_id?: string; user_id?: string; email?: string; email_status?: string; phone?: string } | null;
           if (guardianError || !gr || gr.id !== c.guardian_id || gr.provider_id !== er.provider_id) {
             throw new DeliveryPreconditionError("guardian_recipient_unavailable");
           }
           claimedUser = gr?.user_id ?? null;
+          gPhone = gr?.phone ?? null;
           // Never fall back to a stale draft address or assume an unknown status
           // means consent. Claimed guardians still receive the in-app channel.
           gEmail = gr.email ?? null;
           gStatus = gr.email_status ?? "unknown";
         }
 
-        if (claimedUser) {
+        // An explicitly SMS-marked draft honors its channel even for a claimed
+        // guardian: the coach chose SMS, and the in-app branch must not also
+        // deliver (no double delivery). Non-SMS rows keep the existing path.
+        if (claimedUser && !smsChannel) {
           const { data: iClaim } = await admin.from("outbound_messages")
             .update({ status: "processing" }).eq("id", er.id).eq("status", "approved").select("id").maybeSingle();
           if (!iClaim) continue;
@@ -401,6 +476,50 @@ Deno.serve(async (req) => {
               status: "sent", sent_at: new Date().toISOString(), provider: "in-app", last_error: null,
             }).eq("id", er.id).is("sent_at", null);
             emailSummary.inApp++;
+          }
+          continue;
+        }
+
+        // ── SMS path (Twilio) ─────────────────────────────────────────
+        // Same gate as email: this row is here only because it is
+        // status='approved' with approved_by set (a human's Send click), the
+        // send window above was honored, and the per-row claim below is atomic.
+        // Recipient = the VERIFIED guardians row for this provider. Guardians
+        // and staff only — the phone is never read from an athlete/minor
+        // record, and there is no code path that does so.
+        if (smsChannel) {
+          if (!c.guardian_id) throw new DeliveryPreconditionError("sms_guardian_required");
+          if (!TWILIO_ACCOUNT_SID || !TWILIO_AUTH_TOKEN || !TWILIO_PHONE_NUMBER) {
+            throw new DeliveryPreconditionError("sms_provider_not_configured");
+          }
+          // Never fall back to a draft-cached number: the guardians row is the
+          // authority, the same rule as the email path's stale-address refusal.
+          const toPhone = normalizePhone(gPhone);
+          if (!toPhone) throw new DeliveryPreconditionError("guardian_phone_invalid");
+          // No SMS suppression table exists yet (unlike email_suppressions);
+          // carrier-level STOP/HELP is handled by Twilio's Advanced Opt-Out.
+          const { data: sClaimed } = await admin.from("outbound_messages")
+            .update({ status: "processing" }).eq("id", er.id).eq("status", "approved").select("id").maybeSingle();
+          if (!sClaimed) continue;
+          const dated = new Date().toISOString();
+          const smsResult = await sendSmsViaTwilio(toPhone, c.body);
+          if (smsResult.sid) {
+            // provider_message_id carries the Twilio SID (same column the
+            // email path uses for the Resend id); provider='twilio' records
+            // the channel at send time.
+            await admin.from("outbound_messages").update({
+              status: "sent", sent_at: dated,
+              provider: "twilio", provider_message_id: smsResult.sid, last_error: null,
+            }).eq("id", er.id).is("sent_at", null);
+            emailSummary.smsSent++;
+          } else {
+            const attempts = (er.attempt_count ?? 0) + 1;
+            await admin.from("outbound_messages").update({
+              status: attempts >= 3 ? "failed" : "approved",
+              attempt_count: attempts,
+              last_error: `${dated} sms: ${smsResult.error ?? "send failed"}`.slice(0, 300),
+            }).eq("id", er.id);
+            emailSummary.smsFailed++;
           }
           continue;
         }
