@@ -1183,20 +1183,21 @@ comp=$($B js "
  if(bg!=='rgb(62, 76, 90)') return 'BUBBLE_NOT_SLATE_'+bg;
  if(!document.querySelector('.aidock-row')) return 'NOT_ONE_ROW';
  if(f.getBoundingClientRect().height>130) return 'BUBBLE_TOO_TALL_'+Math.round(f.getBoundingClientRect().height);
- /* AT REST THE WIDGET IS THE BAR — plus the quick-action chip ROW (owner,
-    2026-08-19, follow-the-prompts, superseding the 2026-08-13 chip removal).
-    The header, empty state and three suggestion buttons stay GONE; the chip
-    row above the composer is now intended, so the at-rest ceiling rises from
-    150 to 190 to fit it. */
+ /* CENTERED PANEL (owner 2026-09-21, re-asserting 2026-08-19): the open
+    panel ALWAYS carries its header (new chat / expand / close), the surfaced
+    thread, the chip row and the composer — even with no conversation yet.
+    The compact bar at rest is now ONLY the collapsed strip. */
  S.chat=[];S.chatThinking=false;render();
- if(document.querySelector('.aidock-head')) return 'HEADER_BACK';
- if(document.querySelector('.aidock-empty')) return 'EMPTY_STATE_BACK';
- if(document.querySelectorAll('[data-ask]').length) return 'SUGGESTIONS_BACK';
- if(document.getElementById('aidockScroll')) return 'THREAD_SHOWN_WHEN_EMPTY';
- if(!document.querySelector('.aidock-x')) return 'NO_X';
- const rest=document.querySelector('.aipill').getBoundingClientRect().height;
- if(rest>190) return 'WIDGET_TOO_TALL_AT_REST_'+Math.round(rest);
- S.portal='family';S.route={name:'home',arg:null};render();
+ if(!document.querySelector('.aidock-head')) return 'NO_HEADER';
+ if(!document.querySelector('.aidock-head [data-ainew]')) return 'NO_HEAD_NEWCHAT';
+ if(!document.querySelector('.aidock-head [data-aigofull]')) return 'NO_HEAD_EXPAND';
+ if(!document.querySelector('.aidock-head [data-aiclose]')) return 'NO_HEAD_X';
+ if(!document.getElementById('aidockScroll')) return 'NO_THREAD_SURFACE';
+ S.aiCollapsed=true;render();
+ const strip=document.querySelector('.aidock-strip');
+ if(!strip) return 'NO_STRIP';
+ if(strip.getBoundingClientRect().height>96) return 'STRIP_TOO_TALL_'+Math.round(strip.getBoundingClientRect().height);
+ S.aiCollapsed=false;S.portal='family';S.route={name:'home',arg:null};render();
  return 'OK'})()" 2>/dev/null)
 [ "${comp//\"/}" = "OK" ] && pass "AI widget at rest is the bar alone — grey slate, white type" \
   || fail "composer regressed: $comp"
@@ -1480,11 +1481,12 @@ reg=$($B js "
 [ "${reg//\"/}" = "OK" ] && pass "coach UI register: one face, scale sizes, 600-max weights" \
   || fail "coach register regressed: $reg"
 
-# ── Assistant state machine (owner spec 2026-08-14, Amboras) ──────────────
-# Three states: bar at rest (no maximize control), talking pill (maximize
-# appears), maximized (history + New chat + previous sessions). Escape steps
+# ── Assistant state machine (owner spec 2026-08-14, Amboras; centered panel 2026-09-21) ──
+# States: collapsed strip at rest, centered panel (header owns new chat /
+# expand / close; thread always surfaced; composer-corner buttons retired),
+# maximized (history + New chat + previous sessions), fullscreen. Escape steps
 # DOWN one level per press — the modal focus-trap used to claim the panel via
-# role=dialog and collapse all three states in one keypress.
+# role=dialog and collapse all states in one keypress.
 ams=$($B js "
 (()=>{const bad=[];
  S.portal='coach';S.auth={status:'coach'};S.route={name:'dashboard',arg:null};
@@ -1494,9 +1496,18 @@ ams=$($B js "
  S.chat=[];S.chatSessions=[];S.chatSessionId=null;S.aiOpen=true;S.aiMax=false;
  S.chatThinking=false;S.aiHistOpen=false;S.aiCollapsed=false;S.modal=null;S.sportOpen=false;render();
  S.chat=[{role:'user',text:'x'},{role:'coach',text:'y'}];render();
- if(!document.querySelector('[data-aimaximize]'))bad.push('NO_MAXBTN');
- document.querySelector('[data-aimaximize]').click();
- if(!S.aiMax||!document.querySelector('.aimax-wrap'))bad.push('MAX_FAILED');
+ /* Centered panel (owner 2026-09-21): the header owns every window control —
+    new chat, expand straight to fullscreen, close. The composer-corner
+    buttons (maximize, thread tuck, history, X) are retired. */
+ if(!document.querySelector('.aidock-head [data-aigofull]'))bad.push('NO_EXPAND');
+ if(!document.querySelector('.aidock-head [data-ainew]'))bad.push('NO_HEAD_NEWCHAT');
+ if(!document.querySelector('.aidock-head [data-aiclose]'))bad.push('NO_HEAD_CLOSE');
+ if(document.querySelector('[data-aimaximize]')||document.querySelector('[data-aithread]'))bad.push('CORNER_BTNS');
+ if(!document.querySelector('.aidock-scroll'))bad.push('THREAD_NOT_SURFACED');
+ document.querySelector('[data-aigofull]').click();
+ if(!S.aiMax||!S.aiFull||!document.querySelector('.aimax-wrap .aifull'))bad.push('EXPAND_FAILED');
+ document.querySelector('[data-aifull]').click();
+ if(!S.aiMax||S.aiFull||!document.querySelector('.aimax-wrap'))bad.push('RESTORE_FAILED');
  document.querySelector('[data-aihist]').click();
  if(!document.querySelector('.aimax-histempty'))bad.push('NO_EMPTY_HIST');
  document.querySelector('[data-ainew]').click();
@@ -1511,16 +1522,18 @@ ams=$($B js "
  esc();if(S.aiOpen!==false)bad.push('ESC3');
  S.aiOpen=true;S.aiMax=false;S.modal={type:'addchild'};render();
  esc();if(S.modal)bad.push('MODAL_ESC');
- // state 2 visibility controls: tuck the thread (bar only, conversation
- // intact), history opens upward from the bar, restore brings the thread back
- S.chat=[{role:'user',text:'q'},{role:'coach',text:'a'}];S.aiThreadHidden=false;S.aiHistOpen=false;render();
- if(!document.querySelector('.aidock-histbtn')||!document.querySelector('.aidock-threadbtn'))bad.push('NO_BAR_CTRLS');
- document.querySelector('[data-aithread]').click();
- if(document.querySelector('.aidock-scroll')||S.chat.length!==2)bad.push('TUCK');
- document.querySelector('[data-aihist]').click();
- if(!document.querySelector('.aimax-hist.up'))bad.push('NO_UP_HIST');
- S.aiHistOpen=false;document.querySelector('[data-aithread]').click();
- if(!document.querySelector('.aidock-scroll'))bad.push('RESTORE');
+ // Centered panel: the thread is always surfaced (no tuck control), the
+ // header owns the window controls, and the collapsed strip is the bar at rest.
+ S.chat=[{role:'user',text:'q'},{role:'coach',text:'a'}];S.aiMax=false;S.aiFull=false;
+ S.aiHistOpen=false;S.aiCollapsed=false;render();
+ if(!document.querySelector('.aidock-scroll'))bad.push('NO_THREAD_SURFACE');
+ if(!document.querySelector('.aidock-head [data-aigofull]'))bad.push('NO_HEAD_EXPAND2');
+ S.aiCollapsed=true;render();
+ if(!document.querySelector('.aidock-strip'))bad.push('NO_STRIP');
+ const pr2=document.querySelector('.aipill').getBoundingClientRect();
+ if(Math.abs((pr2.left+pr2.right)/2-innerWidth/2)>2)bad.push('STRIP_OFFCENTRE');
+ if(Math.round(innerHeight-pr2.bottom)>40)bad.push('STRIP_NOT_BOTTOM');
+ S.aiCollapsed=false;render();
  // the archive caps at 30 sessions, newest kept
  S.chat=[];S.chatSessions=[];S.chatSessionId=null;
  for(let i=0;i<31;i++){S.chat=[{role:'user',text:'t'+i}];S.chatSessionId=null;chatArchive();}
@@ -1785,12 +1798,13 @@ noor=$($B js "
 [ "${noor//\"/}" = "CLEAN" ] && pass "no-orange holds for every sport token, mark and ink" \
   || fail "orange sport tokens unmapped on the landing: $noor"
 
-# ── The AI pill is centred, and the S is NOT inside it ────────────────────
+# ── The AI assistant is centred; the S is NOT inside the panel ──────────
 # Both halves matter. The spec centres the assistant AND forbids repositioning
 # the S; if they ever share a parent again, centring drags the S to the middle
-# and the "collapses into the S" contract quietly breaks. This asserts the two
-# are separately positioned, that the pill is centred within 2px, and that the
-# fixed pill is compensated for so the last table row stays reachable.
+# and the "collapses into the S" contract quietly breaks. Owner 2026-09-21
+# (re-asserting 2026-08-19): the OPEN panel sits dead-centre of the viewport;
+# the COLLAPSED strip stays bottom-centred and compensated so the last table
+# row stays reachable.
 pill=$($B js "
 (()=>{S.portal='coach';S.aiOpen=true;S.aiCollapsed=false;
  S.route={name:'dashboard',arg:null};render();
@@ -1798,14 +1812,20 @@ pill=$($B js "
  if(!p||!f) return 'MISSING';
  if(p.contains(f)) return 'S_INSIDE_PILL';
  const pr=p.getBoundingClientRect();
- const off=Math.abs((pr.left+pr.right)/2 - innerWidth/2);
- if(off>2) return 'OFFCENTRE_'+Math.round(off);
- if(Math.round(innerHeight-pr.bottom)>40) return 'NOT_AT_BOTTOM';
+ const offX=Math.abs((pr.left+pr.right)/2 - innerWidth/2);
+ if(offX>2) return 'OFFCENTRE_X_'+Math.round(offX);
+ const offY=Math.abs((pr.top+pr.bottom)/2 - innerHeight/2);
+ if(offY>2) return 'OFFCENTRE_Y_'+Math.round(offY);
  if(!f.querySelector('.aidock-fab-ic')) return 'FAB_NO_CHAT_ICON';
+ S.aiCollapsed=true;render();
+ const st=document.querySelector('.aipill'),sr=st.getBoundingClientRect();
+ if(Math.abs((sr.left+sr.right)/2-innerWidth/2)>2) return 'STRIP_OFFCENTRE';
+ if(Math.round(innerHeight-sr.bottom)>40) return 'STRIP_NOT_AT_BOTTOM';
  const pad=parseFloat(getComputedStyle(document.getElementById('app')).paddingBottom);
- if(pad < pr.height) return 'NO_COMPENSATION_'+Math.round(pad);
+ if(pad < sr.height) return 'NO_COMPENSATION_'+Math.round(pad);
+ S.aiCollapsed=false;render();
  return 'OK'})()" 2>/dev/null)
-[ "${pill//\"/}" = "OK" ] && pass "AI pill centred, chat-FAB separate, content compensated" \
+[ "${pill//\"/}" = "OK" ] && pass "AI panel dead-centre, chat-FAB separate, strip compensated" \
   || fail "AI pill invariant broken: $pill"
 
 echo "─────────────────────────────────────────────────────"
