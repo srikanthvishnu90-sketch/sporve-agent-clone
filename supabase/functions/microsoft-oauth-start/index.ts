@@ -254,16 +254,33 @@ async function handler(req: Request): Promise<Response> {
       }
       const allowed: string[] = Array.isArray(ent?.connectors) ? ent!.connectors : [];
       if (!allowed.includes(kind)) {
-        // Invariant I3: a limit is a 402 with this exact payload, never a
-        // silent no-op and never a 500.
-        return json({
-          error: 'Your plan does not include this connector.',
-          reason: 'connector_not_in_plan',
-          current_plan: provider.plan ?? 'free',
-          upgrade_to: 'solo',
-          limit: allowed.length,
-          current: allowed.length,
-        }, 402);
+        /* Grandfather (owner 2026-09-21): re-consent repairs a grant this org
+           already holds — it is not a new connection outside the plan. The
+           row must carry a real vault secret, which only the OAuth callback
+           can store, so a forged row can never bypass the paywall. Without
+           this, a dead grant on a connector outside the current plan (e.g. a
+           Pro org's Microsoft 365 connection) can never be repaired from the
+           UI: the tile offers Reconnect, the start call 402s, and the button
+           dies. */
+        const { data: existing } = await admin
+          .from('org_connectors')
+          .select('id')
+          .eq('provider_id', provider.id)
+          .eq('kind', kind)
+          .not('vault_secret_id', 'is', null)
+          .maybeSingle();
+        if (!existing) {
+          // Invariant I3: a limit is a 402 with this exact payload, never a
+          // silent no-op and never a 500.
+          return json({
+            error: 'Your plan does not include this connector.',
+            reason: 'connector_not_in_plan',
+            current_plan: provider.plan ?? 'free',
+            upgrade_to: 'solo',
+            limit: allowed.length,
+            current: allowed.length,
+          }, 402);
+        }
       }
 
       const state = crypto.randomUUID() + '.' + crypto.randomUUID();
