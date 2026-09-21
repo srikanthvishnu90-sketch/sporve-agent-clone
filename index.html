@@ -25,7 +25,7 @@
 <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16.png">
 <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
 <link rel="manifest" href="/site.webmanifest">
-<meta name="sporve-build" content="0873bccb32a61c71">
+<meta name="sporve-build" content="f2711fb8a400dd54">
 </head>
 <body>
 <noscript><h1>Sporv. Every sport. One app.</h1><p>Sporv connects families and athletes with coaches, trainers, camps, and teams across more than 20 sports. Please enable JavaScript to use the app.</p></noscript>
@@ -22548,6 +22548,20 @@ window.MOD_COACHUI = { css:CSS, wire:wire };
         });
     },
 
+    /* NATIVE CANCELLATION. Calls billing-cancel which cancels the Stripe
+       subscription immediately; the stripe-webhook then downgrades the
+       provider to free. This is the Sporv-native cancel path — no redirect
+       to Stripe required. */
+    cancelSubscription: function () {
+      var no = guard(); if (no) return no;
+      if (!API.fn) return Promise.reject(new Error("The billing module didn't load."));
+      return API.fn("billing-cancel", {})
+        .then(function (r) {
+          if (!r || !r.cancelled) throw new Error("Cancellation did not complete.");
+          return r;
+        });
+    },
+
     current: function () { return provider; },
     clear: function () { provider = null; },
 
@@ -22625,6 +22639,7 @@ window.MOD_COACHUI = { css:CSS, wire:wire };
       { key:"plan", label:"Plan" },
       { key:"payment-method", label:"Payment method" },
       { key:"invoices", label:"Invoices" },
+      { key:"subscription", label:"Subscription" },
     ];
     var active = ui.activeTab(tabs, "plan", "billingTab");
     var actions = active === "plan" && !st.entitled
@@ -22651,7 +22666,7 @@ window.MOD_COACHUI = { css:CSS, wire:wire };
           ? ui.ListCard([{ label:ui.html("<b>Billing payment method</b><small>Card details stay in Stripe's hosted portal.</small>"), value:"Stripe-owned", mono:false }])
           : ui.EmptyState("No subscription payment method","A payment method is collected only if you choose Pro from the Plan tab."),
       });
-    } else {
+    } else if (active === "invoices") {
       body = ui.Block({
         title:"Invoices",
         subtitle:"Invoices remain read-only here and are available only through Stripe's hosted billing record.",
@@ -22659,6 +22674,25 @@ window.MOD_COACHUI = { css:CSS, wire:wire };
         body:ui.EmptyState("No invoice records loaded",st.entitled
           ? "Open Stripe to view the authoritative invoice history for this subscription."
           : "The free plan has no subscription invoices."),
+      });
+    } else if (active === "subscription") {
+      /* DEDICATED CANCELLATION PAGE. A Sporv-native subscription management
+         view: shows the current plan and offers a clear, confirmed cancel
+         path that calls billing-cancel. No redirect to Stripe required. */
+      body = ui.Block({
+        title:"Subscription",
+        subtitle:"Manage your Sporv subscription. Cancellation is immediate and takes effect right away.",
+        body: st.entitled
+          ? ui.ListCard([
+              { label:ui.html("<b>Current plan</b><small>" + esc(st.plan.adds || "") + "</small>"), value:esc(st.plan.price + st.plan.per), mono:true },
+              { label:ui.html("<b>Status</b><small>Your subscription renews automatically each month.</small>"), value:"Active", mono:false },
+            ]) +
+            '<div style="margin-top:24px;padding:20px;border:1px solid #e5e5e5;border-radius:8px;">' +
+            '<h3 style="margin:0 0 8px;font-size:16px;">Cancel subscription</h3>' +
+            '<p style="margin:0 0 16px;color:#666;font-size:14px;">Cancelling stops future charges immediately. You keep Pro until the end of the current billing period, then your workspace returns to the Free plan.</p>' +
+            ui.Button({ label:"Cancel my subscription", size:"lg", variant:"danger", attrs:'data-cb-cancel="1"' }) +
+            '</div>'
+          : ui.EmptyState("No active subscription","You are on the Free plan. There is nothing to cancel."),
       });
     }
     body += '<p class="cui-error hide" data-cb-err role="alert"></p>';
@@ -22734,6 +22768,22 @@ window.MOD_COACHUI = { css:CSS, wire:wire };
         ACCOUNT.openBillingPortal().catch(function (err) {
           cbBusy(b, false);
           cbErr((err && err.message) || "Could not open the billing portal.");
+        });
+      };
+    });
+    /* NATIVE CANCEL BUTTON. Double-confirm: first a browser confirm dialog,
+       then the button shows a busy state while billing-cancel runs. On
+       success, reload to reflect the Free plan (webhook updates the DB). */
+    document.querySelectorAll("[data-cb-cancel]").forEach(function (b) {
+      b.onclick = function () {
+        cbErr("");
+        if (!window.confirm("Cancel your Sporv Pro subscription? Future charges stop immediately.")) return;
+        cbBusy(b, true, "Cancelling…");
+        ACCOUNT.cancelSubscription().then(function () {
+          window.location.reload();
+        }).catch(function (err) {
+          cbBusy(b, false);
+          cbErr((err && err.message) || "Could not cancel the subscription.");
         });
       };
     });
