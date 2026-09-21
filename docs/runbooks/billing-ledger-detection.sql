@@ -2,7 +2,7 @@
 -- projection did NOT apply. Read-only. Run by hand (psql / SQL editor, service
 -- role); never wired into the app. Pairs with the money gate in
 -- supabase/functions/stripe-webhook/index.ts and the repair RPC
--- reprocess_billing_ledger_event (20260919_001080).
+-- reprocess_billing_ledger_event (20260919_001109).
 --
 -- Reading the results
 --   payment_event_ledger.outcome is CHECK-constrained to {'applied','ignored'}.
