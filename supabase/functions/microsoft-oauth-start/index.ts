@@ -255,9 +255,12 @@ async function handler(req: Request): Promise<Response> {
       const allowed: string[] = Array.isArray(ent?.connectors) ? ent!.connectors : [];
       if (!allowed.includes(kind)) {
         /* Grandfather (owner 2026-09-21): re-consent repairs a grant this org
-           already holds — it is not a new connection outside the plan. The
-           row must carry a real vault secret, which only the OAuth callback
-           can store, so a forged row can never bypass the paywall. Without
+           already holds — it is not a new connection outside the plan. Proof
+           of a real grant is a non-empty DECRYPTED vault secret, readable only
+           through the service-role-only connector_read_secret RPC: a forged
+           row (or a dangling vault_secret_id) yields null/empty from the RPC
+           and can never bypass the paywall, because only the OAuth callback
+           ever stores a real secret in the vault. Without
            this, a dead grant on a connector outside the current plan (e.g. a
            Pro org's Microsoft 365 connection) can never be repaired from the
            UI: the tile offers Reconnect, the start call 402s, and the button
@@ -267,9 +270,13 @@ async function handler(req: Request): Promise<Response> {
           .select('id')
           .eq('provider_id', provider.id)
           .eq('kind', kind)
-          .not('vault_secret_id', 'is', null)
           .maybeSingle();
-        if (!existing) {
+        let grandfathered = false;
+        if (existing?.id) {
+          const { data: secret } = await admin.rpc('connector_read_secret', { p_connector: existing.id });
+          grandfathered = typeof secret === 'string' && secret.length > 0;
+        }
+        if (!grandfathered) {
           // Invariant I3: a limit is a 402 with this exact payload, never a
           // silent no-op and never a 500.
           return json({
