@@ -491,11 +491,13 @@ Deno.serve(async (req) => {
 
   const serviceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
   const supabaseUrl = Deno.env.get('SUPABASE_URL');
-  if (!serviceKey || !supabaseUrl) {
+  const anonKey = Deno.env.get('SUPABASE_ANON_KEY');
+  if (!serviceKey || !supabaseUrl || !anonKey) {
     return json({ error: 'Service is not configured.', code: 'not_configured' }, 503);
   }
 
-  const bearer = (req.headers.get('Authorization') ?? '').replace(/^Bearer\s+/i, '');
+  const authorization = req.headers.get('Authorization') ?? '';
+  const bearer = authorization.replace(/^Bearer\s+/i, '');
   if (!bearer) return json({ error: 'Missing credentials.', code: 'unauthorized' }, 401);
 
   let body: Record<string, unknown>;
@@ -519,16 +521,31 @@ Deno.serve(async (req) => {
 
   try {
     return await withHttpDeadline(async (signal) => {
+      // Identity: who is calling. The gateway already verified the JWT
+      // (verify_jwt = true); this re-verifies it to learn WHO the caller is,
+      // since connector rows are per-org. Uses the anon-key client with the
+      // caller's Authorization header forwarded — the same pattern as
+      // connectors-available and coach-command. (2026-09-21: the service_role
+      // client's auth.getUser(bearer) rejected valid user JWTs in production,
+      // 401ing every connected read with "Invalid credentials."; the service
+      // role client is still used below for the vault RPCs.)
+      const userClient = createClient(supabaseUrl, anonKey, {
+        global: {
+          headers: { Authorization: authorization },
+          fetch: (i: any, init: any) => fetch(i, { ...init, signal }),
+        },
+        auth: { persistSession: false, autoRefreshToken: false },
+      });
       const admin = createClient(supabaseUrl, serviceKey, {
         global: { fetch: (i: any, init: any) => fetch(i, { ...init, signal }) },
         auth: { persistSession: false, autoRefreshToken: false },
       });
 
-      // The gateway already verified the JWT (verify_jwt = true); re-verify
-      // here to learn WHO the caller is, since connector rows are per-org.
-      const { data: userData, error: uErr } = await admin.auth.getUser(bearer);
+      const { data: userData, error: uErr } = await userClient.auth.getUser();
       const user = userData?.user;
       if (uErr || !user) {
+        // Log the real cause server-side; the client keeps the generic shape.
+        console.error('[connector-read] identity check failed:', uErr?.message ?? 'no user');
         return json({ error: 'Invalid credentials.', code: 'unauthorized' }, 401);
       }
 
