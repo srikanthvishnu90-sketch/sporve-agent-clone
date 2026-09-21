@@ -227,7 +227,7 @@
     const w = why(s), next = s === "5" ? "Run Sporv" : s === "7" ? "Open dashboard" : "Continue";
     const showNext = !(s === "1" || s === "1b" || (s === "6" && !(S.agentRun && S.agentRun.done)));
     return `<div class="ob ${full ? "full" : ""}"><div class="left">
-      <div class="top"><span class="brand">Sporv</span><span class="stp">${LBL[s]}</span><span class="clock mono">${o.t0 && full ? fmt(Date.now() - o.t0) : ""}</span>${signedIn() ? `<button class="btn ghost obout" data-obsignout="1">Sign out</button>` : `<button class="btn ghost obout" data-obexit="1" aria-label="Back to Sporv home" title="Back to Sporv home">← Back</button>`}</div>
+      <div class="top"><span class="brand">Sporv</span><span class="stp">${LBL[s]}</span><span class="clock mono">${o.t0 && full ? fmt(Date.now() - o.t0) : ""}</span><button class="btn ghost obout" data-obexit="1" aria-label="Back to Sporv home" title="Back to Sporv home">← Back</button></div>
       <div class="prog"><i style="width:${PCT[s]}%"></i></div>
       <div class="body ${s === "1" || s === "1b" ? "center" : ""}"><div class="pad">${body}</div></div>
       <div class="foot">
@@ -338,16 +338,16 @@
     q("[data-obnext]").forEach((b) => b.onclick = () => advance(false));
     q("[data-obskip]").forEach((b) => b.onclick = () => advance(true));
     q("[data-obback]").forEach((b) => b.onclick = () => { const i = ORDER.indexOf(o.step); if (i > 0) { o.step = ORDER[i - 1]; o.err = null; persist(); render(); } });
-    q("[data-obsignout]").forEach((b) => b.onclick = () => { S.ob = null; if (typeof doSignOut === "function") doSignOut(); else if (AUTH()) AUTH().signOut().then(() => location.reload()); });
+    
     /* Auth-trap fix (2026-09-19): guest exit for the full-page signup flow.
        Clears the parked signup intent via the shared host exit; the signed-in
        guard keeps the intentional onboarding gate for real coaches. */
-    q("[data-obexit]").forEach((b) => b.onclick = () => { if (typeof signedIn === "function" && signedIn()) return; if (typeof window.exitFullPageAuth === "function") window.exitFullPageAuth(); });
+    q("[data-obexit]").forEach((b) => b.onclick = () => { if (typeof signedIn === "function" && signedIn()) { if (!b.classList.contains("obout")) return; /* the logo stays inert mid-signup; only the Back control leaves */ S.ob = null; if (typeof doSignOut === "function") doSignOut(); else if (AUTH()) AUTH().signOut().then(() => location.reload()); return; } if (typeof window.exitFullPageAuth === "function") window.exitFullPageAuth(); });
   }
 
   const CSS = `
   .ob{position:fixed;inset:0;z-index:60;height:100dvh;display:grid;grid-template-columns:1fr 1fr;background:#0B0D0F;color:#EDEFF2;font-family:Archivo,system-ui,sans-serif;font-size:14px;line-height:1.5;letter-spacing:-.003em;-webkit-font-smoothing:antialiased;transition:grid-template-columns .45s cubic-bezier(.2,.7,.2,1);
-    --bg:#0B0D0F;--panel:#121417;--panel-2:#171A1E;--raise:#1C1F24;--line:#202429;--line-2:#2A3037;--line-3:#39424D;--ink:#EDEFF2;--ink-2:#9BA3AD;--ink-3:#8C95A3;--steel:#6B7F9E;--steel-l:#9DB0CB;--steel-bg:rgba(107,127,158,.12);--steel-br:rgba(107,127,158,.34);--ok:#6FA982;--ok-bg:rgba(111,169,130,.12);--ok-br:rgba(111,169,130,.28);--attn:#8EC5E8;--gutter:clamp(24px,6vw,96px);--col:600px;--col-wide:680px;--s-1:4px;--s-2:8px;--s-3:12px;--s-4:16px;--s-5:24px;--s-6:32px;--s-7:48px;--t-10:10.5px;--t-11:11.5px;--t-12:12.5px;--t-13:13.5px;--t-14:14px}
+    --bg:#0B0D0F;--panel:#121417;--panel-2:#171A1E;--raise:#1C1F24;--line:#202429;--line-2:#2A3037;--line-3:#39424D;--ink:#EDEFF2;--ink-2:#9BA3AD;--ink-3:#8C95A3;--steel:#6B7F9E;--steel-l:#9DB0CB;--steel-bg:rgba(107,127,158,.12);--steel-br:rgba(107,127,158,.34);--ok:#6FA982;--ok-bg:rgba(111,169,130,.12);--ok-br:rgba(111,169,130,.28);--attn:#8EC5E8;--gutter:clamp(24px,6vw,96px);--col:600px;--col-wide:680px;--s-1:4px;--s-2:8px;--s-3:12px;--s-4:16px;--s-5:24px;--s-6:32px;--s-7:48px;--t-10:14px;--t-11:14px;--t-12:14.5px;--t-13:15.5px;--t-14:16px}
   .ob *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}.ob button,.ob input,.ob select{font:inherit;color:inherit;background:none;border:0}.ob button{cursor:pointer}.ob :focus-visible{outline:2px solid var(--steel);outline-offset:2px}
   .ob.full{grid-template-columns:1fr 0fr}.ob.full .right{opacity:0;pointer-events:none}
   .ob .left{display:flex;flex-direction:column;min-width:0;min-height:0;height:100%}
