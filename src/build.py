@@ -292,6 +292,7 @@ STANDALONE = (
     '<!doctype html>\n<html lang="en">\n<head>\n'
     '<meta charset="utf-8">\n'
     '<meta name="viewport" content="width=device-width,initial-scale=1">\n'
+    '<link rel="canonical" href="https://sporv.ai/">\n'
     f'<title>{_TITLE}</title>\n'
     f'<meta name="description" content="{_DESC}">\n'
     '<meta name="theme-color" content="#09090B">\n'
@@ -314,6 +315,11 @@ STANDALONE = (
     '<link rel="icon" type="image/png" sizes="16x16" href="/favicon-16.png">\n'
     '<link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">\n'
     '<link rel="manifest" href="/site.webmanifest">\n'
+    '<script type="application/ld+json">{"@context":"https://schema.org","@type":"SoftwareApplication",'
+    '"name":"Sporv","url":"https://sporv.ai/",'
+    '"applicationCategory":"BusinessApplication","operatingSystem":"Web",'
+    '"description":"Sporv runs the club for you — roster, scheduling, waivers, dues and payouts, with an agent that drafts the busywork and a human who approves it.",'
+    '"publisher":{"@type":"Organization","name":"Sporv","url":"https://sporv.ai/","logo":"https://sporv.ai/icon-512.png"}}</script>\n'
     "</head>\n<body>\n__SPORVE_BODY__\n</body>\n</html>\n"
 )
 require_once(STANDALONE, "__SPORVE_BODY__", "standalone body token")
