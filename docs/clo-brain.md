@@ -354,17 +354,14 @@ when two conflict; strike the loser, don't delete the history.
   (~L2558). Don't restyle it toward the reference's flat #232A31 rounded-16.
 
 ## Reference-HTML premises that are already shipped (thesis 2026-08-25)
-- **Roboto Condensed IS an embedded face and IS the global display voice.**
-  `assets/fonts/RobotoCondensed-Variable.woff2` exists; host ~L186 sets
-  `--display`/`--serif` to it, and host L4482-4489 forces
-  `h1..h4/.greet/.cw-h1/.eyebrow` to Roboto Condensed **uppercase weight 500
-  !important app-wide, coach portal included**. Any brief proposing a Google
-  Fonts load of Roboto Condensed is asking for what is already inlined.
-- **Archivo is gone.** It is absent from `assets/fonts/` (only Inter, JetBrains
-  Mono, RobotoCondensed remain), so CLAUDE.md's D7 "coach = Archivo headers" and
-  the "COMPACT-SERIF / Instrument Serif" blocks are STALE lineage, not current law.
-- **The coach H1 smoke gate is `H1_NOT_DISPLAY` and asserts Roboto Condensed**
-  (`src/smoke.sh:2314`), not Archivo. A reference-matching header cannot trip it.
+- **Archivo IS the embedded face and IS the global display + body voice (owner 2026-09-21).**
+  `assets/fonts/Archivo-Variable.woff2` (+ Italic) exist; host ~L186 sets
+  `--display`/`--serif`/`--sans`/`--nav-face` to it, and the app-wide block forces
+  `h1..h4/.greet/.cw-h1/.eyebrow` to Archivo **uppercase weight 500
+  !important app-wide, coach portal included**. Roboto Condensed and Inter were
+  retired 2026-09-21 (not unique; Inter is the generic-AI default).
+- **The coach H1 smoke gate is `H1_NOT_DISPLAY` and asserts Archivo**
+  (`src/smoke.sh`), not Roboto Condensed. A reference-matching header cannot trip it.
 - **The coach rail groups already equal the reference's nav** (host L9845-9850:
   ungrouped Home/Search, Clients{Clients,Messages,Schedule}, Catalog{Listings,
   Media}, Business{Earnings,Approvals,Operations}); Billing + Session notes arrive
@@ -404,7 +401,7 @@ when two conflict; strike the loser, don't delete the history.
 
 **There is no `seasons` table and no `season` column anywhere in prod.** The only occurrence of the string in `supabase/migrations/00000000000000_baseline.sql` is `programs_pricing_model_check ... 'seasonal'` (:827). The roster-entry row that exists is `team_athletes(team_id, athlete_id, jersey_number, is_available, is_paid)` (:630-638), scoped by team, never by season.
 
-**The shipped font stack is Roboto Condensed + Inter + JetBrains Mono — Syne, Instrument Serif, Plus Jakarta and Hanken are GONE.** `assets/fonts/` holds exactly three files (`RobotoCondensed-Variable.woff2`, `Inter-Variable.woff2`, `JetBrainsMono-Variable.woff2`) and built `index.html` emits exactly three `@font-face` blocks; host.html:186-191 has `--display`/`--serif` both `"Roboto Condensed"`, `--sans`/`--nav-face` `Inter`. CLAUDE.md rule 4 (Instrument Serif / Syne / Hanken `reg-serious`) is STALE — a brief asking for "Roboto Condensed uppercase headers" is asking for what already ships, and only its Google-Fonts delivery is impossible.
+**The shipped font stack is Archivo + JetBrains Mono — Roboto Condensed, Inter, Syne, Instrument Serif, Plus Jakarta and Hanken are GONE (retired 2026-09-21, owner athletic-direction call).** `assets/fonts/` holds exactly three files (`Archivo-Variable.woff2`, `Archivo-Italic-Variable.woff2`, `JetBrainsMono-Variable.woff2`) and built `index.html` emits exactly three `@font-face` blocks; host.html:186-191 has `--display`/`--serif`/`--sans`/`--nav-face` all `"Archivo"`. A brief asking for "Roboto Condensed uppercase headers" is asking for a retired face; only its Google-Fonts delivery was ever impossible.
 
 **The landing's demo camps/team rails were already deleted on 2026-08-30, not pending.** `landingHTML()` (host.html:8210) is now hero → `.band alt` comparison table → `.band dark` prose-pair + bare stats → `.band` definition list → `.band dark` CTA → `.band dark` FAQ; the company rail and the pinned scrolly are empty `${""}` slots at :8253-8257 with the markup archived in `docs/archive/landing-sections-2026-08-30.md`.
 

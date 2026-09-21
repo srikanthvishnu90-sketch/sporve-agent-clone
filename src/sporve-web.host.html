@@ -1,4 +1,4 @@
-<noscript><h1>Sporv — Every sport. One app.</h1><p>Sporv connects families and athletes with coaches, trainers, camps, and teams across more than 20 sports. Please enable JavaScript to use the app.</p></noscript>
+<noscript><h1>Sporv. Every sport. One app.</h1><p>Sporv connects families and athletes with coaches, trainers, camps, and teams across more than 20 sports. Please enable JavaScript to use the app.</p></noscript>
 
 <style>
 /*__FONTFACE__*/
@@ -177,24 +177,23 @@
      editorial geometry. Already embedded (build.py maps archivo→"Archivo" 400-800),
      so zero CSP/page-weight cost. Body stays Plus Jakarta / Inter (professional);
      numerals stay JetBrains Mono. Revises D7 from Syne. */
-  /* GLOBAL TYPEFACE SWAP (owner 2026-08-23): the entire app runs on three
-     embedded families only — Roboto Condensed (display, UPPERCASE, never bold →
-     weight 500), Inter (body/nav/UI), JetBrains Mono (numerals/data). Instrument
-     Serif, Archivo, Syne, Hanken, Plus Jakarta, Bricolage and Sentinel are
-     retired: --display and --serif now both resolve to Roboto Condensed, so every
-     heading, accent phrase and secondary header renders in the one display face. */
-  --display:"Roboto Condensed","Arial Narrow",system-ui,sans-serif;
-  --serif:"Roboto Condensed","Arial Narrow",system-ui,sans-serif;
+  /* TYPE SYSTEM (owner 2026-09-21, athletic direction): the entire app runs on two
+     embedded families only — Archivo (display UPPERCASE + body/nav/UI, variable
+     wght 100-900 / wdth 62-125), JetBrains Mono (numerals/data). Roboto Condensed,
+     Inter, Instrument Serif, Syne, Hanken, Plus Jakarta, Bricolage and Sentinel are
+     retired: --display, --serif, --sans and --nav-face all resolve to Archivo, so
+     every heading, accent phrase and secondary header renders in the one family. */
+  --display:"Archivo",system-ui,sans-serif;
+  --serif:"Archivo",system-ui,sans-serif;
   /* Nav links and the hover mega-menu → Inter (body face), per the swap. The
      wordmark logo is a PNG and is untouched. */
-  --nav-face:"Inter",system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
-  --sans:"Inter",system-ui,-apple-system,"Segoe UI",Roboto,
-         "Helvetica Neue",Arial,sans-serif;
+  --nav-face:"Archivo",system-ui,sans-serif;
+  --sans:"Archivo",system-ui,sans-serif;
   --mono:"JetBrains Mono",ui-monospace,SFMono-Regular,"SF Mono",Menlo,Consolas,monospace;
-  /* Landing hero headline ONLY (owner 2026-08-23). Embedded OFL Roboto Condensed,
-     weights 700-800, base64 @font-face like every other face — no Google Fonts
-     load, no CSP change. Used exclusively by .hero-ai and the search button. */
-  --roboto-cond:"Roboto Condensed","Arial Narrow",system-ui,sans-serif;
+  /* Landing hero headline voice (owner 2026-09-21). Embedded OFL Archivo variable
+     (wght 100-900, wdth 62-125), same-origin @font-face — no Google Fonts
+     load, no CSP change. Expanded Black uppercase is the athletic headline voice. */
+  --roboto-cond:"Archivo",system-ui,sans-serif;
   --shell:1240px;
 }
 /* The app is dark; this web surface is deliberately light. A viewer in dark
@@ -471,15 +470,14 @@ img{max-width:100%;display:block}
    decision and is not touched here. */
 .productmenu .pmrow2,.productmenu .pmcol .eyebrow,
 .coachesmenu .pmrow2,.coachesmenu .pmcol .eyebrow{
-  font-family:"Inter",system-ui,-apple-system,sans-serif;
+  font-family:"Archivo",system-ui,sans-serif;
 }
 #app.reg-tabs{
-  /* Global typeface swap (owner 2026-08-23): family register inherits the same
-     three faces as :root — Roboto Condensed display, Inter body. No Archivo /
-     Instrument Serif here any more. */
-  --display:"Roboto Condensed","Arial Narrow",system-ui,sans-serif;
-  --serif:"Roboto Condensed","Arial Narrow",system-ui,sans-serif;
-  --sans:"Inter",system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
+  /* Type system (owner 2026-09-21): family register inherits the same
+     faces as :root — Archivo display + body. */
+  --display:"Archivo",system-ui,sans-serif;
+  --serif:"Archivo",system-ui,sans-serif;
+  --sans:"Archivo",system-ui,sans-serif;
   font-family:var(--sans);
 }
 /* COMPACT-SERIF SWEEP (owner 2026-08-22): this WAS the Archivo "athletic
@@ -871,7 +869,7 @@ img{max-width:100%;display:block}
    <em> for the semantic emphasis; font-style is reset because the tint IS the
    emphasis here and italic display type on a photograph loses its edges. */
 .h1-slate{color:var(--slate);font-style:normal}
-/* Landing hero headline (owner 2026-08-23): Roboto Condensed 800, UPPERCASE, over
+/* Landing hero headline (owner 2026-09-21): Archivo Expanded Black, UPPERCASE, over
    the stadium photo. #app-scoped ON PURPOSE — `#app h1` (id-level, specificity
    1,0,1) sets the serif face + weight 400, so a bare `.hero-ai` (0,1,0) would lose
    the cascade to the id; `#app .hero-ai` (1,1,0) out-specifies it. White main words
@@ -4229,7 +4227,7 @@ body.reg-coach .greet{font-size:24px}
   padding:22px 26px 26px;align-items:start}
 #app .productmenu.glassmenu .pmcol{position:relative}
 /* !important: the site-wide `#app .eyebrow{font-family:var(--display)!important}`
-   (line ~4973) would otherwise force Roboto Condensed here; the prototype
+   (line ~4973) would otherwise force the display face here; the prototype
    says JetBrains Mono and an equal counter-weight is the only way past it. */
 #app .productmenu.glassmenu .eyebrow{font-family:var(--mono)!important;
   font-size:14px;font-weight:500!important;letter-spacing:.16em;text-transform:uppercase;
@@ -4567,7 +4565,7 @@ body.reg-coach{
      below are Inter-specific alternates). --display inherits ARCHIVO from :root
      (owner 2026-08-21 directive; not Syne), so no override is needed here;
      --sans is pinned to Inter. */
-  --sans:"Inter",system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
+  --sans:"Archivo",system-ui,sans-serif;
   font-family:var(--sans);
   /* Coach ground on the BODY (owner 2026-08-24: "a grey area that overturns it").
      #app.coachdark paints its own #0A0C0F, but #app is pushed left by the 400px AI
@@ -4800,7 +4798,7 @@ body.reg-coach .rail button.on{font-weight:600}
 .lp26 section{position:relative;overflow:hidden;border-bottom:0}
 .lp26 .wrap{max-width:1180px;margin:0 auto;padding:0 clamp(20px,5vw,56px)}
 .lp26 .k{font-family:"JetBrains Mono",monospace;font-size:14px;letter-spacing:.18em;text-transform:uppercase}
-.lp26 h1,.lp26 h2,.lp26 h3{font-family:"Roboto Condensed",sans-serif;text-transform:uppercase;font-weight:600;margin:0;line-height:1;letter-spacing:-.005em}
+.lp26 h1,.lp26 h2,.lp26 h3{font-family:"Archivo",sans-serif;text-transform:uppercase;font-weight:600;margin:0;line-height:1;letter-spacing:-.005em}
 .lp26 h2{font-size:clamp(26px,3.2vw,40px)}
 .lp26 h3{font-size:17px;letter-spacing:.03em}
 .lp26 p{margin:0}
@@ -4826,16 +4824,16 @@ body.reg-coach .rail button.on{font-weight:600}
 .lp26 .queue{color:#E9EDF3;
   --w-1:rgba(226,233,241,.70);--w-2:rgba(226,233,241,.55);--w-line:rgba(174,186,199,.18)}
 .lp26 .queue .msg{color:rgba(226,233,241,.70)}
-.lp26 .btn{display:inline-flex;align-items:center;justify-content:center;height:50px;padding:0 24px;border-radius:6px;font-family:"Roboto Condensed",sans-serif;text-transform:uppercase;font-weight:700;font-size:15px;letter-spacing:.06em;border:1px solid currentColor;transition:background .18s,color .18s;background:none;cursor:pointer}
+.lp26 .btn{display:inline-flex;align-items:center;justify-content:center;height:50px;padding:0 24px;border-radius:6px;font-family:"Archivo",sans-serif;text-transform:uppercase;font-weight:700;font-size:15px;letter-spacing:.06em;border:1px solid currentColor;transition:background .18s,color .18s;background:none;cursor:pointer}
 .lp26 .dark .btn.pri,.lp26 .dark2 .btn.pri{background:#fff;color:var(--black);border-color:#fff}
 .lp26 .dark .btn.pri:hover,.lp26 .dark2 .btn.pri:hover{background:transparent;color:#fff}
 .lp26 .band .head p:not(.k){margin-top:14px}
 .lp26 .queue{margin-top:54px;border:1px solid var(--w-line);border-radius:10px;overflow:hidden;background:var(--slate-900)}
 .lp26 .queue .qh{display:flex;align-items:center;gap:14px;padding:14px 18px;background:var(--slate-800);border-bottom:1px solid var(--w-line)}
-.lp26 .queue .qh .t{font-family:"Roboto Condensed",sans-serif;text-transform:uppercase;font-weight:600;font-size:14px;letter-spacing:.05em}
+.lp26 .queue .qh .t{font-family:"Archivo",sans-serif;text-transform:uppercase;font-weight:600;font-size:14px;letter-spacing:.05em}
 .lp26 .queue .qh .c{font-family:"JetBrains Mono",monospace;font-size:14px;color:var(--slate-300)}
 .lp26 .queue .qh .b{margin-left:auto;display:flex;gap:8px}
-.lp26 .queue .qh .b span{font-family:"Roboto Condensed",sans-serif;text-transform:uppercase;font-weight:700;font-size:14px;letter-spacing:.06em;padding:8px 13px;border:1px solid var(--slate-700);border-radius:6px;color:var(--slate-300)}
+.lp26 .queue .qh .b span{font-family:"Archivo",sans-serif;text-transform:uppercase;font-weight:700;font-size:14px;letter-spacing:.06em;padding:8px 13px;border:1px solid var(--slate-700);border-radius:6px;color:var(--slate-300)}
 .lp26 .queue .qh .b span.p{background:#fff;color:var(--black);border-color:#fff}
 .lp26 .queue .r{display:grid;grid-template-columns:158px 1fr 90px 92px;gap:18px;padding:13px 18px;border-bottom:1px solid rgba(174,186,199,.10);align-items:center;font-size:14px}
 .lp26 .queue .r:last-of-type{border-bottom:0}
@@ -4843,7 +4841,7 @@ body.reg-coach .rail button.on{font-weight:600}
 .lp26 .queue .r .nm small{display:block;color:var(--w-2);font-size:14px;font-weight:400}
 .lp26 .queue .r .msg{color:var(--w-1);font-size:14px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .lp26 .queue .r .amt{font-family:"JetBrains Mono",monospace;font-size:14px;text-align:right}
-.lp26 .queue .r .st{font-family:"Roboto Condensed",sans-serif;text-transform:uppercase;font-weight:600;font-size:14px;letter-spacing:.07em;text-align:right;color:var(--ok)}
+.lp26 .queue .r .st{font-family:"Archivo",sans-serif;text-transform:uppercase;font-weight:600;font-size:14px;letter-spacing:.07em;text-align:right;color:var(--ok)}
 .lp26 .queue .r .st.hold{color:var(--sand)}
 .lp26 .queue .qf{padding:12px 18px;color:var(--w-2);font-size:14px;border-top:1px solid var(--w-line);background:var(--slate-800)}
 @media(max-width:860px){
@@ -4866,9 +4864,9 @@ body.reg-coach .rail button.on{font-weight:600}
 .lp26 .who .m{margin-top:16px;padding-top:12px;border-top:1px solid;font-family:"JetBrains Mono",monospace;font-size:14px;color:var(--steel)}
 @media(max-width:820px){.lp26 .who{grid-template-columns:1fr}.lp26 .who>div{border-right:0;border-bottom:1px solid;padding-right:0}}
 .lp26 .price{display:grid;grid-template-columns:1fr 1fr;gap:56px;align-items:center}
-.lp26 .price .big{font-family:"Roboto Condensed",sans-serif;font-weight:700;font-size:clamp(52px,8.5vw,104px);line-height:.9;letter-spacing:-.02em}
+.lp26 .price .big{font-family:"Archivo",sans-serif;font-weight:700;font-size:clamp(52px,8.5vw,104px);line-height:.9;letter-spacing:-.02em}
 .lp26 .price .big span{font-size:.32em;letter-spacing:.02em}
-.lp26 .price .no{font-family:"Roboto Condensed",sans-serif;text-transform:uppercase;font-weight:600;font-size:15px;letter-spacing:.06em;margin-top:12px;color:var(--steel-l)}
+.lp26 .price .no{font-family:"Archivo",sans-serif;text-transform:uppercase;font-weight:600;font-size:15px;letter-spacing:.06em;margin-top:12px;color:var(--steel-l)}
 @media(max-width:820px){.lp26 .price{grid-template-columns:1fr;gap:24px}}
 .lp26 .switch{display:grid;grid-template-columns:1.1fr 1fr;gap:56px;align-items:center}
 .lp26 .files{border:1px solid var(--w-line);border-radius:10px;background:var(--slate-800);padding:4px}
@@ -4909,14 +4907,14 @@ body.reg-coach .rail button.on{font-weight:600}
 #app .lay-b .pg-serif.pg-h1,#app .lay-c .pg-serif.pg-h1,
 #app .lay-b h2.pg-serif,#app .lay-c h2.pg-serif,
 .lay-b h1,.lay-b h2,.lay-c h1,.lay-c h2{
-  font-family:var(--roboto-cond,"Roboto Condensed");text-transform:uppercase;
+  font-family:var(--roboto-cond,"Archivo");text-transform:uppercase;
   font-weight:600;line-height:1;letter-spacing:-.005em}
-.lay-b h3,.lay-c h3{font-family:var(--roboto-cond,"Roboto Condensed");
+.lay-b h3,.lay-c h3{font-family:var(--roboto-cond,"Archivo");
   text-transform:uppercase;font-weight:600;letter-spacing:.03em}
 .lay-b .pg-eyebrow,.lay-c .pg-eyebrow{font-family:var(--mono);font-size:14px;
   letter-spacing:.18em;text-transform:uppercase;font-weight:400}
 .lay-b .pg-ctarow .btn,.lay-c .pg-ctarow .btn{border-radius:6px;
-  font-family:var(--roboto-cond,"Roboto Condensed");text-transform:uppercase;
+  font-family:var(--roboto-cond,"Archivo");text-transform:uppercase;
   font-weight:700;letter-spacing:.06em}
 /* lay-b grounds: black (pinned) / white / off-white alternation */
 .lay-b .pgband.slate,.lay-b .pgband.slate.alt{background:#EEF1F5;border-bottom-color:#D6DCE5}
@@ -4939,7 +4937,7 @@ body.reg-coach .rail button.on{font-weight:600}
 .lay-c .pg-walk-step p{grid-column:2;grid-row:1 / span 2;margin:0}
 @media(max-width:900px){.lay-c .pg-walk-step{grid-template-columns:1fr}
   .lay-c .pg-walk-step p{grid-column:1;grid-row:auto}}
-.lay-c .pg-comparison th{font-family:var(--roboto-cond,"Roboto Condensed");
+.lay-c .pg-comparison th{font-family:var(--roboto-cond,"Archivo");
   text-transform:uppercase;font-weight:600;font-size:14px;letter-spacing:.06em}
 .js-rev .lay-c [data-rev]{transform:none;opacity:0;clip-path:inset(0 100% 0 0);
   transition:opacity .7s ease,clip-path .95s cubic-bezier(.2,.7,.2,1)}
@@ -5325,12 +5323,12 @@ body.reg-coach .rail button.on{font-weight:600}
 #app .rebuild-page .pgband.slate .k{opacity:1;color:#0F1419!important}
 /* ===== end five-format foundation ========================================== */
 
-/* ===== GLOBAL TYPEFACE SWAP — display headings (owner 2026-08-23) ============
+/* ===== TYPE SYSTEM — display headings (owner 2026-09-21, athletic direction) ==
    Every heading, hero and eyebrow across the WHOLE app (family, product AND the
-   coach portal) renders in Roboto Condensed, UPPERCASE, weight 500 — never bold.
+   coach portal) renders in Archivo, UPPERCASE, weight 500 — never bold.
    Applied app-wide with !important so the scattered legacy rules (reg-tabs serif
-   400, Archivo 800 secondaries, coach .cw-h1, Syne heroes) all resolve to the one
-   display voice. Body stays Inter; numerals stay JetBrains Mono. Layout, spacing,
+   400, coach .cw-h1, Syne heroes) all resolve to the one
+   display voice. Body is Archivo; numerals stay JetBrains Mono. Layout, spacing,
    colour and copy are untouched — this is a typeface swap. ==================== */
 #app h1,#app h2,#app h3,#app h4,
 #app .display,#app .pg-serif,#app .pg-h1,#app .greet,#app .cw-h1,
@@ -5347,7 +5345,7 @@ body.reg-coach .rail button.on{font-weight:600}
   font-family:var(--display)!important;font-style:normal!important;font-weight:500!important;
   text-transform:uppercase;
 }
-/* Buttons / CTAs → Roboto Condensed uppercase, weight 500 (never bold). */
+/* Buttons / CTAs → Archivo uppercase, weight 500 (never bold). */
 #app .btn,#app .navcta,#app .cmdgo,#app .pg-textlink,#app button.btn{
   font-family:var(--display)!important;text-transform:uppercase;font-weight:500!important;letter-spacing:.04em;
 }
@@ -9330,7 +9328,7 @@ function landingHTML(){
         <div class="no">Nothing per booking, nothing per family, no cut of dues</div>
       </div>
       <div data-rev data-rev-d="1">
-        <p>A flat subscription for the software and the agent. It is the only thing Sporv charges — not a cut of dues, not a per-team price, not a seat count, no annual contract.</p>
+        <p>A flat subscription for the software and the agent. It is the only thing Sporv charges. Not a cut of dues. Not a per-team price. Not a seat count. No annual contract.</p>
         <p style="margin-top:16px">Most clubs already pay more than this for software that chases nobody.</p>
       </div>
     </div>
