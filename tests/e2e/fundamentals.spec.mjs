@@ -71,7 +71,7 @@ test('2+3. signup: every button works, and what is entered is saved and shown af
   // ── step 1: account ──
   await page.evaluate(() => { S.portal = 'coach'; S.route = { name: 'setup', arg: null }; render(); });
   await settle(page); await noteButtons('1');
-  await page.evaluate(() => { window.__oauth = []; window.SporveAuth.oauthUrl = (p, r) => { window.__oauth.push(p); return 'javascript:void(0)'; }; window.open = (u) => { window.__opened = (window.__opened || []).concat([u]); return null; }; });
+  await page.evaluate(() => { window.__oauth = []; window.SporveAuth.oauthUrl = (p, r) => { window.__oauth.push(p); return 'javascript:void(0)'; }; window.open = (u) => { window.__opened = (window.__opened || []).concat([u]); return { closed: false, close() {}, location: {} }; }; }); /* fake allowed popup: the connect flow skips its OAuth-start request when window.open returns null (blocked) */
   for (const b of await page.locator('[data-oboauth]').all()) { await b.click(); clicked.add('1 · oauth ' + await b.getAttribute('data-oboauth')); }
   assert.deepEqual(await page.evaluate(() => window.__oauth), ['google', 'apple'], 'Google and Apple buttons start OAuth (navigation stubbed)');
   await click('[data-obpw]', '1 · use a password'); assert.equal((await state(page)).modal, 'login'); await page.evaluate(() => { S.modal = null; render(); });
