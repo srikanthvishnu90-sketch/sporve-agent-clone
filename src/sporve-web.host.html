@@ -20240,8 +20240,13 @@ function askCoach(q){
          read-shaped tools with a deterministic write. The model's reply_text is
          written one-shot BEFORE the tool runs, so it cannot report the outcome —
          render the real result (queued count or error) from the tool result here,
-         never the model's blind prose. */
-      const draftCall=calls.find(c=>c&&c.kind==="read"&&(c.tool==="draft_message"||c.tool==="draft_bulk_message"));
+         never the model's blind prose.
+         Retry ordering (2026-09-21): the agent may call the draft tool, get an
+         empty-body error, then retry successfully within the same turn. Use the
+         LAST matching draft call — the first one can be the stale failed
+         attempt while the assistant reply reflects the successful retry. */
+      const draftMatches=calls.filter(c=>c&&c.kind==="read"&&(c.tool==="draft_message"||c.tool==="draft_bulk_message"));
+      const draftCall=draftMatches.length?draftMatches[draftMatches.length-1]:null;
       const draftRes=draftCall&&draftCall.result&&typeof draftCall.result==="object"?draftCall.result:null;
       const draftOutcome=draftRes?{tool:String(draftCall.tool||""),
         queued:+(draftRes.queued||0),

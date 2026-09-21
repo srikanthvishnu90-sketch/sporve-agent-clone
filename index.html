@@ -27,7 +27,7 @@
 <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
 <link rel="manifest" href="/site.webmanifest">
 <script type="application/ld+json">{"@context":"https://schema.org","@type":"SoftwareApplication","name":"Sporv","url":"https://sporv.ai/","applicationCategory":"BusinessApplication","operatingSystem":"Web","description":"Sporv runs the club for you — roster, scheduling, waivers, dues and payouts, with an agent that drafts the busywork and a human who approves it.","publisher":{"@type":"Organization","name":"Sporv","url":"https://sporv.ai/","logo":"https://sporv.ai/icon-512.png"}}</script>
-<meta name="sporve-build" content="42be4688ba0950eb">
+<meta name="sporve-build" content="7940d6b16eb265e3">
 </head>
 <body>
 <noscript><h1>Sporv. Every sport. One app.</h1><p>Sporv connects families and athletes with coaches, trainers, camps, and teams across more than 20 sports. Please enable JavaScript to use the app.</p></noscript>
@@ -20290,8 +20290,13 @@ function askCoach(q){
          read-shaped tools with a deterministic write. The model's reply_text is
          written one-shot BEFORE the tool runs, so it cannot report the outcome —
          render the real result (queued count or error) from the tool result here,
-         never the model's blind prose. */
-      const draftCall=calls.find(c=>c&&c.kind==="read"&&(c.tool==="draft_message"||c.tool==="draft_bulk_message"));
+         never the model's blind prose.
+         Retry ordering (2026-09-21): the agent may call the draft tool, get an
+         empty-body error, then retry successfully within the same turn. Use the
+         LAST matching draft call — the first one can be the stale failed
+         attempt while the assistant reply reflects the successful retry. */
+      const draftMatches=calls.filter(c=>c&&c.kind==="read"&&(c.tool==="draft_message"||c.tool==="draft_bulk_message"));
+      const draftCall=draftMatches.length?draftMatches[draftMatches.length-1]:null;
       const draftRes=draftCall&&draftCall.result&&typeof draftCall.result==="object"?draftCall.result:null;
       const draftOutcome=draftRes?{tool:String(draftCall.tool||""),
         queued:+(draftRes.queued||0),
