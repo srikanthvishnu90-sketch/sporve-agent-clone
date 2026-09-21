@@ -764,6 +764,16 @@ img{max-width:100%;display:block}
    Scoped to :has(.hero-panel) — landing only. */
 #app:has(.hero-panel) .hero{margin-top:-60px;padding-top:0}
 #app:has(.hero-panel) .hero-panel{border-top-left-radius:0;border-top-right-radius:0}
+/* Landing-only (owner 2026-09-21): the stadium must own the whole first screen
+   on phones — no light strip. The -60px pull-up above assumes a 60px nav, but
+   the mobile nav is shorter (height:auto row, ~41px), so the 100lvh panel ended
+   ~19px above the viewport bottom and the light queue band showed through.
+   Instead of coupling the hero to the nav's pixel height, the landing nav
+   floats (fixed) and the hero starts at the document top: the panel then spans
+   exactly 0..100lvh at every nav height. A top-of-page sticky bar and a fixed
+   bar render identically here — it never scrolls out — so desktop is unchanged. */
+#app:has(.herofull) .topbar{position:fixed;top:0;left:0;right:0}
+#app:has(.herofull) .hero{margin-top:0}
 .hero-panel{
   position:relative;overflow:hidden;
   /* Full-bleed, not shell-width. The grid below stays capped at --shell; the

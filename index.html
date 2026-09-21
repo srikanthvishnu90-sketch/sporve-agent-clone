@@ -25,7 +25,7 @@
 <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16.png">
 <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
 <link rel="manifest" href="/site.webmanifest">
-<meta name="sporve-build" content="1fd1beb6aa744048">
+<meta name="sporve-build" content="19c162a714ea28aa">
 </head>
 <body>
 <noscript><h1>Sporv. Every sport. One app.</h1><p>Sporv connects families and athletes with coaches, trainers, camps, and teams across more than 20 sports. Please enable JavaScript to use the app.</p></noscript>
@@ -796,6 +796,16 @@ img{max-width:100%;display:block}
    Scoped to :has(.hero-panel) — landing only. */
 #app:has(.hero-panel) .hero{margin-top:-60px;padding-top:0}
 #app:has(.hero-panel) .hero-panel{border-top-left-radius:0;border-top-right-radius:0}
+/* Landing-only (owner 2026-09-21): the stadium must own the whole first screen
+   on phones — no light strip. The -60px pull-up above assumes a 60px nav, but
+   the mobile nav is shorter (height:auto row, ~41px), so the 100lvh panel ended
+   ~19px above the viewport bottom and the light queue band showed through.
+   Instead of coupling the hero to the nav's pixel height, the landing nav
+   floats (fixed) and the hero starts at the document top: the panel then spans
+   exactly 0..100lvh at every nav height. A top-of-page sticky bar and a fixed
+   bar render identically here — it never scrolls out — so desktop is unchanged. */
+#app:has(.herofull) .topbar{position:fixed;top:0;left:0;right:0}
+#app:has(.herofull) .hero{margin-top:0}
 .hero-panel{
   position:relative;overflow:hidden;
   /* Full-bleed, not shell-width. The grid below stays capped at --shell; the
