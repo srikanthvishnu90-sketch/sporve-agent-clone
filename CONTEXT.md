@@ -178,15 +178,15 @@ The architecture runs on Stripe Connect direct charges so a take rate *could* be
 
 ### 6.1 Three plan states
 
-Database keys stay `free | solo | organization`. Customer-facing labels are **Free / Solo / Organization**. Never introduce a `club` tier — it was removed.
+Database keys stay `free | pro | enterprise`. Customer-facing labels are **Free / Pro / Enterprise**. Never introduce a `club` tier — it was removed.
 
 All prices live in **one config file** as constants so a price change is a one-line diff. Prices marked ⚠ are pending founder confirmation; wire them, do not hardcode them anywhere else.
 
-| | **Free** | **Solo** ⚠ $49/mo · $490/yr | **Organization** ⚠ from $199/mo · $1,990/yr |
+| | **Free** | **Pro** $34.99/mo | **Enterprise** custom |
 |---|---|---|---|
 | Who | Anyone, permanently | One trainer, one coach, one-person op | Clubs, academies, multi-team orgs |
 | Members | 15 | 100 | 150 included, ⚠ +$40/mo per additional 50 |
-| Admin seats | 1 | 1 | 5 included, with roles; ⚠ +$15/seat |
+| Admin seats | 1 | 3 | Custom |
 | Groups | 1 | Unlimited | Unlimited |
 | Connectors | Website extraction, CSV, Stripe | + Gmail (read + draft), Google Calendar, SMS number with inbound reading | + Outlook/M365, Sheets, Drive, QuickBooks, GBP, all migration mappings |
 | Agent cadence | Nightly only | Nightly + triggered | Nightly + triggered + on-demand unlimited |
@@ -200,9 +200,9 @@ All prices live in **one config file** as constants so a price change is a one-l
 | Dues collection | Always allowed | Always | Always |
 | Export | Always allowed | Always | Always |
 
-Above ~800 athletes the Organization card becomes "Talk to us". That is a *conversation*, not a third plan. **The pricing page shows exactly two paid cards.**
+Above ~800 athletes the Enterprise card becomes "Talk to us". That is a *conversation*, not a third plan. **The pricing page shows exactly two paid cards.**
 
-Annual billing is **two months free** everywhere. Not 20%, not 17% — two months free, stated identically in the config, the pricing page, Stripe, and every doc.
+Annual billing (two months free) is planned but **not shipped** — checkout sells monthly only. Do not advertise annual until Stripe carries the prices.
 
 Do **not** build a per-camp add-on for launch. A second pricing dimension on a page nobody has bought from yet is complexity we cannot afford to explain.
 
@@ -218,13 +218,13 @@ draft_quota_month, send_quota_month, ask_quota_month,
 branding_footer bool
 ```
 
-Seed all three rows in a migration. **Changing a limit is a data change, never a code change.** See I2.
+Seed all three rows in a migration (done 2026-09-21: `20260921_001108_billing_pipeline_repair.sql`). **Changing a limit is a data change, never a code change.** See I2.
 
 ### 6.3 Stripe Billing, separate from Connect
 
 Our subscription runs on the **platform** account via Stripe Billing. Their dues run on **connected** accounts via direct charges. See I10.
 
-- Products and prices in Stripe: Solo monthly/annual, Organization monthly/annual, athlete-band add-on, seat add-on.
+- Products and prices in Stripe: Pro monthly ($34.99). No annual, no add-ons at launch.
 - New edge function `billing-webhook` — **do not extend `stripe-webhook`**, which handles dues. Handles `checkout.session.completed` (mode=subscription), `customer.subscription.created/updated/deleted`, `invoice.payment_failed`. Verifies signature. Rewrites the org's entitlements row from the price id within 60 seconds of every event.
 - New edge function `billing-portal` — returns a Stripe Customer Portal session so a director changes card, upgrades, downgrades, or cancels without emailing a human.
 - `invoice.payment_failed` → org drops to Free entitlements **after** Stripe's dunning window closes, never immediately. Write a finding.
@@ -244,7 +244,7 @@ Cron generators filter on `jobs[]` and `scan_mode` **before** generating, so a F
 Free users hit walls in a predictable order: draft/send quota (~week 2), member cap (first real import), connector lock (the moment they want Gmail), Ask quota. Each wall shows three things and nothing else: **what stopped, exactly what they'd get, one button.**
 
 Copy pattern — name the cost in their terms, not ours:
-> 8 families weren't contacted this month. Solo sends without a monthly limit. [See plans]
+> 8 families weren't contacted this month. Pro sends without a monthly limit. [See plans]
 
 **The conversion mechanic is visible unfinished work.** Past the quota, drafts still generate and sit in the queue clearly marked over-limit. A free user who sees eight unsendable drafts upgrades; one who sees an empty queue concludes the product does nothing. Never silently skip generation.
 
