@@ -1183,16 +1183,23 @@ comp=$($B js "
  if(bg!=='rgb(62, 76, 90)') return 'BUBBLE_NOT_SLATE_'+bg;
  if(!document.querySelector('.aidock-row')) return 'NOT_ONE_ROW';
  if(f.getBoundingClientRect().height>130) return 'BUBBLE_TOO_TALL_'+Math.round(f.getBoundingClientRect().height);
- /* CENTERED PANEL (owner 2026-09-21, re-asserting 2026-08-19): the open
-    panel ALWAYS carries its header (new chat / expand / close), the surfaced
-    thread, the chip row and the composer — even with no conversation yet.
-    The compact bar at rest is now ONLY the collapsed strip. */
+ /* BAR AT REST (no live chat): compact — chips + composer, maximize + X
+    on the composer, no header, no thread. The dashboard stays usable. */
  S.chat=[];S.chatThinking=false;render();
- if(!document.querySelector('.aidock-head')) return 'NO_HEADER';
- if(!document.querySelector('.aidock-head [data-ainew]')) return 'NO_HEAD_NEWCHAT';
+ if(document.querySelector('.aidock-head')) return 'HEADER_BACK';
+ if(document.getElementById('aidockScroll')) return 'THREAD_SHOWN_WHEN_EMPTY';
+ if(!document.querySelector('[data-aimaximize]')) return 'NO_MAXBTN_BAR';
+ if(!document.querySelector('[data-aiclose]')) return 'NO_X_BAR';
+ const barH=document.querySelector('.aipill').getBoundingClientRect().height;
+ if(barH>190) return 'BAR_TOO_TALL_'+Math.round(barH);
+ /* LIVE CHAT (owner 2026-09-21): the panel centers with its header
+    (new chat / expand / close) and the surfaced thread. */
+ S.chat=[{role:'user',text:'x'},{role:'coach',text:'y'}];render();
  if(!document.querySelector('.aidock-head [data-aigofull]')) return 'NO_HEAD_EXPAND';
+ if(!document.querySelector('.aidock-head [data-ainew]')) return 'NO_HEAD_NEWCHAT';
  if(!document.querySelector('.aidock-head [data-aiclose]')) return 'NO_HEAD_X';
  if(!document.getElementById('aidockScroll')) return 'NO_THREAD_SURFACE';
+ S.chat=[];
  S.aiCollapsed=true;render();
  const strip=document.querySelector('.aidock-strip');
  if(!strip) return 'NO_STRIP';
@@ -1806,18 +1813,23 @@ noor=$($B js "
 # the COLLAPSED strip stays bottom-centred and compensated so the last table
 # row stays reachable.
 pill=$($B js "
-(()=>{S.portal='coach';S.aiOpen=true;S.aiCollapsed=false;
+(()=>{S.portal='coach';S.aiOpen=true;S.aiCollapsed=false;S.chat=[];S.chatThinking=false;
  S.route={name:'dashboard',arg:null};render();
  const p=document.querySelector('.aipill'),f=document.querySelector('.aidock-fab');
  if(!p||!f) return 'MISSING';
  if(p.contains(f)) return 'S_INSIDE_PILL';
- const pr=p.getBoundingClientRect();
- const offX=Math.abs((pr.left+pr.right)/2 - innerWidth/2);
- if(offX>2) return 'OFFCENTRE_X_'+Math.round(offX);
- const offY=Math.abs((pr.top+pr.bottom)/2 - innerHeight/2);
- if(offY>2) return 'OFFCENTRE_Y_'+Math.round(offY);
  if(!f.querySelector('.aidock-fab-ic')) return 'FAB_NO_CHAT_ICON';
- S.aiCollapsed=true;render();
+ // BAR AT REST: bottom-centred, dashboard usable
+ const pr=p.getBoundingClientRect();
+ if(Math.abs((pr.left+pr.right)/2 - innerWidth/2)>2) return 'BAR_OFFCENTRE_X';
+ if(Math.round(innerHeight-pr.bottom)>40) return 'BAR_NOT_AT_BOTTOM';
+ // LIVE CHAT (owner 2026-09-21): dead-centre of the viewport
+ S.chat=[{role:'user',text:'x'},{role:'coach',text:'y'}];render();
+ const pr2=document.querySelector('.aipill').getBoundingClientRect();
+ if(Math.abs((pr2.left+pr2.right)/2 - innerWidth/2)>2) return 'PANEL_OFFCENTRE_X';
+ if(Math.abs((pr2.top+pr2.bottom)/2 - innerHeight/2)>2) return 'PANEL_OFFCENTRE_Y';
+ // COLLAPSED STRIP: bottom-centred and compensated
+ S.chat=[];S.aiCollapsed=true;render();
  const st=document.querySelector('.aipill'),sr=st.getBoundingClientRect();
  if(Math.abs((sr.left+sr.right)/2-innerWidth/2)>2) return 'STRIP_OFFCENTRE';
  if(Math.round(innerHeight-sr.bottom)>40) return 'STRIP_NOT_AT_BOTTOM';
@@ -1825,7 +1837,7 @@ pill=$($B js "
  if(pad < sr.height) return 'NO_COMPENSATION_'+Math.round(pad);
  S.aiCollapsed=false;render();
  return 'OK'})()" 2>/dev/null)
-[ "${pill//\"/}" = "OK" ] && pass "AI panel dead-centre, chat-FAB separate, strip compensated" \
+[ "${pill//\"/}" = "OK" ] && pass "AI bar bottom-centre, live panel dead-centre, chat-FAB separate, strip compensated" \
   || fail "AI pill invariant broken: $pill"
 
 echo "─────────────────────────────────────────────────────"

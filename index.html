@@ -25,7 +25,7 @@
 <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16.png">
 <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
 <link rel="manifest" href="/site.webmanifest">
-<meta name="sporve-build" content="72702454e20ac069">
+<meta name="sporve-build" content="e9b3629bf3d80f45">
 </head>
 <body>
 <noscript><h1>Sporv. Every sport. One app.</h1><p>Sporv connects families and athletes with coaches, trainers, camps, and teams across more than 20 sports. Please enable JavaScript to use the app.</p></noscript>
@@ -2557,10 +2557,11 @@ html.coldock .aidock-fab{display:none}
    min() width/height changing under it. */
 /* CENTERED DEAD-MIDDLE (owner typed instruction 2026-08-19: "centered at the
    dead middle of the screen" — re-asserting PR #165 over the grow-up variant;
-   owner re-confirmed 2026-09-21). The open panel sits at viewport centre on
-   EVERY viewport whenever it is open — not only while a conversation exists.
-   The collapsed strip has no .aidock-panel, so it stays bottom-docked. */
-.aipill:has(.aidock-panel){top:50%;bottom:auto;transform:translate(-50%,-50%)}
+   owner re-confirmed 2026-09-21, right-column dock retired). The LIVE chat
+   panel sits at viewport centre on every viewport. The compact bar (no live
+   conversation yet) and the collapsed strip stay bottom-docked — the dashboard
+   must stay usable on arrival. */
+.aipill:has(.aidock-panel.talking){top:50%;bottom:auto;transform:translate(-50%,-50%)}
 /* The spacer. Defaults to 0 so every page without a pill is untouched, and
    render() overwrites it with the measured height + the 24px offset + a 16px
    breathing gap. On #app rather than body because the coach dark ground is
@@ -10963,38 +10964,39 @@ function aiDockHTML(){
      of "nothing more" would hide replies too, and being unable to see the
      answer is the exact bug reported two turns ago. At rest — which is what the
      reference shows and what a coach sees on arrival — it is the bar alone. */
-  /* A conversation exists (or a reply is streaming). The centered panel always
-     shows its surface — the thread if there is one, the empty prompt otherwise. */
+  /* A conversation exists (or a reply is streaming). */
   const convo=S.chat.length||S.chatThinking;
-  /* Centered panel (owner 2026-09-21): the open chatbox is a floating panel at
-     viewport centre on every viewport — bottom pill and right column retired;
-     the thread is always surfaced with the composer pinned below it. */
-  return `${open?`<div class="aipill"><section class="aidock-panel talking" role="dialog" aria-label="Sporv AI helper">
-      ${/* Panel header: name + connector status + new-chat / expand / close.
-           Expand goes STRAIGHT to the fullscreen surface (data-aigofull). */""}
-      <div class="aidock-head">
-        <span class="aidock-head-t">Sporv AI</span>
-        ${/* GLANCEABLE STATUS (2026-09-20): green "Connected" when the key
-             connectors are in, otherwise a "Connect" pill — one tap to the
-             integrations surface either way. */""}
-        ${cxPillHTML()}
-        <span style="flex:1"></span>
-        <button type="button" class="aimax-ic" data-ainew="1" aria-label="New chat" title="New chat">
-          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-               stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg></button>
-        <button type="button" class="aimax-ic" data-aigofull="1" aria-label="Expand Sporv AI" title="Expand">
-          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-               stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-            <path d="M4 9V4h5M20 15v5h-5M20 4l-6 6M4 20l6-6"/></svg></button>
-        <button type="button" class="aimax-ic" data-aiclose="1" aria-label="Close Sporv AI" title="Close">
-          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-               stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
-      </div>
-      <div class="aidock-scroll" id="aidockScroll">
-        ${thread}
-        ${S.chatThinking?`<div class="bub them" style="align-self:flex-start;display:flex;gap:5px;align-items:center">
-          <i class="dotdot"></i><i class="dotdot" style="animation-delay:.16s"></i><i class="dotdot" style="animation-delay:.32s"></i></div>`:""}
-      </div>
+  /* Centered panel (owner 2026-09-21, re-asserting the 2026-08-19 "dead middle"
+     instruction): once a conversation exists, the chatbox is a floating panel
+     at viewport centre on every viewport. With no conversation it stays the
+     compact bottom bar — the dashboard must stay usable on arrival. The
+     right-column dock is retired. */
+  const surface=!!convo;
+  /* Panel header (live chat only): name + connector status + new-chat /
+     expand / close. Expand goes STRAIGHT to the fullscreen surface. */
+  const headHTML=`<div class="aidock-head">
+      <span class="aidock-head-t">Sporv AI</span>
+      ${cxPillHTML()}
+      <span style="flex:1"></span>
+      <button type="button" class="aimax-ic" data-ainew="1" aria-label="New chat" title="New chat">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+             stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg></button>
+      <button type="button" class="aimax-ic" data-aigofull="1" aria-label="Expand Sporv AI" title="Expand">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+             stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M4 9V4h5M20 15v5h-5M20 4l-6 6M4 20l6-6"/></svg></button>
+      <button type="button" class="aimax-ic" data-aiclose="1" aria-label="Close Sporv AI" title="Close">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+             stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
+    </div>`;
+  const scrollHTML=`<div class="aidock-scroll" id="aidockScroll">
+      ${thread}
+      ${S.chatThinking?`<div class="bub them" style="align-self:flex-start;display:flex;gap:5px;align-items:center">
+        <i class="dotdot"></i><i class="dotdot" style="animation-delay:.16s"></i><i class="dotdot" style="animation-delay:.32s"></i></div>`:""}
+    </div>`;
+  return `${open?`<div class="aipill"><section class="aidock-panel${surface?" talking":""}" role="dialog" aria-label="Sporv AI helper">
+      ${surface?headHTML:""}
+      ${surface?scrollHTML:""}
       ${aiChipsHTML()}
       <form class="aidock-compose" id="aiDockForm">
         ${S.aiHistOpen&&!S.aiMax?histDropHTML(true):""}
@@ -11024,9 +11026,21 @@ function aiDockHTML(){
                  stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
               <path d="M22 2 11 13"/><path d="M22 2 15 22l-4-9-9-4z"/></svg></button>
         </div>
-        ${/* Centered panel (owner 2026-09-21): the header owns every window
-             control (new chat / expand / close), so the composer-corner buttons
-             (maximize, thread tuck, history, X) are retired. */""}
+        ${/* Bar at rest (no live chat): maximize + close live on the composer.
+             The live-chat panel's header owns its own window controls, and the
+             thread/history tuck buttons are retired with the column. */""}
+        ${surface?"":`<button type="button" class="aidock-x aidock-maxbtn"
+          data-aimaximize="1" aria-label="Maximize Sporv AI" title="Maximize">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+               stroke-width="2" stroke-linecap="round" aria-hidden="true">
+            <path d="M14 4h6v6M20 4l-7 7M10 20H4v-6M4 20l7-7"/></svg></button>`}
+        ${/* Owner 2026-09-21: the close X lives on the composer in EVERY layout,
+           so the chatbox always has a visible way to dismiss it. data-aiclose
+           sets S.aiOpen=false and rerenders. */
+        `<button type="button" class="aidock-x" data-aiclose="1" aria-label="Close Sporv AI" title="Close">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+               stroke-width="2" stroke-linecap="round" aria-hidden="true">
+            <path d="M6 6l12 12M18 6L6 18"/></svg></button>`}
       </form>
       ${/* AI-disclosure (Claude Usage Policy) shown once a conversation exists
            — the at-rest bar stays "just the bar" (owner), but the moment it is
@@ -17040,11 +17054,12 @@ function render(){
      and would then be stale on the next route that has no pill. A property on
      :root is rewritten every pass and has exactly one writer. */
   (function compensate(){
-    /* Only the collapsed STRIP sits at the viewport bottom over page content,
-       so only it reserves space. The centered panel and fullscreen surface
-       float above the page and need no spacer (retired 2026-09-21). */
-    const strip=document.querySelector(".aidock-strip");
-    const px=strip?Math.ceil(strip.getBoundingClientRect().height)+24+16:0;
+    /* The bottom-docked bar (open, no live chat) and the collapsed strip sit
+       at the viewport bottom over page content, so they reserve space. The
+       CENTERED live-chat panel and the fullscreen surface float above the page
+       and need no spacer. :not(:has(.talking)) excludes the centered panel. */
+    const bar=document.querySelector(".aipill:not(:has(.talking))");
+    const px=bar?Math.ceil(bar.getBoundingClientRect().height)+24+16:0;
     document.documentElement.style.setProperty("--aipill-h",px+"px");
     /* RETIRED 2026-09-21 (owner: chatbox always centered): the right-column
        dock is gone, so the page never reflows beside it. Only the maximized
