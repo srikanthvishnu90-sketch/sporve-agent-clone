@@ -60,20 +60,22 @@ class HttpInputError extends Error {
 function withHttpDeadline<T>(work: (signal: AbortSignal) => Promise<T>, ms: number): Promise<T> {
   const controller = new AbortController();
   let timer: ReturnType<typeof setTimeout> | undefined;
-  try {
-    return Promise.race([
-      Promise.resolve().then(() => work(controller.signal)),
-      new Promise<never>((_, reject) => {
-        timer = setTimeout(() => {
-          const error = new HttpInputError(504, 'Request took too long. Please try again.');
-          reject(error); controller.abort(error);
-        }, ms);
-      }),
-    ]);
-  } finally {
-    clearTimeout(timer);
-    controller.abort();
-  }
+  const race = Promise.race([
+    Promise.resolve().then(() => work(controller.signal)),
+    new Promise<never>((_, reject) => {
+      timer = setTimeout(() => {
+        const error = new HttpInputError(504, 'Request took too long. Please try again.');
+        reject(error); controller.abort(error);
+      }, ms);
+    }),
+  ]);
+  // Cleanup runs only after the race settles. (2026-09-21: the previous
+  // try/finally ran synchronously — controller.abort() fired before work()
+  // even started, so every fetch using the signal failed immediately with
+  // "The signal has been aborted". The identity check swallowed that as
+  // "Invalid credentials.", 401ing every connected read. Do not re-add
+  // abort() here; the timer clear is the only cleanup needed.)
+  return race.finally(() => clearTimeout(timer));
 }
 
 /** Reads the body without letting a chunked request grow memory unbounded. */
