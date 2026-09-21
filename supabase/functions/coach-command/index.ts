@@ -457,6 +457,50 @@ export function isDraftToolFailed(cleaned: any[]): boolean {
     Number((tc?.result as Record<string, unknown> | undefined)?.queued ?? 0) === 0,
   );
 }
+// True when the coach asks to READ from a connected account (v37,
+// 2026-09-21): Outlook mail/calendar, Gmail, Google Calendar, Sheets, Drive,
+// QuickBooks, Business Profile, SMS. Production 2026-09-21: the model denied
+// an Outlook mail/calendar read outright ("no access") and emitted zero tool
+// calls even though the Microsoft connector was connected — a connected-read
+// turn must complete through read_connected, never stand as a refusal.
+// Excludes outbound draft requests, document turns, and research turns.
+export function isConnectedReadTurn(text: string, intent: string): boolean {
+  if (intent === "refuse") return false;
+  if (isDocumentTurn(text, "read") || isClubResearchTurn(text, "read") || isVenueResearchTurn(text, "read")) return false;
+  // Outbound ("email the parents", "text the team") is a draft turn, not a read.
+  if (/\b(send|message|text|remind|notify|draft|write|tell|ping)\b/i.test(text) &&
+      /\b(parent|parents|guardian|guardians|team|coaches?|everyone|families)\b/i.test(text)) return false;
+  const readVerb = /\b(read|check|show|see|look|what\x27?s|any|search|find|list|pull|open)\b/i.test(text);
+  if (!readVerb) return false;
+  const named = /\b(outlook|microsoft|m365|office\s*365|gmail|google\s*calendar|google\s*sheets?|google\s*drive|quickbooks|business\s*profile|sms|twilio)\b/i.test(text);
+  if (named) return true;
+  // Unqualified "check my email / inbox" is a mail read (defaults to gmail,
+  // the primary parent-email connector per the system prompt).
+  return /\b(email|e-?mail|inbox)\b/i.test(text);
+}
+// Resolve a connected-read turn to concrete read_connected calls (v37,
+// 2026-09-21). Only kinds that work with deterministic default params are
+// resolved here (sheets/quickbooks need coach-supplied ids/queries — those
+// stay model-driven). Outlook mail+calendar together produce two calls.
+export function resolveConnectedReads(text: string): Array<Record<string, unknown>> {
+  const t = text.toLowerCase();
+  const calls: Array<Record<string, unknown>> = [];
+  const outlook = /\b(outlook|microsoft|m365|office\s*365)\b/.test(t);
+  const wantsMail = /\b(mail|email|e-?mail|inbox)\b/.test(t);
+  const wantsCal = /\b(calendar|schedule|events?|availability|meetings?)\b/.test(t);
+  if (outlook) {
+    if (wantsMail || !wantsCal) calls.push({ kind: "microsoft365", params: { section: "mail" } });
+    if (wantsCal) calls.push({ kind: "microsoft365", params: { section: "calendar", days: 14 } });
+    return calls;
+  }
+  if (/\bgmail\b/.test(t)) { calls.push({ kind: "gmail", params: {} }); return calls; }
+  if (/\bgoogle\s*calendar\b/.test(t)) { calls.push({ kind: "google_calendar", params: {} }); return calls; }
+  if (/\b(google\s*drive)\b/.test(t)) { calls.push({ kind: "google_drive", params: {} }); return calls; }
+  if (/\b(sms|twilio)\b/.test(t)) { calls.push({ kind: "sms", params: {} }); return calls; }
+  if (/\bbusiness\s*profile\b/.test(t)) { calls.push({ kind: "google_business_profile", params: {} }); return calls; }
+  if (wantsMail) calls.push({ kind: "gmail", params: {} });
+  return calls;
+}
 
 const DRAFT_SYSTEM = [
   "You are the draft-writer for a youth-sports coach's assistant. The coach asked for a message. Your ONLY job: output write_draft with the message as JSON — or ONE clarifying question if you truly cannot draft.",
@@ -1708,6 +1752,14 @@ Deno.serve(async (req) => {
         (isClubResearchTurn(text, "read") || isVenueResearchTurn(text, "read"))) {
       intent = "read";
     }
+    // v37 (2026-09-21): the model refuses connected-account reads outright
+    // ("I don't have access to your Outlook") even when the connector is
+    // connected (production 2026-09-21). A connected read is a pure
+    // org-scoped read through read_connected — never refuse it; the
+    // completion below runs it and reports the honest result.
+    if (intent === "refuse" && isConnectedReadTurn(text, "read")) {
+      intent = "read";
+    }
 
     let reply = typeof out.reply_text === "string" ? out.reply_text.trim() : "";
     if (!reply) reply = intent === "refuse" ? "That's outside what I can help with here." : "Could you clarify what you'd like me to do?";
@@ -2171,6 +2223,68 @@ Deno.serve(async (req) => {
         }
       } catch (e) {
         console.error("coach-command: venue-research completion failed:", e);
+      }
+    }
+
+    /* ── Connected-read completion (2026-09-21, v37) ────────────────────
+       The model denies connected-account reads ("no Outlook access") and
+       emits zero tool calls even when the connector is connected (production
+       2026-09-21). Run the read server-side through the same org-scoped
+       readConnected executor the model would use — read-only, the coach's
+       JWT, honest errors passed through (I9: org scoping unchanged). Never
+       fires when the model already called read_connected, and never on
+       refusals that are not connected reads. */
+    const looksLikeConnectedRead = isConnectedReadTurn(text, intent);
+    const connectedReadDone = cleaned.some(
+      (tc) => String((tc as Record<string, unknown>)?.tool ?? "") === "read_connected",
+    );
+    if (looksLikeConnectedRead && !connectedReadDone && !draftAlreadyQueued) {
+      try {
+        const connLabel = (kind: string): string =>
+          ({ microsoft365: "Outlook", gmail: "Gmail", google_calendar: "Google Calendar",
+             google_drive: "Drive", sms: "SMS", google_business_profile: "Business Profile" } as Record<string, string>)[kind] ?? kind;
+        const fmtConnItem = (it: unknown): string => {
+          const o = (it ?? {}) as Record<string, unknown>;
+          const s = (v: unknown): string => String(v ?? "").trim();
+          if (o.subject || o.from) {
+            const bits = [`- ${s(o.from) || "Unknown sender"}: ${s(o.subject) || "(no subject)"}`];
+            if (o.date) bits.push(`(${s(o.date).slice(0, 16).replace("T", " ")})`);
+            return bits.join(" ");
+          }
+          if (o.summary) {
+            const when = s(o.start).slice(0, 16).replace("T", " ");
+            return `- ${s(o.summary)}${when ? ` — ${when}` : ""}`;
+          }
+          if (o.body && o.from) return `- ${s(o.from)}: ${s(o.body).slice(0, 120)}`;
+          return `- ${JSON.stringify(o).slice(0, 160)}`;
+        };
+        const parts: string[] = [];
+        for (const c of resolveConnectedReads(text)) {
+          const cKind = String(c.kind ?? "");
+          const res = await readConnected(cKind, c.params, authHeader) as Record<string, unknown>;
+          cleaned.push({
+            tool: "read_connected",
+            args: { kind: cKind, params: c.params, auto: true },
+            kind: "read",
+            result: res,
+          });
+          const label = connLabel(cKind);
+          if (res.error) {
+            // CONNECT CARD rule: name the missing connection in one short
+            // sentence; the app renders the one-tap Connect card from the
+            // {code:'not_connected'} tool result pushed above.
+            parts.push(String(res.code) === "not_connected"
+              ? `I need your ${label} connected to check that.`
+              : `I couldn't read ${label}: ${String(res.error)}`);
+            continue;
+          }
+          const items = (Array.isArray(res.items) ? res.items : []) as unknown[];
+          if (!items.length) { parts.push(`Nothing found in ${label}.`); continue; }
+          parts.push(`${label}:\n${items.slice(0, 5).map(fmtConnItem).join("\n")}`);
+        }
+        if (parts.length) reply = parts.join("\n");
+      } catch (e) {
+        console.error("coach-command: connected-read completion failed:", e);
       }
     }
 

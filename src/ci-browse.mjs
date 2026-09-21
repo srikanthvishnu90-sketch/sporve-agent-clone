@@ -24,6 +24,7 @@
  */
 
 import http from "node:http";
+import net from "node:net";
 import fs from "node:fs";
 import path from "node:path";
 import process from "node:process";
@@ -38,7 +39,34 @@ async function serve() {
      provides. --allow-file-access-from-files is required because smoke.sh
      loads the built page over file:// and the page reads its own inlined
      resources. */
-  const browser = await chromium.launch({
+  /* Sandbox egress (2026-09-21). The VM reaches the internet only through an
+     HTTP CONNECT proxy set in the standard *_PROXY variables, and every TLS
+     session is intercepted by the "Hatch Sandbox Egress CA" (trusted by
+     curl/node via SSL_CERT_FILE and NODE_EXTRA_CA_CERTS). Three things stop
+     the stock Playwright launch from reaching supabase.co:
+       1. Chromium, a separate process, ignores the *_PROXY variables, so its
+          CONNECTs go direct and die at the sandbox gateway ("Failed to
+          fetch" / status 0 in the page).
+       2. Even with an explicit --proxy-server, the egress proxy silently
+          drops CONNECTs whose TCP peer is the Chromium network process
+          (ERR_EMPTY_RESPONSE) while byte-identical CONNECTs from node get
+          "200 Connection Established" — verified with a netlog and raw
+          sockets against 198.19.0.1:3128.
+       3. Chromium does not read SSL_CERT_FILE/NODE_EXTRA_CA_CERTS, so the
+          MITM'd TLS fails with ERR_CERT_AUTHORITY_INVALID.
+     The fix stays inside the harness: when the environment provides proxy
+     variables, serve() starts a minimal in-process CONNECT relay on
+     loopback, forwards unauthenticated to the egress proxy (which answers
+     200 to unauthenticated CONNECTs; credentialed ones are dropped), points
+     Chromium at the relay, and sets ignoreHTTPSErrors so the sandbox MITM
+     CA is accepted. Loopback (the daemon control channel and the csp-serve
+     origin) bypasses the relay. On a runner without proxy variables
+     (GitHub Actions) the launch is identical to what it was — nothing here
+     changes the assertions, which still run the real SporveAuth.signIn and
+     SporveAPI.ping in a real browser under the real CSP against the real
+     Supabase project. */
+  const proxyServer = process.env.HTTPS_PROXY || process.env.https_proxy;
+  const launchOpts = {
     /* --font-render-hinting=none: on Linux, FreeType hinting rounds glyph
        advances up to integers, inflating rendered text ~2-4% versus the
        fractional metrics macOS uses. That was enough to wrap several product
@@ -47,7 +75,51 @@ async function serve() {
        design targets. Disabling hinting gives fractional advances and brings
        CI's text layout in line with the metrics the design was tuned against. */
     args: ["--allow-file-access-from-files", "--font-render-hinting=none"],
-  });
+  };
+  let relayServer = null;
+  if (proxyServer) {
+    let upstreamHost = null;
+    let upstreamPort = 3128;
+    try {
+      const u = new URL(proxyServer);
+      upstreamHost = u.hostname;
+      upstreamPort = Number(u.port) || 3128;
+    } catch {
+      /* No parseable scheme://host — leave the launch direct, as before. */
+    }
+    if (upstreamHost) {
+      relayServer = net.createServer((client) => {
+        let buf = Buffer.alloc(0);
+        let up = null;
+        let sent = false;
+        client.on("data", (c) => {
+          if (!sent) {
+            buf = Buffer.concat([buf, c]);
+            if (buf.includes("\r\n\r\n")) {
+              sent = true;
+              const head = buf;
+              up = net.connect(upstreamPort, upstreamHost, () => up.write(head));
+              up.on("data", (d) => client.write(d));
+              up.on("error", () => client.destroy());
+              up.on("close", () => client.end());
+            }
+          } else if (up) {
+            up.write(c);
+          }
+        });
+        client.on("error", () => {
+          if (up) up.destroy();
+        });
+      });
+      await new Promise((r) => relayServer.listen(0, "127.0.0.1", r));
+      launchOpts.proxy = {
+        server: "http://127.0.0.1:" + relayServer.address().port,
+        bypass: process.env.NO_PROXY || process.env.no_proxy || "localhost,127.0.0.1",
+      };
+      launchOpts.ignoreHTTPSErrors = true;
+    }
+  }
+  const browser = await chromium.launch(launchOpts);
   const page = await browser.newPage({ viewport: { width: 1440, height: 900 } });
 
   /* One buffer, drained by `console --clear`. Both genuine console errors and
@@ -112,6 +184,7 @@ async function serve() {
         } else if (op === "stop") {
           res.end("ok");
           server.close();
+          if (relayServer) relayServer.close();
           await browser.close();
           try { fs.unlinkSync(PORT_FILE); } catch {}
           process.exit(0);
