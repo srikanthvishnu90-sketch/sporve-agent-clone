@@ -2528,8 +2528,15 @@ html.coldock .aidock-fab{display:none}
    owner re-confirmed 2026-09-21, right-column dock retired). The LIVE chat
    panel sits at viewport centre on every viewport. The compact bar (no live
    conversation yet) and the collapsed strip stay bottom-docked — the dashboard
-   must stay usable on arrival. */
-.aipill:has(.aidock-panel.talking){top:50%;bottom:auto;transform:translate(-50%,-50%)}
+   must stay usable on arrival.
+   Owner 2026-09-21 (later the same day, supersedes the dead-centre rule for the
+   talking state only): nudge the ACTIVE panel a little right of centre and a
+   little smaller. translate(calc(-50% + 48px),-50%) keeps vertical centring
+   while shifting 48px right; 640px cap instead of 720. On narrow viewports the
+   shift would clip, so mobile keeps exact centre. */
+.aipill:has(.aidock-panel.talking){top:50%;bottom:auto;transform:translate(calc(-50% + 48px),-50%);
+  width:min(640px,calc(100vw - 32px))}
+@media(max-width:767px){.aipill:has(.aidock-panel.talking){transform:translate(-50%,-50%)}}
 /* The spacer. Defaults to 0 so every page without a pill is untouched, and
    render() overwrites it with the measured height + the 24px offset + a 16px
    breathing gap. On #app rather than body because the coach dark ground is
@@ -21128,6 +21135,18 @@ function hydrateReturn(){
     }
     S.portal="coach";S.coachTab="settings";S.setTab="connectors";
     S.route={name:"coach",arg:null};render();
+    /* Owner 2026-09-21: after pressing connect the tile must visibly update.
+       On this boot the session may still be restoring when this handler runs,
+       and loadConnectors() no-ops while signed out — so keep asking until it
+       fires (up to 20s). The CONNECTED state itself still comes from
+       connectors-available reading the database, never from the URL. */
+    var cxWarmTries=0;
+    (function warmCxAfterOAuth(){
+      if(window.SporveAPI&&window.SporveAPI.isSignedIn&&window.SporveAPI.isSignedIn()){
+        loadConnectors();return;
+      }
+      if(++cxWarmTries<40) setTimeout(warmCxAfterOAuth,500);
+    })();
     return;
   }
   var invite    = q.get("invite");
