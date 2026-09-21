@@ -650,7 +650,7 @@ img{max-width:100%;display:block}
 }
 .acct:hover{background:rgba(255,255,255,.10)}
 .acct .burger{display:none;width:18px;height:12px;grid-template-rows:repeat(3,1px);gap:4px}
-.acct .burger span{height:1.5px;background:#FFFFFF;display:block}
+.acct .burger span{width:100%;height:1.5px;background:#FFFFFF;display:block}
 /* Prototype account avatar (owner 2026-08-23): a 32px DARK disc with white
    initials and a hairline ring, brightening on hover. Scoped to .acct so the
    global .avatar (auth sheet, fallbacks) keeps its slate fill. #1C222B is the
@@ -3039,6 +3039,11 @@ html.coldock .aidock-fab{display:none}
   font-family:var(--mono);font-size:var(--text-xs)}
 .ackid.add{border-style:dashed;color:var(--faint)}
 .acg{margin-bottom:22px}
+/* Guest account sheet: the "Go to" group follows the Log in button directly,
+   so it needs its own top rhythm — without it the eyebrow label sits on the
+   button's bottom edge (design rule 9: nothing overlaps by accident). 24px
+   keeps the 8px grid (rule 3). */
+.acg-top{margin-top:24px}
 .acg h2{font-family:var(--display);text-transform:uppercase;font-weight:700;
   font-size:var(--text-xs);letter-spacing:.09em;color:var(--faint);margin:0 0 8px;padding:0 4px}
 .acard{background:var(--raise);border:1px solid var(--rule);border-radius:10px;overflow:hidden}
@@ -3124,7 +3129,10 @@ html.coldock .aidock-fab{display:none}
 @media(max-width:760px){
   .nav-left .tnav-row{display:none !important}
   .topbar-in .acct{margin-left:auto}
-  .acct .burger{display:inline-flex}
+  /* grid (not flex): the three spans are empty, so a flex ROW collapses them
+     to zero width and the hamburger vanishes on phones — the <=900 rule above
+     already uses grid for exactly this reason. */
+  .acct .burger{display:grid}
 }
 /* Autofill paints its own near-white; force the dark ground back. */
 .modal.stage input:-webkit-autofill,
@@ -15148,7 +15156,7 @@ function modalHTML(){
       <span class="acr-l"><b>${label}</b>${sub?`<small>${sub}</small>`:""}</span>
       ${status?`<span class="acr-m">${esc(status)}</span>`:""}
       <span class="acr-chev" aria-hidden="true"></span></button>`;
-    const group=(title,rows)=>`<div class="acg"><h2>${title}</h2>
+    const group=(title,rows,cls="")=>`<div class="acg${cls?" "+cls:""}"><h2>${title}</h2>
       <div class="acard">${rows.map(r=>row(r[0],r[1],r[2],r[3])).join("")}</div></div>`;
     if(u){
       const initials2=esc(String(u.firstName||"")[0]||"")+esc(String(u.lastName||"")[0]||"");
@@ -15187,11 +15195,11 @@ function modalHTML(){
     }
     return wrap("Account",`<div class="acct-sheet">
       <button class="btn wide" data-modal="signup">Sign up</button>
-      <button class="btn ghost wide" data-modal="login" style="margin-top:9px">Log in</button>
+      <button class="btn ghost wide" data-modal="login" style="margin-top:8px">Log in</button>
       ${group("Go to",[
         ["explore","Product","Everything Sporv runs for a club"],
         ["pricing","Pricing","Plans and what each includes"],
-        ["about","Help","Contact and support"]])}
+        ["about","Help","Contact and support"]],"acg-top")}
       ${/* "Switch to coaching" removed (owner 2026-09-19): the consumer
            marketplace is dead, so a guest portal-switch button is vestigial.
            Guests reach the club workspace through Get started / sign-in. */""}
