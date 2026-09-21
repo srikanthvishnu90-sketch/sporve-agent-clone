@@ -13126,7 +13126,13 @@ function connectorsGroupsHTML(introHTML){
     const busy=S.cxBusy===c.kind;
     let right,sub="";
     if(c.state==="connected"){
-      right=`<span class="cxr-st">Connected</span>`;
+      /* Owner 2026-09-21: a connected OAuth tile also offers Reconnect. A
+         stored grant can die (revoked, expired, refused) while the row still
+         reads connected, and without this there is no UI path to repair it —
+         the Outlook tile proved it. Reuses the same data-cxconnect flow as
+         Connect/Retry; the server still gates the grant. */
+      const canReconnect=!!(c.oauth&&c.connect_url);
+      right=`<span class="cxr-st">Connected</span>${canReconnect?` <button class="btn ghost sm" data-cxconnect="${esc(c.kind)}"${busy?" disabled":""}>${busy?"Opening…":"Reconnect"}</button>`:""}`;
       if(c.external_account)sub+=`<small class="num">${esc(c.external_account)}</small>`;
       const d=day(c.connected_at);if(d)sub+=`<small class="num">Connected ${esc(d)}</small>`;
     }else if(c.state==="locked"){
