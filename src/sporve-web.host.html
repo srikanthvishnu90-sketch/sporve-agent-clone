@@ -17707,14 +17707,16 @@ document.querySelectorAll('.sig-ai-coach').forEach(sigAiCoachWire);
      a client id, a scope list, or anything else worth tampering with. The start
      function is read from the server's connect_url, so a tile only offers Connect
      when the server handed it a working flow; the kind travels in the POST body.
-     The consent window opens as a BLANK popup synchronously inside the click
-     (window.SporvOAuth.startPopup) so the browser keeps the user gesture — it is
-     navigated to the consent URL once the server responds, or closed with an
-     actionable error if startup fails. This tab keeps its place, and the
-     Connectors tiles re-read the server on the next render. Every refusal is
-     printed as the server worded it, because "your plan does not include this
-     connector" and "Google connections are not available yet" are different
-     problems and a generic failure hides which one you have. */
+     The consent URL is fetched first (bounded at 25s), then THIS tab navigates
+     to it — no popup. The popup-first pattern stranded users on a permanent
+     blank tab: once the popup takes focus, some browsers suspend the opener
+     tab's JS, so the popup was never navigated and never closed (six identical
+     production failures 2026-09-21). The OAuth callback returns to the app, so
+     the redirect flow is safe. This tab keeps its place until navigation, and
+     the Connectors tiles re-read the server on the next render. Every refusal
+     is printed as the server worded it, because "your plan does not include
+     this connector" and "Google connections are not available yet" are
+     different problems and a generic failure hides which one you have. */
   /* Connector prominence (2026-09-20): the composer's + button opens the
      one-tap picker sheet. The cache warms on the same render pass. */
   $("[data-cxopen]").forEach(b=>b.onclick=()=>{loadConnectors();S.modal={type:"cxsheet"};render();});
@@ -17728,20 +17730,16 @@ document.querySelectorAll('.sig-ai-coach').forEach(sigAiCoachWire);
       S.connectError="Sign in first.";render();return;}
     const m=String(c.connect_url).match(/\/functions\/v1\/([A-Za-z0-9_-]+)/);
     const startFn=m?m[1]:"google-oauth-start";
-    /* The popup MUST open synchronously inside this click: anything awaited
-       first costs the user gesture and the blocker eats the consent window
-       silently. startPopup opens it blank, navigates on success, closes it
-       and reports a reason on failure. */
-    const started=window.SporvOAuth.startPopup({
-      open:()=>window.open("","_blank","noopener"),
-      navigate:(w,u)=>{w.location.href=u;},
-      close:(w)=>{try{w.close();}catch(e){}},
+    /* The consent URL is fetched first, then this tab navigates to it
+       (window.SporvOAuth.startRedirect) — no popup, so there is no blank
+       tab to strand and no popup blocker in the path. */
+    const started=window.SporvOAuth.startRedirect({
       request:()=>window.SporveAPI.fn(startFn,{kind,redirect_to:location.origin+"/"})
     });
     S.cxBusy=kind;S.connectError=null;render();
     started.then(res=>{
       S.cxBusy=null;
-      if(res.ok){render();return;}
+      if(res.ok){return;} /* navigation started; the callback brings us back */
       /* Non-401 failures keep the server's wording — "your plan does not
          include this connector" and "Google connections are not available
          yet" are different problems and a generic failure hides which one. */
@@ -17749,6 +17747,10 @@ document.querySelectorAll('.sig-ai-coach').forEach(sigAiCoachWire);
         ?res.err.message
         :window.SporvOAuth.errorMessage(res.reason);
       render();
+    },()=>{
+      /* startRedirect never rejects (it resolves {ok:false} instead), but a
+         rejection here must never leave the tile stuck on "Opening…". */
+      S.cxBusy=null;S.connectError="Could not start the connection.";render();
     });
   });
   $("[data-cxsite]").forEach(b=>b.onclick=()=>{
