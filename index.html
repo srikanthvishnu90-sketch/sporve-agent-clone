@@ -25,7 +25,7 @@
 <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16.png">
 <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
 <link rel="manifest" href="/site.webmanifest">
-<meta name="sporve-build" content="f2711fb8a400dd54">
+<meta name="sporve-build" content="68ad96ca5df66aa8">
 </head>
 <body>
 <noscript><h1>Sporv. Every sport. One app.</h1><p>Sporv connects families and athletes with coaches, trainers, camps, and teams across more than 20 sports. Please enable JavaScript to use the app.</p></noscript>
@@ -22677,8 +22677,8 @@ window.MOD_COACHUI = { css:CSS, wire:wire };
       });
     } else if (active === "subscription") {
       /* DEDICATED CANCELLATION PAGE. A Sporv-native subscription management
-         view: shows the current plan and offers a clear, confirmed cancel
-         path that calls billing-cancel. No redirect to Stripe required. */
+         view: shows the current plan and walks through cancellation step by
+         step. The "How do I cancel my membership?" FAQ links here. */
       body = ui.Block({
         title:"Subscription",
         subtitle:"Manage your Sporv subscription. Cancellation is immediate and takes effect right away.",
@@ -22688,8 +22688,14 @@ window.MOD_COACHUI = { css:CSS, wire:wire };
               { label:ui.html("<b>Status</b><small>Your subscription renews automatically each month.</small>"), value:"Active", mono:false },
             ]) +
             '<div style="margin-top:24px;padding:20px;border:1px solid #e5e5e5;border-radius:8px;">' +
-            '<h3 style="margin:0 0 8px;font-size:16px;">Cancel subscription</h3>' +
-            '<p style="margin:0 0 16px;color:#666;font-size:14px;">Cancelling stops future charges immediately. You keep Pro until the end of the current billing period, then your workspace returns to the Free plan.</p>' +
+            '<h3 style="margin:0 0 12px;font-size:18px;">How do I cancel my membership?</h3>' +
+            '<p style="margin:0 0 12px;color:#333;font-size:14px;">Follow these steps to cancel your Sporv Pro subscription:</p>' +
+            '<ol style="margin:0 0 16px 20px;padding:0;color:#333;font-size:14px;line-height:1.8;">' +
+            '<li>Review what cancellation does below — you keep Pro until the end of your billing period.</li>' +
+            '<li>Click <b>"Cancel my subscription"</b> and confirm.</li>' +
+            '<li>Done. No future charges. Your workspace returns to the Free plan.</li>' +
+            '</ol>' +
+            '<p style="margin:0 0 16px;color:#666;font-size:14px;"><b>What happens:</b> Cancelling stops future charges immediately. You keep Pro features until the end of the current billing period, then your workspace returns to the Free plan (website, file import, and Stripe connectors only).</p>' +
             ui.Button({ label:"Cancel my subscription", size:"lg", variant:"danger", attrs:'data-cb-cancel="1"' }) +
             '</div>'
           : ui.EmptyState("No active subscription","You are on the Free plan. There is nothing to cancel."),
