@@ -475,16 +475,22 @@ async function resolveProviderId(admin: any, userId: string): Promise<string | n
 }
 
 async function noteAttempt(admin: any, row: ConnectorRow, started: string, ok: boolean, items: number, why?: string) {
-  await admin.from('connector_sync_state').upsert({
-    connector_id: row.id,
-    provider_id: row.provider_id,
-    last_attempt_at: started,
-    last_success_at: ok ? new Date().toISOString() : null,
-    last_error: ok ? null : (why ?? 'read failed'),
-    last_error_at: ok ? null : new Date().toISOString(),
-    items_seen: items,
-    updated_at: new Date().toISOString(),
-  }, { onConflict: 'connector_id' }).catch(() => {});
+  // Telemetry must never break the read. The postgrest query builder is
+  // thenable but has no .catch() method — await it inside try/catch instead.
+  // (2026-09-21: `.catch(()=>{})` on the builder threw TypeError on every
+  // successful read, surfacing as 503 "Read is temporarily unavailable".)
+  try {
+    await admin.from('connector_sync_state').upsert({
+      connector_id: row.id,
+      provider_id: row.provider_id,
+      last_attempt_at: started,
+      last_success_at: ok ? new Date().toISOString() : null,
+      last_error: ok ? null : (why ?? 'read failed'),
+      last_error_at: ok ? null : new Date().toISOString(),
+      items_seen: items,
+      updated_at: new Date().toISOString(),
+    }, { onConflict: 'connector_id' });
+  } catch { /* telemetry is best-effort */ }
 }
 
 Deno.serve(async (req) => {
