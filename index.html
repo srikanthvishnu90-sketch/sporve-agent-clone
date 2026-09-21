@@ -25,7 +25,7 @@
 <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16.png">
 <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
 <link rel="manifest" href="/site.webmanifest">
-<meta name="sporve-build" content="3215e055b923bfc8">
+<meta name="sporve-build" content="34d644cfec3bd943">
 </head>
 <body>
 <noscript><h1>Sporv. Every sport. One app.</h1><p>Sporv connects families and athletes with coaches, trainers, camps, and teams across more than 20 sports. Please enable JavaScript to use the app.</p></noscript>
@@ -11059,7 +11059,10 @@ function aiDockHTML(){
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
                stroke-width="1.8" stroke-linecap="round" aria-hidden="true">
             <circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg></button>`:""}
-        ${colMode?"":`<button type="button" class="aidock-x" data-aiclose="1" aria-label="Close Sporv AI">
+        ${/* Owner 2026-09-21: the close X lives on the composer in EVERY layout
+           (docked column included), so the chatbox always has a visible way
+           to dismiss it. data-aiclose sets S.aiOpen=false and rerenders. */
+        `<button type="button" class="aidock-x" data-aiclose="1" aria-label="Close Sporv AI" title="Close">
           <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor"
                stroke-width="2" stroke-linecap="round" aria-hidden="true">
             <path d="M6 6l12 12M18 6L6 18"/></svg></button>`}
