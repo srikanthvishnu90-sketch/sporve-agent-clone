@@ -153,8 +153,8 @@ Deno.serve(async req => {
           const numberSet = (Deno.env.get('TWILIO_PHONE_NUMBER') ?? '').length > 0;
           if (configured) {
             tile.note = numberSet
-              ? 'Texts use your club’s Sporv number, from TWILIO_PHONE_NUMBER on this deployment.'
-              : 'Twilio is wired up; your club’s Sporv number comes from TWILIO_PHONE_NUMBER, which is not set on this deployment yet.';
+              ? 'Texts use your club\u2019s Sporv number.'
+              : 'Twilio is wired up; your club\u2019s Sporv number is not set on this deployment yet.';
           } else {
             tile.note = 'Twilio is not switched on for this deployment yet.';
           }

@@ -290,7 +290,7 @@ async function handler(req: Request): Promise<Response> {
           error: 'Your plan does not include this connector.',
           reason: 'connector_not_in_plan',
           current_plan: provider.plan ?? 'free',
-          upgrade_to: 'solo',
+          upgrade_to: 'pro',
           limit: allowed.length,
           current: allowed.length,
         }, 402);

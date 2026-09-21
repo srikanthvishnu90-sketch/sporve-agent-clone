@@ -55,5 +55,25 @@
     );
   }
 
-  window.SporvOAuth = { startPopup: startPopup, errorMessage: errorMessage };
+  /* SAME-TAB FALLBACK. When the popup is blocked or unreliable, navigate the
+     current tab to the consent URL instead. The OAuth callback returns to
+     the app, so this is a safe fallback. Resolves { ok:true } if navigation
+     started, or { ok:false, reason } on failure. */
+  function startSameTab(deps) {
+    return deps.request().then(
+      function (r) {
+        if (r && r.url) {
+          window.location.href = r.url;
+          return { ok: true };
+        }
+        return { ok: false, reason: "no-url" };
+      },
+      function (err) {
+        if (err && err.status === 401) return { ok: false, reason: "expired", err: err };
+        return { ok: false, reason: "error", err: err };
+      }
+    );
+  }
+
+  window.SporvOAuth = { startPopup: startPopup, startSameTab: startSameTab, errorMessage: errorMessage };
 })();
