@@ -1,10 +1,16 @@
 // ============================================================================
 // billing-cancel  (Supabase Edge Function)
 // ============================================================================
-// Cancels the authenticated coach's active Stripe subscription(s) immediately.
-// The stripe-webhook handles `customer.subscription.deleted` and downgrades
-// the provider to the free plan. This gives Sporv a native cancellation path
-// without leaving sporv.ai.
+// Schedules cancellation of the authenticated coach's active Stripe
+// subscription(s) at the end of the current billing period
+// (cancel_at_period_end). The coach keeps Pro until then; the
+// stripe-webhook's `customer.subscription.deleted` event downgrades the
+// provider to the free plan at period end. This gives Sporv a native
+// cancellation path without leaving sporv.ai.
+//
+// Owner decision 2026-09-21: end-of-period, not immediate — matches the
+// cancellation page promise ("you keep Pro until the end of your billing
+// period").
 //
 // verify_jwt: ON.
 // ============================================================================
@@ -83,11 +89,12 @@ Deno.serve(async (req) => {
 
     const cancelled: string[] = [];
     for (const sub of subs.data) {
-      await stripe.subscriptions.cancel(sub.id);
+      // End-of-period: no immediate cancel, no refund — access runs to term.
+      await stripe.subscriptions.update(sub.id, { cancel_at_period_end: true });
       cancelled.push(sub.id);
     }
 
-    return json({ cancelled, count: cancelled.length });
+    return json({ cancelled, count: cancelled.length, cancel_at_period_end: true });
   } catch (e) {
     console.error("billing-cancel error:", e);
     return json({ error: "Subscription could not be cancelled. Please try again." }, 500);

@@ -839,7 +839,7 @@
          step. The "How do I cancel my membership?" FAQ links here. */
       body = ui.Block({
         title:"Subscription",
-        subtitle:"Manage your Sporv subscription. Cancellation is immediate and takes effect right away.",
+        subtitle:"Manage your Sporv subscription. Cancelling stops future charges — you keep Pro until the end of your billing period.",
         body: st.entitled
           ? ui.ListCard([
               { label:ui.html("<b>Current plan</b><small>" + esc(st.plan.adds || "") + "</small>"), value:esc(st.plan.price + st.plan.per), mono:true },
