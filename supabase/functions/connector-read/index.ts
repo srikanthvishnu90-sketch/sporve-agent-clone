@@ -660,7 +660,8 @@ Deno.serve(async (req) => {
     }
     // Never 500 on a trivial call: an unexpected failure is a provider outage
     // from the caller's point of view.
-    console.error('connector-read: unexpected failure');
+    const eu = error as any;
+    console.error('connector-read: unexpected failure:', eu?.message ?? String(error), '| name:', eu?.name ?? '?', '| status:', eu?.status ?? '?', '| stack:', eu?.stack?.split('\n').slice(0,3).join(' <- ') ?? '?');
     return json({ error: 'Read is temporarily unavailable.', code: 'provider_error' }, 503);
   }
 });
