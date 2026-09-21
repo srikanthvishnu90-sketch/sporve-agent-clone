@@ -25,7 +25,7 @@
 <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16.png">
 <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
 <link rel="manifest" href="/site.webmanifest">
-<meta name="sporve-build" content="19c162a714ea28aa">
+<meta name="sporve-build" content="8dd3ad4aecb3e155">
 </head>
 <body>
 <noscript><h1>Sporv. Every sport. One app.</h1><p>Sporv connects families and athletes with coaches, trainers, camps, and teams across more than 20 sports. Please enable JavaScript to use the app.</p></noscript>
@@ -17794,11 +17794,21 @@ document.querySelectorAll('.sig-ai-coach').forEach(sigAiCoachWire);
     S.cxBusy=kind;S.connectError=null;render();
     window.SporveAPI.fn(startFn,{kind,redirect_to:location.origin+"/"}).then(r=>{
       S.cxBusy=null;
-      if(r&&r.url){ window.open(r.url,"_blank","noopener");render();return; }
+      if(r&&r.url){
+        const win=window.open(r.url,"_blank","noopener");
+        if(!win){
+          S.connectError="The sign-in window was blocked. Allow popups for sporv.ai, then click Connect again.";
+        }
+        render();return;
+      }
       S.connectError="Could not start the connection.";render();
     },err=>{
       S.cxBusy=null;
-      S.connectError=(err&&err.message)||"Could not start the connection.";
+      if(err&&err.status===401){
+        S.connectError="Your sign-in expired. Sign out and sign back in, then try connecting again.";
+      }else{
+        S.connectError=(err&&err.message)||"Could not start the connection.";
+      }
       render();
     });
   });
