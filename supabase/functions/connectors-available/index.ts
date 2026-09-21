@@ -122,6 +122,29 @@ function offeredKinds(): string[] {
     .map(c => c.kind);
 }
 
+/* Pure plan-lock rule (CONTEXT.md §6.5; unit-tested verbatim in
+   tests/connectors/plan-lock.spec.ts). Given the OAuth connector kinds this
+   deployment can offer, the plan→connectors map from plan_entitlements, and
+   the org's current plan, returns kind → required-plan label for every
+   connector outside the plan. The lock and the oauth-start 402 read the same
+   table, so the tile and the gate can never disagree. */
+function lockedPlanByKind(
+  oauthKinds: string[],
+  byPlan: Record<string, string[]>,
+  currentPlan: string,
+): Record<string, string> {
+  const allowed = new Set(byPlan[currentPlan] ?? []);
+  const PLAN_ORDER = ['free', 'pro', 'enterprise'];
+  const PLAN_LABEL: Record<string, string> = { free: 'Free', pro: 'Pro', enterprise: 'Enterprise' };
+  const out: Record<string, string> = {};
+  for (const kind of oauthKinds) {
+    if (allowed.has(kind)) continue;
+    const need = PLAN_ORDER.find(p => (byPlan[p] ?? []).includes(kind));
+    if (need) out[kind] = PLAN_LABEL[need] ?? need;
+  }
+  return out;
+}
+
 Deno.serve(async req => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: cors });
   if (req.method !== 'GET' && req.method !== 'POST') return json({ error: 'Method not allowed.' }, 405);
@@ -224,7 +247,33 @@ Deno.serve(async req => {
       const rowByKind: Record<string, typeof rows[number]> = {};
       for (const r of rows ?? []) rowByKind[r.kind] = r;
 
-      const connectors = baseTiles.map(t => {
+      /* Plan lock (CONTEXT.md §6.5): a tile must never offer a Connect
+         button that google-oauth-start / microsoft-oauth-start would 402
+         (invariant I3). RLS: providers has an owner SELECT policy and
+         plan_entitlements is public-read, so the user client suffices; no
+         service_role here. Connected and error states are untouched — a live
+         row is real, whatever the plan says. */
+      const locked: Record<string, string> = {};
+      try {
+        const { data: prov } = await userClient
+          .from('providers').select('plan').eq('owner_id', auth.user.id).maybeSingle();
+        const { data: entRows } = await userClient
+          .from('plan_entitlements').select('plan, connectors');
+        const byPlan: Record<string, string[]> = {};
+        for (const e of (entRows ?? []) as Array<{ plan: string; connectors: unknown }>) {
+          if (typeof e.plan === 'string' && Array.isArray(e.connectors)) {
+            byPlan[e.plan] = (e.connectors as unknown[]).filter(x => typeof x === 'string') as string[];
+          }
+        }
+        const currentPlan = (prov as { plan?: string } | null)?.plan ?? 'free';
+        Object.assign(locked, lockedPlanByKind(
+          CONNECTORS.filter(c => c.oauth).map(c => c.kind), byPlan, currentPlan));
+      } catch {
+        /* Entitlements unreadable: keep today's tiles. The oauth-start
+           functions still fail closed, so nothing unauthorized connects. */
+      }
+
+      const withStatus = baseTiles.map(t => {
         const r = rowByKind[String(t.kind)];
         if (!r) return t;
         if (r.status === 'connected') {
@@ -242,6 +291,23 @@ Deno.serve(async req => {
         }
         /* revoked / expired / disconnected: no live row, so fall back to the
            config-based state — the tile can offer a reconnect. */
+        return t;
+      });
+
+      /* Apply the plan lock last: only tiles that would otherwise offer a
+         real Connect button become locked, and the button is removed so
+         there is no dead control to click. */
+      const connectors = withStatus.map(t => {
+        const kind = String(t.kind);
+        const requiredPlan = locked[kind];
+        if (requiredPlan && (t as Record<string, unknown>).connect_url
+            && t.state !== 'connected' && t.state !== 'error') {
+          const locked = { ...(t as Record<string, unknown>) };
+          delete locked.connect_url;
+          locked.state = 'locked';
+          locked.required_plan = requiredPlan;
+          return locked;
+        }
         return t;
       });
 

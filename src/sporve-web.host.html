@@ -3095,6 +3095,7 @@ html.coldock .aidock-fab{display:none}
 .cxr.on .cxr-l b{color:#EDEFF2}
 .cxr.on .cxr-st{color:#6FA982}
 .cxr.soon{opacity:.62}
+.cxr.locked{opacity:.62}
 .cxr .btn.sm{white-space:nowrap}
 
 /* ── connector prominence kit (2026-09-20) ───────────────────────────
@@ -13114,13 +13115,20 @@ function connectorsGroupsHTML(introHTML){
      available without one (the server's honest note, no dead button),
      not_configured (no dead button — the tile names what is missing). */
   const cxrTile=(c)=>{
-    const cls=c.state==="connected"?" on":"";
+    let cls=c.state==="connected"?" on":"";
     const busy=S.cxBusy===c.kind;
     let right,sub="";
     if(c.state==="connected"){
       right=`<span class="cxr-st">Connected</span>`;
       if(c.external_account)sub+=`<small class="num">${esc(c.external_account)}</small>`;
       const d=day(c.connected_at);if(d)sub+=`<small class="num">Connected ${esc(d)}</small>`;
+    }else if(c.state==="locked"){
+      /* CONTEXT.md §6.5: a locked surface is greyed with its real structure
+         visible and one line naming the plan — never a dead Connect button
+         that 402s at click. */
+      cls+=" locked";
+      right=`<span class="cxr-st">Locked</span>`;
+      sub=`<small>Requires the ${esc(c.required_plan||"Enterprise")} plan.</small>`;
     }else if(c.state==="error"){
       right=c.connect_url
         ?`<button class="btn sm" data-cxconnect="${esc(c.kind)}"${busy?" disabled":""}>${busy?"Opening…":"Retry"}</button>`
@@ -13200,6 +13208,9 @@ function cxSheetCardHTML(c){
   let right,note="";
   if(c.state==="connected"){
     right=`<span class="cxr-st" style="color:var(--good)">✓ Connected</span>`;
+  }else if(c.state==="locked"){
+    right=`<span class="cxr-st">Locked</span>`;
+    note=`<small>Requires the ${esc(c.required_plan||"Enterprise")} plan.</small>`;
   }else if(c.state==="error"&&c.connect_url){
     right=`<button class="btn sm" data-cxconnect="${esc(c.kind)}"${busy?" disabled":""}>${busy?"Opening…":"Retry"}</button>`;
     note=`<small style="color:var(--danger,#C4685E)">Stopped — ${esc(c.last_error||"Sync failed")}</small>`;
@@ -13209,7 +13220,7 @@ function cxSheetCardHTML(c){
     right=`<span class="cxr-st">Not yet</span>`;
     note=`<small>${esc(c.note||(c.requires_approval?String(c.requires_approval)+" — Sporv is waiting on Google to approve this API access.":null)||"Not switched on for this deployment yet.")}</small>`;
   }
-  return `<div class="cxr${c.state==="connected"?" on":""}">
+  return `<div class="cxr${c.state==="connected"?" on":""}${c.state==="locked"?" locked":""}">
     ${cxMarkHTML(c.label)}
     <div class="cxr-l"><b>${esc(c.label)}</b><small>${esc(cxPlainLine(c))}</small>${note}</div>
     <div class="cxr-r">${right}</div></div>`;
@@ -13239,6 +13250,8 @@ function aiConnectCardHTML(kind){
   let right;
   if(c&&c.state==="connected"){
     right=`<span class="aidock-cxst">✓ Connected</span>`;
+  }else if(c&&c.state==="locked"){
+    right=`<span class="aidock-cxnote">Locked — requires the ${esc(c.required_plan||"Enterprise")} plan.</span>`;
   }else if(c&&c.connect_url){
     right=`<button class="btn ghost sm" data-cxconnect="${esc(kind)}"${busy?" disabled":""}>${busy?"Opening…":"Connect"}</button>`;
   }else{
@@ -14863,12 +14876,14 @@ function modalHTML(){
       const cxTileS=(kind)=>{
         const c=(S.cxStatus&&Array.isArray(S.cxStatus.connectors)?S.cxStatus.connectors:[]).find(x=>x.kind===kind);
         const on=!!(c&&c.state==="connected");
+        const locked=!!(c&&c.state==="locked");
         const go=!!(c&&c.state==="available"&&c.connect_url);
         let desc=c?`Reads: ${esc(c.reads)} Writes: ${esc(c.writes)}`:"";
         if(on&&c)desc=`Reading ${esc(c.external_account||"your account")} — ${esc(c.reads)}`;
         if(c&&c.requires_approval&&!on)desc+=` ${esc(c.requires_approval)}: Sporv is waiting on Google to approve this API access.`;
-        if(c&&c.note&&!on&&!go)desc+=` ${esc(c.note)}`;
-        return {name:c?c.label:kind,on,soon:!on&&!go,
+        if(locked&&c)desc+=` Requires the ${esc(c.required_plan||"Enterprise")} plan.`;
+        if(c&&c.note&&!on&&!go&&!locked)desc+=` ${esc(c.note)}`;
+        return {name:c?c.label:kind,on,locked,soon:!on&&!go&&!locked,
           attr:go?`data-cxconnect="${kind}"`:"",
           busy:S.cxBusy===kind?"Opening…":"",cta:"Connect",desc};
       };
@@ -14876,12 +14891,13 @@ function modalHTML(){
       const siteOn=!!w.extracted;
       const rosterOn=(S.importBatches||[]).some(x=>!x.undone);
       const nOn=[stripeOn,siteOn,rosterOn].filter(Boolean).length;
-      const tile=(o)=>`<div class="cxr${o.on?" on":""}${o.soon?" soon":""}">
+      const tile=(o)=>`<div class="cxr${o.on?" on":""}${o.soon?" soon":""}${o.locked?" locked":""}">
         <div class="cxr-l"><b>${esc(o.name)}</b><small>${o.desc}</small></div>
         <div class="cxr-r">${o.on
           ?`<span class="cxr-st">Connected</span>`
-          :(o.soon?`<span class="cxr-st">Not yet</span>`
-            :`<button class="btn sm" ${o.attr||""}${o.busy?" disabled":""}>${esc(o.busy||o.cta||"Connect")}</button>`)}</div></div>`;
+          :(o.locked?`<span class="cxr-st">Locked</span>`
+            :(o.soon?`<span class="cxr-st">Not yet</span>`
+              :`<button class="btn sm" ${o.attr||""}${o.busy?" disabled":""}>${esc(o.busy||o.cta||"Connect")}</button>`))}</div></div>`;
       const group=(h,tiles)=>`<div class="acg"><h2>${esc(h)}</h2><div class="acard">${tiles.join("")}</div></div>`;
       return wrapS("Connect what you already use",`
         <p class="imp-sub">Sporv reads from the tools you already run on, then drafts the
