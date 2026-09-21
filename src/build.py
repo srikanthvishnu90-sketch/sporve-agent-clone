@@ -284,7 +284,7 @@ else:
 # Twitter cards, theme-color, and the Sporv S mark as real icon files at the
 # repo root (owner artwork, 2026-09-04 — replaces the placeholder circle).
 # og/twitter URLs point at sporv.ai; the old sporv.vercel.app host 404s.
-_OG = "https://sporv.ai/og.png"
+_OG = "https://sporv.ai/og.png?v=2"
 _TITLE = "Sporv — The operating system for youth sports."
 _DESC = ("Sporv runs the club for you — roster, scheduling, waivers, dues and "
          "payouts, with an agent that drafts the busywork and a human who approves it.")
@@ -311,6 +311,7 @@ STANDALONE = (
     f'<meta name="twitter:description" content="{_DESC}">\n'
     f'<meta name="twitter:image" content="{_OG}">\n'
     '<link rel="icon" href="/favicon.ico?v=2" sizes="any">\n'
+    '<link rel="icon" type="image/png" sizes="192x192" href="/icon-192.png?v=2">\n'
     '<link rel="icon" type="image/png" sizes="32x32" href="/favicon-32.png?v=2">\n'
     '<link rel="icon" type="image/png" sizes="16x16" href="/favicon-16.png?v=2">\n'
     '<link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png?v=2">\n'
