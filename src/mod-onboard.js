@@ -182,6 +182,7 @@
       <div class="conn">
         ${tile("gmail", "GM", "Gmail", "Inbound parent email, tournament PDFs, league notices. Read-only scope — it cannot send.", 'data-cxconnect="gmail"')}
         ${tile("google_calendar", "GC", "Google Calendar", "Practices, games, conflicts. Changes you approve are written back.", 'data-cxconnect="google_calendar"')}
+        ${tile("microsoft365", "M365", "Outlook / Microsoft 365", "Email and calendar for clubs on Microsoft. Read-only email; calendar changes you approve are written back.", 'data-cxconnect="microsoft365"')}
         ${tile("google_sheets", "SH", "Google Sheets", "The spreadsheet your club actually runs on. Read-only.", 'data-cxconnect="google_sheets"')}
         ${tile("google_drive", "DR", "Google Drive", "Waivers, forms and PDFs you already store. Read-only.", 'data-cxconnect="google_drive"')}
         <button class="cn" data-obgo="5"><span class="ic">CSV</span><span class="b"><b>A roster export or CSV</b><small>SportsEngine, TeamSnap, LeagueApps, Spond, or a plain sheet. Next step.</small></span><span class="st">Upload</span></button>

@@ -470,7 +470,7 @@ export function isConnectedReadTurn(text: string, intent: string): boolean {
   // Outbound ("email the parents", "text the team") is a draft turn, not a read.
   if (/\b(send|message|text|remind|notify|draft|write|tell|ping)\b/i.test(text) &&
       /\b(parent|parents|guardian|guardians|team|coaches?|everyone|families)\b/i.test(text)) return false;
-  const readVerb = /\b(read|check|show|see|look|what\x27?s|any|search|find|list|pull|open)\b/i.test(text);
+  const readVerb = /\b(read|check|show|see|look|what\x27?s|any|search|find|list|pull|open|summariz\w*|summary)\b/i.test(text);
   if (!readVerb) return false;
   const named = /\b(outlook|microsoft|m365|office\s*365|gmail|google\s*calendar|google\s*sheets?|google\s*drive|quickbooks|business\s*profile|sms|twilio)\b/i.test(text);
   if (named) return true;

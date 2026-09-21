@@ -122,3 +122,10 @@ test('C11: refuse intent never triggers directly (reconciliation passes "read")'
   assert.equal(isConnectedReadTurn('Read my Outlook mail and calendar.', 'refuse'), false);
   assert.equal(isConnectedReadTurn('Read my Outlook mail and calendar.', 'read'), true);
 });
+
+test('C12: "summarize my latest Outlook emails" is a connected-read turn (production probe 2026-09-21)', () => {
+  assert.equal(isConnectedReadTurn('summarize my latest Outlook emails', 'read'), true);
+  assert.deepEqual(resolveConnectedReads('summarize my latest Outlook emails'), [
+    { kind: 'microsoft365', params: { section: 'mail' } },
+  ]);
+});
