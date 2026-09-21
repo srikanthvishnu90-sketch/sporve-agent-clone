@@ -17725,7 +17725,10 @@ document.querySelectorAll('.sig-ai-coach').forEach(sigAiCoachWire);
      a client id, a scope list, or anything else worth tampering with. The start
      function is read from the server's connect_url, so a tile only offers Connect
      when the server handed it a working flow; the kind travels in the POST body.
-     The consent page opens in a new tab — this tab keeps its place, and the
+     The consent window opens as a BLANK popup synchronously inside the click
+     (window.SporvOAuth.startPopup) so the browser keeps the user gesture — it is
+     navigated to the consent URL once the server responds, or closed with an
+     actionable error if startup fails. This tab keeps its place, and the
      Connectors tiles re-read the server on the next render. Every refusal is
      printed as the server worded it, because "your plan does not include this
      connector" and "Google connections are not available yet" are different
@@ -17743,24 +17746,26 @@ document.querySelectorAll('.sig-ai-coach').forEach(sigAiCoachWire);
       S.connectError="Sign in first.";render();return;}
     const m=String(c.connect_url).match(/\/functions\/v1\/([A-Za-z0-9_-]+)/);
     const startFn=m?m[1]:"google-oauth-start";
+    /* The popup MUST open synchronously inside this click: anything awaited
+       first costs the user gesture and the blocker eats the consent window
+       silently. startPopup opens it blank, navigates on success, closes it
+       and reports a reason on failure. */
+    const started=window.SporvOAuth.startPopup({
+      open:()=>window.open("","_blank","noopener"),
+      navigate:(w,u)=>{w.location.href=u;},
+      close:(w)=>{try{w.close();}catch(e){}},
+      request:()=>window.SporveAPI.fn(startFn,{kind,redirect_to:location.origin+"/"})
+    });
     S.cxBusy=kind;S.connectError=null;render();
-    window.SporveAPI.fn(startFn,{kind,redirect_to:location.origin+"/"}).then(r=>{
+    started.then(res=>{
       S.cxBusy=null;
-      if(r&&r.url){
-        const win=window.open(r.url,"_blank","noopener");
-        if(!win){
-          S.connectError="The sign-in window was blocked. Allow popups for sporv.ai, then click Connect again.";
-        }
-        render();return;
-      }
-      S.connectError="Could not start the connection.";render();
-    },err=>{
-      S.cxBusy=null;
-      if(err&&err.status===401){
-        S.connectError="Your sign-in expired. Sign out and sign back in, then try connecting again.";
-      }else{
-        S.connectError=(err&&err.message)||"Could not start the connection.";
-      }
+      if(res.ok){render();return;}
+      /* Non-401 failures keep the server's wording — "your plan does not
+         include this connector" and "Google connections are not available
+         yet" are different problems and a generic failure hides which one. */
+      S.connectError=(res.reason==="error"&&res.err&&res.err.message)
+        ?res.err.message
+        :window.SporvOAuth.errorMessage(res.reason);
       render();
     });
   });
