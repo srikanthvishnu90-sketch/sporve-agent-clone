@@ -15360,6 +15360,7 @@ const INFO={
   help:{title:"Help & Support",sections:[
     {h:"How do I book?",b:"Open a listing, pick a session slot and your athlete, then confirm. Your sessions show on Home and the Schedule tab."},
     {h:"Refunds & cancellations",b:"Cancelling records the cancellation. Refund eligibility follows the policy copied onto your booking and is confirmed separately by the payment processor."},
+    {h:"How do I cancel my membership?",b:"Open Billing, then the Subscription tab, and choose Cancel my subscription. The page walks through what cancellation does before you confirm.",link:{t:"Open the cancellation page",href:"?coachtab=billing&tab=subscription"}},
     {h:"Contact us",b:"Call (224) 602-9341 or email support@sporv.ai. Response times are not guaranteed."},
   ]},
   legal:{title:"Legal",sections:[
@@ -15421,7 +15422,8 @@ function infoHTML(key){
         <h3>${esc(s.h)}</h3>
         <p style="color:var(--ink-2);margin-top:8px;line-height:1.62">${
           esc(s.b).replace(/support@sporve\.com/,'<a href="mailto:support@sporv.ai" style="color:var(--slate-ink);font-weight:700">support@sporv.ai</a>')
-        }</p></section>`).join("")}
+        }</p>
+        ${s.link?`<p style="margin-top:8px"><a href="${esc(s.link.href)}" style="color:var(--slate-ink);font-weight:700">${esc(s.link.t)}</a></p>`:""}</section>`).join("")}
     </div>
     <div class="panel" style="max-width:68ch;background:var(--raise);border:0">
       <div class="eyebrow">Contact</div>
@@ -21074,6 +21076,27 @@ function hydrateReturn(){
   var page = q.get("page");
   if(page && typeof INFO!=="undefined" && INFO[page]){
     S.route={name:"info",arg:page};render();
+    return;
+  }
+  /* ── COACH TAB DEEP LINKS (?coachtab=billing&tab=subscription) ──────────
+     The "How do I cancel my membership?" FAQ links to the cancellation page,
+     which lives at Billing > Subscription. ?tab= alone cannot get there: it
+     is only read by nested sub-tabs once their page is already rendered, so a
+     cold load on ?tab=subscription ignored it and landed on the dashboard.
+     Route the coach tab at boot; the nested ?tab= is picked up by the
+     Billing page's own sub-tab reader on render. The coachtab param is
+     consumed (a refresh must not replay the deep link); ?tab= stays so the
+     sub-tab selection survives. A signed-out visitor lands on the normal
+     Billing lock page, which invites sign-in. */
+  var coachtab = q.get("coachtab");
+  if(coachtab==="billing"){
+    try {
+      var curl = new URL(window.location.href);
+      curl.searchParams.delete("coachtab");
+      history.replaceState(null,"",curl.pathname+(curl.searchParams.toString()?"?"+curl.searchParams.toString():"")+curl.hash);
+    } catch(_e){}
+    S.portal="coach";S.coachTab="billing";
+    S.route={name:"coach",arg:null};render();
     return;
   }
   var bookingId = q.get("booking");
