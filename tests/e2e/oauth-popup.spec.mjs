@@ -13,12 +13,14 @@ const root = new URL('../../', import.meta.url);
 const read = (p) => readFileSync(new URL(p, root), 'utf8');
 
 function loadModule() {
-  const sandbox = { window: {} };
+  /* The module is browser code: the sandbox must provide the timer globals
+     it now relies on (request timeout + popup-navigate verification). */
+  const sandbox = { window: { location: { href: 'https://sporv.ai/' } }, setTimeout, clearTimeout };
   sandbox.globalThis = sandbox;
   vm.createContext(sandbox);
   vm.runInContext(read('src/mod-oauth.js'), sandbox, { filename: 'mod-oauth.js' });
   assert.ok(sandbox.window.SporvOAuth, 'module exposes window.SporvOAuth');
-  return sandbox.window.SporvOAuth;
+  return { SporvOAuth: sandbox.window.SporvOAuth, sandbox };
 }
 
 function fakeWin() {
@@ -38,7 +40,7 @@ function depsFor(win, request) {
 }
 
 test('window.open runs synchronously in the click, before the async OAuth-start resolves', async () => {
-  const SporvOAuth = loadModule();
+  const { SporvOAuth } = loadModule();
   const win = fakeWin();
   let resolveRequest;
   const gate = new Promise((res) => { resolveRequest = res; });
@@ -58,7 +60,7 @@ test('window.open runs synchronously in the click, before the async OAuth-start 
 });
 
 test('blocked popup: no OAuth-start request is issued, reason is blocked', async () => {
-  const SporvOAuth = loadModule();
+  const { SporvOAuth } = loadModule();
   const { calls, deps } = depsFor(null, Promise.resolve({ url: 'https://x' }));
   const res = await SporvOAuth.startPopup(deps);
   assert.equal(res.ok, false);
@@ -70,7 +72,7 @@ test('blocked popup: no OAuth-start request is issued, reason is blocked', async
 });
 
 test('401 from OAuth-start: popup closed, reason expired, session message visible', async () => {
-  const SporvOAuth = loadModule();
+  const { SporvOAuth } = loadModule();
   const win = fakeWin();
   const err = new Error('unauthorized'); err.status = 401;
   const { calls, deps } = depsFor(win, Promise.reject(err));
@@ -85,7 +87,7 @@ test('401 from OAuth-start: popup closed, reason expired, session message visibl
 });
 
 test('non-401 failure: popup closed, reason error', async () => {
-  const SporvOAuth = loadModule();
+  const { SporvOAuth } = loadModule();
   const win = fakeWin();
   const err = new Error('boom'); err.status = 500;
   const { deps } = depsFor(win, Promise.reject(err));
@@ -96,7 +98,7 @@ test('non-401 failure: popup closed, reason error', async () => {
 });
 
 test('missing consent URL: popup closed, reason no-url', async () => {
-  const SporvOAuth = loadModule();
+  const { SporvOAuth } = loadModule();
   const win = fakeWin();
   const { deps } = depsFor(win, Promise.resolve({}));
   const res = await SporvOAuth.startPopup(deps);
@@ -113,4 +115,58 @@ test('host handler uses the synchronous popup path, not open-after-resolve', () 
     'the old open-after-resolve pattern must not come back');
   assert.ok(host.includes('window.open("","_blank","noopener")'),
     'the blank popup opens synchronously inside the click');
+});
+
+test('hung OAuth-start request: popup closes after the timeout with a timeout message', async () => {
+  const { SporvOAuth } = loadModule();
+  const win = fakeWin();
+  const never = new Promise(() => {});
+  const { calls, deps } = depsFor(win, never);
+  const res = await SporvOAuth.startPopup(deps, { timeoutMs: 30 });
+  assert.equal(res.ok, false);
+  assert.equal(res.reason, 'error');
+  assert.match(res.err.message, /timed out/i, 'the user gets a timeout message, not silence');
+  assert.equal(win.closed, 1, 'the stranded blank popup is closed');
+  assert.deepEqual(calls, ['open', 'request', 'close']);
+});
+
+test('popup that never navigates: same-tab fallback instead of a permanent blank tab', async () => {
+  const { SporvOAuth, sandbox } = loadModule();
+  /* Simulates the observed iOS failure: window.open returns a tab, the
+     OAuth-start call succeeds, but the tab never leaves about:blank. */
+  const win = { closed: 0, close() { this.closed++; }, location: { href: 'about:blank' } };
+  const calls = [];
+  const deps = {
+    open: () => { calls.push('open'); return win; },
+    navigate: () => { calls.push('navigate'); /* silently fails: location stays about:blank */ },
+    close: (w) => { calls.push('close'); w.close(); },
+    request: () => Promise.resolve({ url: 'https://accounts.google.com/o/oauth2/auth?x=1' }),
+  };
+  const res = await SporvOAuth.startPopup(deps, { verifyMs: 10 });
+  assert.equal(res.ok, true);
+  await new Promise((r) => setTimeout(r, 50));
+  assert.equal(win.closed, 1, 'the dead blank popup is closed');
+  assert.equal(sandbox.window.location.href, 'https://accounts.google.com/o/oauth2/auth?x=1',
+    'the current tab navigates to the consent URL instead');
+});
+
+test('popup that navigates normally: no same-tab fallback', async () => {
+  const { SporvOAuth, sandbox } = loadModule();
+  /* navigate() points the popup at the consent page; reading a cross-origin
+     location throws, which the module treats as the success signal. */
+  const win = { closed: 0, close() { this.closed++; }, location: { href: 'about:blank' } };
+  const deps = {
+    open: () => win,
+    navigate: (w, u) => {
+      w.location = { get href() { throw new Error('cross-origin'); } };
+    },
+    close: (w) => { w.close(); },
+    request: () => Promise.resolve({ url: 'https://accounts.google.com/o/oauth2/auth?x=1' }),
+  };
+  const before = sandbox.window.location.href;
+  const res = await SporvOAuth.startPopup(deps, { verifyMs: 10 });
+  assert.equal(res.ok, true);
+  await new Promise((r) => setTimeout(r, 50));
+  assert.equal(win.closed, 0, 'a working popup is left alone');
+  assert.equal(sandbox.window.location.href, before, 'the current tab does not navigate');
 });
