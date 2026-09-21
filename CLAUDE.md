@@ -83,7 +83,7 @@ restyling any screen.
 **CURRENT 2026-09-08 (owner design kits, batches 1–3, archived verbatim in
 `docs/prototypes/sporve-design-batch{1,2,3}.html`) — SUPERSEDES every
 typography paragraph below for the B2B club-ops product.** Headers and
-buttons are **Roboto Condensed 700, uppercase**; body is **Inter**; numbers
+buttons are **Archivo (expanded) 800/900, uppercase**; body is **Archivo**; numbers
 are **JetBrains Mono**. Type tokens: `--text-sm` 10, `--text-base` 12.5,
 `--text-md` 13.5, `--text-lg` clamp; coach base 15.5; the sign-up gate runs
 `.coachgate{--text-base:15.5px;--text-md:15.5px}` after the owner ruled the

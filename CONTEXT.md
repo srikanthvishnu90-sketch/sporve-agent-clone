@@ -281,9 +281,11 @@ Binding. Do not introduce a font, a color, or a glyph that is not on this page.
 ### Typography
 | Role | Face | Treatment |
 |---|---|---|
-| Display headings, buttons | **Roboto Condensed 700** | UPPERCASE |
-| Body, labels, all readable text | **Inter** 400 / 500 / 600 | Sentence case |
+| Display headings, buttons | **Archivo** 500 / 800 / 900 (variable: wght 100-900, wdth 62-125) | UPPERCASE |
+| Body, labels, all readable text | **Archivo** 400 / 500 / 600 | Sentence case |
 | Numbers, data values, micro-labels | **JetBrains Mono 500** | — |
+
+Owner-directed change 2026-09-21: the Roboto Condensed + Inter pairing was judged not unique (Inter is the generic-AI default); Archivo is now the single family for display and body — the athletic direction. The expanded width axis (125%) is the headline voice.
 
 One enforced type scale. Components draw sizes from tokens and never declare their own. Dashboard navigation runs 14px/500 with 30px rows (Stripe-measured); section eyebrows are 12px uppercase. Chat renders every message — user and agent — at one identical base size; size differences are reserved for metadata only.
 

@@ -84,10 +84,10 @@ FAMILY_BY_PREFIX = {
     "bricolage": "Bricolage Grotesque",
     "hanken": "Hanken Grotesk",
     "instrument": "Instrument Serif",   # editorial serif, mini-page heroes only
-    "archivo": "Archivo",               # display / large text
+    "archivo": "Archivo",               # THE type system: display + body + nav
     "jetbrainsmono": "JetBrains Mono",  # NUMERALS only (prices/ratings/counts)
-    "inter": "Inter",                   # body / small text
-    "robotocondensed": "Roboto Condensed",  # landing hero headline ONLY (weight 700-800)
+    "inter": "Inter",                   # retired 2026-09-21 (Archivo swap)
+    "robotocondensed": "Roboto Condensed",  # retired 2026-09-21 (Archivo swap)
     "sentinel": "Sentinel",
 }
 # Google serves ONE variable woff2 per family — every weight URL in a css2
@@ -100,8 +100,10 @@ VARIABLE_RANGE = {"Syne": "600 800", "Plus Jakarta Sans": "400 700",
                   # it needs the full working range rather than a display band:
                   # 400 body, 700 UI labels, 800 headlines.
                   "Hanken Grotesk": "400 800",
-                  # New primary pair: Archivo display (large), Inter body (small).
-                  "Archivo": "400 800", "Inter": "400 700",
+                  # Primary voice (owner 2026-09-21, athletic Nike-vibe direction):
+                  # Archivo does display AND body, so it needs the full axis —
+                  # 400 body, 700 UI labels, 800-900 headlines.
+                  "Archivo": "100 900", "Inter": "400 700",
                   # JetBrains Mono: tabular numerals only (prices, ratings,
                   # counts, distances). Instrument Serif ships as static
                   # Regular/Italic faces, so it needs no variable range here.
@@ -112,6 +114,11 @@ VARIABLE_RANGE = {"Syne": "600 800", "Plus Jakarta Sans": "400 700",
                   # widening the declared range to 500 draws a true medium weight
                   # from the same file (RobotoCondensed-Variable.woff2).
                   "Roboto Condensed": "500 800"}
+# Width axis: only families whose variable file carries wdth get a declared
+# stretch range — that declaration is what unlocks font-stretch on the page.
+# Archivo ships wdth 62-125 (Google's full variable); the expanded end (125%)
+# is the athletic headline voice.
+STRETCH_RANGE = {"Archivo": "62% 125%"}
 font_files = sorted(glob.glob(os.path.join(ROOT, "assets", "fonts", "*.woff2")))
 faces, fam_seen = [], set()
 for fp in font_files:
@@ -131,10 +138,13 @@ for fp in font_files:
     # and base64 inflates a woff2 by a third before gzip claws it back. Served
     # as files they are fetched in parallel, cached across deploys, and
     # font-display:swap means text paints on the fallback immediately.
+    _stretch = STRETCH_RANGE.get(family)
     faces.append(
-        '@font-face{font-family:"%s";font-weight:%s;font-style:%s;font-display:swap;'
+        '@font-face{font-family:"%s";font-weight:%s;%sfont-style:%s;font-display:swap;'
         'src:url("/assets/fonts/%s") format("woff2")}'
-        % (family, weight, "italic" if italic else "normal", os.path.basename(fp)))
+        % (family, weight,
+           ("font-stretch:%s;" % _stretch) if _stretch else "",
+           "italic" if italic else "normal", os.path.basename(fp)))
     fam_seen.add(family)
 if faces:
     built = built.replace("/*__FONTFACE__*/", "\n".join(faces))
