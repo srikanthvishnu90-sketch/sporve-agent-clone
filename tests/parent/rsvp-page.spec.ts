@@ -38,7 +38,7 @@ test('page: served at /r, script from self (CSP hash-free), no inline handlers, 
   assert.match(html, /<main id="main">/); assert.match(html, /<form id="f" aria-labelledby="q">/); assert.match(html, /name="robots" content="noindex, nofollow"/);
   assert.match(html, /button:focus-visible\{outline:3px solid/);
   const csp = vercel.headers.find((h: any) => h.source === '/(.*)').headers.find((x: any) => x.key === 'Content-Security-Policy').value;
-  assert.match(csp, /connect-src 'self' https:\/\/hzbhjkcqwawgqtspueuw\.supabase\.co/, 'the page may fetch the function');
+  assert.match(csp, /connect-src 'self' https:\/\/aveqjeafghmwafkbbnor\.supabase\.co/, 'the page may fetch the function');
   assert.match(csp, /script-src 'self'/, 'rsvp.js is same-origin');
 });
 
@@ -56,7 +56,7 @@ test('a live token renders the question from the function and posts the tap as J
     return res(200, { saved: true, response: 'yes', members: ['m1', 'm2'] }); });
   assert.equal(await run(), 'ask'); assert.deepEqual(shown(els), ['ask']);
   assert.equal(els.q.textContent, '14U Flight — Tue practice'); assert.match(els.when.textContent, /Hi Maria/);
-  assert.equal(calls[0].url, `https://hzbhjkcqwawgqtspueuw.supabase.co/functions/v1/guardian-link?t=${TOKEN}`);
+  assert.equal(calls[0].url, `https://aveqjeafghmwafkbbnor.supabase.co/functions/v1/guardian-link?t=${TOKEN}`);
   const btn = els.f.querySelectorAll('button')[0];
   const out = await els.f.onsubmit!({ preventDefault() {}, submitter: btn });
   assert.equal(out, 'done'); assert.deepEqual(shown(els), ['done']);
