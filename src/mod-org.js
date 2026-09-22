@@ -595,7 +595,7 @@ function orgView(){
 function wire(){
   if (typeof document === "undefined") return;
   const on = (sel, fn) => Array.prototype.slice.call(document.querySelectorAll(sel))
-    .forEach(el => { el.onclick = fn; });
+    .forEach(el => { el.onclick = ev => fn(el, ev); });
   on("[data-org-save-profile]", b => saveProfile(b));
   on("[data-org-venue-add]", () => { st.editingVenue = st.editingVenue === "new" ? null : "new"; rerender(); });
   on("[data-org-venue-edit]", b => {
