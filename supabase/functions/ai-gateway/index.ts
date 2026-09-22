@@ -37,6 +37,9 @@ const json = (body: unknown, status = 200) =>
   });
 
 const ANTHROPIC_API_KEY = Deno.env.get("ANTHROPIC_API_KEY");
+// Newer Anthropic API keys (sk-ant-api03-…) are not scoped to a workspace and
+// require the anthropic-workspace-id header. Optional: when set, it is sent.
+const ANTHROPIC_WORKSPACE_ID = Deno.env.get("ANTHROPIC_WORKSPACE_ID");
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const ANON_KEY = Deno.env.get("SUPABASE_ANON_KEY")!;
 const SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
@@ -211,6 +214,7 @@ async function runAI(args: RunAIArgs) {
         "x-api-key": ANTHROPIC_API_KEY!,
         "anthropic-version": "2023-06-01",
         "content-type": "application/json",
+        ...(ANTHROPIC_WORKSPACE_ID ? { "anthropic-workspace-id": ANTHROPIC_WORKSPACE_ID } : {}),
       },
       body: JSON.stringify(reqBody),
       signal: AbortSignal.timeout(AI_TIMEOUT_MS),
