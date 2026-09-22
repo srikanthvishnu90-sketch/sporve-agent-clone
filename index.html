@@ -28,7 +28,7 @@
 <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png?v=2">
 <link rel="manifest" href="/site.webmanifest">
 <script type="application/ld+json">{"@context":"https://schema.org","@type":"SoftwareApplication","name":"Sporv","url":"https://sporv.ai/","applicationCategory":"BusinessApplication","operatingSystem":"Web","description":"Sporv runs the club for you — roster, scheduling, waivers, dues and payouts, with an agent that drafts the busywork and a human who approves it.","publisher":{"@type":"Organization","name":"Sporv","url":"https://sporv.ai/","logo":"https://sporv.ai/icon-512.png"}}</script>
-<meta name="sporve-build" content="8e0c44d12ef09510">
+<meta name="sporve-build" content="276710a27557aa31">
 </head>
 <body>
 <noscript><h1>Sporv. Every sport. One app.</h1><p>Sporv connects families and athletes with coaches, trainers, camps, and teams across more than 20 sports. Please enable JavaScript to use the app.</p></noscript>
@@ -7448,6 +7448,9 @@ const COACH_PRIVATE={
   inbox:"conversations between this coach and families",
   notes:"session notes written about individual children",
   media:"photos of children and their consent records",
+  organization:"organization profile, locations and staff records",
+  teams:"team rosters, seasons and target sizes",
+  families:"guardian contact details and athlete links",
 };
 function isCoachGuest(){ return S.portal==="coach"&&!isVerified(); }
 /* money and counts that belong to the business, blanked for a guest */
@@ -11319,6 +11322,9 @@ function coachHTML(){
     media:'<rect x="3" y="4" width="18" height="16" rx="2"/><circle cx="8.5" cy="9.5" r="1.8"/><path d="M3 17l5-4.5 4 3.5 3-2.5 6 5"/>',
     profile:'<circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M4.9 4.9l2.1 2.1M17 17l2.1 2.1M19.1 4.9L17 7M7 17l-2.1 2.1"/>',
     link:'<path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/>',
+    organization:'<rect x="3" y="4" width="18" height="16" rx="2"/><path d="M9 20v-5h6v5"/><path d="M12 4v3M8.5 5.5h7"/>',
+    teams:'<circle cx="8" cy="8" r="3"/><circle cx="16" cy="8" r="3"/><path d="M2.5 20c0-3 2.5-5 5.5-5s5.5 2 5.5 5"/><path d="M13.5 20c0-3 2.5-5 5.5-5s5.5 2 5.5 5" transform="translate(-3 0)"/>',
+    families:'<circle cx="8.5" cy="9" r="2.6"/><circle cx="15.5" cy="9" r="2.6"/><path d="M3.5 19.5c0-2.8 2.2-4.6 5-4.6s5 1.8 5 4.6"/><path d="M10.5 19.5c0-2.8 2.2-4.6 5-4.6s5 1.8 5 4.6"/>',
   };
   const rIcon=k=>`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"
     stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${RI[k]||RI.operations}</svg>`;
@@ -11328,10 +11334,12 @@ function coachHTML(){
     [null,      [["queue","Queue"],["dashboard","Home"]]],
     [rosterLabel(), [["roster",rosterLabel()],["inbox","Messages"],["schedule","Schedule"]]],
     ["Business",[["finances",financesLabel()],["approvals","Approvals"],["operations","Operations"],["billing","Billing"]]],
+    ["Organization",[["organization","Organization"],["teams","Teams"],["families","Families"]]],
   ];
   const core=[["dashboard","Home"],["schedule","Schedule"],
               ["roster",rosterLabel()],["inbox","Messages"],
-              ["finances",financesLabel()],["operations","Operations"],["billing","Billing"]];
+              ["finances",financesLabel()],["operations","Operations"],["billing","Billing"],
+              ["organization","Organization"],["teams","Teams"],["families","Families"]];
   const extra=modCoachTabs().filter(([k])=>!core.some(c=>c[0]===k));
   const gs=gettingStarted();
   const unread=liveConversations().length;
@@ -30039,6 +30047,1646 @@ window.MOD_NOTES = {
   markAttendanceFromAI: markAttendanceFromAI,
   findInText: findInText,
   roster: roster,
+};
+
+})();
+
+</script>
+<script>
+/* ---- mod-org.js ---- */
+"use strict";
+/* ═══════════════════════════════════════════════════════════════════
+   MOD_ORG — the Organization tab (Enterprise-gated).
+
+   Three sections, all real DB-backed CRUD, nothing invented:
+     · Profile   — PATCH on the org's providers row (owner-only writes).
+     · Locations — CRUD on public.venue (admin writes, member reads).
+     · Staff     — CRUD on public.organization_members (admin writes;
+                   admin/self reads). No seed rows: an org with no staff
+                   renders an honest empty state.
+
+   Host contract used, never redefined:
+     window.COACH_UI (Page, Block, Card, Button, EmptyState, activeTab),
+     window.SporveAPI.from (GET/PATCH/POST/DELETE over PostgREST),
+     S.coachProvider (the provider row the billing page's plan read uses),
+     render(), toast().
+
+   HONESTY RULES OBSERVED HERE
+     · Every write asks PostgREST for the changed row back (Prefer:
+       return=representation) and throws when no row comes back — a 200
+       that changed nothing is reported as a failure, never as success.
+     · Background-check status is READ-ONLY. The aaa_guard_background_check_mirror
+       trigger (migration 20260915_001064) forbids direct writes to
+       background_check_status/background_check_completed_at with a 42501 —
+       the status is derived from the real check and no coach can set it.
+       The UI says so instead of offering a dead control.
+     · "Mark verified" style controls do not exist here: they could not work,
+       and a button that cannot work is banned.
+     · Adding staff creates a profile row only — member_user_id stays null
+       until staff invites link a sign-in, and the UI says exactly that.
+     · Revoke keeps history (is_active=false); nothing is deleted.
+     · The locked panel never shows numeric quotas and never says "Unlimited".
+   ═══════════════════════════════════════════════════════════════════ */
+(function(){
+
+/* ═══════════════════ SMALL HELPERS ═══════════════════ */
+const esc = v => String(v == null ? "" : v).replace(/[&<>"']/g,
+  c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const ui = () => window.COACH_UI;
+const api = () => window.SporveAPI;
+const pv = () => (typeof S !== "undefined" && S.coachProvider) || null;
+const signedIn = () => !!(api() && api().isSignedIn && api().isSignedIn());
+function say(msg){ if (typeof toast === "function") toast(msg); }
+function rerender(){ if (typeof render === "function") render(); }
+function busy(btn, on, label){
+  if (!btn) return;
+  btn.disabled = !!on;
+  if (on){ btn.dataset.orgLabel = btn.textContent; btn.textContent = label || "Working…"; }
+  else if (btn.dataset.orgLabel){ btn.textContent = btn.dataset.orgLabel; delete btn.dataset.orgLabel; }
+}
+const val = id => { const el = document.getElementById(id); return el ? el.value : ""; };
+const nul = s => { const t = String(s == null ? "" : s).trim(); return t ? t : null; };
+
+/* ═══════════════════ MODULE STATE ═══════════════════ */
+/* View state only — never product data. bootModules() deep-clones this into
+   S at boot; the view and wire below always read the local copy, so the two
+   can never disagree mid-session. */
+const st = {
+  gateState: "unknown",   // unknown → loading → open | locked
+  gateNote: "",           // why locked: not-built | not-entitled | not-enterprise | flag-unreadable
+  venues: null, venuesLoading: false,
+  staff: null, staffLoading: false,
+  editingVenue: null,     // "new" | venue id | null
+  editingMember: null,    // "new" | member id | null
+};
+
+/* ═══════════════════ ENTERPRISE GATING ═══════════════════ */
+/* The current plan, read the same way the billing page reads it: off the
+   provider row (my_workspace RPC → S.coachProvider), with the billing
+   page's own entitlement rule (active/trialing/past_due — canceled and
+   incomplete are not entitlement). Mirrors ACCOUNT.plan() in
+   mod-coachaccount.js rather than re-implementing its judgement. */
+function currentPlan(){
+  const p = pv() || {};
+  const id = (p.plan === "enterprise" || p.plan === "pro") ? p.plan : "free";
+  const status = String(p.plan_status || "none");
+  const entitled = id !== "free" && ["active", "trialing", "past_due"].indexOf(status) >= 0;
+  return { id: id, status: status, entitled: entitled };
+}
+/* The truthful product flag is the enterprise row's workspace_enabled in
+   plan_entitlements (public-read; the §6.2 capability-gate column for the
+   multi-player workspace). It is seeded true for enterprise in
+   20260921_001108_billing_pipeline_repair.sql, so in practice the gate is
+   the plan check — but the flag stays the authority: if it ever flips off,
+   this page locks for everyone, enterprise subscribers included. */
+function refreshGate(){
+  if (st.gateState === "loading" || st.gateState === "open" || st.gateState === "locked") return;
+  if (!signedIn()){ st.gateState = "locked"; st.gateNote = "signed-out"; return; }
+  st.gateState = "loading";
+  api().from("plan_entitlements", "select=plan,workspace_enabled,purchasable")
+    .then(rows => {
+      const ent = (rows || []).find(r => r.plan === "enterprise");
+      const plan = currentPlan();
+      if (ent && ent.workspace_enabled && plan.id === "enterprise" && plan.entitled){
+        st.gateState = "open";
+      } else {
+        st.gateState = "locked";
+        st.gateNote = !(ent && ent.workspace_enabled) ? "not-built"
+          : (plan.id === "enterprise" ? "not-entitled" : "not-enterprise");
+      }
+      rerender();
+    })
+    .catch(() => {
+      /* Billing's A5 fallback convention: the entitlements fetch failed, so
+         gate on the plan read alone rather than breaking the page. */
+      const plan = currentPlan();
+      st.gateState = (plan.id === "enterprise" && plan.entitled) ? "open" : "locked";
+      st.gateNote = "flag-unreadable";
+      rerender();
+    });
+}
+
+/* ═══════════════════ DATA LOADS ═══════════════════ */
+function loadVenues(){
+  if (st.venuesLoading || st.venues !== null) return;
+  const P = pv();
+  if (!signedIn() || !P || !P.id){ st.venues = []; return; }
+  st.venuesLoading = true;
+  api().from("venue",
+    "select=id,name,address,timezone,capacity,created_at&provider_id=eq." + encodeURIComponent(P.id) +
+    "&order=created_at")
+    .then(rows => { st.venues = Array.isArray(rows) ? rows : []; st.venuesLoading = false; rerender(); })
+    .catch(() => { st.venues = []; st.venuesLoading = false; rerender(); });
+}
+function loadStaff(){
+  if (st.staffLoading || st.staff !== null) return;
+  const P = pv();
+  if (!signedIn() || !P || !P.id){ st.staff = []; return; }
+  st.staffLoading = true;
+  /* The proven Settings→People read, plus commission_type/commission_value
+     and the organization_id scoping this tab needs for its own inserts. */
+  api().from("organization_members",
+    "select=id,organization_id,trainer_profile,member_user_id,role,background_check_status," +
+    "background_check_completed_at,is_active,commission_type,commission_value,created_at" +
+    "&organization_id=eq." + encodeURIComponent(P.id) + "&order=created_at")
+    .then(rows => { st.staff = Array.isArray(rows) ? rows : []; st.staffLoading = false; rerender(); })
+    .catch(() => { st.staff = []; st.staffLoading = false; rerender(); });
+}
+function invalidateVenues(){ st.venues = null; st.venuesLoading = false; st.editingVenue = null; }
+function invalidateStaff(){ st.staff = null; st.staffLoading = false; st.editingMember = null; }
+
+/* A write is only real if a changed row comes back. Every mutating call in
+   this module goes through here. */
+function write(table, query, opts){
+  const o = Object.assign({}, opts, { headers: Object.assign({ Prefer: "return=representation" }, (opts && opts.headers) || {}) });
+  return api().from(table, query, o).then(rows => {
+    if (!rows || !rows[0]) throw new Error("The change did not land — it may not be yours to make.");
+    return rows[0];
+  });
+}
+
+/* ═══════════════════ CSS ═══════════════════ */
+const CSS = `
+.org-form{display:grid;gap:16px;max-width:480px}
+.org-field{display:grid;gap:8px}
+.org-field>label{font-size:14px;font-weight:600;color:var(--cui-ink-2)}
+.org-field>input,.org-field>textarea,.org-field>select{background:var(--cui-bg);border:1px solid var(--cui-line-2);
+  border-radius:8px;padding:10px 12px;color:var(--cui-ink);font-size:14px;width:100%;line-height:1.5}
+.org-field>textarea{resize:vertical}
+.org-field>input:focus,.org-field>textarea:focus,.org-field>select:focus{outline:2px solid var(--cui-steel);outline-offset:2px;border-color:var(--cui-steel)}
+.org-row{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+.org-actions{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.org-hint{font-size:14px;color:var(--cui-ink-3);line-height:1.55}
+.org-list{display:grid;gap:12px;margin-top:16px}
+.org-venue{display:grid;gap:8px}
+.org-venue__head{display:flex;justify-content:space-between;gap:16px;align-items:flex-start;flex-wrap:wrap}
+.org-venue__name{font-size:16px;font-weight:700;color:var(--cui-ink)}
+.org-venue__meta{display:flex;gap:16px;flex-wrap:wrap;color:var(--cui-ink-2);font-size:14px}
+.org-staffrow{display:flex;justify-content:space-between;gap:16px;align-items:flex-start;flex-wrap:wrap}
+.org-staff__name{font-size:16px;font-weight:700;color:var(--cui-ink)}
+.org-pills{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px;align-items:center}
+.org-blockfoot{margin-top:16px}
+@media(max-width:640px){.org-row{grid-template-columns:1fr}}
+`;
+
+/* ═══════════════════ SHARED BITS ═══════════════════ */
+const TABS = [
+  { key: "profile", label: "Profile" },
+  { key: "locations", label: "Locations" },
+  { key: "staff", label: "Staff" },
+];
+const ROLE_LABEL = { owner: "Owner", admin: "Admin", trainer: "Trainer" };
+const BG_LABEL = {
+  verified: "Background check verified",
+  pending: "Background check pending",
+  flagged: "Background check flagged",
+  none: "No background check recorded",
+};
+function nameOf(m){
+  const tp = (m && m.trainer_profile) || {};
+  return tp.name || [tp.first_name, tp.last_name].filter(Boolean).join(" ") || tp.email ||
+    (m.member_user_id ? "Member " + String(m.member_user_id).slice(0, 8) : "Pending member");
+}
+function commText(m){
+  const n = Number(m.commission_value);
+  const v = isFinite(n) ? String(n) : "0";
+  return m.commission_type === "flat" ? "$" + v + " flat" : v + "%";
+}
+function bgPill(m){
+  const s = String(m.background_check_status || "none");
+  const cls = s === "verified" ? "cui-badge cui-badge--good"
+    : (s === "pending" || s === "flagged") ? "cui-badge cui-badge--warn" : "cui-badge";
+  let label = BG_LABEL[s] || BG_LABEL.none;
+  if (s === "verified" && m.background_check_completed_at)
+    label += " · " + String(m.background_check_completed_at).slice(0, 10);
+  return `<span class="${cls}">${esc(label)}</span>`;
+}
+const field = (id, label, inner, hint) =>
+  `<div class="org-field"><label for="${esc(id)}">${esc(label)}</label>${inner}` +
+  (hint ? `<div class="org-hint">${esc(hint)}</div>` : "") + `</div>`;
+const textIn = (id, value, attrs) =>
+  `<input id="${esc(id)}" type="text" value="${esc(value == null ? "" : value)}"${attrs ? " " + attrs : ""}>`;
+const numIn = (id, value, attrs) =>
+  `<input id="${esc(id)}" type="number" min="0" step="any" value="${esc(value == null ? "" : value)}"${attrs ? " " + attrs : ""}>`;
+const selectIn = (id, value, options) =>
+  `<select id="${esc(id)}">${options.map(([v, l]) =>
+    `<option value="${esc(v)}"${String(value) === v ? " selected" : ""}>${esc(l)}</option>`).join("")}</select>`;
+function formActions(saveAttr, saveLabel){
+  const u = ui();
+  return `<div class="org-actions">` +
+    u.Button({ label: saveLabel || "Save", size: "sm", variant: "primary", attrs: saveAttr }) +
+    u.Button({ label: "Cancel", size: "sm", variant: "secondary", attrs: 'data-org-cancel="1"' }) +
+    `</div>`;
+}
+
+/* ═══════════════════ VIEW: THE LOCKED PANEL ═══════════════════ */
+/* Locked-tile copy pattern (cxrTile): greyed, "Locked", one line naming the
+   plan, no dead buttons — and per the buyable:false rule, no checkout. */
+function lockedBody(){
+  const u = ui();
+  const note = st.gateNote === "not-built"
+    ? "The multi-staff workspace is still being built — Sporv has not switched it on for anyone yet."
+    : st.gateNote === "not-entitled"
+      ? "Your Enterprise subscription is not currently active, so this workspace is locked."
+      : "Organization is part of the Enterprise workspace.";
+  return u.Block({
+    title: "Multi-staff management",
+    subtitle: "The org's public profile, every training location, and the full staff roster — roles, commissions, and background-check status.",
+    body:
+      u.Card(
+        `<div class="org-staffrow"><div><b>Organization workspace</b>` +
+        `<div class="org-hint" style="margin-top:8px">${esc(note)}</div></div>` +
+        `<span class="cui-badge">Locked</span></div>` +
+        `<div class="org-hint" style="margin-top:8px">Requires the Enterprise plan.</div>`
+      ) +
+      `<div class="org-blockfoot">` +
+      u.Button({ label: "Join the early-access list", size: "lg", variant: "primary", attrs: 'data-ctab="billing"' }) +
+      `</div>`,
+  });
+}
+function loadingBody(){
+  return ui().EmptyState("Checking your plan", "Reading your subscription before showing this page.");
+}
+
+/* ═══════════════════ SECTION 1: PROFILE ═══════════════════ */
+function profileSection(){
+  const u = ui();
+  const P = pv();
+  if (!P) return u.EmptyState("No organization loaded", "Sign in as the organization owner to edit the profile.");
+  const sports = Array.isArray(P.sports) ? P.sports.join(", ") : "";
+  const form =
+    `<div class="org-form">` +
+    field("orgFName", "Business name",
+      textIn("orgFName", P.business_name, 'required maxlength="120"'),
+      "Appears on listings, messages, and receipts.") +
+    field("orgFBio", "Bio",
+      `<textarea id="orgFBio" rows="3" maxlength="2000">${esc(P.bio || "")}</textarea>`,
+      "A few lines about the org, in your own words.") +
+    field("orgFSports", "Sports",
+      textIn("orgFSports", sports, 'placeholder="Soccer, Basketball"'),
+      "Comma-separated. Shown on your listings.") +
+    field("orgFLocation", "Location",
+      textIn("orgFLocation", P.location, 'placeholder="Chicago, IL"')) +
+    field("orgFPolicy", "Cancellation policy",
+      textIn("orgFPolicy", P.cancellation_policy, 'list="orgPolicyList" placeholder="flexible, moderate, or strict"') +
+      `<datalist id="orgPolicyList"><option value="flexible"></option><option value="moderate"></option><option value="strict"></option></datalist>`) +
+    field("orgFTravel", "Travel radius",
+      textIn("orgFTravel", P.travel_radius, 'placeholder="e.g. 20 miles"')) +
+    field("orgFAvatar", "Avatar URL",
+      textIn("orgFAvatar", P.avatar_url, 'placeholder="https://" inputmode="url"')) +
+    field("orgFLogo", "Logo URL",
+      textIn("orgFLogo", P.logo_url, 'placeholder="https://" inputmode="url"')) +
+    `<div class="org-actions">` +
+      u.Button({ label: "Save profile", size: "sm", variant: "primary", attrs: 'data-org-save-profile="1"' }) +
+    `</div></div>`;
+  return u.Block({
+    title: "Public profile",
+    subtitle: "What families see on your listings and receipts. Only the organization owner can save changes here.",
+    body: form,
+  });
+}
+function saveProfile(btn){
+  const P = pv();
+  if (!P || !P.id){ say("No organization loaded."); return; }
+  const name = val("orgFName").trim();
+  if (!name){ say("Business name is required."); return; }
+  const sports = val("orgFSports").split(",").map(s => s.trim()).filter(Boolean);
+  const body = {
+    business_name: name,
+    bio: nul(val("orgFBio")),
+    sports: sports,
+    location: nul(val("orgFLocation")),
+    cancellation_policy: nul(val("orgFPolicy")),
+    travel_radius: nul(val("orgFTravel")),
+    avatar_url: nul(val("orgFAvatar")),
+    logo_url: nul(val("orgFLogo")),
+  };
+  busy(btn, true, "Saving…");
+  write("providers", "id=eq." + encodeURIComponent(P.id), { method: "PATCH", body: body })
+    .then(() => {
+      Object.keys(body).forEach(k => { P[k] = body[k]; });
+      say("Organization profile saved.");
+      busy(btn, false); rerender();
+    })
+    .catch(e => { busy(btn, false); say("Could not save: " + ((e && e.message) || "Only the organization owner can edit the profile.")); });
+}
+
+/* ═══════════════════ SECTION 2: LOCATIONS ═══════════════════ */
+const TZ_SUGGEST = ["America/Chicago", "America/New_York", "America/Denver", "America/Los_Angeles",
+  "America/Anchorage", "Pacific/Honolulu", "America/Phoenix", "Europe/London", "Europe/Rome"];
+function venueForm(v){
+  const isNew = !v; v = v || {};
+  return `<div class="org-form" style="margin-top:16px">` +
+    field("orgVName", "Name",
+      textIn("orgVName", v.name, 'required maxlength="120" placeholder="Home field"')) +
+    field("orgVAddress", "Address",
+      textIn("orgVAddress", v.address, 'placeholder="123 Main St, Chicago, IL"')) +
+    `<div class="org-row">` +
+      field("orgVTz", "Timezone",
+        textIn("orgVTz", v.timezone, 'list="orgTzList" placeholder="America/Chicago"') +
+        `<datalist id="orgTzList">${TZ_SUGGEST.map(z => `<option value="${esc(z)}"></option>`).join("")}</datalist>`,
+        "Blank inherits the org timezone.") +
+      field("orgVCap", "Capacity",
+        numIn("orgVCap", v.capacity, 'placeholder="—" min="1" step="1"'),
+        "Max athletes at once. Blank means no cap.") +
+    `</div>` +
+    formActions(isNew ? 'data-org-venue-save="new"' : 'data-org-venue-save="' + esc(String(v.id)) + '"',
+      isNew ? "Add location" : "Save location") +
+  `</div>`;
+}
+function venueCard(v){
+  const u = ui();
+  const meta = [];
+  if (v.timezone) meta.push(`<span>${esc(v.timezone)}</span>`);
+  if (v.capacity != null) meta.push(`<span class="cui-mono">Capacity ${esc(String(v.capacity))}</span>`);
+  return u.Card(
+    `<div class="org-venue"><div class="org-venue__head"><div>` +
+      `<div class="org-venue__name">${esc(v.name)}</div>` +
+      (v.address ? `<div class="org-hint">${esc(v.address)}</div>` : "") +
+    `</div><div class="org-actions">` +
+      u.Button({ label: "Edit", size: "sm", variant: "secondary", attrs: 'data-org-venue-edit="' + esc(String(v.id)) + '"' }) +
+      u.Button({ label: "Delete", size: "sm", variant: "secondary", attrs: 'data-org-venue-del="' + esc(String(v.id)) + '"' }) +
+    `</div></div>` +
+    (meta.length ? `<div class="org-venue__meta">${meta.join("")}</div>` : "") +
+    `</div>` +
+    (st.editingVenue === v.id ? venueForm(v) : "")
+  );
+}
+function locationsSection(){
+  const u = ui();
+  const P = pv();
+  if (!P) return u.EmptyState("No organization loaded", "Sign in to manage locations.");
+  loadVenues();
+  let list;
+  if (st.venues === null || st.venuesLoading){
+    list = `<div class="org-hint">Loading locations…</div>`;
+  } else if (!st.venues.length && st.editingVenue !== "new"){
+    list = u.EmptyState("No locations yet", "Add the places your org trains — a home field, a rented gym, anywhere families should find you.");
+  } else {
+    list = `<div class="org-list">${st.venues.map(venueCard).join("")}</div>`;
+  }
+  return u.Block({
+    title: "Locations",
+    subtitle: "The places your org trains. Shown on listings and used when scheduling.",
+    action: u.Button({ label: st.editingVenue === "new" ? "Close" : "Add location", size: "sm", variant: "secondary", attrs: 'data-org-venue-add="1"' }),
+    body: list + (st.editingVenue === "new" ? venueForm(null) : ""),
+  });
+}
+function saveVenue(btn){
+  const P = pv();
+  if (!P || !P.id){ say("No organization loaded."); return; }
+  const which = btn.getAttribute("data-org-venue-save");
+  const name = val("orgVName").trim();
+  if (!name){ say("A location needs a name."); return; }
+  const tzRaw = val("orgVTz").trim();
+  if (tzRaw && !/^[A-Za-z][A-Za-z0-9_+\-]*(\/[A-Za-z0-9_+\-.]+)+$/.test(tzRaw) && tzRaw !== "UTC"){
+    say("That timezone is not valid — use a Region/City name like America/Chicago, or leave it blank.");
+    return;
+  }
+  const capRaw = val("orgVCap").trim();
+  let capacity = null;
+  if (capRaw){
+    capacity = Math.floor(Number(capRaw));
+    if (!isFinite(capacity) || capacity < 1){ say("Capacity must be a whole number of 1 or more."); return; }
+  }
+  const body = { name: name, address: nul(val("orgVAddress")), timezone: tzRaw || null, capacity: capacity };
+  busy(btn, true, "Saving…");
+  const done = msg => { busy(btn, false); invalidateVenues(); loadVenues(); say(msg); rerender(); };
+  if (which === "new"){
+    body.provider_id = P.id;
+    write("venue", "", { method: "POST", body: body })
+      .then(() => done("Location added."))
+      .catch(e => { busy(btn, false); say("Could not add: " + ((e && e.message) || "Only org admins can add locations.")); });
+  } else {
+    write("venue", "id=eq." + encodeURIComponent(which), { method: "PATCH", body: body })
+      .then(() => done("Location saved."))
+      .catch(e => { busy(btn, false); say("Could not save: " + ((e && e.message) || "Only org admins can edit locations.")); });
+  }
+}
+function deleteVenue(btn){
+  const id = btn.getAttribute("data-org-venue-del");
+  const row = (st.venues || []).find(v => String(v.id) === String(id));
+  if (!row) return;
+  if (!window.confirm('Remove "' + row.name + '"? This cannot be undone.')) return;
+  busy(btn, true, "Removing…");
+  api().from("venue", "id=eq." + encodeURIComponent(id), { method: "DELETE" })
+    .then(() => { invalidateVenues(); loadVenues(); say("Location removed."); rerender(); })
+    .catch(e => { busy(btn, false); say("Could not remove: " + ((e && e.message) || "Only org admins can remove locations.")); rerender(); });
+}
+
+/* ═══════════════════ SECTION 3: STAFF ═══════════════════ */
+function staffForm(m){
+  const isNew = !m; m = m || {};
+  const commType = m.commission_type || "percent";
+  return `<div class="org-form" style="margin-top:16px">` +
+    (isNew
+      ? field("orgMName", "Name",
+          textIn("orgMName", "", 'required maxlength="120" placeholder="Jordan Lee"')) +
+        field("orgMEmail", "Email",
+          textIn("orgMEmail", "", 'placeholder="jordan@example.com" inputmode="email"'),
+          "Stored on the staff profile. It does not create a sign-in by itself.")
+      : "") +
+    field("orgMRole", "Role", selectIn("orgMRole", m.role || "trainer",
+      [["trainer", "Trainer"], ["admin", "Admin"], ["owner", "Owner"]])) +
+    `<div class="org-row">` +
+      field("orgMCommType", "Commission type", selectIn("orgMCommType", commType,
+        [["percent", "Percent of booking"], ["flat", "Flat amount per booking"]])) +
+      field("orgMCommVal", "Commission value",
+        numIn("orgMCommVal", m.commission_value != null ? m.commission_value : 0, 'min="0"'),
+        commType === "flat" ? "Dollars per booking." : "Percent of the booking total, up to 100.") +
+    `</div>` +
+    formActions(isNew ? 'data-org-staff-save="new"' : 'data-org-staff-save="' + esc(String(m.id)) + '"',
+      isNew ? "Add staff" : "Save changes") +
+  `</div>`;
+}
+function staffCard(m){
+  const u = ui();
+  const tp = m.trainer_profile || {};
+  return u.Card(
+    `<div class="org-staffrow"><div>` +
+      `<div class="org-staff__name">${esc(nameOf(m))}</div>` +
+      (tp.email ? `<div class="org-hint">${esc(tp.email)}</div>` : "") +
+      `<div class="org-pills">` +
+        `<span class="cui-badge">${esc(ROLE_LABEL[m.role] || m.role)}</span>` +
+        bgPill(m) +
+        `<span class="cui-badge"><span class="cui-mono">${esc(commText(m))}</span></span>` +
+        (m.is_active ? "" : `<span class="cui-badge">Revoked</span>`) +
+      `</div>` +
+      `<div class="org-hint" style="margin-top:8px">Background-check status is set by the check provider — it can't be changed here.</div>` +
+    `</div><div class="org-actions">` +
+      (m.is_active
+        ? u.Button({ label: "Edit", size: "sm", variant: "secondary", attrs: 'data-org-staff-edit="' + esc(String(m.id)) + '"' }) +
+          (m.role === "owner" ? "" : u.Button({ label: "Revoke", size: "sm", variant: "secondary", attrs: 'data-org-staff-revoke="' + esc(String(m.id)) + '"' }))
+        : u.Button({ label: "Restore", size: "sm", variant: "secondary", attrs: 'data-org-staff-restore="' + esc(String(m.id)) + '"' })) +
+    `</div></div>` +
+    (st.editingMember === m.id ? staffForm(m) : "")
+  );
+}
+function staffSection(){
+  const u = ui();
+  const P = pv();
+  if (!P) return u.EmptyState("No organization loaded", "Sign in to manage staff.");
+  loadStaff();
+  let body;
+  if (st.staff === null || st.staffLoading){
+    body = `<div class="org-hint">Loading staff…</div>`;
+  } else {
+    const act = st.staff.filter(m => m.is_active);
+    const rev = st.staff.filter(m => !m.is_active);
+    const list = rows => rows.length
+      ? `<div class="org-list">${rows.map(staffCard).join("")}</div>`
+      : u.EmptyState("No staff yet", "Just you so far. Add a staff profile to give someone a role — linking their sign-in arrives with staff invites.");
+    body = list(act) +
+      (rev.length ? `<div class="org-blockfoot">` + u.Block({
+          title: "Revoked",
+          subtitle: "Access ended — their past work stays in the audit log under their name.",
+          body: `<div class="org-list">${rev.map(staffCard).join("")}</div>`,
+        }) + `</div>` : "");
+  }
+  return u.Block({
+    title: "Staff",
+    subtitle: "Who can work under this organization. Staff management is limited to org admins — other members see their own record.",
+    action: u.Button({ label: st.editingMember === "new" ? "Close" : "Add staff", size: "sm", variant: "secondary", attrs: 'data-org-staff-add="1"' }),
+    body: body + (st.editingMember === "new" ? staffForm(null) : ""),
+  });
+}
+function staffCommission(){
+  /* Client-side mirror of the DB checks: percent ≤ 100, value ≥ 0. The
+     database enforces the same ranges; this only fails faster and friendlier. */
+  const type = val("orgMCommType");
+  const raw = val("orgMCommVal").trim();
+  const value = raw === "" ? 0 : Number(raw);
+  if (!isFinite(value) || value < 0) return { error: "Commission must be zero or more." };
+  if (type === "percent" && value > 100) return { error: "A percent commission cannot be more than 100." };
+  return { type: type, value: value };
+}
+function saveStaff(btn){
+  const P = pv();
+  if (!P || !P.id){ say("No organization loaded."); return; }
+  const which = btn.getAttribute("data-org-staff-save");
+  const role = val("orgMRole");
+  if (["owner", "admin", "trainer"].indexOf(role) < 0){ say("Pick a valid role."); return; }
+  const comm = staffCommission();
+  if (comm.error){ say(comm.error); return; }
+  busy(btn, true, "Saving…");
+  const done = msg => { busy(btn, false); invalidateStaff(); loadStaff(); say(msg); rerender(); };
+  if (which === "new"){
+    const name = val("orgMName").trim();
+    if (!name){ busy(btn, false); say("A name is required."); return; }
+    const email = nul(val("orgMEmail"));
+    if (email && email.indexOf("@") < 0){ busy(btn, false); say("That email doesn't look valid."); return; }
+    const profile = { name: name };
+    if (email) profile.email = email;
+    /* background_check_status is deliberately absent: the mirror trigger
+       rejects any direct write to it, so it must fall back to 'none'. */
+    write("organization_members", "", { method: "POST", body: {
+      organization_id: P.id, trainer_profile: profile, role: role,
+      commission_type: comm.type, commission_value: comm.value,
+    }})
+      .then(() => done("Staff profile added. Their sign-in links when staff invites arrive."))
+      .catch(e => { busy(btn, false); say("Could not add: " + ((e && e.message) || "Only org admins can add staff.")); });
+  } else {
+    write("organization_members", "id=eq." + encodeURIComponent(which), { method: "PATCH", body: {
+      role: role, commission_type: comm.type, commission_value: comm.value,
+    }})
+      .then(() => done("Staff member updated."))
+      .catch(e => { busy(btn, false); say("Could not save: " + ((e && e.message) || "Only org admins can edit staff.")); });
+  }
+}
+/* Revoke / Restore mirror the Settings→People pattern: optimistic local flip,
+   real PATCH, rollback + honest toast on failure. History is never deleted. */
+function revokeMember(btn){
+  const id = btn.getAttribute("data-org-staff-revoke");
+  const m = (st.staff || []).find(x => String(x.id) === String(id));
+  if (!m) return;
+  m.is_active = false; rerender();
+  api().from("organization_members", "id=eq." + encodeURIComponent(id), { method: "PATCH", body: { is_active: false } })
+    .then(() => say("Revoked — their access ends now; nothing they did is deleted."))
+    .catch(e => { m.is_active = true; rerender(); say((e && e.message) || "Could not revoke."); });
+}
+function restoreMember(btn){
+  const id = btn.getAttribute("data-org-staff-restore");
+  const m = (st.staff || []).find(x => String(x.id) === String(id));
+  if (!m) return;
+  m.is_active = true; rerender();
+  api().from("organization_members", "id=eq." + encodeURIComponent(id), { method: "PATCH", body: { is_active: true } })
+    .then(() => say("Restored."))
+    .catch(e => { m.is_active = false; rerender(); say((e && e.message) || "Could not restore."); });
+}
+
+/* ═══════════════════ VIEW ═══════════════════ */
+function orgView(){
+  const u = ui();
+  if (!u) return "";
+  refreshGate();
+  if (st.gateState !== "open"){
+    return u.Page({
+      page: "organization",
+      eyebrow: "Enterprise",
+      h1: st.gateState === "loading" || st.gateState === "unknown" ? "Organization" : "Organization is an Enterprise feature",
+      lede: st.gateState === "loading" || st.gateState === "unknown"
+        ? "Your organization's profile, locations, and staff."
+        : "Organization is where a multi-staff academy runs its business: the org's public profile, every training location, and the full staff roster — roles, commissions, and background-check status.",
+      body: (st.gateState === "loading" || st.gateState === "unknown") ? loadingBody() : lockedBody(),
+    });
+  }
+  const tab = u.activeTab(TABS, "profile", "orgPageTab");
+  const body = tab === "locations" ? locationsSection() : tab === "staff" ? staffSection() : profileSection();
+  return u.Page({
+    page: "organization",
+    eyebrow: "Business",
+    h1: "Organization",
+    lede: "Your organization's public identity, the places you train, and the people who run it.",
+    tabs: TABS,
+    active: tab,
+    stateKey: "orgPageTab",
+    tabLabel: "Organization sections",
+    body: body,
+  });
+}
+
+/* ═══════════════════ WIRE ═══════════════════ */
+/* MOD_COACHUI.wire owns data-cui-page / data-cui-state (the tab strip).
+   Everything below is this module's own data-org-* handlers. */
+function wire(){
+  if (typeof document === "undefined") return;
+  const on = (sel, fn) => Array.prototype.slice.call(document.querySelectorAll(sel))
+    .forEach(el => { el.onclick = fn; });
+  on("[data-org-save-profile]", b => saveProfile(b));
+  on("[data-org-venue-add]", () => { st.editingVenue = st.editingVenue === "new" ? null : "new"; rerender(); });
+  on("[data-org-venue-edit]", b => {
+    const id = b.getAttribute("data-org-venue-edit");
+    st.editingVenue = st.editingVenue === id ? null : id; rerender();
+  });
+  on("[data-org-venue-del]", b => deleteVenue(b));
+  on("[data-org-venue-save]", b => saveVenue(b));
+  on("[data-org-staff-add]", () => { st.editingMember = st.editingMember === "new" ? null : "new"; rerender(); });
+  on("[data-org-staff-edit]", b => {
+    const id = b.getAttribute("data-org-staff-edit");
+    st.editingMember = st.editingMember === id ? null : id; rerender();
+  });
+  on("[data-org-staff-save]", b => saveStaff(b));
+  on("[data-org-staff-revoke]", b => revokeMember(b));
+  on("[data-org-staff-restore]", b => restoreMember(b));
+  on('[data-org-cancel="1"]', () => { st.editingVenue = null; st.editingMember = null; rerender(); });
+}
+
+window.MOD_ORG = {
+  css: CSS,
+  tabs: { organization: "Organization" },
+  views: { organization: orgView },
+  wire: wire,
+  state: st,
+};
+
+})();
+
+</script>
+<script>
+/* ---- mod-teams.js ---- */
+"use strict";
+/* ═══════════════════════════════════════════════════════════════════
+   MOD_TEAMS — the Enterprise "Teams" tab: real CRUD on the teams table.
+
+   One coach tab ("Teams") listing every squad in the org with roster
+   counts, seasons, and target sizes. All reads and writes go through
+   window.SporveAPI (PostgREST) against the org's own provider_id —
+   the same pv.id pattern loadSchedule uses. Nothing here is seeded.
+
+   ENTERPRISE GATING
+     The view is gated on two server-owned facts:
+       1. plan_entitlements.enterprise.workspace_enabled (public read) —
+          the feature flag for the multi-player workspace. mod-coachaccount
+          keeps Enterprise's "in development" prose while this is false,
+          so the tab treats false as "not enabled yet".
+       2. SporveCoach.plan() — the billing page's own read of the provider
+          row: entitled AND plan id === 'enterprise'.
+     If the flag reads true, both are required. If it reads false, nobody
+     gets the tab. If the flag cannot be read, the gate falls back to the
+     plan check alone. Anything else renders the honest early-access panel:
+     no checkout button (Enterprise is purchasable=false), no numeric
+     quotas, no "Unlimited" anywhere.
+
+   HONESTY RULES OBSERVED HERE
+     · Teams, roster counts, and seasons are read live from the database.
+       An empty org sees "No teams yet", never a fabricated squad.
+     · The roster count counts ACTIVE team_athletes rows per team_id for
+       this provider. team_athletes.team_id is ON DELETE CASCADE, and
+       waivers.member_id is ON DELETE RESTRICT against team_athletes —
+       so deleting a team with rostered athletes is BLOCKED, not cascaded:
+       "Move or remove N rostered athletes first." No membership record is
+       ever destroyed as a side effect of deleting a team.
+     · No (provider_id, name) unique constraint exists in the schema, so
+       exact-duplicate names are blocked in app code with an inline error,
+       checked fresh against the server right before the write.
+     · If the seasons table cannot be read, the form skips the season
+       field and says so — a team is saved with season_id NULL rather than
+       against an invented season.
+
+   Host contract used, never redefined:
+     S, render(), toast(), esc(), ICON.
+     window.COACH_UI { Page, Button, Block, DataTable, Callout, Card,
+       EmptyState, html } — module-local alias `ui`.
+   ═══════════════════════════════════════════════════════════════════ */
+(function(){
+
+/* ── host contract (read, never redefined) ─────────────────────────── */
+function api(){ return window.SporveAPI || null; }
+function coachAccount(){ return window.SporveCoach || null; }
+function providerRow(){
+  return (typeof S !== "undefined" && S.coachProvider) || null;
+}
+function signedIn(){
+  var a = api();
+  return !!(a && a.isSignedIn && a.isSignedIn());
+}
+
+/* ── module-local view state (view state, never product data) ───────── */
+var st = {
+  phase: "idle",      // idle | loading | ready | denied | error
+  gateKey: null,      // identity the gate was last evaluated under
+  teams: [],          // live teams rows for this provider
+  counts: {},         // team_id -> active roster count
+  seasons: [],        // live seasons rows for the season dropdown
+  seasonsOk: true,    // false when the seasons read failed
+  sports: [],         // provider.sports (text[]) for the sport datalist
+  err: null,
+  _recheck: false,
+};
+
+/* ═══════════════════ ENTERPRISE GATE ═══════════════════ */
+/* The same two facts the billing page rests on: plan_entitlements (the
+   public, server-owned price/flag list mod-coachaccount syncs from) and
+   SporveCoach.plan() (the provider row's plan + status). workspace_enabled
+   is the multi-player workspace feature flag; while false, Enterprise is
+   sold as "in development", so the tab stays closed even for an entitled
+   Enterprise row until the flag flips. */
+async function gateCheck(){
+  var a = api();
+  var ws = null;  // null = unreadable
+  if (a){
+    try {
+      var rows = await a.from("plan_entitlements",
+        "select=workspace_enabled&plan=eq.enterprise&limit=1");
+      if (rows && rows[0] && typeof rows[0].workspace_enabled === "boolean")
+        ws = rows[0].workspace_enabled;
+    } catch (e) { /* flag unreadable: fall back to the plan check */ }
+  }
+  var plan = null;
+  try {
+    var acc = coachAccount();
+    if (acc && typeof acc.plan === "function") plan = acc.plan();
+  } catch (e) { /* treat as not entitled */ }
+  var ent = !!(plan && plan.entitled && plan.id === "enterprise");
+  if (ws === true) return ent;    // flag truthful: entitled Enterprise required
+  if (ws === false) return false; // flag truthful: workspace not enabled yet
+  return ent;                     // flag unreadable: plan check alone
+}
+function gateKeyNow(){
+  var pv = providerRow();
+  return (signedIn() ? "1" : "0") + ":" + (pv && pv.id ? pv.id : "");
+}
+
+/* ═══════════════════ DATA ═══════════════════ */
+async function loadTeams(){
+  var a = api();
+  var pv = providerRow();
+  if (!(a && pv && pv.id && signedIn()))
+    throw new Error("Finish coach onboarding first — your org record is what everything attaches to.");
+  var q = "select=id,name,sport,season_id,target_size,created_at" +
+    "&provider_id=eq." + encodeURIComponent(pv.id) +
+    "&order=name.asc&limit=200";
+  st.teams = await a.from("teams", q) || [];
+
+  /* Roster counts: active team_athletes rows per team_id for this provider.
+     A separate query (not a join) so a membership-table hiccup degrades to
+     zero counts instead of killing the whole page. */
+  var tallies = {};
+  try {
+    var members = await a.from("team_athletes",
+      "select=team_id&provider_id=eq." + encodeURIComponent(pv.id) +
+      "&team_id=not.is.null&status=eq.active&limit=2000") || [];
+    members.forEach(function (m){
+      if (m && m.team_id) tallies[m.team_id] = (tallies[m.team_id] || 0) + 1;
+    });
+  } catch (e) { /* counts stay zero; the list still renders */ }
+  st.counts = tallies;
+
+  /* Seasons for the dropdown. Verified columns (migration
+     20260831_001001_seasons.sql): id, provider_id, name, start_date,
+     end_date. A failed read marks seasonsOk=false and the form skips the
+     season field instead of guessing. */
+  try {
+    st.seasons = await a.from("seasons",
+      "select=id,name,start_date,end_date&provider_id=eq." + encodeURIComponent(pv.id) +
+      "&order=start_date.desc&limit=50") || [];
+    st.seasonsOk = true;
+  } catch (e) {
+    st.seasons = [];
+    st.seasonsOk = false;
+  }
+  st.sports = (pv && Array.isArray(pv.sports)) ? pv.sports.filter(Boolean) : [];
+}
+
+/* One load per tab visit; writes reload explicitly. The gate re-runs when
+   the identity under it changes (guest -> signed in, provider row landing
+   after the cold-start fetch), so an early denial never sticks. */
+function kickLoad(){
+  if (st.phase === "idle"){
+    st.phase = "loading";
+    runGate();
+    return;
+  }
+  if (st.phase === "denied" && st.gateKey !== gateKeyNow() && !st._recheck){
+    st._recheck = true;
+    st.gateKey = gateKeyNow();
+    gateCheck().then(function (ok){
+      st._recheck = false;
+      if (ok){ st.phase = "loading"; runGate(); }
+      else if (typeof render === "function") render();
+    }).catch(function (){ st._recheck = false; });
+  }
+}
+function runGate(){
+  st.gateKey = gateKeyNow();
+  gateCheck().then(function (ok){
+    if (!ok){ st.phase = "denied"; }
+    else return loadTeams().then(function (){ st.phase = "ready"; });
+  }).then(function (){
+    if (typeof render === "function") render();
+  }).catch(function (e){
+    st.phase = "error";
+    st.err = (e && e.message) || "Could not load teams.";
+    if (typeof render === "function") render();
+  });
+}
+function teamById(id){
+  return st.teams.find(function (t){ return String(t.id) === String(id); }) || null;
+}
+/* Fresh roster count straight from the server, used by the delete flow so
+   the confirm dialog never decides on a stale tally. */
+function countRoster(teamId){
+  var a = api();
+  var pv = providerRow();
+  return a.from("team_athletes",
+    "select=id&team_id=eq." + encodeURIComponent(teamId) +
+    "&provider_id=eq." + encodeURIComponent(pv.id) + "&limit=2000"
+  ).then(function (rows){ return (rows || []).length; });
+}
+
+/* ═══════════════════ WRITES ═══════════════════ */
+/* POST/PATCH/DELETE mirror the host's own PostgREST write pattern
+   (Prefer: return=representation; a 204 with no row is a failure, the
+   same rule the obligations queue enforces in C4). */
+function saveTeam(id, vals){
+  var a = api();
+  var pv = providerRow();
+  if (!(a && pv && pv.id && signedIn()))
+    return Promise.reject(new Error("Finish coach onboarding first — your org record is what everything attaches to."));
+  /* Fresh duplicate check right before the write: there is no
+     (provider_id, name) unique constraint, so app code blocks exact
+     duplicates. Excludes the row being edited. */
+  return a.from("teams",
+      "select=id&provider_id=eq." + encodeURIComponent(pv.id) +
+      "&name=eq." + encodeURIComponent(vals.name) + "&limit=2"
+    ).then(function (dupes){
+      var clash = (dupes || []).filter(function (r){ return String(r.id) !== String(id || ""); });
+      if (clash.length) throw new Error("A team named \u201c" + vals.name + "\u201d already exists.");
+      var body = {
+        provider_id: pv.id,
+        name: vals.name,
+        sport: vals.sport || null,
+        season_id: vals.season_id || null,
+        target_size: vals.target_size == null ? null : vals.target_size,
+      };
+      if (id){
+        return a.from("teams",
+          "id=eq." + encodeURIComponent(id) + "&provider_id=eq." + encodeURIComponent(pv.id),
+          { method: "PATCH", headers: { Prefer: "return=representation" }, body: body }
+        ).then(function (rows){
+          if (!(rows && rows[0])) throw new Error("The team was not updated — it may not be yours.");
+          return rows[0];
+        });
+      }
+      return a.from("teams", "",
+        { method: "POST", headers: { Prefer: "return=representation" }, body: body }
+      ).then(function (rows){
+        if (!(rows && rows[0] && rows[0].id))
+          throw new Error("The team was not saved — the server did not return it.");
+        return rows[0];
+      });
+    }).then(function (){
+      S.modal = null;
+      return loadTeams();
+    }).then(function (){
+      render();
+      toast(id ? "Team updated." : "Team created.");
+    });
+}
+
+function deleteTeam(id){
+  var a = api();
+  var pv = providerRow();
+  return a.from("teams",
+      "id=eq." + encodeURIComponent(id) + "&provider_id=eq." + encodeURIComponent(pv.id),
+      { method: "DELETE" }
+    ).then(function (){
+      return loadTeams();
+    }).then(function (){
+      S.modal = null;
+      render();
+      toast("Team deleted.");
+    });
+}
+
+/* ═══════════════════ CSS ═══════════════════ */
+var CSS = `
+.tm-mrow{display:flex;gap:10px;justify-content:flex-end;margin-top:20px;flex-wrap:wrap}
+.tm-note{font-size:var(--text-sm);color:var(--faint);margin:6px 0 0;line-height:1.45}
+`;
+
+/* ═══════════════════ VIEW ═══════════════════ */
+function teamsView(){
+  var ui = window.COACH_UI;
+  if (!ui) return "";
+  kickLoad();
+  if (st.phase === "denied") return deniedPage(ui);
+  var body;
+  if (st.phase === "loading" || st.phase === "idle"){
+    body = ui.Card("Loading teams\u2026");
+  } else if (st.phase === "error"){
+    body = ui.Callout({ title: "Could not load teams.", body: st.err || "Try again." });
+  } else {
+    body = listBody(ui);
+  }
+  var actions = st.phase === "denied" ? [] :
+    [ui.Button({ label: "New team", size: "lg", variant: "primary", attrs: 'data-tm-new="1"' })];
+  return ui.Page({
+    page: "teams",
+    eyebrow: "Business",
+    h1: "Teams",
+    lede: "Every squad in your organization \u2014 roster sizes, seasons, and targets.",
+    actions: actions,
+    body: body,
+  });
+}
+
+/* The non-enterprise surface. No checkout button (Enterprise is
+   purchasable=false), no numeric quotas, no "Unlimited". The CTA follows
+   the established early-access pattern: it points at the pricing tab,
+   which describes early access — never a checkout. */
+function deniedPage(ui){
+  return ui.Page({
+    page: "teams",
+    eyebrow: "ENTERPRISE",
+    h1: "Teams is an Enterprise feature",
+    lede: "Teams is part of the Sporv Enterprise multi-player workspace \u2014 one organization, many coaches, every squad in one place. It is in early access right now.",
+    actions: [ui.Button({
+      label: "Join the early-access list", size: "lg", variant: "primary",
+      attrs: 'data-nav="pricing"',
+    })],
+    body: ui.Callout({
+      title: "Early access.",
+      body: "The Teams tab opens automatically for Enterprise organizations once the workspace is enabled for them. Enterprise is not sold as a self-serve checkout, so there is nothing to buy here.",
+    }),
+  });
+}
+
+function listBody(ui){
+  if (!st.teams.length){
+    return ui.EmptyState("No teams yet", "Create your first squad.") +
+      '<div style="margin-top:16px;text-align:center">' +
+      ui.Button({ label: "New team", size: "lg", variant: "primary", attrs: 'data-tm-new="1"' }) +
+      "</div>";
+  }
+  var seasonName = {};
+  st.seasons.forEach(function (s){ seasonName[s.id] = s.name; });
+  var cols = [
+    { key: "team", label: "Team" },
+    { key: "sport", label: "Sport" },
+    { key: "season", label: "Season" },
+    { key: "roster", label: "Roster" },
+    { key: "target", label: "Target size" },
+    { key: "actions", label: "" },
+  ];
+  var rows = st.teams.map(function (t){
+    var n = st.counts[t.id] || 0;
+    /* Roster-vs-target: "12 / 18" when a target is set, the bare count
+       otherwise. The Target size column carries the raw target. */
+    var rosterTxt = (t.target_size != null) ? (n + " / " + t.target_size) : String(n);
+    return {
+      team: ui.html("<b>" + esc(t.name) + "</b>"),
+      sport: t.sport ? esc(t.sport) : "\u2014",
+      season: (t.season_id && seasonName[t.season_id]) ? esc(seasonName[t.season_id]) : "\u2014",
+      roster: ui.html('<span class="num">' + esc(rosterTxt) + "</span>"),
+      target: ui.html('<span class="num">' + (t.target_size != null ? esc(String(t.target_size)) : "\u2014") + "</span>"),
+      actions: ui.html('<span class="cui-inline">' +
+        '<button type="button" class="btn ghost sm" data-tm-edit="' + esc(t.id) + '">Edit</button>' +
+        '<button type="button" class="btn ghost sm" data-tm-del="' + esc(t.id) + '">Delete</button>' +
+        "</span>"),
+    };
+  });
+  return ui.DataTable({ columns: cols, rows: rows });
+}
+
+/* ═══════════════════ MODALS ═══════════════════ */
+function wrap(title, body){
+  return '<div class="scrim" data-scrim="1"><div class="modal" role="dialog" aria-modal="true" aria-label="' + esc(title) + '">' +
+    '<div class="modal-head"><b>' + esc(title) + '</b><button class="x" data-close="1" aria-label="Close">' + ICON.x + "</button></div>" +
+    '<div class="modal-body">' + body + "</div></div></div>";
+}
+
+function teamFormModal(){
+  var m = (typeof S !== "undefined" && S.modal) || {};
+  var t = m.teamId ? teamById(m.teamId) : null;
+  if (m.teamId && !t)
+    return wrap("Team", '<p style="color:var(--muted)">That team is no longer in your list.</p>');
+  var isEdit = !!t;
+  var sportVal = t ? (t.sport || "") : "";
+  var sportOpts = st.sports.map(function (s){
+    return '<option value="' + esc(s) + '">';
+  }).join("");
+  var seasonField;
+  if (st.seasonsOk){
+    var opts = st.seasons.map(function (s){
+      var label = s.name + " \u00b7 " + String(s.start_date || "").slice(0, 10) +
+        " to " + String(s.end_date || "").slice(0, 10);
+      var sel = (t && String(t.season_id) === String(s.id)) ? " selected" : "";
+      return '<option value="' + esc(s.id) + '"' + sel + ">" + esc(label) + "</option>";
+    }).join("");
+    seasonField =
+      '<div class="field"><label for="tmF-season">Season (optional)</label>' +
+      '<select id="tmF-season" name="season_id"><option value="">No season</option>' + opts + "</select></div>";
+  } else {
+    seasonField =
+      '<p class="tm-note" style="margin:0 0 16px">The seasons list could not be loaded, so the season picker is hidden \u2014 the team will be saved without a season.</p>';
+  }
+  return wrap(isEdit ? "Edit team" : "New team",
+    '<form id="tmTeamForm">' +
+    '<div class="field"><label for="tmF-name">Team name</label>' +
+    '<input id="tmF-name" name="name" type="text" maxlength="120" required autocomplete="off" value="' + esc(t ? t.name : "") + '"></div>' +
+    '<div class="field"><label for="tmF-sport">Sport</label>' +
+    '<input id="tmF-sport" name="sport" type="text" list="tmSportList" autocomplete="off" placeholder="e.g. Soccer" value="' + esc(sportVal) + '">' +
+    '<datalist id="tmSportList">' + sportOpts + "</datalist>" +
+    (st.sports.length ? '<p class="tm-note">Free text \u2014 your sports are suggested above.</p>' : "") + "</div>" +
+    seasonField +
+    '<div class="field"><label for="tmF-target">Target roster size (optional)</label>' +
+    '<input id="tmF-target" name="target_size" type="number" min="1" step="1" inputmode="numeric" value="' +
+      esc(t && t.target_size != null ? String(t.target_size) : "") + '"></div>' +
+    '<div id="tmFormErr" class="err hide" style="margin:12px 0" role="alert"></div>' +
+    '<button class="btn wide" type="submit">' + (isEdit ? "Save changes" : "Create team") + "</button>" +
+    "</form>");
+}
+
+function teamDeleteModal(){
+  var m = (typeof S !== "undefined" && S.modal) || {};
+  var t = m.teamId ? teamById(m.teamId) : null;
+  if (!t)
+    return wrap("Delete team", '<p style="color:var(--muted)">That team is no longer in your list.</p>');
+  var n = Number(m.count || 0);
+  if (n > 0){
+    /* Blocked, honestly: team_athletes.team_id cascades on delete, so
+       deleting the team would erase these membership records (and
+       waivers.member_id is RESTRICT against them). The coach moves or
+       removes the athletes first. */
+    return wrap("Delete team",
+      "<p><b>" + esc(t.name) + "</b> has <b class=\"num\">" + n + "</b> rostered athlete" + (n === 1 ? "" : "s") + ".</p>" +
+      '<p style="color:var(--muted)">Move or remove ' + (n === 1 ? "them" : "these athletes") +
+      " from the team first \u2014 deleting the team would also remove its roster membership records.</p>" +
+      '<div class="tm-mrow"><button class="btn ghost" data-close="1">Keep the team</button></div>');
+  }
+  return wrap("Delete team",
+    "<p>Delete <b>" + esc(t.name) + "</b>? This cannot be undone.</p>" +
+    '<div id="tmDelErr" class="err hide" style="margin:12px 0" role="alert"></div>' +
+    '<div class="tm-mrow"><button class="btn ghost" data-close="1">Cancel</button>' +
+    '<button class="btn" id="tmDelGo">Delete team</button></div>');
+}
+
+/* ═══════════════════ WIRING ═══════════════════ */
+function ensureCSS(){
+  if (typeof document === "undefined" || document.getElementById("mod-teams-css")) return;
+  var el = document.createElement("style");
+  el.id = "mod-teams-css";
+  el.textContent = CSS;
+  document.head.appendChild(el);
+}
+
+function wire(){
+  ensureCSS();
+  if (typeof document === "undefined") return;
+  var q = function (s){ return document.querySelectorAll(s); };
+
+  q("[data-tm-new]").forEach(function (b){
+    b.onclick = function (){
+      S.modal = { type: "teamform" };
+      render();
+    };
+  });
+  q("[data-tm-edit]").forEach(function (b){
+    b.onclick = function (){
+      if (!teamById(b.dataset.tmEdit)) return;
+      S.modal = { type: "teamform", teamId: b.dataset.tmEdit };
+      render();
+    };
+  });
+  q("[data-tm-del]").forEach(function (b){
+    b.onclick = function (){
+      if (b.dataset.busy || !teamById(b.dataset.tmDel)) return;
+      b.dataset.busy = "1";
+      var label = b.textContent;
+      b.textContent = "\u2026";
+      countRoster(b.dataset.tmDel).then(function (n){
+        delete b.dataset.busy;
+        b.textContent = label;
+        S.modal = { type: "teamdelete", teamId: b.dataset.tmDel, count: n };
+        render();
+      }).catch(function (e){
+        delete b.dataset.busy;
+        b.textContent = label;
+        toast("Could not check the roster: " + ((e && e.message) || "try again."));
+      });
+    };
+  });
+
+  /* ── team form modal ── */
+  var form = document.getElementById("tmTeamForm");
+  if (form) form.onsubmit = function (ev){
+    ev.preventDefault();
+    var m = S.modal || {};
+    var err = document.getElementById("tmFormErr");
+    var show = function (msg){
+      if (err){ err.textContent = msg; err.classList.remove("hide"); }
+      return false;
+    };
+    /* Read off the live DOM (never a re-rendered copy) so a validation
+       error cannot throw away what the coach already typed. */
+    var fd = new FormData(form);
+    var name = String(fd.get("name") == null ? "" : fd.get("name")).trim();
+    var sport = String(fd.get("sport") == null ? "" : fd.get("sport")).trim();
+    var seasonId = String(fd.get("season_id") == null ? "" : fd.get("season_id")).trim();
+    var targetRaw = String(fd.get("target_size") == null ? "" : fd.get("target_size")).trim();
+    if (!name) return show("Give the team a name.");
+    var target = null;
+    if (targetRaw){
+      var tn = Number(targetRaw);
+      if (!isFinite(tn) || Math.floor(tn) !== tn || tn < 1)
+        return show("Target size must be a whole number of 1 or more, or left blank.");
+      target = tn;
+    }
+    var btn = form.querySelector('button[type="submit"]');
+    if (btn) btn.disabled = true;
+    saveTeam(m.teamId || null, { name: name, sport: sport, season_id: seasonId, target_size: target })
+      .catch(function (e){
+        if (btn) btn.disabled = false;
+        show((e && e.message) || "Could not save the team \u2014 try again.");
+      });
+    return false;
+  };
+
+  /* ── delete confirm modal ── */
+  var go = document.getElementById("tmDelGo");
+  if (go){
+    var delId = (S.modal || {}).teamId;
+    go.onclick = function (){
+      go.disabled = true;
+      var err = document.getElementById("tmDelErr");
+      deleteTeam(delId).catch(function (e){
+        go.disabled = false;
+        if (err){
+          err.textContent = (e && e.message) || "Could not delete the team \u2014 try again.";
+          err.classList.remove("hide");
+        }
+      });
+    };
+  }
+}
+
+/* ═══════════════════ EXPORT ═══════════════════ */
+window.MOD_TEAMS = {
+  css: CSS,
+  tabs: { teams: "Teams" },
+  views: { teams: teamsView },
+  modals: { teamform: teamFormModal, teamdelete: teamDeleteModal },
+  wire: wire,
+  state: {},
+};
+
+})();
+
+</script>
+<script>
+/* ---- mod-families.js ---- */
+"use strict";
+/* ═══════════════════════════════════════════════════════════════════
+   MOD_FAMILIES — the coach-facing Families tab (Enterprise-gated).
+
+   Guardians and the athletes they cover: who pays, who to contact.
+
+   THE LINKING CHAIN, MODELLED HONESTLY ON THE REAL SCHEMA
+     guardians (id uuid PK, provider_id NOT NULL → providers.id) holds the
+     guardian record. guardian_links (guardian_id → guardians.id, member_id
+     → team_athletes.id, is_payer, relationship, provider_id NOT NULL) is the
+     link — and member_id points at the ROSTER ROW (team_athletes.id), not
+     athletes.id, so the UI always says "athlete on a team" and joins
+     team_athletes → teams for the team name. Verified read-only against the
+     production schema 2026-09-22: all four FKs on guardian_links are
+     ON DELETE CASCADE (confdeltype='c'), so removing a guardian removes its
+     links — the delete confirm says exactly that, and nothing is orphaned.
+
+   GATING
+     Enterprise-only. The plan comes from the same place the billing page
+     reads it (window.SporveCoach.plan(): {id, entitled, ...}). The
+     plan_entitlements enterprise row is publicly readable; verified
+     2026-09-22: purchasable=false, workspace_enabled=true. workspace_enabled
+     is truthful (a real flag, true on the enterprise row), so the tab opens
+     only when the plan is enterprise AND entitled AND the enterprise row has
+     workspace_enabled true (row unreadable → falls back to the plan-id
+     check). Non-enterprise gets an honest teaser: no data fetched, no
+     checkout button (buyable:false), no numeric quotas, no "Unlimited".
+
+   HONESTY RULES OBSERVED HERE
+     · Every guardian, link, athlete row, and team name is a real row read
+       off the provider's own records. No invented guardians or athletes —
+       empty states say so plainly.
+     · is_payer renders as a cui-badge "Payer" on the exact link row that
+       carries it. Nothing infers payer status.
+     · Duplicate (guardian_id, member_id) links are refused in app code with
+       an honest inline error before any POST is attempted.
+     · COPPA-conscious: guardian/parent data is display-only here. There is
+       no messaging feature on this tab and none is proposed.
+     · No ai-gateway calls, no approvals/sends/schedules/payments.
+
+   Host contract used, never redefined:
+     S, render(), toast(), esc(), window.COACH_UI, window.SporveAPI,
+     window.SporveCoach (ACCOUNT), window.confirm.
+   ═══════════════════════════════════════════════════════════════════ */
+(function(){
+
+/* ═══════════════════ MODULE-LOCAL STATE ═══════════════════ */
+/* View + cache state, not product data: it never lands in S. Rows are only
+   ever real DB rows (or the empty arrays that mean "loaded, nothing there"). */
+const st = {
+  loaded: false, loading: false, error: null,
+  guardians: [], links: [], roster: [], teams: {},
+  dialog: null,   // {type:"add"} | {type:"link", guardianId} | null
+  formErr: null, busy: false,
+  entChecked: false, entRow: null,
+};
+
+/* ═══════════════════ ACCESSORS ═══════════════════ */
+const pid = () => (typeof S !== "undefined" && S.coachProvider && S.coachProvider.id) || null;
+const api = () => window.SporveAPI || null;
+const plan = () =>
+  (window.SporveCoach && typeof window.SporveCoach.plan === "function")
+    ? window.SporveCoach.plan() : null;
+
+/* Read the enterprise row once. plan_entitlements is publicly readable and
+   the single source the billing tab reconciles against. */
+function fireEntCheck(){
+  if (st.entChecked || !api()) return;
+  st.entChecked = true;
+  api().from("plan_entitlements", "select=plan,purchasable,workspace_enabled")
+    .then(rows => {
+      st.entRow = (rows || []).find(r => r.plan === "enterprise") || null;
+      if (typeof render === "function") render();
+    })
+    .catch(() => { if (typeof render === "function") render(); });
+}
+
+/* The gate. workspace_enabled is truthful on the enterprise row (true, and
+   the flag the billing copy keys its "in development" prose off), so the
+   tab opens only when the server-owned plan is an entitled enterprise plan
+   and the row agrees. Row unreadable → fall back to the plan-id check. */
+function isOpen(){
+  const p = plan();
+  if (!p || p.id !== "enterprise" || !p.entitled) return false;
+  if (st.entChecked && st.entRow && st.entRow.workspace_enabled === false) return false;
+  return true;
+}
+
+/* ═══════════════════ LOADS ═══════════════════ */
+/* Four real reads, joined client-side. All scoped to the coach's own
+   provider_id — RLS (owner ALL + self SELECT) scopes them again server-side. */
+function loadAll(){
+  const id = pid(), A = api();
+  if (!id || !A || st.loading) return Promise.resolve();
+  st.loading = true; st.error = null;
+  const q = (t, sel) => A.from(t, sel + "&provider_id=eq." + encodeURIComponent(id));
+  return Promise.all([
+    q("guardians", "select=id,first_name,last_name,email,phone,email_status&order=created_at&limit=200"),
+    q("guardian_links", "select=id,guardian_id,member_id,is_payer,relationship&order=created_at&limit=1000"),
+    q("team_athletes", "select=id,first_name,last_name,team_id&order=last_name,first_name&limit=500"),
+    q("teams", "select=id,name&order=name&limit=200"),
+  ]).then(rs => {
+    st.guardians = rs[0] || [];
+    st.links = rs[1] || [];
+    st.roster = rs[2] || [];
+    st.teams = {};
+    (rs[3] || []).forEach(t => { st.teams[t.id] = t.name; });
+    st.loaded = true; st.loading = false;
+  }).catch(e => {
+    st.loading = false;
+    st.error = (e && e.message) || "Could not load guardian records.";
+  });
+}
+function ensureLoad(){
+  if (st.loaded || st.loading) return;
+  loadAll().then(() => { if (typeof render === "function") render(); });
+}
+function reload(){
+  st.loaded = false; st.dialog = null; st.formErr = null; st.busy = false;
+  ensureLoad();
+  if (typeof render === "function") render();
+}
+
+/* ═══════════════════ DERIVED READS ═══════════════════ */
+const fullName = g => [g.first_name, g.last_name].filter(Boolean).join(" ") || "(unnamed)";
+const rosterName = r => [r.first_name, r.last_name].filter(Boolean).join(" ") || "(unnamed athlete)";
+const teamNameOf = r => (r && r.team_id && st.teams[r.team_id]) || "No team";
+const rosterById = id => st.roster.find(r => r.id === id) || null;
+const guardianById = id => st.guardians.find(g => g.id === id) || null;
+const linksFor = gid => st.links.filter(l => l.guardian_id === gid);
+const sortedGuardians = () => st.guardians.slice().sort((a, b) =>
+  fullName(a).toLowerCase().localeCompare(fullName(b).toLowerCase()));
+const payerLinks = gid => linksFor(gid).filter(l => l.is_payer);
+/* Roster rows this provider has that are not yet linked to this guardian —
+   the only honest options for the "Link athlete" dropdown. */
+const linkableRoster = gid => {
+  const taken = {};
+  linksFor(gid).forEach(l => { taken[l.member_id] = 1; });
+  return st.roster.filter(r => !taken[r.id]);
+};
+
+/* ═══════════════════ CSS ═══════════════════ */
+const CSS = `
+/* Families tab. All type at 14px or above; 8px grid; dark-ground tokens
+   only (no light borders on dark surfaces — the badge/line tokens are the
+   cui scale, same as every other coach page). */
+.fam-lines{display:flex;flex-direction:column;gap:8px;align-items:flex-start}
+.fam-line{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.fam-muted{color:var(--cui-ink-3)}
+.fam-acts{display:flex;gap:8px;margin-top:10px;flex-wrap:wrap}
+.fam-mini{background:none;border:0;padding:0;color:var(--cui-steel);font-size:14px;
+  font-weight:600;cursor:pointer;text-decoration:underline;text-underline-offset:3px}
+.fam-mini:hover{color:var(--cui-ink)}
+.fam-form{display:grid;gap:16px;max-width:480px}
+.fam-field{display:grid;gap:8px}
+.fam-field label{font-size:14px;font-weight:600;color:var(--cui-ink-2)}
+.fam-field input[type="text"],.fam-field input[type="email"],.fam-field input[type="tel"],.fam-field select{
+  height:40px;padding:0 12px;border:1px solid var(--cui-line-2);border-radius:8px;
+  background:var(--cui-panel-2);color:var(--cui-ink);font-size:14px;width:100%}
+.fam-field input:focus,.fam-field select:focus{outline:none;border-color:var(--cui-steel)}
+.fam-check{display:flex;align-items:center;gap:8px;font-size:14px;color:var(--cui-ink-2)}
+.fam-check input{width:16px;height:16px;accent-color:#fff}
+.fam-err{padding:12px 16px;border:1px solid var(--cui-line-2);border-radius:8px;
+  background:var(--cui-panel-2);color:var(--cui-ink);font-size:14px;line-height:1.5}
+.fam-formbtns{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px}
+`;
+
+/* ═══════════════════ VIEW: ENTERPRISE TEASER ═══════════════════ */
+function teaserView(ui){
+  return ui.Page({
+    page: "families", eyebrow: "ENTERPRISE", h1: "Families is an Enterprise feature",
+    lede: "Guardian records linked to the athletes they cover — who pays, who to contact — built for clubs running full rosters.",
+    actions: [ui.Button({
+      label: "Join the early-access list", size: "lg", variant: "primary",
+      attrs: 'data-fam-pricing="1"',
+    })],
+    /* No checkout button on purpose: enterprise is not self-serve
+       (purchasable=false). No numeric quotas, no "Unlimited" — the vague
+       plan prose lives on the billing page, which is where the button goes. */
+    body: ui.Callout({
+      title: "How Enterprise works. ",
+      body: "Enterprise is invite-only while it is in development. The plan list shows what is coming; joining the early-access list puts your club in line and we reach out when your workspace is ready.",
+    }),
+  });
+}
+
+/* ═══════════════════ VIEW: FAMILIES ═══════════════════ */
+function familiesView(){
+  const ui = window.COACH_UI;
+  if (!ui) return "";
+  fireEntCheck();
+  if (!isOpen()) return teaserView(ui);
+  ensureLoad();
+
+  const G = sortedGuardians();
+  const linkedAthletes = {};
+  st.links.forEach(l => { linkedAthletes[l.member_id] = 1; });
+  const payerCount = G.filter(g => payerLinks(g.id).length).length;
+
+  const body =
+    (st.error ? ui.Callout({ title: "Could not load families. ", body: st.error }) : "") +
+    (st.loading && !st.loaded
+      ? ui.EmptyState("Loading guardians", "Fetching guardian and link records.")
+      : "") +
+    dialogBlock(ui) +
+    (st.loaded && !st.loading ? ui.StatGrid([
+      ui.StatCard({ label: "Guardians", value: String(G.length), context: "Guardian records on file." }),
+      ui.StatCard({ label: "Athletes linked", value: String(Object.keys(linkedAthletes).length), context: "Roster rows with at least one guardian." }),
+      ui.StatCard({ label: "Payers", value: String(payerCount), context: "Guardians marked as payer on a link." }),
+    ]) : "") +
+    (st.loaded && !st.loading
+      ? ui.Block({
+          title: "Guardians",
+          subtitle: "Each guardian links to roster rows — an athlete on a team — never to a bare athlete record.",
+          action: ui.Button({ label: "Add guardian", size: "sm", variant: "secondary", attrs: 'data-fam-add="1"' }),
+          body: ui.DataTable({
+            columns: [
+              { label: "Guardian", key: "guardian" },
+              { label: "Contact", key: "contact" },
+              { label: "Linked athletes", key: "athletes" },
+              { label: "Payer", key: "payer" },
+            ],
+            emptyTitle: "No guardians yet",
+            emptyBody: "Add a guardian to start linking the athletes they cover.",
+            rows: G.map(g => guardianRow(ui, g)),
+          }),
+        })
+      : "");
+
+  return ui.Page({
+    page: "families", eyebrow: "Business", h1: "Families",
+    lede: "Guardians and the athletes they cover — who pays, who to contact.",
+    actions: [ui.Button({ label: "Add guardian", size: "lg", variant: "primary", attrs: 'data-fam-add="1"' })],
+    body: body,
+  });
+}
+
+function guardianRow(ui, g){
+  const links = linksFor(g.id);
+  const contact = [g.email, g.phone].filter(Boolean);
+  const payer = payerLinks(g.id);
+
+  const athleteLines = links.length
+    ? links.map(l => {
+        const r = rosterById(l.member_id);
+        const name = r ? rosterName(r) : "Athlete no longer on roster";
+        const team = r ? teamNameOf(r) : "";
+        return `<div class="fam-line"><span><b>${esc(name)}</b>${team ? ` <span class="fam-muted">· ${esc(team)}</span>` : ""}` +
+          (l.relationship ? ` <span class="fam-muted">(${esc(l.relationship)})</span>` : "") + "</span>" +
+          (l.is_payer ? `<span class="cui-badge cui-badge--good">Payer</span>` : "") +
+          `<button type="button" class="fam-mini" data-fam-unlink="${esc(l.id)}" data-fam-gname="${esc(fullName(g))}" data-fam-aname="${esc(name)}">Unlink</button></div>`;
+      }).join("")
+    : `<span class="fam-muted">No athletes linked yet</span>`;
+
+  const payerCell = payer.length
+    ? payer.map(l => {
+        const r = rosterById(l.member_id);
+        return `<div class="fam-line"><span class="cui-badge cui-badge--good">Payer</span><span>${esc(r ? rosterName(r) : "Athlete no longer on roster")}</span></div>`;
+      }).join("")
+    : `<span class="fam-muted">Not marked as payer</span>`;
+
+  return {
+    guardian: ui.html(
+      `<b>${esc(fullName(g))}</b>` +
+      `<div class="fam-acts"><button type="button" class="cui-button cui-button--sm cui-button--secondary" data-fam-link="${esc(g.id)}">Link athlete</button>` +
+      `<button type="button" class="cui-button cui-button--sm cui-button--secondary" data-fam-remove="${esc(g.id)}" data-fam-gname="${esc(fullName(g))}" data-fam-nlinks="${links.length}">Remove</button></div>`
+    ),
+    contact: ui.html(contact.length
+      ? contact.map(c => `<div>${esc(c)}</div>`).join("")
+      : `<span class="fam-muted">No contact on file</span>`),
+    athletes: ui.html(`<div class="fam-lines">${athleteLines}</div>`),
+    payer: ui.html(`<div class="fam-lines">${payerCell}</div>`),
+  };
+}
+
+/* ═══════════════════ DIALOGS (inline blocks, not host modals) ═══════════════════ */
+function dialogBlock(ui){
+  const d = st.dialog;
+  if (!d) return "";
+  if (d.type === "add") return addGuardianBlock(ui);
+  if (d.type === "link") return linkAthleteBlock(ui, d.guardianId);
+  return "";
+}
+
+function addGuardianBlock(ui){
+  return ui.Block({
+    title: "Add guardian",
+    subtitle: "A real guardian record on your provider. First name is required; everything else is optional.",
+    body: `<form id="famAddForm" class="fam-form" novalidate>
+      <div class="fam-field"><label for="famF-first">First name</label>
+        <input type="text" id="famF-first" name="first_name" autocomplete="off" maxlength="80"></div>
+      <div class="fam-field"><label for="famF-last">Last name</label>
+        <input type="text" id="famF-last" name="last_name" autocomplete="off" maxlength="80"></div>
+      <div class="fam-field"><label for="famF-email">Email</label>
+        <input type="email" id="famF-email" name="email" autocomplete="off" maxlength="160"></div>
+      <div class="fam-field"><label for="famF-phone">Phone</label>
+        <input type="tel" id="famF-phone" name="phone" autocomplete="off" maxlength="40"></div>
+      ${st.formErr ? `<div class="fam-err" role="alert">${esc(st.formErr)}</div>` : ""}
+      <div class="fam-formbtns">
+        <button type="submit" class="cui-button cui-button--lg cui-button--primary"${st.busy ? " disabled" : ""}>${st.busy ? "Saving…" : "Save guardian"}</button>
+        <button type="button" class="cui-button cui-button--lg cui-button--secondary" data-fam-cancel="1">Cancel</button>
+      </div>
+    </form>`,
+  });
+}
+
+function linkAthleteBlock(ui, guardianId){
+  const g = guardianById(guardianId);
+  if (!g) return ui.Callout({ title: "Guardian not found. ", body: "That guardian is no longer on file." });
+  const opts = linkableRoster(guardianId);
+  return ui.Block({
+    title: "Link athlete",
+    subtitle: "Link " + fullName(g) + " to a roster row — an athlete on a team. Rows already linked to this guardian are not offered twice.",
+    body: `<form id="famLinkForm" class="fam-form" novalidate data-fam-gid="${esc(guardianId)}">
+      ${opts.length ? `<div class="fam-field"><label for="famF-athlete">Athlete</label>
+        <select id="famF-athlete" name="member_id">
+          ${opts.map(r => `<option value="${esc(r.id)}">${esc(rosterName(r))} — ${esc(teamNameOf(r))}</option>`).join("")}
+        </select></div>` : `<div class="fam-err" role="alert">Every roster row is already linked to ${esc(fullName(g))}, or there are no roster rows yet. Add athletes to a team first.</div>`}
+      <div class="fam-field"><label for="famF-rel">Relationship</label>
+        <input type="text" id="famF-rel" name="relationship" placeholder="Mother, Father, Guardian…" autocomplete="off" maxlength="60"></div>
+      <label class="fam-check"><input type="checkbox" id="famF-payer" name="is_payer"> This guardian pays for this athlete</label>
+      ${st.formErr ? `<div class="fam-err" role="alert">${esc(st.formErr)}</div>` : ""}
+      <div class="fam-formbtns">
+        ${opts.length ? `<button type="submit" class="cui-button cui-button--lg cui-button--primary"${st.busy ? " disabled" : ""}>${st.busy ? "Linking…" : "Link athlete"}</button>` : ""}
+        <button type="button" class="cui-button cui-button--lg cui-button--secondary" data-fam-cancel="1">Cancel</button>
+      </div>
+    </form>`,
+  });
+}
+
+/* ═══════════════════ WRITES ═══════════════════ */
+/* POST/PATCH/DELETE via SporveAPI.from, the same shape as the Settings →
+   People Revoke/Restore writes. A write that does not confirm a row is
+   treated as a failure — never a silent local-only change. */
+function postRow(table, body){
+  return api().from(table, "", {
+    method: "POST", headers: { Prefer: "return=representation" }, body: body,
+  }).then(rows => {
+    if (!rows || !rows[0]) throw new Error("The record was not saved — nothing was written.");
+    return rows[0];
+  });
+}
+
+function saveGuardian(){
+  const id = pid();
+  if (!id){ st.formErr = "No provider workspace is loaded, so there is nowhere to save this."; render(); return; }
+  const v = name => {
+    const el = document.getElementById("famF-" + name);
+    return el ? el.value.trim() : "";
+  };
+  const first = v("first"), last = v("last"), email = v("email"), phone = v("phone");
+  if (!first){ st.formErr = "First name is required."; render(); return; }
+  st.busy = true; st.formErr = null; render();
+  postRow("guardians", {
+    provider_id: id, first_name: first,
+    last_name: last || null, email: email || null, phone: phone || null,
+  }).then(() => {
+    reload();
+    toast("Guardian added — " + first);
+  }).catch(e => {
+    st.busy = false;
+    st.formErr = (e && e.message) || "Could not save the guardian.";
+    render();
+  });
+}
+
+function saveLink(){
+  const form = document.getElementById("famLinkForm");
+  if (!form) return;
+  const gid = form.getAttribute("data-fam-gid");
+  const g = guardianById(gid);
+  if (!g){ st.formErr = "That guardian is no longer on file."; render(); return; }
+  const sel = document.getElementById("famF-athlete");
+  const mid = sel ? sel.value : "";
+  if (!mid){ st.formErr = "Choose an athlete to link."; render(); return; }
+  const r = rosterById(mid);
+  if (!r){ st.formErr = "That roster row is no longer available."; render(); return; }
+  /* App-level duplicate guard: one (guardian, roster row) pair, one link. */
+  if (st.links.some(l => l.guardian_id === gid && l.member_id === mid)){
+    st.formErr = rosterName(r) + " is already linked to " + fullName(g) + " — choose a different athlete.";
+    render();
+    return;
+  }
+  const rel = document.getElementById("famF-rel");
+  const pay = document.getElementById("famF-payer");
+  st.busy = true; st.formErr = null; render();
+  postRow("guardian_links", {
+    provider_id: pid(), guardian_id: gid, member_id: mid,
+    is_payer: !!(pay && pay.checked),
+    relationship: (rel && rel.value.trim()) || null,
+  }).then(() => {
+    reload();
+    toast(fullName(g) + " linked to " + rosterName(r));
+  }).catch(e => {
+    st.busy = false;
+    st.formErr = (e && e.message) || "Could not link the athlete.";
+    render();
+  });
+}
+
+function unlink(linkId, gname, aname){
+  if (!window.confirm("Remove the link between " + gname + " and " + aname + "?")) return;
+  api().from("guardian_links", "id=eq." + encodeURIComponent(linkId), { method: "DELETE" })
+    .then(() => { reload(); toast("Link removed — " + aname + " is no longer tied to " + gname + "."); })
+    .catch(e => toast((e && e.message) || "Could not remove the link."));
+}
+
+function removeGuardian(gid, gname, nlinks){
+  /* ON DELETE CASCADE is verified on guardian_links.guardian_id_fkey, so the
+     links go with the guardian — the confirm states that plainly rather than
+     pretending the links survive somewhere. */
+  const tail = nlinks > 0
+    ? " Their " + nlinks + " athlete link" + (nlinks === 1 ? "" : "s") + " will be removed with them."
+    : " They have no athlete links.";
+  if (!window.confirm("Remove guardian " + gname + "?" + tail + " This cannot be undone.")) return;
+  api().from("guardians", "id=eq." + encodeURIComponent(gid), { method: "DELETE" })
+    .then(() => { reload(); toast("Guardian removed" + (nlinks > 0 ? " — their links went with them." : ".")); })
+    .catch(e => toast((e && e.message) || "Could not remove the guardian."));
+}
+
+/* ═══════════════════ NAV: EARLY-ACCESS CTA → PLAN LIST ═══════════════════ */
+/* The pricing surface inside the dashboard is the billing tab's Plan
+   sub-tab (plan cards, enterprise "talk to us" copy, buyable:false honored
+   there). No checkout is ever started from this module. */
+function goPricing(){
+  if (typeof S === "undefined" || typeof render !== "function") return;
+  S.coachTab = "billing";
+  S.billingTab = "plan";
+  S.modal = null;
+  S.route = { name: "coach", arg: null };
+  render();
+}
+
+/* ═══════════════════ WIRING ═══════════════════ */
+function ensureCSS(){
+  if (typeof document === "undefined" || document.getElementById("mod-families-css")) return;
+  const el = document.createElement("style");
+  el.id = "mod-families-css";
+  el.textContent = CSS;
+  document.head.appendChild(el);
+}
+
+function wire(){
+  ensureCSS();
+  if (typeof document === "undefined") return;
+  const q = s => document.querySelectorAll(s);
+
+  q("[data-fam-pricing]").forEach(b => { b.onclick = goPricing; });
+
+  q("[data-fam-add]").forEach(b => { b.onclick = () => { st.dialog = { type: "add" }; st.formErr = null; render(); }; });
+  q("[data-fam-cancel]").forEach(b => { b.onclick = () => { st.dialog = null; st.formErr = null; render(); }; });
+  q("[data-fam-link]").forEach(b => { b.onclick = () => { st.dialog = { type: "link", guardianId: b.getAttribute("data-fam-link") }; st.formErr = null; render(); }; });
+
+  q("[data-fam-unlink]").forEach(b => { b.onclick = () =>
+    unlink(b.getAttribute("data-fam-unlink"), b.getAttribute("data-fam-gname") || "this guardian", b.getAttribute("data-fam-aname") || "this athlete"); });
+  q("[data-fam-remove]").forEach(b => { b.onclick = () =>
+    removeGuardian(b.getAttribute("data-fam-remove"), b.getAttribute("data-fam-gname") || "this guardian", Number(b.getAttribute("data-fam-nlinks")) || 0); });
+
+  const addForm = document.getElementById("famAddForm");
+  if (addForm) addForm.onsubmit = ev => { ev.preventDefault(); if (!st.busy) saveGuardian(); };
+  const linkForm = document.getElementById("famLinkForm");
+  if (linkForm) linkForm.onsubmit = ev => { ev.preventDefault(); if (!st.busy) saveLink(); };
+}
+
+/* ═══════════════════ EXPORT ═══════════════════ */
+window.MOD_FAMILIES = {
+  css: CSS,
+  tabs: { families: "Families" },
+  views: { families: familiesView },
+  wire: wire,
+  state: st,
 };
 
 })();
