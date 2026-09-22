@@ -60,7 +60,7 @@ create or replace function public.compute_withdrawal(p_fee_schedule_id uuid)
 returns table (paid_cents bigint, future_cents bigint, refund_cents bigint, policy text)
 language plpgsql stable security definer set search_path to '' as $$
 declare
-  v fs record; v_pol text; v_dep integer;
+  v record; v_pol text; v_dep integer;
   v_paid bigint; v_future bigint; v_refund bigint;
   v_start date; v_end date; v_weeks_total numeric; v_weeks_left numeric;
 begin
@@ -73,8 +73,8 @@ begin
     left join public.seasons s on s.id = f.season_id
    where f.id = p_fee_schedule_id;
   if v.id is null then raise exception 'no such fee schedule'; end if;
-  select coalesce(sum(amount_cents),0) filter (where status='paid'),
-         coalesce(sum(amount_cents),0) filter (where status in ('due','failed','processing'))
+  select coalesce(sum(amount_cents) filter (where status='paid'),0),
+         coalesce(sum(amount_cents) filter (where status in ('due','failed','processing')),0)
     into v_paid, v_future
     from public.installments where fee_schedule_id = p_fee_schedule_id;
   v_refund := case v.pol
