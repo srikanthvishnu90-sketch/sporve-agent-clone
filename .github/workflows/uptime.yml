@@ -7,7 +7,8 @@ on:
     - cron: "*/15 * * * *"
   workflow_dispatch:
 
-permissions: {}
+permissions:
+  contents: read
 
 concurrency:
   group: ${{ github.workflow }}
@@ -48,10 +49,19 @@ jobs:
         run: |
           code=$(curl -s -o /dev/null -w '%{http_code}' --connect-timeout 10 --max-time 20 -X OPTIONS https://aveqjeafghmwafkbbnor.supabase.co/functions/v1/ai-gateway)
           echo "ai-gateway=$code"; [ "$code" = "200" ] || { echo "AI GATEWAY UNREACHABLE"; exit 1; }
+      # KEY FROM THE CODE, NOT A SECRET (2026-09-22). The probe failed 401 all
+      # day: the SUPABASE_ANON_KEY secret (set 09-19) and the literal fallback
+      # both predate the current backend, while the page kept working with the
+      # key in src/mod-api.js. That key is publishable by design — it ships in
+      # every page load — so the probe reads it from the checked-out source and
+      # can never drift from what the shipped app actually uses.
+      - uses: actions/checkout@v4
+        with:
+          sparse-checkout: src/mod-api.js
+          sparse-checkout-cone-mode: false
       - name: database answers through PostgREST (anon read of plan_entitlements — the one table anon may read since 001068)
-        env:
-          # the publishable key is public by design (it ships in the page); the secret is optional
-          SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY || 'sb_publishable_nSFBTA1KvM5idzIIeO9qkA_4rI6j4Ga' }}
         run: |
+          SUPABASE_ANON_KEY=$(sed -n 's/^ *var SUPABASE_ANON = "\([^"]*\)".*/\1/p' src/mod-api.js | head -1)
+          [ -n "$SUPABASE_ANON_KEY" ] || { echo "could not read SUPABASE_ANON from src/mod-api.js"; exit 1; }
           code=$(curl -s -o /dev/null -w '%{http_code}' --connect-timeout 10 --max-time 20 "https://aveqjeafghmwafkbbnor.supabase.co/rest/v1/plan_entitlements?select=plan&limit=1" -H "apikey: ${SUPABASE_ANON_KEY}")
           echo "postgrest=$code"; [ "$code" = "200" ] || { echo "DATABASE/POSTGREST UNHEALTHY"; exit 1; }
