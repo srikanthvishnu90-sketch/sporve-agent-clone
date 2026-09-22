@@ -6997,7 +6997,9 @@ const PRICING_CFG = {
   yearlyDiscount: 0.20,
   nonprofitDiscount: 0.15,
   seats: { solo: 3, club: 10, organization: "Unlimited" },
-  aiActions: { solo: "Unlimited", club: "Unlimited", organization: "Unlimited" },
+  /* Owner 2026-09-22 (PR #117): marketing copy stays vague — never "Unlimited
+     AI", never numeric quotas. The comparison row mirrors the plan cards. */
+  aiActions: { solo: "AI included", club: "More AI usage", organization: "Highest AI limits" },
 };
 const FEE_RATE = FEE_PCT / 100;
 function dayAfter(n){
@@ -7097,9 +7099,12 @@ const SEED={
     encouragement:"Keep it up, Julian — your close control is really coming along.",
     status:"sent",at:"2026-05-04T18:00:00.000Z"}],
   trainers:[
-    {id:"om_1",name:"Marcus Vale",specialty:"Basketball — guard development",commissionType:"percent",commissionValue:15,affiliation:"active",bg:"verified",active:true},
-    {id:"om_2",name:"Dana Ruiz",specialty:"Basketball — shooting and footwork",commissionType:"percent",commissionValue:18,affiliation:"active",bg:"pending",active:true},
-    {id:"om_3",name:"Theo Lang",specialty:"Strength & conditioning",commissionType:"flat",commissionValue:25,affiliation:"pending",bg:"none",active:true},
+    /* 2026-09-22: these rows are DEMO examples (signed-out preview only) —
+       sample:true tags them everywhere they render so they are never
+       mistaken for a real org's staff. */
+    {id:"om_1",sample:true,name:"Marcus Vale",specialty:"Basketball — guard development",commissionType:"percent",commissionValue:15,affiliation:"active",bg:"verified",active:true},
+    {id:"om_2",sample:true,name:"Dana Ruiz",specialty:"Basketball — shooting and footwork",commissionType:"percent",commissionValue:18,affiliation:"active",bg:"pending",active:true},
+    {id:"om_3",sample:true,name:"Theo Lang",specialty:"Strength & conditioning",commissionType:"flat",commissionValue:25,affiliation:"pending",bg:"none",active:true},
   ],
 };
 
@@ -12104,7 +12109,9 @@ function coachClientsPage(){
       body:ui.DataTable({
         columns:[{key:"name",label:"Trainer"},{key:"specialty",label:"Specialty"},{key:"affiliation",label:"Affiliation"},{key:"check",label:"Background check"}],
         rows:(S.trainers||[]).map(member=>({
-          name:ui.html(`<b>${esc(member.name)}</b>`),specialty:member.specialty,
+          /* 2026-09-22: demo seed rows carry sample:true — a visible "Example"
+             tag so a brand-new account never mistakes them for real staff. */
+          name:ui.html(`<b>${esc(member.name)}</b>${member.sample?` <span class="cui-badge" style="margin-left:6px">Example</span>`:""}`),specialty:member.specialty,
           affiliation:member.affiliation,
           check:ui.html(`<span class="cui-badge ${member.bg==="verified"?"cui-badge--good":"cui-badge--warn"}">${member.bg==="verified"?"Verified":member.bg==="pending"?"Pending":"Not started"}</span>`),
         })),
@@ -12376,6 +12383,9 @@ function schedBodyHTML(){
   const ui=window.COACH_UI, st=schedState();
   loadSchedule();
   if(st.error&&!st.events) return ui.Block({title:"Couldn't load the schedule",subtitle:st.error+" Nothing is shown in its place.",action:ui.Button({label:"Try again",size:"sm",variant:"secondary",attrs:'data-schretry="1"'}),body:""});
+  /* 2026-09-22: signed-in without a provider row — the read can never fire,
+     so this fails closed to the recovery block instead of "Loading…" forever. */
+  if(signedInWithoutProvider()) return noProviderPanelHTML("schedule");
   if(!st.events) return ui.Block({title:"Loading the schedule…",subtitle:"Reading your events and checking them for conflicts.",body:""});
   const n=st.events.filter(e=>e.status!=="cancelled").length, c=Object.keys(st.conflicts).length;
   const warn=st.conflictsError?`<aside class="cui-callout" role="status"><b>Conflicts were not checked.</b> ${esc(st.conflictsError)}</aside>`:"";
@@ -12537,7 +12547,10 @@ function moneyPageHTML(){
   const tabs=[{key:"balances",label:"Balances",count:st.data&&st.data.totals?Number(st.data.totals.families_count||0):undefined},{key:"failed",label:"Failed payments",count:st.data?(st.data.failed||[]).length:undefined},{key:"collected",label:"Collected",count:st.data?(st.data.collected||[]).length:undefined}];
   const active=ui.activeTab(tabs,"balances","moneyPageTab"); st.tab=active;
   let body="";
-  if(st.error&&!st.data) body=ui.Block({title:"Couldn't load balances",subtitle:st.error+" Nothing is shown in its place.",action:ui.Button({label:"Try again",size:"sm",variant:"secondary",attrs:'data-moneyretry="1"'}),body:""});
+  /* 2026-09-22: signed-in without a provider row — the read can never fire,
+     so this fails closed to the recovery block instead of "Loading…" forever. */
+  if(signedInWithoutProvider()) body=noProviderPanelHTML("balances");
+  else if(st.error&&!st.data) body=ui.Block({title:"Couldn't load balances",subtitle:st.error+" Nothing is shown in its place.",action:ui.Button({label:"Try again",size:"sm",variant:"secondary",attrs:'data-moneyretry="1"'}),body:""});
   else if(!st.data) body=ui.Block({title:"Loading balances…",subtitle:"Reading every open fee obligation and ageing it.",body:""});
   else if(!st.data.totals) body=ui.Block({title:"Money is not part of your role",subtitle:"A treasurer, director or owner sees balances. The server returned nothing for yours — nothing is shown in its place.",body:""});
   else {
@@ -12790,6 +12803,21 @@ function liveConversations(){
 }
 function queueIsLive(){
   return !!(coachState().isReal||(window.SporveAPI&&window.SporveAPI.isSignedIn&&window.SporveAPI.isSignedIn()));
+}
+/* FAIL-CLOSED loader recovery (2026-09-22): a signed-in account whose
+   provider row is missing (onboarding skipped) can never resolve the
+   queue/money/schedule reads — the fetchers return early without a
+   provider, so without this the loaders spin "Loading…" forever with no
+   error and no way out. The recovery goes through the provider ensure,
+   which creates the row and routes into the setup wizard. */
+function signedInWithoutProvider(){
+  return !!(window.SporveAPI&&window.SporveAPI.isSignedIn&&window.SporveAPI.isSignedIn())
+    &&!(S.coachProvider&&S.coachProvider.id);
+}
+function noProviderPanelHTML(what){
+  return `<div class="panel" role="alert"><h3>Your organization isn't set up yet</h3>
+    <p style="color:var(--muted);font-size:var(--text-sm);margin-top:4px">Your ${esc(what)} needs an organization to read from, and this account doesn't have one yet. Finish setup and it loads for real — nothing here is shown in its place.</p>
+    <div class="imp-addrow" style="margin-top:8px"><button class="btn sm" data-gosetup="1">Finish setup</button></div></div>`;
 }
 function obligationQueue(){
   if(queueIsLive()) return (S.obligations||[]).filter(o=>o&&o.live===true);
@@ -13510,12 +13538,14 @@ function coachQueuePage(){
   /* C4: until the server has answered once, the queue says so — it never
      shows rows it has not read. A failed read shows the failure and a retry. */
   const queueState=liveQ&&!S.obligLoaded
-    ?(S.obligError
+    ?(signedInWithoutProvider()
+      ?`<div style="margin-top:14px">${noProviderPanelHTML("queue")}</div>`
+      :(S.obligError
       ?`<div class="panel" role="alert" style="margin-top:14px"><h3>Couldn't load your queue</h3>
           <p style="color:var(--muted);font-size:var(--text-sm);margin-top:4px">${esc(S.obligError)} Nothing below is shown until it loads — no draft is invented in its place.</p>
           <div class="imp-addrow" style="margin-top:8px"><button class="btn sm" data-oblig-retry="1">Try again</button></div></div>`
       :`<div class="panel" role="status" style="margin-top:14px"><h3>Loading your queue…</h3>
-          <p style="color:var(--muted);font-size:var(--text-sm);margin-top:4px">Reading what the agent drafted for your organization.</p></div>`)
+          <p style="color:var(--muted);font-size:var(--text-sm);margin-top:4px">Reading what the agent drafted for your organization.</p></div>`))
     :"";
   return `<div class="sec-head" style="margin-top:18px"><div>
       <h1>Queue</h1>
@@ -18659,6 +18689,10 @@ document.querySelectorAll('.sig-ai-coach').forEach(sigAiCoachWire);
     if(o&&o.live){toast("A live approval can't move backwards — Dismiss voids it instead (the record keeps its history).");return;}
     if(o){o.status="draft";render();toast("Back in your queue.");}});
   $("[data-oblig-retry]").forEach(b=>b.onclick=()=>{S.obligError=null;S.obligLive=false;loadLiveObligations();render();});
+  /* 2026-09-22: loader recovery — a signed-in account without a provider row
+     goes through the provider ensure, which creates the row and routes into
+     the setup wizard (or straight to the dashboard for a complete org). */
+  $("[data-gosetup]").forEach(b=>b.onclick=()=>{enterCoachWorkspace();});
   $("[data-oblig-parse]").forEach(b=>b.onclick=()=>{
     if(queueIsLive()){toast("Forwarding is not live yet — the agent drafts from your connected inbox and roster.");return;}
     const el=document.getElementById("obligIn");const v=(el&&el.value||"").trim();
@@ -19920,7 +19954,7 @@ async function submitCommand(text){
     if(r.ok) a=await r.json();
     else if(r.status===429){
       const b=await r.json().catch(()=>({}));
-      quotaMsg=b.message||"You've hit this month's free AI limit — upgrade to Pro for unlimited.";
+      quotaMsg=b.message||"You've hit this month's AI limit — upgrade for more.";
     }
     else failed=true;
   }catch(_){ failed=true; }
