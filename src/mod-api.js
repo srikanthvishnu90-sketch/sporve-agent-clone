@@ -38,8 +38,8 @@
 (function () {
   "use strict";
 
-  var SUPABASE_URL = "https://hzbhjkcqwawgqtspueuw.supabase.co";
-  var SUPABASE_ANON = "sb_publishable_nSFBTA1KvM5idzIIeO9qkA_4rI6j4Ga";
+  var SUPABASE_URL = "https://aveqjeafghmwafkbbnor.supabase.co";
+  var SUPABASE_ANON = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImF2ZXFqZWFmZ2htd2Fma2Jibm9yIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTAwNDAzMjQsImV4cCI6MjEwNTYxNjMyNH0.95apsHco9oy7q4_prYQ-q5sEJnso26smbcFEx3RU-QM";
 
   /* The access token for a signed-in visitor. Null while anonymous, in which
      case the publishable key is sent as the bearer and PostgREST resolves the

@@ -42,16 +42,16 @@ jobs:
           echo "$body" | grep -q 'name="sporve-build"' || { echo "NO BUILD STAMP on the deployment — misdeployed"; exit 1; }
       - name: stripe-webhook function answers (unsigned POST must be refused, not 5xx)
         run: |
-          code=$(curl -s -o /dev/null -w '%{http_code}' --connect-timeout 10 --max-time 20 -X POST https://hzbhjkcqwawgqtspueuw.supabase.co/functions/v1/stripe-webhook -d '{}')
+          code=$(curl -s -o /dev/null -w '%{http_code}' --connect-timeout 10 --max-time 20 -X POST https://aveqjeafghmwafkbbnor.supabase.co/functions/v1/stripe-webhook -d '{}')
           echo "stripe-webhook=$code"; [ "$code" = "401" ] || [ "$code" = "400" ] || { echo "WEBHOOK UNHEALTHY"; exit 1; }
       - name: ai-gateway function is reachable (preflight)
         run: |
-          code=$(curl -s -o /dev/null -w '%{http_code}' --connect-timeout 10 --max-time 20 -X OPTIONS https://hzbhjkcqwawgqtspueuw.supabase.co/functions/v1/ai-gateway)
+          code=$(curl -s -o /dev/null -w '%{http_code}' --connect-timeout 10 --max-time 20 -X OPTIONS https://aveqjeafghmwafkbbnor.supabase.co/functions/v1/ai-gateway)
           echo "ai-gateway=$code"; [ "$code" = "200" ] || { echo "AI GATEWAY UNREACHABLE"; exit 1; }
       - name: database answers through PostgREST (anon read of plan_entitlements — the one table anon may read since 001068)
         env:
           # the publishable key is public by design (it ships in the page); the secret is optional
           SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY || 'sb_publishable_nSFBTA1KvM5idzIIeO9qkA_4rI6j4Ga' }}
         run: |
-          code=$(curl -s -o /dev/null -w '%{http_code}' --connect-timeout 10 --max-time 20 "https://hzbhjkcqwawgqtspueuw.supabase.co/rest/v1/plan_entitlements?select=plan&limit=1" -H "apikey: ${SUPABASE_ANON_KEY}")
+          code=$(curl -s -o /dev/null -w '%{http_code}' --connect-timeout 10 --max-time 20 "https://aveqjeafghmwafkbbnor.supabase.co/rest/v1/plan_entitlements?select=plan&limit=1" -H "apikey: ${SUPABASE_ANON_KEY}")
           echo "postgrest=$code"; [ "$code" = "200" ] || { echo "DATABASE/POSTGREST UNHEALTHY"; exit 1; }

@@ -152,7 +152,7 @@ Deno.serve(async req => {
     return await withDeadline(async signal => {
       const available = offeredKinds();
       const availableSet = new Set(available);
-      const supabaseUrl = Deno.env.get('SUPABASE_URL') ?? 'https://hzbhjkcqwawgqtspueuw.supabase.co';
+      const supabaseUrl = Deno.env.get('SUPABASE_URL') ?? 'https://aveqjeafghmwafkbbnor.supabase.co';
 
       /* Config-based tiles: the states for an unauthenticated caller, and the
          baseline every authenticated caller starts from. */
