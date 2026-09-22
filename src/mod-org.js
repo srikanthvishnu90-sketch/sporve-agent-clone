@@ -61,6 +61,7 @@ const nul = s => { const t = String(s == null ? "" : s).trim(); return t ? t : n
 const st = {
   gateState: "unknown",   // unknown → loading → open | locked
   gateNote: "",           // why locked: not-built | not-entitled | not-enterprise | flag-unreadable
+  gateSawProvider: false, // did the gate decision see a loaded provider row?
   venues: null, venuesLoading: false,
   staff: null, staffLoading: false,
   editingVenue: null,     // "new" | venue id | null
@@ -87,8 +88,18 @@ function currentPlan(){
    the plan check — but the flag stays the authority: if it ever flips off,
    this page locks for everyone, enterprise subscribers included. */
 function refreshGate(){
-  if (st.gateState === "loading" || st.gateState === "open" || st.gateState === "locked") return;
-  if (!signedIn()){ st.gateState = "locked"; st.gateNote = "signed-out"; return; }
+  const haveProvider = !!(pv() && pv().id);
+  if (st.gateState === "loading") return;
+  if (st.gateState === "open" || st.gateState === "locked"){
+    /* Gate race fix: the tab can render before ACCOUNT.load() populates the
+       provider row, in which case a real enterprise user sees the locked
+       panel. If we locked without ever seeing a provider row and one has
+       since arrived, re-evaluate instead of staying locked. */
+    if (st.gateState === "locked" && !st.gateSawProvider && haveProvider){
+      st.gateState = "unknown"; st.gateNote = "";
+    } else return;
+  }
+  if (!signedIn()){ st.gateState = "locked"; st.gateNote = "signed-out"; st.gateSawProvider = haveProvider; return; }
   st.gateState = "loading";
   api().from("plan_entitlements", "select=plan,workspace_enabled,purchasable")
     .then(rows => {
@@ -101,6 +112,7 @@ function refreshGate(){
         st.gateNote = !(ent && ent.workspace_enabled) ? "not-built"
           : (plan.id === "enterprise" ? "not-entitled" : "not-enterprise");
       }
+      st.gateSawProvider = !!(pv() && pv().id);
       rerender();
     })
     .catch(() => {
@@ -109,6 +121,7 @@ function refreshGate(){
       const plan = currentPlan();
       st.gateState = (plan.id === "enterprise" && plan.entitled) ? "open" : "locked";
       st.gateNote = "flag-unreadable";
+      st.gateSawProvider = !!(pv() && pv().id);
       rerender();
     });
 }
