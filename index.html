@@ -28,7 +28,7 @@
 <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png?v=2">
 <link rel="manifest" href="/site.webmanifest">
 <script type="application/ld+json">{"@context":"https://schema.org","@type":"SoftwareApplication","name":"Sporv","url":"https://sporv.ai/","applicationCategory":"BusinessApplication","operatingSystem":"Web","description":"Sporv runs the club for you — roster, scheduling, waivers, dues and payouts, with an agent that drafts the busywork and a human who approves it.","publisher":{"@type":"Organization","name":"Sporv","url":"https://sporv.ai/","logo":"https://sporv.ai/icon-512.png"}}</script>
-<meta name="sporve-build" content="40448e7d0cfcb1e9">
+<meta name="sporve-build" content="fbe245c5e4106f72">
 </head>
 <body>
 <noscript><h1>Sporv. Every sport. One app.</h1><p>Sporv connects families and athletes with coaches, trainers, camps, and teams across more than 20 sports. Please enable JavaScript to use the app.</p></noscript>
@@ -21968,24 +21968,26 @@ window.MOD_COACHUI = { css:CSS, wire:wire };
   var PLANS = {
     free: {
       id: "free", name: "Free", price: "$0", per: "",
-      adds: "Three AI actions a month, one seat.", buyable: true,
+      adds: "AI included, one seat.", buyable: true, quota: 3,
     },
     pro: {
       id: "pro", name: "Sporv Pro", price: "$34.99", per: "/mo",
-      adds: "1,000 AI actions a month and up to three seats.", buyable: true,
+      adds: "More AI usage and up to three seats.", buyable: true, quota: 1000,
     },
     enterprise: {
       id: "enterprise", name: "Sporv Enterprise", price: "Custom", per: "",
-      adds: "Multi-player workspace — talk to us. In development.", buyable: false,
+      adds: "Highest AI limits. Multi-player workspace — talk to us. In development.", buyable: false, quota: 5000,
     },
   };
 
   /* A5: the numbers above are a FALLBACK. plan_entitlements (public-read in the
      DB) is the single source the AI endpoint actually enforces, so drive the
      displayed price / quota / seats from it and reconcile PLANS in place — a
-     price change in the DB then updates the page instead of drifting. The prose
-     is generated from the same numbers so no second hardcoded figure survives.
-     If the fetch fails the fallback stands, so the tab never breaks. */
+     price change in the DB then updates the page instead of drifting. The card
+     prose stays deliberately vague ("AI included", "More AI usage"); the raw
+     numeric quota is kept on p.quota for the fine print only, so no second
+     hardcoded figure survives. If the fetch fails the fallback stands, so the
+     tab never breaks. */
   var plansSynced = false;
   function syncPlans() {
     if (plansSynced) return Promise.resolve(PLANS);
@@ -22002,14 +22004,16 @@ window.MOD_COACHUI = { css:CSS, wire:wire };
         var seats = r.seat_limit;
         var seatTxt = seats == null ? "" : seats + (seats === 1 ? " seat" : " seats");
         if (r.plan === "free") {
+          // Marketing copy stays vague ("AI included"); the numeric quota
+          // lives on p.quota for the fine print and is what the AI endpoint
+          // actually enforces. Never print "Unlimited" or the raw number here.
           var q = r.ai_monthly_quota;
-          p.adds = (q == null ? "Unlimited AI actions" : q + (q === 1 ? " AI action a month" : " AI actions a month")) +
-            (seatTxt ? ", " + seatTxt : "") + ".";
+          if (q != null && isFinite(Number(q))) p.quota = Number(q);
+          p.adds = "AI included" + (seatTxt ? ", " + seatTxt : "") + ".";
         } else if (r.plan === "pro") {
-          // Quota is DB-driven (25% margin floor): never hardcode "Unlimited".
           var pq = r.ai_monthly_quota;
-          p.adds = (pq == null ? "Unlimited AI actions" : pq.toLocaleString("en-US") + " AI actions a month") +
-            (seatTxt ? " and up to " + seatTxt : "") + ".";
+          if (pq != null && isFinite(Number(pq))) p.quota = Number(pq);
+          p.adds = "More AI usage" + (seatTxt ? " and up to " + seatTxt : "") + ".";
         }
         // enterprise keeps its "in development" prose while workspace_enabled is false.
       });
@@ -22669,6 +22673,7 @@ window.MOD_COACHUI = { css:CSS, wire:wire };
       : [];
     var body = "";
     if (active === "plan") {
+      var qfmt = function (n) { n = Number(n); return isFinite(n) ? n.toLocaleString("en-US") : "a set number of"; };
       body = ui.Block({
         title:"Current plan",
         subtitle:"Plan state comes from the loaded provider record; a checkout redirect never changes it by itself.",
@@ -22677,7 +22682,12 @@ window.MOD_COACHUI = { css:CSS, wire:wire };
           { label:ui.html("<b>" + esc(free.name) + "</b><small>" + esc(free.adds) + "</small>"), value:esc(free.price), mono:true },
           { label:ui.html("<b>" + esc(pro.name) + "</b><small>" + esc(pro.adds) + "</small>"), value:esc(pro.price + pro.per), mono:true },
           { label:ui.html("<b>" + esc(ent.name) + "</b><small>Multi-player workspace is not self-serve.</small>"), value:esc(ent.price + ent.per), mono:true },
-        ]),
+        ]) +
+        /* Quiet honesty: the cards stay vague by design, but the actual caps
+           live here in the fine print so nobody's first encounter with a
+           limit is the rejection message. */
+        '<p style="margin:14px 2px 0;color:#8a8a8a;font-size:12px;line-height:1.6;">Fair-use AI limits, resetting monthly: ' +
+        'Free includes ' + esc(qfmt(free.quota)) + ' AI actions, Pro ' + esc(qfmt(pro.quota)) + ', Enterprise ' + esc(qfmt(ent.quota)) + '.</p>',
       });
     } else if (active === "payment-method") {
       body = ui.Block({
@@ -27761,9 +27771,9 @@ function pricingStep(d, err){
   <fieldset style="border:0;padding:0;margin:26px 0 0" data-cob-field="plan">
     <legend class="eyebrow" style="padding:0;margin-bottom:11px">Your plan</legend>
     <div class="cob-plans">
-      ${[["free", "Start free", ((plans()&&plans().free?plans().free.adds:"Three AI actions a month, one seat.")+" No card.")],
+      ${[["free", "Start free", ((plans()&&plans().free?plans().free.adds:"AI included, one seat.")+" No card.")],
          ["pro",  planName("pro") + (proPrice ? " — " + proPrice : ""),
-                  (plans()&&plans().pro?plans().pro.adds:"1,000 AI actions a month and up to three seats.")]]
+                  (plans()&&plans().pro?plans().pro.adds:"More AI usage and up to three seats.")]]
         .map(([k, label, note]) => `
         <label class="cob-plan ${d.plan === k ? "on" : ""}">
           <input type="radio" name="cobplan" value="${k}" data-cob-plan="${k}"

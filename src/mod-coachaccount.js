@@ -107,24 +107,26 @@
   var PLANS = {
     free: {
       id: "free", name: "Free", price: "$0", per: "",
-      adds: "Three AI actions a month, one seat.", buyable: true,
+      adds: "AI included, one seat.", buyable: true, quota: 3,
     },
     pro: {
       id: "pro", name: "Sporv Pro", price: "$34.99", per: "/mo",
-      adds: "1,000 AI actions a month and up to three seats.", buyable: true,
+      adds: "More AI usage and up to three seats.", buyable: true, quota: 1000,
     },
     enterprise: {
       id: "enterprise", name: "Sporv Enterprise", price: "Custom", per: "",
-      adds: "Multi-player workspace — talk to us. In development.", buyable: false,
+      adds: "Highest AI limits. Multi-player workspace — talk to us. In development.", buyable: false, quota: 5000,
     },
   };
 
   /* A5: the numbers above are a FALLBACK. plan_entitlements (public-read in the
      DB) is the single source the AI endpoint actually enforces, so drive the
      displayed price / quota / seats from it and reconcile PLANS in place — a
-     price change in the DB then updates the page instead of drifting. The prose
-     is generated from the same numbers so no second hardcoded figure survives.
-     If the fetch fails the fallback stands, so the tab never breaks. */
+     price change in the DB then updates the page instead of drifting. The card
+     prose stays deliberately vague ("AI included", "More AI usage"); the raw
+     numeric quota is kept on p.quota for the fine print only, so no second
+     hardcoded figure survives. If the fetch fails the fallback stands, so the
+     tab never breaks. */
   var plansSynced = false;
   function syncPlans() {
     if (plansSynced) return Promise.resolve(PLANS);
@@ -141,14 +143,16 @@
         var seats = r.seat_limit;
         var seatTxt = seats == null ? "" : seats + (seats === 1 ? " seat" : " seats");
         if (r.plan === "free") {
+          // Marketing copy stays vague ("AI included"); the numeric quota
+          // lives on p.quota for the fine print and is what the AI endpoint
+          // actually enforces. Never print "Unlimited" or the raw number here.
           var q = r.ai_monthly_quota;
-          p.adds = (q == null ? "Unlimited AI actions" : q + (q === 1 ? " AI action a month" : " AI actions a month")) +
-            (seatTxt ? ", " + seatTxt : "") + ".";
+          if (q != null && isFinite(Number(q))) p.quota = Number(q);
+          p.adds = "AI included" + (seatTxt ? ", " + seatTxt : "") + ".";
         } else if (r.plan === "pro") {
-          // Quota is DB-driven (25% margin floor): never hardcode "Unlimited".
           var pq = r.ai_monthly_quota;
-          p.adds = (pq == null ? "Unlimited AI actions" : pq.toLocaleString("en-US") + " AI actions a month") +
-            (seatTxt ? " and up to " + seatTxt : "") + ".";
+          if (pq != null && isFinite(Number(pq))) p.quota = Number(pq);
+          p.adds = "More AI usage" + (seatTxt ? " and up to " + seatTxt : "") + ".";
         }
         // enterprise keeps its "in development" prose while workspace_enabled is false.
       });
@@ -808,6 +812,7 @@
       : [];
     var body = "";
     if (active === "plan") {
+      var qfmt = function (n) { n = Number(n); return isFinite(n) ? n.toLocaleString("en-US") : "a set number of"; };
       body = ui.Block({
         title:"Current plan",
         subtitle:"Plan state comes from the loaded provider record; a checkout redirect never changes it by itself.",
@@ -816,7 +821,12 @@
           { label:ui.html("<b>" + esc(free.name) + "</b><small>" + esc(free.adds) + "</small>"), value:esc(free.price), mono:true },
           { label:ui.html("<b>" + esc(pro.name) + "</b><small>" + esc(pro.adds) + "</small>"), value:esc(pro.price + pro.per), mono:true },
           { label:ui.html("<b>" + esc(ent.name) + "</b><small>Multi-player workspace is not self-serve.</small>"), value:esc(ent.price + ent.per), mono:true },
-        ]),
+        ]) +
+        /* Quiet honesty: the cards stay vague by design, but the actual caps
+           live here in the fine print so nobody's first encounter with a
+           limit is the rejection message. */
+        '<p style="margin:14px 2px 0;color:#8a8a8a;font-size:12px;line-height:1.6;">Fair-use AI limits, resetting monthly: ' +
+        'Free includes ' + esc(qfmt(free.quota)) + ' AI actions, Pro ' + esc(qfmt(pro.quota)) + ', Enterprise ' + esc(qfmt(ent.quota)) + '.</p>',
       });
     } else if (active === "payment-method") {
       body = ui.Block({
