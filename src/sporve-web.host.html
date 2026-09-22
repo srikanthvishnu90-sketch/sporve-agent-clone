@@ -4241,20 +4241,20 @@ body.reg-coach .greet{font-size:24px}
 @keyframes pmIn{from{opacity:0;transform:translateY(-6px) scale(.985)}to{opacity:1;transform:none}}
 #app .productmenu.glassmenu .pmglass{max-width:1180px;margin:0 auto;
   display:grid;grid-template-columns:1.1fr 1.25fr 1fr 1fr;gap:40px;
-  padding:22px 26px 26px;align-items:start}
+  padding:34px 26px 40px;align-items:start}
 #app .productmenu.glassmenu .pmcol{position:relative}
 /* !important: the site-wide `#app .eyebrow{font-family:var(--display)!important}`
    (line ~4973) would otherwise force the display face here; the prototype
    says JetBrains Mono and an equal counter-weight is the only way past it. */
 #app .productmenu.glassmenu .eyebrow{font-family:var(--mono)!important;
   font-size:14px;font-weight:500!important;letter-spacing:.16em;text-transform:uppercase;
-  color:#6B7480;margin-bottom:8px}
+  color:#6B7480;margin-bottom:34px}
 /* The panel node MOUNTS open (render() inserts it), so the prototype's
    class-toggle transitions become mount ANIMATIONS with the same values —
    'backwards' fill holds each row hidden through its stagger delay. */
 #app .productmenu.glassmenu .pmrow2{position:relative;display:block;width:calc(100% + 22px);
-  text-align:left;padding:9px 11px;margin:0 -11px;border-radius:8px;
-  font-size:15px;font-weight:500;line-height:1.5;color:#EDEFF2;
+  text-align:left;padding:13px 11px;margin:0 -11px;border-radius:8px;
+  font-size:16px;font-weight:600;line-height:1.35;color:#EDEFF2;
   background:transparent;
   animation:pmRow .28s cubic-bezier(.2,.7,.2,1) backwards}
 @keyframes pmRow{from{opacity:0;transform:translateY(5px)}}
@@ -4264,8 +4264,6 @@ body.reg-coach .greet{font-size:24px}
 #app .productmenu.glassmenu .pmrow2:nth-of-type(5){animation-delay:.12s}
 #app .productmenu.glassmenu .pmrow2:hover{background:transparent;color:#EDEFF2}
 #app .productmenu.glassmenu .pmrow2:focus-visible{box-shadow:0 0 0 2px var(--slate-ring);background:transparent}
-#app .productmenu.glassmenu .pmrow2 small{display:block;font-size:14px;font-weight:400;
-  color:#6B7480;margin-top:1px;line-height:1.4}
 #app .productmenu.glassmenu .pmlead{color:#9DB0CB}
 #app .productmenu.glassmenu .pmlead:hover{color:#9DB0CB}
 #app .productmenu.glassmenu .pmlead::after{content:" →";opacity:.8;display:inline-block;
@@ -8978,10 +8976,13 @@ function productMenuHTML(){
   const groups=[["Run your club",["roster","scheduling","waivers","agent"]],
     ["Money",["payments","payouts"]],
     ["About",["what-is","background-checks"]]];
-  const row=(id)=>{const m=PAGE_META[id];return m?`<button class="pmrow2" role="menuitem" data-pdest="page:${id}">${esc(m.t)}<small>${esc(SUB[id]||"")}</small></button>`:"";};
+  /* AMBORAS 2026-09-22 (owner screenshot pair): titles only, no sublines —
+     the reference menu is bold links with air between them. SUB kept for
+     the tooltip so the copy is not lost. */
+  const row=(id)=>{const m=PAGE_META[id];return m?`<button class="pmrow2" role="menuitem" data-pdest="page:${id}" title="${esc(SUB[id]||"")}">${esc(m.t)}</button>`:"";};
   return `<div class="productmenu on glassmenu" role="menu" aria-label="Product pages"><div class="shell pmglass">
     <div class="pmcol"><div class="eyebrow">Overview</div><span class="hov" aria-hidden="true"></span>
-      <button class="pmrow2 pmlead" role="menuitem" data-pdest="go:product">Everything Sporv does<small>One page, the whole back office</small></button></div>
+      <button class="pmrow2 pmlead" role="menuitem" data-pdest="go:product" title="One page, the whole back office">Everything Sporv does</button></div>
     ${groups.map(([g,ids])=>`<div class="pmcol"><div class="eyebrow">${esc(g)}</div><span class="hov" aria-hidden="true"></span>${ids.map(row).join("")}</div>`).join("")}
   </div></div>`;
 }
