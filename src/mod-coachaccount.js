@@ -111,7 +111,7 @@
     },
     pro: {
       id: "pro", name: "Sporv Pro", price: "$34.99", per: "/mo",
-      adds: "Unlimited AI actions and up to three seats.", buyable: true,
+      adds: "1,000 AI actions a month and up to three seats.", buyable: true,
     },
     enterprise: {
       id: "enterprise", name: "Sporv Enterprise", price: "Custom", per: "",
@@ -145,7 +145,10 @@
           p.adds = (q == null ? "Unlimited AI actions" : q + (q === 1 ? " AI action a month" : " AI actions a month")) +
             (seatTxt ? ", " + seatTxt : "") + ".";
         } else if (r.plan === "pro") {
-          p.adds = "Unlimited AI actions" + (seatTxt ? " and up to " + seatTxt : "") + ".";
+          // Quota is DB-driven (25% margin floor): never hardcode "Unlimited".
+          var pq = r.ai_monthly_quota;
+          p.adds = (pq == null ? "Unlimited AI actions" : pq.toLocaleString("en-US") + " AI actions a month") +
+            (seatTxt ? " and up to " + seatTxt : "") + ".";
         }
         // enterprise keeps its "in development" prose while workspace_enabled is false.
       });

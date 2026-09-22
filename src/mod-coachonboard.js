@@ -619,7 +619,7 @@ function pricingStep(d, err){
     <div class="cob-plans">
       ${[["free", "Start free", ((plans()&&plans().free?plans().free.adds:"Three AI actions a month, one seat.")+" No card.")],
          ["pro",  planName("pro") + (proPrice ? " — " + proPrice : ""),
-                  "Unlimited AI actions and up to three seats."]]
+                  (plans()&&plans().pro?plans().pro.adds:"1,000 AI actions a month and up to three seats.")]]
         .map(([k, label, note]) => `
         <label class="cob-plan ${d.plan === k ? "on" : ""}">
           <input type="radio" name="cobplan" value="${k}" data-cob-plan="${k}"

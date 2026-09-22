@@ -115,10 +115,21 @@ const INTERNAL_SECRET = Deno.env.get("INTERNAL_CALL_SECRET") ?? "";
 const ALLOWED_TASKS = new Set([...HAIKU_TASKS, ...SONNET_TASKS]);
 const ALLOWED_MODELS = new Set(Object.values(MODELS));
 
-function routeModel(task: string, modelOverride: string | undefined, isService: boolean): string {
+function routeModel(task: string, modelOverride: string | undefined, isService: boolean, plan: string): string {
   // Only the service role may force a specific model (incl. Opus).
   if (modelOverride && isService && ALLOWED_MODELS.has(modelOverride)) return modelOverride;
   const t = (task ?? "").toLowerCase();
+  const p = (plan ?? "free").toLowerCase();
+  // Margin-tier routing (owner-approved 2026-09-22, 25% margin floor):
+  // free -> Haiku for everything (cheapest capable); pro -> Haiku for
+  // extraction/agent turns, Sonnet for draft/summarize/reason; enterprise ->
+  // Opus for draft/summarize/reason, Haiku for extraction. Opus is never
+  // reachable implicitly — only via enterprise plan or service override.
+  if (p === "free") return MODELS.haiku;
+  if (p === "enterprise") {
+    if (SONNET_TASKS.has(t)) return MODELS.opus;
+    return MODELS.haiku;
+  }
   if (HAIKU_TASKS.has(t)) return MODELS.haiku;
   if (SONNET_TASKS.has(t)) return MODELS.sonnet;
   return MODELS.sonnet; // safe default for unknown tasks (never Opus implicitly)
@@ -144,6 +155,101 @@ async function consumeQuota(
     return null;
   }
   return data === true;
+}
+
+type MonthlyBudget =
+  | { ok: true; plan: string; providerId: string | null; used: number; quota: number; spent: number; cap: number }
+  | { ok: false; reason: "quota_exhausted" | "spend_cap_reached" | "budget_unavailable"; plan: string; used?: number; quota?: number; spent?: number; cap?: number };
+
+/* Monthly margin guard (owner-approved 2026-09-22, 25% margin floor).
+   Enforced per PROVIDER (the billing entity), not per user, so three Pro
+   seats share one 1000-action / $23 budget. Two independent backstops:
+     1. action count >= plan_entitlements.ai_monthly_quota  -> quota_exhausted
+     2. sum(est_cost_usd) >= ai_monthly_spend_cap_usd       -> spend_cap_reached
+   The spend cap holds the margin floor by construction no matter how
+   adverse the Haiku/Sonnet/Opus mix gets. Fail closed on DB errors, same
+   philosophy as the rate limiter above. */
+async function checkMonthlyBudget(
+  admin: ReturnType<typeof createClient>,
+  actorId: string | null,
+): Promise<MonthlyBudget> {
+  try {
+    let providerId: string | null = null;
+    let plan = "free";
+    if (actorId) {
+      const { data: own } = await admin.from("providers")
+        .select("id, plan").eq("owner_id", actorId).maybeSingle();
+      if (own) {
+        providerId = (own as { id: string }).id;
+        plan = (own as { plan?: string | null }).plan ?? "free";
+      } else {
+        const { data: mem } = await admin.from("organization_members")
+          .select("organization_id").eq("member_user_id", actorId)
+          .eq("is_active", true).limit(1).maybeSingle();
+        const orgId = (mem as { organization_id?: string } | null)?.organization_id;
+        if (orgId) {
+          const { data: p } = await admin.from("providers")
+            .select("id, plan").eq("id", orgId).maybeSingle();
+          if (p) {
+            providerId = (p as { id: string }).id;
+            plan = (p as { plan?: string | null }).plan ?? "free";
+          }
+        }
+      }
+    }
+    const { data: ent } = await admin.from("plan_entitlements")
+      .select("ai_monthly_quota, ai_monthly_spend_cap_usd")
+      .eq("plan", plan).maybeSingle();
+    const quota = Number((ent as { ai_monthly_quota?: unknown } | null)?.ai_monthly_quota);
+    const cap = Number((ent as { ai_monthly_spend_cap_usd?: unknown } | null)?.ai_monthly_spend_cap_usd);
+    if (!Number.isFinite(quota) || !Number.isFinite(cap)) {
+      console.error("monthly budget: missing entitlement", plan);
+      return { ok: false, reason: "budget_unavailable", plan };
+    }
+
+    // All user ids billed to this provider: owner + active member seats.
+    let actorIds: string[] = actorId ? [actorId] : [];
+    if (providerId) {
+      const { data: prov } = await admin.from("providers")
+        .select("owner_id").eq("id", providerId).maybeSingle();
+      const { data: mems } = await admin.from("organization_members")
+        .select("member_user_id").eq("organization_id", providerId).eq("is_active", true);
+      const ids = new Set<string>();
+      const ownerId = (prov as { owner_id?: string } | null)?.owner_id;
+      if (ownerId) ids.add(ownerId);
+      for (const m of (mems ?? []) as Array<{ member_user_id?: string | null }>) {
+        if (m.member_user_id) ids.add(m.member_user_id);
+      }
+      if (ids.size > 0) actorIds = [...ids];
+    }
+    if (actorIds.length === 0) {
+      return { ok: true, plan, providerId, used: 0, quota, spent: 0, cap };
+    }
+
+    const monthStart = new Date();
+    monthStart.setUTCDate(1); monthStart.setUTCHours(0, 0, 0, 0);
+    const { data, error } = await admin.from("ai_audit_log")
+      .select("est_cost_usd")
+      .in("actor_id", actorIds)
+      .gte("created_at", monthStart.toISOString());
+    if (error) {
+      console.error("monthly budget count failed:", error.message);
+      return { ok: false, reason: "budget_unavailable", plan };
+    }
+    const rows = (data ?? []) as Array<{ est_cost_usd?: unknown }>;
+    const used = rows.length;
+    const spent = rows.reduce((s, r) => s + (Number(r.est_cost_usd) || 0), 0);
+    if (used >= quota) {
+      return { ok: false, reason: "quota_exhausted", plan, used, quota, spent, cap };
+    }
+    if (spent >= cap) {
+      return { ok: false, reason: "spend_cap_reached", plan, used, quota, spent, cap };
+    }
+    return { ok: true, plan, providerId, used, quota, spent, cap };
+  } catch (e) {
+    console.error("monthly budget check threw:", (e as Error)?.message ?? e);
+    return { ok: false, reason: "budget_unavailable", plan: "free" };
+  }
 }
 
 function estCost(model: string, inUncached: number, cacheRead: number, cacheWrite: number, out: number): number {
@@ -173,6 +279,7 @@ type RunAIArgs = {
   modelOverride?: string;
   toolChoice?: unknown;
   isService: boolean;
+  plan: string;
 };
 
 async function runAI(args: RunAIArgs) {
@@ -180,7 +287,7 @@ async function runAI(args: RunAIArgs) {
     auth: { persistSession: false, autoRefreshToken: false },
   });
 
-  const model = routeModel(args.task, args.modelOverride, args.isService);
+  const model = routeModel(args.task, args.modelOverride, args.isService, args.plan);
   const maxTokens = Math.min(
     Math.max(1, Number(args.maxTokens ?? 1024)),
     MAX_TOKENS_CEILING, // hard ceiling — requests can't exceed it
@@ -430,6 +537,31 @@ Deno.serve(async (req) => {
       return json({ error: "AI request limit reached. Please try again later." }, 429);
     }
 
+    /* Monthly margin guard: per-provider action quota + AI spend cap from
+       plan_entitlements (25% margin floor, owner-approved 2026-09-22).
+       Service-role system calls without an attributed actor skip it — they
+       are internal traffic, not billable plan usage. */
+    let plan = "free";
+    if (!isService || typeof body.actorId === "string") {
+      const budget = await checkMonthlyBudget(admin, actorId);
+      if (!budget.ok) {
+        if (budget.reason === "quota_exhausted") {
+          return json({
+            error: "You've used all of this month's AI actions. Upgrade your plan for more.",
+            plan: budget.plan, used: budget.used, quota: budget.quota,
+          }, 429);
+        }
+        if (budget.reason === "spend_cap_reached") {
+          return json({
+            error: "This month's AI budget is exhausted. Upgrade your plan for more.",
+            plan: budget.plan,
+          }, 429);
+        }
+        return json({ error: "AI quota service is unavailable." }, 503);
+      }
+      plan = budget.plan;
+    }
+
     const result = await runAI({
       task,
       system: typeof body.system === "string" ? body.system : undefined,
@@ -445,6 +577,7 @@ Deno.serve(async (req) => {
         : undefined, // Opus escalation = service only
       toolChoice: body.tool_choice, // forward forced/explicit tool selection
       isService,
+      plan,
     });
 
     return json(result, "error" in result && result.error ? 502 : 200);

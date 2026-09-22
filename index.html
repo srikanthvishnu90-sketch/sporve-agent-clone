@@ -28,7 +28,7 @@
 <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png?v=2">
 <link rel="manifest" href="/site.webmanifest">
 <script type="application/ld+json">{"@context":"https://schema.org","@type":"SoftwareApplication","name":"Sporv","url":"https://sporv.ai/","applicationCategory":"BusinessApplication","operatingSystem":"Web","description":"Sporv runs the club for you — roster, scheduling, waivers, dues and payouts, with an agent that drafts the busywork and a human who approves it.","publisher":{"@type":"Organization","name":"Sporv","url":"https://sporv.ai/","logo":"https://sporv.ai/icon-512.png"}}</script>
-<meta name="sporve-build" content="39a4ccaed477b23e">
+<meta name="sporve-build" content="832f6787bca78dd3">
 </head>
 <body>
 <noscript><h1>Sporv. Every sport. One app.</h1><p>Sporv connects families and athletes with coaches, trainers, camps, and teams across more than 20 sports. Please enable JavaScript to use the app.</p></noscript>
@@ -21968,7 +21968,7 @@ window.MOD_COACHUI = { css:CSS, wire:wire };
     },
     pro: {
       id: "pro", name: "Sporv Pro", price: "$34.99", per: "/mo",
-      adds: "Unlimited AI actions and up to three seats.", buyable: true,
+      adds: "1,000 AI actions a month and up to three seats.", buyable: true,
     },
     enterprise: {
       id: "enterprise", name: "Sporv Enterprise", price: "Custom", per: "",
@@ -22002,7 +22002,10 @@ window.MOD_COACHUI = { css:CSS, wire:wire };
           p.adds = (q == null ? "Unlimited AI actions" : q + (q === 1 ? " AI action a month" : " AI actions a month")) +
             (seatTxt ? ", " + seatTxt : "") + ".";
         } else if (r.plan === "pro") {
-          p.adds = "Unlimited AI actions" + (seatTxt ? " and up to " + seatTxt : "") + ".";
+          // Quota is DB-driven (25% margin floor): never hardcode "Unlimited".
+          var pq = r.ai_monthly_quota;
+          p.adds = (pq == null ? "Unlimited AI actions" : pq.toLocaleString("en-US") + " AI actions a month") +
+            (seatTxt ? " and up to " + seatTxt : "") + ".";
         }
         // enterprise keeps its "in development" prose while workspace_enabled is false.
       });
@@ -27756,7 +27759,7 @@ function pricingStep(d, err){
     <div class="cob-plans">
       ${[["free", "Start free", ((plans()&&plans().free?plans().free.adds:"Three AI actions a month, one seat.")+" No card.")],
          ["pro",  planName("pro") + (proPrice ? " — " + proPrice : ""),
-                  "Unlimited AI actions and up to three seats."]]
+                  (plans()&&plans().pro?plans().pro.adds:"1,000 AI actions a month and up to three seats.")]]
         .map(([k, label, note]) => `
         <label class="cob-plan ${d.plan === k ? "on" : ""}">
           <input type="radio" name="cobplan" value="${k}" data-cob-plan="${k}"
