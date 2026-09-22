@@ -19,6 +19,9 @@
      · Every write asks PostgREST for the changed row back (Prefer:
        return=representation) and throws when no row comes back — a 200
        that changed nothing is reported as a failure, never as success.
+       EXCEPTION: the providers PATCH uses return=minimal + a granted-column
+       re-read as its receipt, because authenticated cannot SELECT the
+       geo/Stripe columns and RETURNING * 403s (42501).
      · Background-check status is READ-ONLY. The aaa_guard_background_check_mirror
        trigger (migration 20260915_001064) forbids direct writes to
        background_check_status/background_check_completed_at with a 42501 —
@@ -306,8 +309,14 @@ function saveProfile(btn){
     logo_url: nul(val("orgFLogo")),
   };
   busy(btn, true, "Saving…");
-  write("providers", "id=eq." + encodeURIComponent(P.id), { method: "PATCH", body: body })
-    .then(() => {
+  /* providers is special: authenticated cannot SELECT the geo/Stripe columns,
+     so RETURNING * 403s (42501). Write minimal, then verify with a
+     granted-column read as the receipt. */
+  api().from("providers", "id=eq." + encodeURIComponent(P.id),
+      { method: "PATCH", body: body, headers: { Prefer: "return=minimal" } })
+    .then(() => api().from("providers", "select=business_name&id=eq." + encodeURIComponent(P.id)))
+    .then(rows => {
+      if (!rows || !rows[0]) throw new Error("The change did not land — it may not be yours to make.");
       Object.keys(body).forEach(k => { P[k] = body[k]; });
       say("Organization profile saved.");
       busy(btn, false); rerender();
