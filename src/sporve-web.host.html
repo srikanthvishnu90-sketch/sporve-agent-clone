@@ -11959,7 +11959,17 @@ function dashRowsHTML(b){
 }
 function dashHomeHTML(){
   const ui=window.COACH_UI, st=S.dashHome;
-  if(!st||(st.loading&&!st.data)) return ui.Block({title:"Loading your home…",subtitle:"Reading what needs you today.",body:""});
+  if(!st||(st.loading&&!st.data)){
+    /* No provider row (signed in, but workspace not created yet): never trap
+       on infinite loading — route to setup instead. A null provider during the
+       cold-start fetch still shows loading; this only fires when we know there
+       is no provider to wait for. */
+    if(!S.coachProvider&&realSignedIn()&&!S.coachEnsureError){
+      return ui.Block({title:"Setting up your workspace…",subtitle:"Your workspace is being created. This takes a moment.",
+        action:ui.Button({label:"Continue setup",size:"sm",variant:"secondary",attrs:'data-ctab="getting-started"'}),body:""});
+    }
+    return ui.Block({title:"Loading your home…",subtitle:"Reading what needs you today.",body:""});
+  }
   if(st.error&&!st.data) return ui.Block({title:"Couldn't load your home",subtitle:st.error+" Nothing below is shown until it loads — no value is invented in its place.",
     action:ui.Button({label:"Try again",size:"sm",variant:"secondary",attrs:'data-dashretry="1"'}),body:""});
   const blocks=(st.data&&Array.isArray(st.data.blocks))?st.data.blocks:[];

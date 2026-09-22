@@ -28,7 +28,7 @@
 <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png?v=2">
 <link rel="manifest" href="/site.webmanifest">
 <script type="application/ld+json">{"@context":"https://schema.org","@type":"SoftwareApplication","name":"Sporv","url":"https://sporv.ai/","applicationCategory":"BusinessApplication","operatingSystem":"Web","description":"Sporv runs the club for you — roster, scheduling, waivers, dues and payouts, with an agent that drafts the busywork and a human who approves it.","publisher":{"@type":"Organization","name":"Sporv","url":"https://sporv.ai/","logo":"https://sporv.ai/icon-512.png"}}</script>
-<meta name="sporve-build" content="0ec76dc67e768faf">
+<meta name="sporve-build" content="39a4ccaed477b23e">
 </head>
 <body>
 <noscript><h1>Sporv. Every sport. One app.</h1><p>Sporv connects families and athletes with coaches, trainers, camps, and teams across more than 20 sports. Please enable JavaScript to use the app.</p></noscript>
@@ -12010,7 +12010,17 @@ function dashRowsHTML(b){
 }
 function dashHomeHTML(){
   const ui=window.COACH_UI, st=S.dashHome;
-  if(!st||(st.loading&&!st.data)) return ui.Block({title:"Loading your home…",subtitle:"Reading what needs you today.",body:""});
+  if(!st||(st.loading&&!st.data)){
+    /* No provider row (signed in, but workspace not created yet): never trap
+       on infinite loading — route to setup instead. A null provider during the
+       cold-start fetch still shows loading; this only fires when we know there
+       is no provider to wait for. */
+    if(!S.coachProvider&&realSignedIn()&&!S.coachEnsureError){
+      return ui.Block({title:"Setting up your workspace…",subtitle:"Your workspace is being created. This takes a moment.",
+        action:ui.Button({label:"Continue setup",size:"sm",variant:"secondary",attrs:'data-ctab="getting-started"'}),body:""});
+    }
+    return ui.Block({title:"Loading your home…",subtitle:"Reading what needs you today.",body:""});
+  }
   if(st.error&&!st.data) return ui.Block({title:"Couldn't load your home",subtitle:st.error+" Nothing below is shown until it loads — no value is invented in its place.",
     action:ui.Button({label:"Try again",size:"sm",variant:"secondary",attrs:'data-dashretry="1"'}),body:""});
   const blocks=(st.data&&Array.isArray(st.data.blocks))?st.data.blocks:[];
