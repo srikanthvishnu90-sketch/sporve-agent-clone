@@ -288,9 +288,10 @@ else:
 # repo root (owner artwork, 2026-09-04 — replaces the placeholder circle).
 # og/twitter URLs point at sporv.ai; the old sporv.vercel.app host 404s.
 _OG = "https://sporv.ai/og.png?v=2"
-_TITLE = "Sporv — The operating system for youth sports."
-_DESC = ("Sporv runs the club for you — roster, scheduling, waivers, dues and "
-         "payouts, with an agent that drafts the busywork and a human who approves it.")
+_TITLE = "Sporv — The operating system for youth sports"
+_DESC = ("Sporv is the operating system for youth sports. AI agent for clubs, "
+         "trainers, and parents: scheduling, payments, client management, and "
+         "parent communication.")
 STANDALONE = (
     '<!doctype html>\n<html lang="en">\n<head>\n'
     '<meta charset="utf-8">\n'
@@ -300,7 +301,7 @@ STANDALONE = (
     f'<meta name="description" content="{_DESC}">\n'
     '<meta name="theme-color" content="#09090B">\n'
     '<meta property="og:type" content="website">\n'
-    '<meta property="og:site_name" content="Sporv">\n'
+    '<meta property="og:site_name" content="Sporv AI">\n'
     f'<meta property="og:title" content="{_TITLE}">\n'
     f'<meta property="og:description" content="{_DESC}">\n'
     '<meta property="og:url" content="https://sporv.ai/">\n'
@@ -324,6 +325,8 @@ STANDALONE = (
     '"applicationCategory":"BusinessApplication","operatingSystem":"Web",'
     '"description":"Sporv runs the club for you — roster, scheduling, waivers, dues and payouts, with an agent that drafts the busywork and a human who approves it.",'
     '"publisher":{"@type":"Organization","name":"Sporv","url":"https://sporv.ai/","logo":"https://sporv.ai/icon-512.png"}}</script>\n'
+    '<script type="application/ld+json">{"@context":"https://schema.org","@type":"WebSite",'
+    '"name":"Sporv AI","url":"https://sporv.ai/"}</script>\n'
     "</head>\n<body>\n__SPORVE_BODY__\n</body>\n</html>\n"
 )
 require_once(STANDALONE, "__SPORVE_BODY__", "standalone body token")
