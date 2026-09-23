@@ -859,8 +859,8 @@ function buildProposal(args: {
       return { ...base, target_table: "sessions", target_row_id: entityId, patch: buildSessionPatch(slots) };
     case "cancellation":
       if (!entityId) return null;
-      // NOTE: sessions has no status/cancelled column in the current schema;
-      // the decide_intake_proposal applier maps this semantic patch. See contract.
+      // sessions.cancelled added by migration 20260922_001115 (decision 1a);
+      // approve flips the flag only — the Schedule UI reads event.status.
       return { ...base, target_table: "sessions", target_row_id: entityId, patch: { cancelled: true } };
     case "credential_update": {
       if (!entityId) return null;
@@ -882,23 +882,25 @@ function buildProposal(args: {
     case "trial_request":
       // Name unknown deterministically — the email is the contact; the coach
       // fills in the name at approval. Never guess it from the text.
+      // Contract (migration 20260922_001115 §N, decision 2c): prospects table,
+      // status 'trial'. Never 'enrolled' — no auto-enroll.
       return {
-        ...base, target_table: "waitlist", target_row_id: null,
-        patch: { name: "", email: fromEmail, role: "parent", source: "intake_trial_request" },
+        ...base, target_table: "prospects", target_row_id: null,
+        patch: { name: "", email: fromEmail, source: "intake_trial_request", status: "trial" },
       };
     case "enrollment_request":
+      // Contract (migration 20260922_001115 §N, decision 2c): prospects table,
+      // status 'inquiry'. Enrollment itself stays a manual/coach step.
       return {
-        ...base, target_table: "waitlist", target_row_id: null,
-        patch: { name: "", email: fromEmail, role: "parent", source: "intake_enrollment_request" },
+        ...base, target_table: "prospects", target_row_id: null,
+        patch: { name: "", email: fromEmail, source: "intake_enrollment_request", status: "inquiry" },
       };
     case "staff_onboarding":
-      // The hire is NEW — the name comes from the email text, not the roster.
-      // Never invent a role: insert with role NULL, coach assigns it.
-      if (!entityName) return null;
-      return {
-        ...base, target_table: "organization_members", target_row_id: null,
-        patch: { role: null, is_active: true, trainer_profile: { name: entityName } },
-      };
+      // REMOVED 2026-09-23: organization_members.role is NOT NULL with CHECK
+      // in ('owner','admin','trainer'), so a role-NULL INSERT can never land.
+      // Finding only — the coach adds staff through the normal UI where role
+      // is required. Never invent a role.
+      return null;
     default:
       // waiver_claim: never mark signed without a row. payment_*: never mutate
       // money paths. program_inquiry: nothing to stage. → finding only.
