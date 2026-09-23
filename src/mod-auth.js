@@ -73,6 +73,21 @@
     } catch (e) { return null; }
   }
 
+  /* PostHog analytics (2026-09-23): identify the person by Supabase user id
+     only — never email or profile fields. Every call is guarded so a blocked
+     CDN is a no-op, never a JS error. */
+  function phIdentify() {
+    try {
+      var id = (session && session.user && session.user.id) || null;
+      if (id && typeof window !== "undefined" && typeof window.__phIdentify === "function") window.__phIdentify(id);
+    } catch (e) { /* analytics must never break auth */ }
+  }
+  function phCapture(name, props) {
+    try {
+      if (typeof window !== "undefined" && typeof window.__phCapture === "function") window.__phCapture(name, props);
+    } catch (e) { /* analytics must never break auth */ }
+  }
+
   function apply(tokens) {
     if (!tokens || !tokens.access_token) { clear(); return null; }
     session = {
@@ -86,6 +101,7 @@
     API.setAccessToken(session.access_token);
     save();
     scheduleRefresh();
+    phIdentify();
     return session;
   }
 
@@ -258,6 +274,10 @@
         password: String(password || ""),
         data: meta || {},
       }).then(function (d) {
+        /* PostHog (2026-09-23): the account now exists in auth.users. The
+           needsConfirmation branch is the live one (mailer_autoconfirm OFF);
+           either way this is where the app knows signup succeeded. */
+        phCapture("sign_up_completed");
         if (d.access_token) return { needsConfirmation: false, session: apply(d) };
         return { needsConfirmation: true, session: null, email: d.email || email };
       });
@@ -282,6 +302,10 @@
       if (h.indexOf("access_token=") === -1) return null;
       var p = new URLSearchParams(h.replace(/^#/, ""));
       AUTH._fromOAuth = true;  // this boot IS an OAuth return (read by hydrateAuth)
+      /* PostHog (2026-09-23): GoTrue's email-confirmation link lands here with
+         type=signup in the fragment. Google OAuth returns carry no such type,
+         so this fires only for a completed email verification — never guessed. */
+      if (p.get("type") === "signup") phCapture("email_confirmed");
       var s = apply({
         access_token: p.get("access_token"),
         refresh_token: p.get("refresh_token"),
@@ -320,6 +344,7 @@
             }
             session.user = d;
             save();
+            phIdentify();
             return session;
           });
         });
@@ -328,6 +353,9 @@
     signOut: function () {
       var t = session && session.access_token;
       clear();
+      /* PostHog (2026-09-23): drop the analytics identity so the next person
+         on this browser does not inherit the last one's events. */
+      try { if (typeof window !== "undefined" && typeof window.__phReset === "function") window.__phReset(); } catch (e) {}
       if (!t) return Promise.resolve();
       /* Best-effort server-side revoke. The local session is already gone, so a
          failure here must never surface to the user. */

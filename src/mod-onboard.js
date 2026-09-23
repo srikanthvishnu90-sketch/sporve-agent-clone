@@ -293,10 +293,14 @@
   }
   function finish() {
     const o = ob(), p = pv(); o.busy = true; render();
+    /* PostHog (2026-09-23): the single point where the app knows the 6-step
+       onboarding actually completed — after the DB PATCH confirms. The
+       no-provider fallback below fires no event. */
+    const phDone = () => { try { if (typeof window !== "undefined" && typeof window.__phCapture === "function") window.__phCapture("onboarding_completed"); } catch (e) {} };
     const done = () => { o.busy = false; if (p) p.onboarding_completed = true; S.coachTab = "queue"; S.portal = "coach"; if (typeof go === "function") go("dashboard"); };
     if (!p || !API()) return done();
     API().from("providers", "id=eq." + p.id + "&select=id,onboarding_completed", { method: "PATCH", headers: { Prefer: "return=representation" }, body: { onboarding_completed: true } })
-      .then(() => settingsWrite("onboarding", Object.assign(snapshot(), { step: "done" })).catch(() => {})).then(done)
+      .then(() => settingsWrite("onboarding", Object.assign(snapshot(), { step: "done" })).catch(() => {})).then(() => { phDone(); done(); })
       .catch((e) => fail("Could not mark setup complete" + (e && e.message ? " — " + e.message : "") + ". Press Open dashboard again."));
   }
 

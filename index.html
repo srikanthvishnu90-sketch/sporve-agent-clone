@@ -28,9 +28,22 @@
 <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png?v=2">
 <link rel="manifest" href="/site.webmanifest">
 <script type="application/ld+json">{"@context":"https://schema.org","@type":"SoftwareApplication","name":"Sporv","url":"https://sporv.ai/","applicationCategory":"BusinessApplication","operatingSystem":"Web","description":"Sporv runs the club for you — roster, scheduling, waivers, dues and payouts, with an agent that drafts the busywork and a human who approves it.","publisher":{"@type":"Organization","name":"Sporv","url":"https://sporv.ai/","logo":"https://sporv.ai/icon-512.png"}}</script>
-<meta name="sporve-build" content="a6f3b18bfbc3fb06">
+<meta name="sporve-build" content="c1ba5fdc45790fc8">
 </head>
 <body>
+<script>
+/* ── PostHog product analytics (2026-09-23) ───────────────────────────────
+   Project: Sporv (US cloud). The stub queues capture/identify/reset calls
+   until the library loads from the PostHog CDN; every call site below goes
+   through the guarded window.__ph* helpers so a blocked CDN (ad-blocker,
+   offline) is a silent no-op, never a JS error. Identify uses the Supabase
+   user id only — no email, no PII. */
+!function(t,e){var o,n,p,r;e.__SV||(window.posthog=e,e._i=[],e.init=function(i,s,a){function g(t,e){var o=e.split(".");2==o.length&&(t=t[o[0]],e=o[1]),t[e]=function(){t.push([e].concat(Array.prototype.slice.call(arguments,0)))}}(p=t.createElement("script")).type="text/javascript",p.crossOrigin="anonymous",p.async=!0,p.src="https://us-assets.i.posthog.com/static/array.js",(r=t.getElementsByTagName("script")[0]).parentNode.insertBefore(p,r);var u=e;for(void 0!==a?u=e[a]=[]:a="posthog",u.people=u.people||[],Object.defineProperty(u,"toString",{configurable:!0,enumerable:!0,writable:!0,value:function(t){var e="posthog";return"posthog"!==a&&(e+="."+a),t||(e+=" (stub)"),e}}),Object.defineProperty(u.people,"toString",{configurable:!0,enumerable:!0,writable:!0,value:function(){return u.toString(1)+".people (stub)"}}),o="init capture register register_once register_for_session unregister unregister_for_session getFeatureFlag getFeatureFlagResult isFeatureEnabled reloadFeatureFlags updateEarlyAccessFeatureEnrollment getEarlyAccessFeatures on onFeatureFlags onSessionId getSurveys getActiveMatchingSurveys renderSurvey canRenderSurvey getNextSurveyStep identify setPersonProperties group resetGroups setPersonPropertiesForFlags resetPersonPropertiesForFlags setGroupPropertiesForFlags resetGroupPropertiesForFlags reset get_distinct_id getGroups get_session_id get_session_replay_url alias set_config startSessionRecording stopSessionRecording sessionRecordingStarted captureException loadToolbar get_property getSessionProperty createPersonProfile opt_in_capturing opt_out_capturing has_opted_in_capturing has_opted_out_capturing clear_opt_in_out_capturing debug".split(" "),n=0;n<o.length;n++)g(u,o[n]);e._i.push([i,s,a])},e.__SV=1)}(document,window.posthog||[]);
+posthog.init('phc_ChXu4zqiHzGNpgMPVdszQbezvfQ5ae26MkKr33shnuh8',{api_host:'https://us.posthog.com',autocapture:true});
+window.__phCapture=function(name,props){try{if(window.posthog&&typeof window.posthog.capture==="function"){window.posthog.capture(name,props||{});}}catch(e){}};
+window.__phIdentify=function(id){try{if(id&&window.posthog&&typeof window.posthog.identify==="function"){window.posthog.identify(id);}}catch(e){}};
+window.__phReset=function(){try{if(window.posthog&&typeof window.posthog.reset==="function"){window.posthog.reset();}}catch(e){}};
+</script>
 <noscript><h1>Sporv. Every sport. One app.</h1><p>Sporv connects families and athletes with coaches, trainers, camps, and teams across more than 20 sports. Please enable JavaScript to use the app.</p></noscript>
 
 <style>
@@ -21951,6 +21964,21 @@ window.MOD_COACHUI = { css:CSS, wire:wire };
     } catch (e) { return null; }
   }
 
+  /* PostHog analytics (2026-09-23): identify the person by Supabase user id
+     only — never email or profile fields. Every call is guarded so a blocked
+     CDN is a no-op, never a JS error. */
+  function phIdentify() {
+    try {
+      var id = (session && session.user && session.user.id) || null;
+      if (id && typeof window !== "undefined" && typeof window.__phIdentify === "function") window.__phIdentify(id);
+    } catch (e) { /* analytics must never break auth */ }
+  }
+  function phCapture(name, props) {
+    try {
+      if (typeof window !== "undefined" && typeof window.__phCapture === "function") window.__phCapture(name, props);
+    } catch (e) { /* analytics must never break auth */ }
+  }
+
   function apply(tokens) {
     if (!tokens || !tokens.access_token) { clear(); return null; }
     session = {
@@ -21964,6 +21992,7 @@ window.MOD_COACHUI = { css:CSS, wire:wire };
     API.setAccessToken(session.access_token);
     save();
     scheduleRefresh();
+    phIdentify();
     return session;
   }
 
@@ -22136,6 +22165,10 @@ window.MOD_COACHUI = { css:CSS, wire:wire };
         password: String(password || ""),
         data: meta || {},
       }).then(function (d) {
+        /* PostHog (2026-09-23): the account now exists in auth.users. The
+           needsConfirmation branch is the live one (mailer_autoconfirm OFF);
+           either way this is where the app knows signup succeeded. */
+        phCapture("sign_up_completed");
         if (d.access_token) return { needsConfirmation: false, session: apply(d) };
         return { needsConfirmation: true, session: null, email: d.email || email };
       });
@@ -22160,6 +22193,10 @@ window.MOD_COACHUI = { css:CSS, wire:wire };
       if (h.indexOf("access_token=") === -1) return null;
       var p = new URLSearchParams(h.replace(/^#/, ""));
       AUTH._fromOAuth = true;  // this boot IS an OAuth return (read by hydrateAuth)
+      /* PostHog (2026-09-23): GoTrue's email-confirmation link lands here with
+         type=signup in the fragment. Google OAuth returns carry no such type,
+         so this fires only for a completed email verification — never guessed. */
+      if (p.get("type") === "signup") phCapture("email_confirmed");
       var s = apply({
         access_token: p.get("access_token"),
         refresh_token: p.get("refresh_token"),
@@ -22198,6 +22235,7 @@ window.MOD_COACHUI = { css:CSS, wire:wire };
             }
             session.user = d;
             save();
+            phIdentify();
             return session;
           });
         });
@@ -22206,6 +22244,9 @@ window.MOD_COACHUI = { css:CSS, wire:wire };
     signOut: function () {
       var t = session && session.access_token;
       clear();
+      /* PostHog (2026-09-23): drop the analytics identity so the next person
+         on this browser does not inherit the last one's events. */
+      try { if (typeof window !== "undefined" && typeof window.__phReset === "function") window.__phReset(); } catch (e) {}
       if (!t) return Promise.resolve();
       /* Best-effort server-side revoke. The local session is already gone, so a
          failure here must never surface to the user. */
@@ -23208,8 +23249,18 @@ window.MOD_COACHUI = { css:CSS, wire:wire };
       var st = ACCOUNT.plan();
       if (mark === "cancelled") toast("Checkout cancelled — nothing was charged");
       else if (mark === "portal") toast(st.label);
-      else toast(st.entitled ? st.label
-        : "Stripe has your payment — your plan changes the moment it confirms");
+      else {
+        /* PostHog (2026-09-23): the only client-side point where the app
+           KNOWS a Stripe subscription is live — the user is back from checkout
+           AND the re-read provider row says entitled (i.e. the billing webhook
+           already landed). Firing on the return alone would count checkouts
+           whose webhook had not confirmed yet. */
+        if (mark === "done" && st.entitled) {
+          try { if (typeof window !== "undefined" && typeof window.__phCapture === "function") window.__phCapture("subscription_created", { plan: st.id }); } catch (e) {}
+        }
+        toast(st.entitled ? st.label
+          : "Stripe has your payment — your plan changes the moment it confirms");
+      }
     }).catch(function () {});
   }
 
@@ -23564,10 +23615,14 @@ window.MOD_COACHUI = { css:CSS, wire:wire };
   }
   function finish() {
     const o = ob(), p = pv(); o.busy = true; render();
+    /* PostHog (2026-09-23): the single point where the app knows the 6-step
+       onboarding actually completed — after the DB PATCH confirms. The
+       no-provider fallback below fires no event. */
+    const phDone = () => { try { if (typeof window !== "undefined" && typeof window.__phCapture === "function") window.__phCapture("onboarding_completed"); } catch (e) {} };
     const done = () => { o.busy = false; if (p) p.onboarding_completed = true; S.coachTab = "queue"; S.portal = "coach"; if (typeof go === "function") go("dashboard"); };
     if (!p || !API()) return done();
     API().from("providers", "id=eq." + p.id + "&select=id,onboarding_completed", { method: "PATCH", headers: { Prefer: "return=representation" }, body: { onboarding_completed: true } })
-      .then(() => settingsWrite("onboarding", Object.assign(snapshot(), { step: "done" })).catch(() => {})).then(done)
+      .then(() => settingsWrite("onboarding", Object.assign(snapshot(), { step: "done" })).catch(() => {})).then(() => { phDone(); done(); })
       .catch((e) => fail("Could not mark setup complete" + (e && e.message ? " — " + e.message : "") + ". Press Open dashboard again."));
   }
 
