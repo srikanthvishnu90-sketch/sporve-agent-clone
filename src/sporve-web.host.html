@@ -8795,7 +8795,7 @@ function primaryNavHTML(){
     <button class="tnav prodpill ${S.prodMenu?"open":""}" data-prodtoggle="1"
       aria-expanded="${!!S.prodMenu}" aria-haspopup="menu">Product <span class="caret">${S.prodMenu?"⌃":"⌄"}</span></button>
     <button class="tnav ${S.route.name==="pricing"?"on":""}" data-nav="pricing">Pricing</button>
-    <a class="tnav" href="mailto:support@sporv.ai?subject=Sporv%20setup%20call">Book a call</a>
+    <a class="tnav" href="${CALENDLY_URL}" target="_blank" rel="noopener">Book a call</a>
     ${/* Right cluster (owner spec 2026-09-04, prototype .cta): signed out =
          Log in + Get started pair; signed in = Coach dashboard, and "Log in"
          must not render. State reads the REAL session (SporveAuth), never a

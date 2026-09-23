@@ -28,7 +28,7 @@
 <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png?v=2">
 <link rel="manifest" href="/site.webmanifest">
 <script type="application/ld+json">{"@context":"https://schema.org","@type":"SoftwareApplication","name":"Sporv","url":"https://sporv.ai/","applicationCategory":"BusinessApplication","operatingSystem":"Web","description":"Sporv runs the club for you — roster, scheduling, waivers, dues and payouts, with an agent that drafts the busywork and a human who approves it.","publisher":{"@type":"Organization","name":"Sporv","url":"https://sporv.ai/","logo":"https://sporv.ai/icon-512.png"}}</script>
-<meta name="sporve-build" content="f805253a511bb722">
+<meta name="sporve-build" content="48b23ef6e058e070">
 </head>
 <body>
 <noscript><h1>Sporv. Every sport. One app.</h1><p>Sporv connects families and athletes with coaches, trainers, camps, and teams across more than 20 sports. Please enable JavaScript to use the app.</p></noscript>
@@ -8846,7 +8846,7 @@ function primaryNavHTML(){
     <button class="tnav prodpill ${S.prodMenu?"open":""}" data-prodtoggle="1"
       aria-expanded="${!!S.prodMenu}" aria-haspopup="menu">Product <span class="caret">${S.prodMenu?"⌃":"⌄"}</span></button>
     <button class="tnav ${S.route.name==="pricing"?"on":""}" data-nav="pricing">Pricing</button>
-    <a class="tnav" href="mailto:support@sporv.ai?subject=Sporv%20setup%20call">Book a call</a>
+    <a class="tnav" href="${CALENDLY_URL}" target="_blank" rel="noopener">Book a call</a>
     ${/* Right cluster (owner spec 2026-09-04, prototype .cta): signed out =
          Log in + Get started pair; signed in = Coach dashboard, and "Log in"
          must not render. State reads the REAL session (SporveAuth), never a
