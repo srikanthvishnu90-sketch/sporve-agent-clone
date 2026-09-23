@@ -93,6 +93,13 @@ verify_jwt = false
 [functions.gmail-scan]
 verify_jwt = false
 
+# Deterministic-first intake layer (design: sporv-ai-intake-design.md). Invoked
+# by the coach's "Run agent now" (coach JWT, owner-gated) and the nightly cron
+# (cron secret). verify_jwt = false because the function authenticates the
+# round trip itself: coach JWT owning the provider, or the cron secret.
+[functions.agent-intake]
+verify_jwt = false
+
 # User-facing read dispatcher for connected third parties. The gateway
 # verifies the JWT (verify_jwt stays true); the function re-verifies it to
 # learn WHO the caller is, since connector rows are per-org.
