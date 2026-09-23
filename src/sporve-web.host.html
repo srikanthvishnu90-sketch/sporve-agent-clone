@@ -1517,7 +1517,7 @@ img{max-width:100%;display:block}
   transition:background .16s,border-color .16s,color .16s}
 /* 8090 placement (owner 2026-09-23): Log in is plain text; Get started is
    the one white pill on the far right, black label. */
-.tnav-row .cta{height:40px;padding:0 18px;border-radius:6px;font-size:15px}
+.tnav-row .cta{height:40px;padding:0 18px;border-radius:4px;font-size:15px}
 .tnav-row .cta.login{background:transparent;color:#EDEFF2;border-color:transparent}
 .tnav-row .cta.login:hover{background:rgba(255,255,255,.06)}
 .tnav-row .cta.start{background:#FFFFFF;color:#0B0D0F;border-color:#FFFFFF}
@@ -6226,7 +6226,7 @@ body.reg-coach .rail button.on{font-weight:600}
    product page). One composition, one spacing scale, one button spec. Wins
    over every per-page .pg-<id> .pg-hero-* rule above by specificity (0,3,x)
    without !important. Spacing rides an 8px grid: 16 / 24 / 32 / 48 / 96. */
-:root{--btn-h:52px;--btn-px:28px;--btn-r:8px;--btn-gap:16px;--hero-gap:clamp(32px,4vw,56px)}
+:root{--btn-h:52px;--btn-px:28px;--btn-r:4px;--btn-gap:16px;--hero-gap:clamp(32px,4vw,56px)} /* 8090 feel pass 2026-09-23: 4px buttons */
 .rebuild-page .pg-hero--scenario{padding:clamp(72px,8vw,96px) 0;border-bottom:1px solid #1C222B}
 .rebuild-page .pg-hero--scenario .pg-hero-inner{display:grid;
   grid-template-columns:minmax(230px,.72fr) minmax(290px,.76fr) minmax(210px,.52fr);
@@ -6286,7 +6286,7 @@ body.reg-coach .rail button.on{font-weight:600}
 /* the product page inside the shell: flat, monochrome, 8090 spacing */
 #app .docs .pgroot{--ps:#FFFFFF;--ps-ink:#FFFFFF;--ps-bright:#FFFFFF;--page-accent:#FFFFFF;--page-accent-on:#111111}
 #app .docs .pgroot .pgband,#app .docs .pgroot .pgband.white,#app .docs .pgroot .pgband.slate,#app .docs .pgroot .pgband.slate.alt,#app .docs .pgroot .pgband.dark{
-  background:transparent;border:0;border-bottom:1px solid #2E2E2E;padding:40px 0 48px;color:#fff}
+  background:transparent;border:0;border-bottom:1px solid rgba(255,255,255,.12);padding:40px 0 48px;color:#fff}
 #app .docs .pgroot .pgband:last-child{border-bottom:0}
 #app .docs .pgroot .shell{max-width:none;padding:0}
 /* !important: the rebuild-page ink rule (line ~5359) is !important itself. */
@@ -6296,19 +6296,19 @@ body.reg-coach .rail button.on{font-weight:600}
 #app .docs .pgroot .pgband :where(.pg-eyebrow,.k,.pg-walk-num,.pg-rnum){color:#8A8A8A!important}
 #app .docs .pgroot .pg-h1 em,#app .docs .pgroot h2 em{color:#FFFFFF!important;font-style:normal}
 #app .docs .pgroot .pg-hero-math code,#app .docs .pgroot code{color:#FFFFFF!important}
-#app .docs .pgroot .pgband.pg-hero,#app .docs .pgroot .pgband.dark.pg-hero{padding:0 0 40px;border-bottom:1px solid #2E2E2E}
-#app .docs .pgroot .pg-hero--scenario .pg-hero-inner{grid-template-columns:minmax(0,1fr);gap:20px;align-items:start}
+#app .docs .pgroot .pgband.pg-hero,#app .docs .pgroot .pgband.dark.pg-hero{padding:0 0 48px;border-bottom:1px solid rgba(255,255,255,.12)}
+#app .docs .pgroot .pg-hero--scenario .pg-hero-inner{grid-template-columns:minmax(0,1fr);gap:24px;align-items:start}
 #app .docs .pgroot .pg-hero--scenario .pg-eyebrow{display:none}
 #app .docs .pgroot .pg-hero .pg-hero-inner,#app .docs .pgroot .pg-hero .pg-hero-title{padding-top:0;margin-top:0}
 #app .docs .pgroot .pg-hero{margin-top:0}
 #app .docs .pgroot .pg-hero .pg-h1{margin-top:0}
-#app .docs .pgroot .pg-hero--scenario .pg-h1{max-width:20ch}
-#app .docs .pgroot .pg-hero--scenario .pg-sub{max-width:70ch;font-size:clamp(17px,1.4vw,20px);color:#B4B4B4}
+#app .docs .pgroot .pg-hero--scenario .pg-h1{max-width:20ch;line-height:1.1}
+#app .docs .pgroot .pg-hero--scenario .pg-sub{max-width:70ch;font-size:clamp(17px,1.4vw,20px);line-height:1.5!important;color:#CFCFCF!important}
 #app .docs .pgroot .pg-hero--scenario .pg-ctarow{margin-top:8px}
 #app .docs .pgroot .pg-hero--scenario .pg-hero-math{border:1px solid #2E2E2E;border-radius:8px;padding:20px 24px;justify-self:start;margin-top:12px;min-width:0}
 #app .docs .pgroot .pg-hero-math code{color:#fff}
 #app .docs .pgroot .pg-hero-math span{color:#8A8A8A}
-#app .docs .pgroot .pg-cta{background:#FFFFFF;color:#111111;height:44px;padding:0 18px;border-radius:6px;font-size:15px}
+#app .docs .pgroot .pg-cta{background:#FFFFFF;color:#111111;height:44px;padding:0 20px;border-radius:4px;font-size:15px;font-weight:500}
 #app .docs .pgroot .pg-cta:hover{background:#E9ECF0;transform:none}
 #app .docs .pgroot .pg-textlink{color:#fff}
 #app .docs .pgroot :where(table,.pg-mono-ui,.pg-worked-math,.pg-stat-rail,.pg-proof,.pg-herocard,.pg-flat-figure,.pg-queue){
@@ -6318,7 +6318,9 @@ body.reg-coach .rail button.on{font-weight:600}
 #app .docs .pgroot .pg-worked-math code{display:block;color:#fff!important;margin-bottom:16px}
 #app .docs .pgroot :where(th){background:#202020}
 #app .docs .pgroot :where(.pg-row,.pg-walk-step,.pg-rail-stat,.rule,.pg-lines){border-color:#2E2E2E}
-#app .docs .pgroot .pgband:not(.pg-hero) h2{font-size:clamp(24px,2.2vw,30px)}
+/* .pgband h2.pg-serif{…!important} (line ~5933) otherwise wins and shrinks section heads to 19–21px */
+#app .docs .pgroot .pgband:not(.pg-hero) h2{font-size:clamp(24px,2.2vw,30px)!important;line-height:1.25;margin-bottom:20px}
+#app .docs .pgroot .pgband [data-prose]{line-height:1.75}
 @media(max-width:960px){.docs{grid-template-columns:1fr}.docs-nav{position:static;height:auto;border-right:0;border-bottom:1px solid #2E2E2E}
   .docs-group:not([open]) .docs-links{display:none}.docs-main{padding:32px 20px 72px}}
 /* BUTTON SPEC — every product-page CTA and landing button shares one geometry. */
