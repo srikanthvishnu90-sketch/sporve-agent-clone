@@ -293,6 +293,38 @@
       return s;
     },
 
+    /* The fragment handshakes (email-verify link, OAuth return) carry tokens
+       but NO user object, so apply() above stores session.user as null — and
+       a session written by such a landing persists that gap to localStorage.
+       Downstream everything branch-on-identity reads AUTH.userId() (the
+       coach module's uid()), not the bearer, so a freshly verified user with
+       a perfectly valid token still hit "not signed in" in SporveCoach.load
+       and SporveCoach.ensure — landing on the workspace error screen instead
+       of the onboarding wizard. (Password sign-in never hit this because
+       GoTrue's token endpoint returns the full user object.)
+       Call during restore(): fills user from GET /auth/v1/user, re-saves the
+       session, and is a pure no-op when user.id is already present (normal
+       boots add zero network). */
+    fetchUser: function () {
+      if (!session || !session.access_token) return Promise.reject(new Error("no session"));
+      if (session.user && session.user.id) return Promise.resolve(session);
+      return fetch(API.url + "/auth/v1/user", {
+        headers: { apikey: API.anonKey, Authorization: "Bearer " + session.access_token },
+      })
+        .then(function (r) {
+          return r.json().then(function (d) {
+            if (!r.ok) {
+              var e = new Error(d.msg || d.error_description || "Could not load your account.");
+              e.status = r.status;
+              throw e;
+            }
+            session.user = d;
+            save();
+            return session;
+          });
+        });
+    },
+
     signOut: function () {
       var t = session && session.access_token;
       clear();
@@ -334,8 +366,22 @@
     /* Restore on boot: adopt an OAuth return, else a stored session, refreshing
        if it is expired or close to it. Resolves the session or null. */
     restore: function () {
+      /* The adopted or stored session may have no user object (fragment
+         landings never carry one; see fetchUser). Populate it before any
+         uid()/userId() reader runs, so the verify landing is not read as
+         "not signed in" while holding a valid bearer. A hard 401/403 means
+         the tokens are dead: clear and fall through to guest. A network
+         failure keeps the session so hydrateAuth()'s offline path can still
+         use the stored identity it last saw. */
+      function withUser() {
+        return AUTH.fetchUser().then(function () { return session; }, function (e) {
+          if (e && (e.status === 401 || e.status === 403)) { clear(); return null; }
+          return session;
+        });
+      }
+
       var fromOAuth = AUTH.completeOAuth();
-      if (fromOAuth) return Promise.resolve(fromOAuth);
+      if (fromOAuth) return withUser();
 
       var stored = load();
       if (!stored) return Promise.resolve(null);
@@ -344,10 +390,10 @@
       API.setAccessToken(session.access_token);
 
       if (nowMs() >= session.expires_at - REFRESH_MARGIN_MS) {
-        return refresh().catch(function () { return null; });
+        return refresh().then(withUser, function () { return null; });
       }
       scheduleRefresh();
-      return Promise.resolve(session);
+      return withUser();
     },
 
     refresh: refresh,
