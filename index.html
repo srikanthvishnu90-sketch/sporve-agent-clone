@@ -28,7 +28,7 @@
 <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png?v=2">
 <link rel="manifest" href="/site.webmanifest">
 <script type="application/ld+json">{"@context":"https://schema.org","@type":"SoftwareApplication","name":"Sporv","url":"https://sporv.ai/","applicationCategory":"BusinessApplication","operatingSystem":"Web","description":"Sporv runs the club for you — roster, scheduling, waivers, dues and payouts, with an agent that drafts the busywork and a human who approves it.","publisher":{"@type":"Organization","name":"Sporv","url":"https://sporv.ai/","logo":"https://sporv.ai/icon-512.png"}}</script>
-<meta name="sporve-build" content="35ec8d69b1483f25">
+<meta name="sporve-build" content="bce3c9a9523306ed">
 </head>
 <body>
 <script>
@@ -6337,7 +6337,8 @@ body.reg-coach .rail button.on{font-weight:600}
 #app .docs .pgroot .pgband:last-child{border-bottom:0}
 #app .docs .pgroot .shell{max-width:none;padding:0}
 /* !important: the rebuild-page ink rule (line ~5359) is !important itself. */
-#app .docs .pgroot .pgband :where(h1,h2,h3,b,strong,th,.pg-h1,.pg-serif,.pg-rclaim,.pg-walk-step h2,.pg-stat .n,.pg-ui-value){color:#FFFFFF!important}
+#app .docs .pgroot .pgband :where(h1,h2,h3,b,strong,th,.pg-h1,.pg-serif,.pg-rclaim,.pg-walk-step h2,.pg-stat .n,.pg-ui-value,.pg-rail-value,.hc-name,.hc-price,.pg-ui-head span,dt){color:#FFFFFF!important}
+#app .docs .pgroot .pgband :where(span:not(.k):not(.hl):not(.pg-rail-label):not(.pg-hero-math span)){color:inherit}
 #app .docs .pgroot .pgband :where(p,li,figcaption,td,.pg-sub,.pg-rproof,.pg-stat .l,.pg-walk-step p,.pg-ui-key,[data-prose],.pg-rail-label){color:#B4B4B4!important}
 #app .docs .pgroot .pgband :where(.pg-eyebrow,.k,.pg-walk-num,.pg-rnum){color:#8A8A8A!important}
 #app .docs .pgroot .pg-h1 em,#app .docs .pgroot h2 em{color:#FFFFFF!important;font-style:normal}
@@ -6360,6 +6361,8 @@ body.reg-coach .rail button.on{font-weight:600}
 #app .docs .pgroot :where(table,.pg-mono-ui,.pg-worked-math,.pg-stat-rail,.pg-proof,.pg-herocard,.pg-flat-figure,.pg-queue){
   background:#1B1B1B;border:1px solid #2E2E2E;border-radius:8px;color:#fff}
 #app .docs .pgroot :where(th,td){border-color:#2E2E2E;padding:14px 16px}
+#app .docs .pgroot :where(.pg-worked-math,.pg-stat-rail,.pg-proof,.pg-herocard,.pg-flat-figure){padding:20px 24px}
+#app .docs .pgroot .pg-worked-math code{display:block;color:#fff!important;margin-bottom:16px}
 #app .docs .pgroot :where(th){background:#202020}
 #app .docs .pgroot :where(.pg-row,.pg-walk-step,.pg-rail-stat,.rule,.pg-lines){border-color:#2E2E2E}
 #app .docs .pgroot .pgband:not(.pg-hero) h2{font-size:clamp(24px,2.2vw,30px)}
