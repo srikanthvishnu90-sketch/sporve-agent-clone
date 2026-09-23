@@ -34,6 +34,43 @@ export function buildFinding(args) {
   };
 }
 
+/* ── Credential-expiry detection (decision a, 2026-09-23) ────────────────────
+   Background-check verification is VENDOR-ONLY: the agent never stages a
+   proposal that sets a staff background check (or any staff credential) to
+   'verified' — the DB trigger trg_enforce_staff_check_attestation is the
+   second lock. Credential-EXPIRY scenarios instead stage (1) an
+   information/warning finding and (2) a renewal-request message DRAFT
+   addressed to the staff member (approval-gated, never auto-sent). Vendor
+   notices ("background check cleared") are informational findings only —
+   no proposal at all.
+   Defined BEFORE INTENTS: the credential_update intent spreads these.      */
+export const CREDENTIAL_EXPIRY_PATTERNS = [
+  /background check (is |has )?(expir\w*|due for renewal|up for renewal|lapsed)/i,
+  /certification (is |has )?(expir\w*|due for renewal|up for renewal|lapsed)/i,
+  /credential (is |has )?(expir\w*|due for renewal|up for renewal)/i,
+  /renew (your|his|her|their|the) (background check|certification|credential)/i,
+  /background check renewal/i,
+];
+
+/** True when the event text describes a credential EXPIRING (or due for
+    renewal) — as opposed to a vendor notice that a check cleared. */
+export function isCredentialExpiry(text) {
+  const t = String(text ?? "");
+  return CREDENTIAL_EXPIRY_PATTERNS.some((p) => p.test(t));
+}
+
+/** Finding spec for credential scenarios: expiry is a warning (needs the
+    renewal draft reviewed); a vendor "cleared" notice is informational.
+    The code stays intake_credential_update — the finding-code contract is
+    load-bearing for the UI and QA suites. */
+export function credentialFindingSpec(expiry) {
+  return {
+    kind: "people", code: "intake_credential_update",
+    severity: expiry ? "warn" : "info",
+    patterns: [], needsEntity: "staff", entityLabel: "staff member",
+  };
+}
+
 /* ── Intent rules ───────────────────────────────────────────────────────────
    Each rule: regexes over the event text → intent + rule confidence.
    needsEntity names the entity type the intent's proposal depends on.
@@ -98,7 +135,11 @@ export const INTENTS = {
   credential_update: {
     kind: "people", code: "intake_credential_update", severity: "attention",
     patterns: [/background check (cleared|complete|completed|passed|approved)/i,
-      /certification (renewed|cleared|complete)/i, /\bcleared\b/i],
+      /certification (renewed|cleared|complete)/i, /\bcleared\b/i,
+      // Expiry phrasings (decision a, 2026-09-23): the agent never stages a
+      // verified-flag proposal; expiry scenarios stage a warning finding +
+      // a renewal-request message draft to the staff member.
+      ...CREDENTIAL_EXPIRY_PATTERNS],
     needsEntity: "staff", entityLabel: "staff member",
   },
   staff_unavailable: {
@@ -348,6 +389,38 @@ export function waiverMediumCopy(waiver, entityName) {
   return `The claim mentions '${waiver.docTitle ?? "the required waiver"}' but I couldn't match it to a waiver document on file, and couldn't pin down the athlete — nothing is marked signed.`;
 }
 
+/* ── Vendor-only verification fence (decision a, 2026-09-23) ─────────────────
+   The intake layer is the FIRST lock on vendor-only verification; the DB
+   trigger trg_enforce_staff_check_attestation is the second. No intake
+   proposal may carry a patch that touches verified/attestation fields:
+   setting status to 'verified' (or 'attested'), or writing any of the
+   attestation-trail columns (attested_by, attested_at, evidence_source,
+   verified_*). staff-cert-webhook remains the only path to verified.
+   Runs inside buildProposal() AND at the index.ts write path (defense in
+   depth). Returns a human-readable reason when the proposal is BLOCKED,
+   or null when it is safe to stage. */
+const ATTESTATION_COLUMNS_RE =
+  /^(verified|verified_at|verified_by|attested|attested_by|attested_at|evidence_source)$/i;
+const VERIFIED_STATUSES = new Set(["verified", "attested"]);
+
+export function fenceVerifiedProposal(proposal) {
+  if (!proposal || typeof proposal !== "object" || Array.isArray(proposal)) {
+    return "not a proposal object";
+  }
+  const patch = proposal.patch;
+  if (!patch || typeof patch !== "object" || Array.isArray(patch)) return null;
+  for (const key of Object.keys(patch)) {
+    if (/attest/i.test(key) || ATTESTATION_COLUMNS_RE.test(key)) {
+      return `blocked: patch touches attestation field '${key}'`;
+    }
+    if (key.toLowerCase() === "status" &&
+        VERIFIED_STATUSES.has(String(patch[key]).toLowerCase())) {
+      return `blocked: patch sets status to '${patch[key]}'`;
+    }
+  }
+  return null;
+}
+
 /* ── Approval-gated proposals: pure builder (the ONLY writer is the DB applier) ── */
 /** Stage an approval-gated proposal for high-confidence intents.
     Returns null when the scenario must NOT stage anything (design §3). */
@@ -376,15 +449,51 @@ export function buildProposal(args) {
       // approve flips the flag only — the Schedule UI reads event.status.
       return { ...base, target_table: "sessions", target_row_id: entityId, patch: { cancelled: true } };
     case "credential_update": {
+      // Decision (a), 2026-09-23 — background-check verification is
+      // VENDOR-ONLY. The old data_change on staff_certifications
+      // (patch { status: "verified" }) is REMOVED: the intake layer must
+      // never stage a verified-flag proposal, on any credential.
+      // Credential-EXPIRY scenarios stage a renewal-request message DRAFT
+      // addressed to the staff member instead (kind "message_draft",
+      // approval-gated; lifecycle-approve stays the sole sender, so nothing
+      // is ever auto-sent). Vendor "cleared" notices (not expiry) stage no
+      // proposal — the finding alone carries the notice. The expiry signal
+      // arrives as args.credentialExpiry (index.ts computes it with
+      // isCredentialExpiry). The fence below double-checks the result.
       if (!entityId) return null;
-      // staff_certifications keys on member_user_id; match through the
-      // organization_members row. No match → finding only, never a guess.
+      if (!args.credentialExpiry) return null;
       const staffRow = ref.staff.find((s) => s.id === entityId) ?? null;
-      const cert = staffRow?.member_user_id
+      if (!staffRow) return null;
+      const cert = staffRow.member_user_id
         ? ref.certs.find((c) => c.member_user_id === staffRow.member_user_id) ?? null
         : null;
-      if (!cert) return null;
-      return { ...base, target_table: "staff_certifications", target_row_id: cert.id, patch: { status: "verified" } };
+      const staffName = staffRow.name || entityName || "";
+      const firstName = staffName.split(/\s+/)[0] || staffName || "there";
+      // Never invent the credential kind or expiry: cite the DB row when
+      // matched, otherwise honest generic copy.
+      const certKind = cert?.kind ? String(cert.kind).replace(/_/g, " ") : "credential";
+      const expRaw = cert?.expires_at ? String(cert.expires_at) : "";
+      const expDate = /^\d{4}-\d{2}-\d{2}/.test(expRaw) ? expRaw.slice(0, 10) : "";
+      const draft = {
+        ...base, kind: "message_draft",
+        target_table: "organization_members", target_row_id: staffRow.id,
+        patch: {
+          to: staffName || "the staff member",
+          subject: `Credential renewal needed — ${firstName}`,
+          body:
+            `Hi ${firstName} — quick heads-up: your ${certKind}` +
+            (expDate ? ` expires on ${expDate}` : " is coming up for renewal") +
+            `. Please renew it with the vendor and send us the new document. ` +
+            `Background-check verification stays with the vendor — we can't ` +
+            `mark it verified from this message. ` +
+            `(Draft — the coach reviews it before anything is sent.)`,
+        },
+      };
+      // The fence is the first lock (the DB trigger is the second): a
+      // credential draft must never carry a verified/attestation write.
+      // If it ever does, stage nothing — the finding carries the scenario.
+      if (fenceVerifiedProposal(draft)) return null;
+      return draft;
     }
     case "staff_unavailable": {
       if (!entityId) return null;

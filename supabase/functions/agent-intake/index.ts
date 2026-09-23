@@ -33,6 +33,7 @@ import {
   buildFinding, findingMemberId, INTENTS as RAW_INTENTS,
   classifyIntents, extractSlots, buildSessionPatch, waiverNameFromText,
   matchWaiverDoc, docTitleInText, buildProposal, formatProgramPrice, waiverMediumCopy,
+  isCredentialExpiry, credentialFindingSpec, fenceVerifiedProposal,
 } from "./finding.mjs";
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
@@ -210,7 +211,10 @@ const EXTRACT_SYSTEM =
   "Choose exactly one. " +
   "GROUNDING RULE: every slot value you emit must come verbatim from the fenced email text or from " +
   "the candidate lists. Never invent, infer, or default payment methods, amounts, dates, times, or " +
-  "reasons. If the email does not state a value, omit the slot.";
+  "reasons. If the email does not state a value, omit the slot. " +
+  "VERIFICATION RULE: background-check verification is vendor-only — never propose setting a " +
+  "staff credential to verified (the server decides; advisory suggestions are disposed " +
+  "deterministically).";
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: cors });
@@ -639,20 +643,45 @@ async function processEvent(args: {
     // Build the proposal FIRST: detailFor's staged copy must not promise a
     // proposal that buildProposal refused to stage (e.g. schedule_change with
     // no resolvable date/time — the applier rejects empty patches).
-    const prop = buildProposal({
+    // Decision (a) 2026-09-23: credential_update goes through the
+    // vendor-only verification fence — the expiry signal is computed here
+    // and buildProposal stages a renewal message draft (never a verified
+    // flag); the fence double-checks whatever comes back before anything
+    // reaches the write path.
+    const credentialExpiry =
+      primary.intent === "credential_update" ? isCredentialExpiry(text) : false;
+    let prop = buildProposal({
       providerId, eventId, intent: primary.intent, confidence: primary.confidence,
       entityId, entityName: namedEntity, fromEmail,
       slots, ref, findingRef, orgTz, runNow,
+      credentialExpiry,
     });
+    const fenceHit = prop ? fenceVerifiedProposal(prop) : null;
+    if (fenceHit) {
+      // First lock tripped: a verified/attestation write must never be
+      // staged. Drop it; the finding below says so honestly.
+      prop = null;
+    }
     let fTitle = titleFor(primary.intent, namedEntity, slots);
     if (primary.intent === "waiver_claim" && waiver?.signed) {
       fTitle = `${namedEntity || "Someone"}'s waiver is signed — on file`;
     }
-    findings.push(buildFinding({
-      providerId, spec: primary.spec, title: fTitle,
+    if (primary.intent === "credential_update") {
+      fTitle = credentialExpiry
+        ? `${namedEntity || "Someone"}'s credential needs renewal`
+        : `${namedEntity || "Someone"}'s credential update — vendor notice`;
+    }
+    const finding = buildFinding({
+      providerId, spec: primary.intent === "credential_update"
+        ? credentialFindingSpec(credentialExpiry) : primary.spec,
+      title: fTitle,
       detail: detailFor(primary.intent, namedEntity, slots, ref, fenced, false, waiver, prop !== null),
       sourceRef: findingRef, memberId: findingMemberId({ need, entityId }),
-    }));
+    });
+    if (fenceHit) {
+      finding.detail += `\n\nNote: a staged change was blocked by the vendor-only verification fence (${fenceHit}) — background checks are verified by the vendor, never by the agent.`;
+    }
+    findings.push(finding);
     if (prop) proposals.push(prop);
   } else if (primary.confidence >= 0.5 || entityAmbiguous) {
     // Medium confidence / ambiguous identity → ask the coach, no proposal.
@@ -665,8 +694,12 @@ async function processEvent(args: {
       : null;
     const waiverLine = waiverMediumCopy(waiverMed, namedEntity);
     const cands = need ? entities[need].candidates.map((c) => c.name).slice(0, 3).join(", ") : "";
+    // Decision (a): credential scenarios carry the info/warn finding spec
+    // (expiry → warn, vendor notice → info) in every confidence branch.
+    const medSpec = primary.intent === "credential_update"
+      ? credentialFindingSpec(isCredentialExpiry(text)) : primary.spec;
     findings.push(buildFinding({
-      providerId, spec: primary.spec,
+      providerId, spec: medSpec,
       title: entityAmbiguous && need
         ? `Which ${entityLabelFor(primary.intent)}? — confirm before we act`
         : titleFor(primary.intent, namedEntity, slots),
@@ -880,7 +913,9 @@ function detailFor(
     unavailability: `Proposed: mark ${entityName || "the athlete"} unavailable (awaits your approval).`,
     schedule_change: `Proposed: session time/venue patch (awaits your approval).`,
     cancellation: `Proposed: session cancellation (awaits your approval). No notices go out until you approve.`,
-    credential_update: `Proposed: credential expiry update (awaits your approval).`,
+    credential_update: proposalStaged
+      ? `Proposed: renewal-request draft to ${entityName || "the staff member"} (awaits your approval). Nothing is sent automatically — verification stays vendor-only.`
+      : `No change staged — background-check verification is vendor-only. A renewal-request draft is prepared only when a credential is expiring.`,
     staff_unavailable: `Proposed: unassign from the session (awaits your approval).`,
     trial_request: `Proposed: add as a trial prospect (awaits your approval). Never auto-enrolled.`,
     enrollment_request: `Proposed: enrollment draft (awaits your approval). Never auto-enrolled.`,
