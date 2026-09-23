@@ -15730,8 +15730,12 @@ function modalHTML(){
        whole app. It renders on the dark stage (STAGE includes "account"). */
     const u=S.auth.user;
     const NAVROWS=[
-      ["Go to",[
-        ["explore","Product","Everything Sporv runs for a club"],
+      [/* Mobile sheet "Product" row: the explore route IS the landing page, so
+           data-nav="explore" just re-rendered the hero (2026-09-23 bug: tapping
+           Product on mobile went nowhere). Route to the product docs instead —
+           page:roster is the first page of "Run your club", mirroring the
+           desktop Product menu's first row. */"Go to",[
+        ["page:roster","Product","Everything Sporv runs for a club"],
         ["pricing","Pricing","Plans and what each includes"],
       ]],
     ];
