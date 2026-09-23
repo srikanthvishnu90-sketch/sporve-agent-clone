@@ -148,3 +148,7 @@ required review.
 - A write that returns success without a receipt proving a row changed is a
   CI failure, not a bug.
 - Rebase onto main before opening a PR. One spec, one branch, one PR.
+
+## Dead route: coachLandingHTML (learned 2026-09-23)
+- `coachLandingHTML()` is DEAD CODE: the `coachinfo` route redirects to `landingHTML()` (marketplace routes killed, spec 01, 2026-08-31). Grep shows no executable call to `coachLandingHTML()`.
+- Stale comments still claim it is "reachable at the coachinfo route" — they are wrong. Do not add new sections there; put landing content in `landingHTML()`.
