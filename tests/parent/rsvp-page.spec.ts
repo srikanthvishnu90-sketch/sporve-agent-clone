@@ -31,7 +31,12 @@ const shown = (els: Record<string, El>) => ['loading', 'ask', 'done', 'invalid',
 const res = (status: number, body: unknown) => new Response(JSON.stringify(body), { status });
 
 test('page: served at /r, script from self (CSP hash-free), no inline handlers, a11y basics', () => {
-  assert.deepEqual(vercel.rewrites, [{ source: '/r', destination: '/rsvp.html' }]);
+  assert.deepEqual(vercel.rewrites, [
+    { source: '/r', destination: '/rsvp.html' },
+    /* SPA deep-link fallback (2026-09-23): /pricing etc. serve the app so a
+       direct visit never 404s; the client boot maps the path to its route. */
+    { source: '/:path((?!api/|assets/|r$|r/|unsubscribe$|unsubscribe/|[^/]*\\.[^/]*$).*)', destination: '/' },
+  ]);
   assert.match(html, /<script src="\/rsvp\.js"><\/script>/); assert.ok(!/<script>/.test(html), 'no inline script — the CSP only allows hashed inline scripts in index.html');
   assert.ok(!/\bon[a-z]+=/.test(html), 'no inline event handlers');
   assert.match(html, /<html lang="en">/); assert.match(html, /name="viewport" content="width=device-width,initial-scale=1"/); assert.ok(!/user-scalable=no/.test(html));
@@ -40,6 +45,16 @@ test('page: served at /r, script from self (CSP hash-free), no inline handlers, 
   const csp = vercel.headers.find((h: any) => h.source === '/(.*)').headers.find((x: any) => x.key === 'Content-Security-Policy').value;
   assert.match(csp, /connect-src 'self' https:\/\/aveqjeafghmwafkbbnor\.supabase\.co/, 'the page may fetch the function');
   assert.match(csp, /script-src 'self'/, 'rsvp.js is same-origin');
+});
+
+test('SPA fallback rewrite serves the app but never shadows files or special routes', () => {
+  const src = (vercel.rewrites as any[]).find((r) => r.destination === '/').source as string;
+  const inner = src.slice(src.indexOf(':path(') + 6, src.lastIndexOf(')'));
+  const re = new RegExp('^/' + inner + '$');
+  for (const p of ['/pricing', '/product', '/gibberish', '/page/terms', '/'])
+    assert.ok(re.test(p), 'fallback serves ' + p);
+  for (const p of ['/r', '/r/', '/unsubscribe', '/api/x', '/assets/a.js', '/favicon.ico', '/sw.js', '/nope.png'])
+    assert.ok(!re.test(p), 'fallback skips ' + p);
 });
 
 test('a missing or malformed token shows the invalid state and never fetches', async () => {

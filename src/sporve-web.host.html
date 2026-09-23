@@ -2321,7 +2321,7 @@ button.tnav.tnav-cta:hover{background:#FFFFFF;color:#0B0D0F;border-color:#FFFFFF
 .pr-close{flex-direction:column;text-align:center;gap:8px;margin-top:52px}
 .pr-close h2{margin:0}
 .pr-close p{color:var(--muted)}
-.pr-close-btns{display:flex;gap:10px;justify-content:center;margin-top:8px}
+.pr-close-btns{display:flex;gap:10px;justify-content:center;margin-top:8px;flex-wrap:wrap}
 .pr-head .display{font-size:var(--text-hero);line-height:1.04;letter-spacing:-.03em;margin:10px 0 14px}
 .pr-stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));
   margin:26px 0 34px;border-top:1px solid var(--rule);border-bottom:1px solid var(--rule)}
@@ -12942,12 +12942,19 @@ function startAgentRunScreen(){
   if(!(pv&&pv.id&&realSignedIn()&&window.SporveAPI&&window.SporveAPI.isSignedIn&&window.SporveAPI.isSignedIn())) return false;
   const t0=Date.now();
   const ts=()=>{const s2=Math.floor((Date.now()-t0)/1000);return String(Math.floor(s2/60)).padStart(2,"0")+":"+String(s2%60).padStart(2,"0");};
-  const ar=S.agentRun={lines:[],phase:"extract",done:false,total:0};
+  const ar=S.agentRun={lines:[],phase:"extract",done:false,total:0,read:0,proposals:0};
   const line=(txt,cls)=>{ar.lines.push({t:ts(),txt:txt,cls:cls||""});render();};
   S.modal={type:"agentrun"};render();
   line("Organization · "+(pv.business_name||"your org"));
-  const fams=(S.setGuardians||[]).length;
-  line(fams?("Families on file · "+fams):"Families on file · none yet");
+  /* Families on file (2026-09-23): this used to read S.setGuardians, which is
+     only populated when the Settings page loads — a run from the Queue tab
+     then printed "none yet" while the queue itself showed members. Read the
+     guardians table live so the transcript matches reality. Async on purpose:
+     the transcript appends real lines as calls return. */
+  window.SporveAPI.from("guardians","select=id&provider_id=eq."+pv.id+"&limit=1000")
+    .then(function(rows){const fams=Array.isArray(rows)?rows.length:0;
+      line(fams?("Families on file · "+fams):"Families on file · none yet");})
+    .catch(function(){line("Families on file · couldn't load this run","sk");});
   ar.phase="scan";
   line("Google not connected — skipped","sk");
   line(pv.stripe_charges_enabled?"Stripe connected — payments readable":"Stripe not connected — billing drafts are held","sk");
@@ -12956,12 +12963,19 @@ function startAgentRunScreen(){
     /* run_agent_read returns {n_kinds, n_rows}; the copy shows the ROW count so
        it matches the findings actually rendered below. */
     const rc=(n&&typeof n==="object")?(+n.n_rows):((typeof n==="number")?n:null);
+    /* Track what the read pass noticed even when nothing gets drafted — the
+       run modal's headline must not claim "no findings" when the transcript
+       itself says things were noticed (2026-09-23). */
+    ar.read=(rc===null?0:rc);
     line(rc===null?("Read pass · unavailable this run"):("Read pass · "+rc+" thing"+(rc===1?"":"s")+" noticed"),"hi");
     ar.phase="write";render();
     /* Intake pass (2026-09-22): sits between read and drafts. It never
        rejects, so a failure here falls back to today's behaviour exactly. */
     return runAgentIntake(pv.id,line).catch(()=>null);
-  }).then(()=>{
+  }).then(function(res){
+    /* Intake proposals land on the Queue tab too, so they count as findings
+       for the run modal's headline (same 2026-09-23 fix as ar.read). */
+    if(res&&typeof res.n==="number") ar.proposals=res.n;
     return window.SporveAPI.rpc("run_agent_drafts",{p_provider:pv.id}).catch(()=>null);
   }).then(r=>{
     if(r&&typeof r==="object"){
@@ -12973,7 +12987,9 @@ function startAgentRunScreen(){
       Object.keys(L).forEach(k=>{if(r[k]>0){any=true;line("Drafted "+r[k]+" "+L[k][r[k]===1?0:1]+" · none sent");}});
       if(!any) line("Nothing new to draft — dues, waivers and schedule are current");
       ar.total=(r.total||0);
-      line("Done. "+ar.total+" item"+(ar.total===1?"":"s")+" in your queue.","ok");
+      const arNoticed=(ar.read||0)+(ar.proposals||0);
+      line("Done. "+ar.total+" item"+(ar.total===1?"":"s")+" in your queue"+
+        (ar.total===0&&arNoticed>0?" · "+arNoticed+" noticed on the Queue tab":"")+".","ok");
     } else {
       line("Draft pass · unavailable this run — the nightly run still covers it","sk");
     }
@@ -14602,13 +14618,25 @@ function modalHTML(){
        phases advance when their call returns. */
     const ar=S.agentRun||{};
     const ph=(k,label)=>`<div class="arph ${ar.phase===k?"run":(ar.done||["extract","scan","read","write"].indexOf(k)<["extract","scan","read","write"].indexOf(ar.phase||"extract"))?"done":""}"><i></i>${label}</div>`;
-    return wrap(ar.done?(ar.total?"Done":"Nothing found yet"):"Reading your organization",`
-      <p style="color:var(--muted);font-size:var(--text-sm);margin-bottom:14px">${ar.done
-        ?(ar.total?ar.total+" item"+(ar.total===1?"":"s")+" in your queue. All of them are drafts — nothing was sent.":"The run finished with no findings — usually there isn't enough on file yet.")
-        :"Under a minute. Everything it drafts waits for you — nothing is sent from this screen."}</p>
+    /* 2026-09-23: the headline used to key off ar.total (drafts) alone, so a
+       run that noticed findings but drafted nothing announced "Nothing found
+       yet" while its own transcript said "Read pass · 1 thing noticed" and
+       the finding rendered on the Queue tab. Everything the run surfaced —
+       drafted items, read-pass notices, intake proposals — counts. */
+    const arFound=(ar.total||0)+(ar.read||0)+(ar.proposals||0);
+    const arHead=!ar.done?"Reading your organization"
+      :ar.total?"Done"
+      :arFound?"Nothing to draft"
+      :"Nothing found yet";
+    const arSub=!ar.done?"Under a minute. Everything it drafts waits for you — nothing is sent from this screen."
+      :ar.total?ar.total+" item"+(ar.total===1?"":"s")+" in your queue. All of them are drafts — nothing was sent."
+      :arFound?"The run noticed "+arFound+" thing"+(arFound===1?"":"s")+" — they're on your Queue tab. Nothing needed drafting, and nothing was sent."
+      :"The run finished with no findings — usually there isn't enough on file yet.";
+    return wrap(arHead,`
+      <p style="color:var(--muted);font-size:var(--text-sm);margin-bottom:14px">${arSub}</p>
       <div class="arphases">${ph("extract","Extract")}${ph("scan","Scan")}${ph("read","Read")}${ph("write","Write")}</div>
       <div class="arterm" aria-live="polite">${(ar.lines||[]).map(l=>`<div class="arln ${l.cls||""}"><span class="num" style="color:var(--faint)">${l.t}</span><span>${esc(l.txt)}</span></div>`).join("")}</div>
-      ${ar.done?(ar.total?`<button class="btn wide" data-arqueue="1" style="margin-top:14px">Open the review queue</button>`
+      ${ar.done?((ar.total||arFound)?`<button class="btn wide" data-arqueue="1" style="margin-top:14px">Open the review queue</button>`
         :`<div style="display:flex;flex-direction:column;gap:8px;margin-top:14px">
            <button class="btn wide" data-arroster="1">Add your roster</button>
            <button class="btn ghost wide" data-arrerun="1">Run again</button></div>`)
@@ -21572,6 +21600,34 @@ function hydrateReturn(){
     }
     return;
   }
+
+  /* ── SPA DEEP-LINK FALLBACK (?_=%2Fpricing%23J0I%2FZzPYe0P1nA6d8Z%2FW5Q%3D%2C+not+%2F%23J0I%2FZzPYe0P1nA6d8Z%2FW5Q%3D%2C+etc.) ──────────────────
+     Vercel rewrites clean paths to serve index.html (see the SPA fallback in
+     src/build.py's vercel.json step), so a typed/shared link never 404s — and
+     the 404 page used to inherit this project's CSP header, whose script-src
+     had no hash for Vercel's error-page inline script (a CSP violation on top
+     of the 404). But the path itself was unread: every cold load booted to
+     the landing no matter the URL. Map the first segment to the client route
+     the render switch already knows; unknown segments land on the in-app
+     "doesn't exist" page rather than a server 404. All the query deep links
+     above return before this runs, so they keep priority. */
+  try{
+    var _segs=window.location.pathname.split("/").filter(function(s){return s;});
+    if(_segs.length){
+      var _deep={pricing:1,product:1,explore:1,page:1,trust:1,about:1,info:1,
+        coachinfo:1,messages:1,profile:1,schedule:1,notifications:1,orgpage:1};
+      var _argd={page:1,orgpage:1,info:1};
+      var _dn=_segs[0].toLowerCase();
+      /* "start" retired as a surface; a stale /start link lands on the landing. */
+      if(_dn==="start") _dn="home";
+      var _known=!!_deep[_dn];
+      if(_known&&_dn!=="info"&&_argd[_dn]&&!_segs[1]) _known=false; /* page/orgpage need a slug */
+      S.route=_known
+        ?{name:_dn,arg:(_argd[_dn]&&_segs[1])?decodeURIComponent(_segs[1]):null}
+        :{name:_dn,arg:null};
+      render();
+    }
+  }catch(_){}
 
   if(!bookingId) return;
   scrub();

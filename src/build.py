@@ -378,6 +378,29 @@ if not os.path.exists(_vercel):
     sys.exit("FATAL: vercel.json missing; cannot publish CSP hashes")
 with open(_vercel, encoding="utf-8") as f:
     _cfg = json.load(f)
+
+# ── SPA deep-link fallback rewrite ───────────────────────────────────────
+# A direct visit to /pricing (typed link, share, refresh) hits Vercel's static
+# file server, which 404s — and the 404 page inherits this project's CSP
+# header, whose script-src has no hash for Vercel's error-page inline script,
+# so the browser ALSO logs a CSP violation on top of the 404. The rewrite
+# serves the app for unknown paths; the client boot maps the path to its
+# route (see "SPA DEEP-LINK FALLBACK" in sporve-web.host.html).
+#
+# Owned here — not hand-edited in vercel.json — so every build re-emits the
+# SET (index.html + sw.js + vercel.json) with the rule intact. The negative
+# lookahead keeps real files and the existing special routes untouched:
+# /api/*, /assets/*, /r + /r/* (rsvp rewrite), /unsubscribe (redirect), and
+# anything with a file extension (favicon, sw.js, sitemap, …).
+_SPA_RW_SOURCE = "/:path((?!api/|assets/|r$|r/|unsubscribe$|unsubscribe/|[^/]*\\.[^/]*$).*)"
+_SPA_RW_DEST = "/"
+_old_rw = json.dumps(_cfg.get("rewrites", []), sort_keys=True)
+_rw = [r for r in _cfg.get("rewrites", [])
+       if r.get("source") not in (_SPA_RW_SOURCE, "/r")]
+_rw.insert(0, {"source": "/r", "destination": "/rsvp.html"})
+_rw.append({"source": _SPA_RW_SOURCE, "destination": _SPA_RW_DEST})
+_cfg["rewrites"] = _rw
+_rw_changed = json.dumps(_rw, sort_keys=True) != _old_rw
 _csp_headers = [
     h for rule in _cfg.get("headers", []) for h in rule.get("headers", [])
     if h.get("key", "").lower() == "content-security-policy"
@@ -390,7 +413,7 @@ _current_csp = _csp_headers[0].get("value", "")
 _new_csp, _replaced = re.subn(r"script-src [^;]*;", _src, _current_csp, count=1)
 if _replaced != 1:
     sys.exit("FATAL: CSP header has no replaceable script-src directive")
-_changed = _new_csp != _current_csp
+_changed = (_new_csp != _current_csp) or _rw_changed
 _csp_headers[0]["value"] = _new_csp
 if _changed:
     with open(_vercel, "w", encoding="utf-8") as f:
