@@ -29,7 +29,7 @@
 <link rel="manifest" href="/site.webmanifest">
 <script type="application/ld+json">{"@context":"https://schema.org","@type":"SoftwareApplication","name":"Sporv","url":"https://sporv.ai/","applicationCategory":"BusinessApplication","operatingSystem":"Web","description":"Sporv runs the club for you — roster, scheduling, waivers, dues and payouts, with an agent that drafts the busywork and a human who approves it.","publisher":{"@type":"Organization","name":"Sporv","url":"https://sporv.ai/","logo":"https://sporv.ai/icon-512.png"}}</script>
 <script type="application/ld+json">{"@context":"https://schema.org","@type":"WebSite","name":"Sporv AI","url":"https://sporv.ai/"}</script>
-<meta name="sporve-build" content="24ee7a3ce611523d">
+<meta name="sporve-build" content="ff6ec9dd7b64a12b">
 </head>
 <body>
 <script>
@@ -1244,6 +1244,17 @@ img{max-width:100%;display:block}
 .imp-actions{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-top:16px}
 /* review queue (obligations) */
 .obcard{border:1px solid var(--line);border-radius:12px;padding:16px;margin-top:12px;background:var(--raise)}
+/* Roma-style task cards (2026-09-23, owner direction): title + one-line why
+   (CONTEXT §8 mandates every draft states why it exists in one line) +
+   one-line output + status/kind pills + actions. Same tokens as .obcard so the
+   portal theme carries over. 14px floor (rule 10), 8px grid (rule 3). */
+.qcard{border:1px solid var(--line);border-radius:12px;padding:16px;margin-top:12px;background:var(--raise)}
+.qcard-title{display:block;font-size:var(--text-base);font-weight:600;line-height:1.3}
+.qcard-why{margin-top:4px;font-size:var(--text-sm);color:var(--muted)}
+.qcard-out{margin-top:4px;font-size:var(--text-sm);color:var(--ink);
+  display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.qcard-pills{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px}
+.qcard-acts{display:flex;gap:8px;margin-top:12px}
 /* AI intake proposals (2026-09-22): staged data changes / message drafts from
    the intake pass. Same register as the review queue — one primary action
    (Approve), a ghost secondary (Void), pills for status. */
@@ -4387,19 +4398,8 @@ body.reg-coach .greet{font-size:24px}
 .arln.sk span:last-child{color:var(--faint)}
 .arln.hi span:last-child{color:var(--ink)}
 .arln.ok span:last-child{color:var(--ok,#3F8A5C);font-weight:600}
-/* Queue row v2 (design batch 1). Mono for signals and counts; the clamp is
-   two lines until tapped; the undo bar's draining line is the one animation,
-   and reduced-motion stills it. */
-.ob2who{display:flex;align-items:baseline;gap:8px;flex-wrap:wrap}
-.ob2who>b{font-weight:600}
-.ob2meta{color:var(--faint);font-size:var(--text-sm)}
-.ob2amt{margin-left:auto;font-size:var(--text-sm)}
-.ob2clamp{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;cursor:pointer}
-.ob2clamp.ob2open{-webkit-line-clamp:unset}
-.ob2why{display:flex;align-items:center;gap:8px;margin-top:12px;font-size:var(--text-xs);color:var(--faint);flex-wrap:wrap}
-.ob2sig{font-size:var(--text-xs);color:var(--slate-ink);background:var(--accent-tint,#EEF2F6);border:1px solid var(--rule);border-radius:999px;padding:2px 8px}
-#app.coachdark .ob2sig{color:#9DB0CB;background:rgba(107,127,158,.12);border-color:rgba(107,127,158,.34)}
-.ob2tone{margin-left:auto;display:inline-flex;align-items:center;gap:4px}
+/* Queue row v2 (design batch 1). The undo bar's draining line is the one
+   animation, and reduced-motion stills it. */
 .ob2group{margin-top:12px}
 .ob2gh{display:flex;align-items:center;gap:8px;padding:0 0 12px}
 .ob2gh>b{font-size:var(--text-xs);font-weight:700;letter-spacing:.09em;text-transform:uppercase;color:var(--faint)}
@@ -4792,6 +4792,18 @@ body.reg-coach .rail button.on{font-weight:600}
 .band.dark :focus-visible{outline-color:#E8EDF3}
 /* The validation checklist sits directly on the black, not inside a card. */
 .band.dark .lcheck{color:#DDE3EA}
+/* ── connector grid (coach landing, black band) ──────────────────────────
+   Roma-style connector cards on the pinned black ground: one surface step up
+   (#141A21) + a dark hairline (#232B34) — never a light border (rule 6).
+   Monogram marks are letters via .cxmark-dark, never emoji (rule 13).
+   Copy is sentence case, straight text — the owner's 2026-09-23 direction. */
+.cxgrid{display:grid;grid-template-columns:repeat(4,1fr);gap:16px}
+.cxcard{background:#141A21;border:1px solid #232B34;border-radius:12px;padding:20px}
+.cxcard b{display:block;margin-top:12px;font-size:var(--text-base);font-weight:600;color:#FFFFFF;line-height:1.3}
+.cxcard p{margin-top:8px;font-size:var(--text-sm);color:#AEB8C4;line-height:1.5}
+.band.dark .cxcard p{color:#AEB8C4}
+@media(max-width:900px){.cxgrid{grid-template-columns:repeat(2,1fr)}}
+@media(max-width:560px){.cxgrid{gap:12px}.cxcard{padding:16px}}
 /* A HARDCODED rgba the token override could not reach. #app.noorange
    redefines --accent-on-dark, but this rule spelled the colour out, so the
    picker sweep still found it three times on the landing. Literals are exactly
@@ -6635,7 +6647,7 @@ body.reg-coach .rail button.on{font-weight:600}
   .aidock-ic,.aidock-x{min-width:40px;min-height:40px;width:40px;height:40px}
   .aidock-input{min-height:40px}
   #app .att-btn{min-width:60px}
-  .ob2undo{flex-wrap:wrap}.ob2undo>*{min-width:0}.ob2tone{margin-left:0}
+  .ob2undo{flex-wrap:wrap}.ob2undo>*{min-width:0}
   .obcard,.cui-block,.cui-card{min-width:0;max-width:100%}
   #app .cui-tablewrap,#app .sch-month{max-width:100%;overflow-x:auto}
   #app img,#app svg{max-width:100%}
@@ -9077,15 +9089,15 @@ function pricingHTML(){
       const CARDS=[
         {id:"solo",name:"Solo",price:"$39",per:"/mo",
          desc:"One coach or private trainer.",
-         feats:["The agent — drafts dues, waivers & reminders","Roster, schedule, session notes & messaging","Email delivery from your club address","Automatic payouts","Up to 3 seats","0% taken from bookings"],
+         feats:["The agent — drafts dues, waivers and reminders","Roster, schedule, session notes and messaging","Email delivery from your club address","Automatic payouts","Up to 3 seats","0% taken from bookings"],
          cta:"Start free",buy:"signup"},
         {id:"club",name:"Club",price:"$179",per:"/mo",rec:true,
          desc:"A travel team, club, or camp.",
-         feats:["Everything in Solo","Up to 10 staff seats with roles","Waivers & eligibility tracking","Client discovery in the chat","Season billing in installments","0% taken from bookings"],
+         feats:["Everything in Solo","Up to 10 staff seats with roles","Waivers and eligibility tracking","Client discovery in the chat","Season billing in installments","0% taken from bookings"],
          cta:"Start free",buy:"signup"},
-        {id:"organization",name:"Organization",price:"$449",per:"/mo",
+        {id:"organization",name:"Organization",noprice:true,
          desc:"A multi-team org, AAU program, or academy.",
-         feats:["Everything in Club","Unlimited coach & staff seats","Per-staff background-check gating","Compliance dashboard — certs & waivers","Roles & granular permissions","Consolidated org billing · planned"],
+         feats:["Everything in Club","Unlimited coach and staff seats","Per-staff background-check gating","Compliance dashboard — certs and waivers","Roles and granular permissions","Consolidated org billing · planned"],
          cta:"Book a call",buy:"call"},
       ];
       const feat=f=>{const i=f.indexOf(" · planned");return i<0?esc(f):esc(f.slice(0,i))+`<em class="pt-planned"> · planned</em>`;};
@@ -9101,12 +9113,12 @@ function pricingHTML(){
         return `<div class="pp-card${rec?" pp-rec":""}" data-rev data-rev-d="${Math.min(ci,3)}">
           ${rec?`<span class="pp-badge">Recommended</span>`:""}
           <h3 class="pp-name">${esc(t.name)}</h3>
-          <div class="pp-price"><b${P.m?` data-m="${esc(P.m)}" data-y="${esc(P.y)}"`:""}>${esc(P.now)}</b>${t.per?`<span>${esc(t.per)}</span>`:""}</div>
+          ${t.noprice?"":`<div class="pp-price"><b${P.m?` data-m="${esc(P.m)}" data-y="${esc(P.y)}"`:""}>${esc(P.now)}</b>${t.per?`<span>${esc(t.per)}</span>`:""}</div>`}
           <p class="pp-desc">${esc(t.desc)}</p>
           ${/* CTA ABOVE the feature list (spec §1: the card HEADER is name,
                price, button — all three above the fold at 1440×900). */""}
           ${t.buy==="call"
-            ?`<a class="${rec?"btn pp-cta":"pp-cta pp-cta-alt"}" href="mailto:support@sporv.ai?subject=Sporv%20Organization%20plan">${esc(t.cta)}</a>`
+            ?`<a class="${rec?"btn pp-cta":"pp-cta pp-cta-alt"}" href="${CALENDLY_URL}" target="_blank" rel="noopener">${esc(t.cta)}</a>`
             :`<button class="${rec?"btn pp-cta":"pp-cta pp-cta-alt"}" data-becomecoach="1">${esc(t.cta)}</button>`}
           <ul class="pp-feats">${t.feats.map(f=>`<li>${CK}<span>${feat(f)}</span></li>`).join("")}</ul>
           ${t.dev?`<p class="pp-dev">In development — early access only</p>`:""}
@@ -9127,16 +9139,16 @@ function pricingHTML(){
       const mono=v=>`<td><b class="mono">${esc(String(v))}</b></td>`;
       const prow=(label,cells)=>`<tr><th scope="row">${esc(label)}</th>${cells}</tr>`;
       const body=[
-        prow("Monthly price",mono("$"+C.monthly.solo)+mono("$"+C.monthly.club)+mono("$"+C.monthly.organization)),
-        prow("Yearly price (−"+Math.round(C.yearlyDiscount*100)+"%)",mono("$"+(C.monthly.solo*(1-C.yearlyDiscount)).toFixed(2)+"/mo")+mono("$"+(C.monthly.club*(1-C.yearlyDiscount)).toFixed(2)+"/mo")+mono("$"+(C.monthly.organization*(1-C.yearlyDiscount)).toFixed(2)+"/mo")),
+        prow("Monthly price",mono("$"+C.monthly.solo)+mono("$"+C.monthly.club)+mono("Custom")),
+        prow("Yearly price (−"+Math.round(C.yearlyDiscount*100)+"%)",mono("$"+(C.monthly.solo*(1-C.yearlyDiscount)).toFixed(2)+"/mo")+mono("$"+(C.monthly.club*(1-C.yearlyDiscount)).toFixed(2)+"/mo")+mono("Custom")),
         prow("Seats",mono(C.seats.solo)+mono(C.seats.club)+mono(C.seats.organization)),
         prow("AI actions",mono(C.aiActions.solo)+mono(C.aiActions.club)+mono(C.aiActions.organization)),
         prow("Taken from bookings",mono(FEE_PCT+"%")+mono(FEE_PCT+"%")+mono(FEE_PCT+"%")),
-        prow("The agent, roster, schedule, notes & messaging",y()+y()+y()),
+        prow("The agent, roster, schedule, notes and messaging",y()+y()+y()),
         prow("Automatic payouts",y()+y()+y()),
-        prow("Staff roles & permissions",n+y()+y()),
+        prow("Staff roles and permissions",n+y()+y()),
         prow("Per-staff background-check gating",n+n+y()),
-        prow("Compliance dashboard — certs & waivers",n+n+y()),
+        prow("Compliance dashboard — certs and waivers",n+n+y()),
       ].join("");
       return `<div class="cmp-wrap" data-rev>
       <table class="cmp cmp-plans" aria-label="Compare plans">
@@ -9155,7 +9167,7 @@ function pricingHTML(){
     ${/* FAQ (spec §2): native <details>, revealed with data-rev-d = i%3.
          Copy states only what the config and shipped code make true. */""}
     ${(()=>{const C=PRICING_CFG;const QA=[
-      ["How does yearly billing work?","Pay for a year up front and every plan drops "+Math.round(C.yearlyDiscount*100)+"% — Solo comes to $"+(C.monthly.solo*(1-C.yearlyDiscount)).toFixed(2)+"/mo, Club to $"+(C.monthly.club*(1-C.yearlyDiscount)).toFixed(2)+"/mo, and Organization to $"+(C.monthly.organization*(1-C.yearlyDiscount)).toFixed(2)+"/mo, billed once."],
+      ["How does yearly billing work?","Pay for a year up front and every plan drops "+Math.round(C.yearlyDiscount*100)+"% — Solo comes to $"+(C.monthly.solo*(1-C.yearlyDiscount)).toFixed(2)+"/mo and Club to $"+(C.monthly.club*(1-C.yearlyDiscount)).toFixed(2)+"/mo, billed once. Organization is priced on a call."],
       ["Is there a nonprofit discount?","Yes — registered nonprofits get "+Math.round(C.nonprofitDiscount*100)+"% off any paid plan. Email support@sporv.ai from your organization's address and we apply it to your subscription."],
       ["What does Sporv take from dues?",FEE_PCT+"%. Sporv is a subscription. Families pay your price, payouts go straight to your club's own Stripe account, and Stripe's own card-processing rate applies there as it would with any processor."],
       ["Can I change plans later?","Anytime. Upgrades apply immediately; downgrades apply at the end of the current billing period. Your roster, records and history carry over untouched."],
@@ -9639,6 +9651,30 @@ function landingHTML(){
         <div><span>Dues tracker (Sheet1)</span><span class="s">Google Sheets</span></div>
         <div><span>waivers_signed.pdf</span><span class="s">Scanned</span></div>
       </div>
+    </div>
+  </section>
+
+  ${/* Connectors band (2026-09-23, owner direction): Roma-style connector
+       cards on a black ground, text straight (sentence case), tailored to the
+       connectors Sporv actually ships. No integration is claimed as connected
+       before the visitor connects it themselves. */""}
+  <section class="band dark">
+    <div class="shell" data-rev>
+      <div class="eyebrow" data-rev>Connectors</div>
+      <h2 data-rev style="margin-top:10px;max-width:22ch">Connects to the tools you already use.</h2>
+      <p class="sub" data-rev style="margin-top:16px;max-width:62ch">Plug in once and the agent works from your real records — inbox, calendar, sheets, and payments. Nothing sends or charges until you approve it.</p>
+      <div class="cxgrid" data-rev style="margin-top:40px">
+        ${[["Gmail","Reads parent email and tournament PDFs. Drafts only, never sends."],
+           ["Google Calendar","Reads practices, games, and conflicts. Changes only with your approval."],
+           ["Outlook","Microsoft 365 mail and calendar. Read-only — changes need your approval."],
+           ["Google Sheets","The spreadsheet you already run on, read straight in."],
+           ["Google Drive","Waivers and forms, read where you already keep them."],
+           ["Stripe","Dues, refunds, and payouts on your own Stripe account."],
+           ["SMS","Reads inbound parent texts. Replies stay drafts until you send."],
+           ["QuickBooks","Reconciliation, read-only. Your books stay the source of truth."]
+          ].map(([n,d])=>`<div class="cxcard"><span class="cxmark cxmark-dark" aria-hidden="true">${esc(n.charAt(0))}</span><b>${esc(n)}</b><p>${esc(d)}</p></div>`).join("")}
+      </div>
+      <p class="sub" data-rev style="margin-top:24px">Connect each one yourself from the Connect page — nothing is connected until you do.</p>
     </div>
   </section>
 
@@ -14105,27 +14141,33 @@ function coachQueuePage(){
   const done=q.filter(o=>o.status==="done");
   const card=o=>{const m=OBLIG_META[o.kind]||OBLIG_META.message;
     const att=obligAttempt(o), aboveCap=att!=null&&att>capMax();
-    const why=obligWhy(o), tone=orgTone();
+    const why=obligWhy(o);
     const holding=(S.obligHold||[]).includes(o.id);
-    return `<div class="obcard${holding?" obholding":""}">
-      <div class="ob2who">
-        <b>${esc(o.guardianName||o.title)}</b>
-        <span class="ob2meta">${esc(m.label)}${o.sourceKind&&o.sourceKind!=="agent"?` · from ${esc(OBLIG_SRC[o.sourceKind]||o.sourceKind)}`:""}</span>
-        ${o.amountCents!=null?`<span class="ob2amt num">$${(o.amountCents/100).toFixed(o.amountCents%100?2:0)}</span>`:""}
+    /* Roma-style task card (2026-09-23, owner direction): one title, one why
+       line (CONTEXT §8 mandates every draft states why it exists in one line),
+       one output line, status + kind pills, then the actions. Every data hook
+       and approval behavior is unchanged. */
+    const title=o.title||o.guardianName||m.label;
+    const who=(o.title&&o.guardianName&&o.guardianName!==o.title)?` — ${o.guardianName}`:"";
+    const status=o.status==="draft"?"Waiting for review":o.status==="approved"?"Approved":"Done";
+    const stPill=o.status==="draft"?"warn":o.status==="approved"?"slate":"good";
+    const firstLine=(o.detail||"").split("\n").map(s=>s.trim()).filter(Boolean)[0]||"";
+    return `<div class="qcard${holding?" obholding":""}">
+      <b class="qcard-title">${esc(title+who)}</b>
+      ${why?`<p class="qcard-why">${esc(why)}</p>`:""}
+      ${firstLine&&firstLine!==why?`<p class="qcard-out">${esc(firstLine)}</p>`:""}
+      <div class="qcard-pills">
+        <span class="pill ${stPill}">${esc(status)}</span>
+        <span class="pill slate">${esc(m.label)}</span>
+        ${o.amountCents!=null?`<span class="pill slate num">$${(o.amountCents/100).toFixed(o.amountCents%100?2:0)}</span>`:""}
+        ${aboveCap?`<span class="pill warn">Above your auto cap</span>`:""}
       </div>
-      ${o.guardianName&&o.title?`<b class="obtitle" style="margin-top:8px">${esc(o.title)}</b>`:""}
-      ${o.detail?`<p class="obdetail ob2clamp" data-obexpand="1" style="white-space:pre-line">${esc(o.detail)}</p>`:""}
-      <div class="ob2why">
-        ${why?`Why <span class="ob2sig num">${esc(why)}</span>`:""}
-        ${o.status==="draft"&&(o.guardianId||o.sourceKind==="agent")?`<span class="ob2tone">Tone <span class="pill${aboveCap?" warn":""}">${esc(tone[0].toUpperCase()+tone.slice(1))}${aboveCap?" · above your auto cap":""}</span></span>`:""}
-      </div>
-      <div class="obacts">
+      <div class="qcard-acts">
         ${o.status==="draft"?`<button class="btn sm" data-oblig-approve="${esc(o.id)}"${o.busy?" disabled":""}>${o.busy?"Approving…":"Approve"}</button>
           <button class="btn ghost sm" data-oblig-dismiss="${esc(o.id)}"${o.busy?" disabled":""}>Dismiss</button>`:""}
         ${o.status==="approved"?`<button class="btn sm" data-oblig-done="${esc(o.id)}"${o.busy?" disabled":""}>${o.busy?"Saving…":"Mark done"}</button>
           <button class="btn ghost sm" data-oblig-undo="${esc(o.id)}">Undo approval</button>`:""}
-        ${o.status==="done"?`<span class="pill good">Done</span>
-          <button class="btn ghost sm" data-oblig-undo="${esc(o.id)}">Undo</button>`:""}
+        ${o.status==="done"?`<button class="btn ghost sm" data-oblig-undo="${esc(o.id)}">Undo</button>`:""}
       </div>
     </div>`;};
   const liveOrg=!!(S.obligLive&&S.coachProvider&&S.coachProvider.id);
@@ -19109,7 +19151,6 @@ document.querySelectorAll('.sig-ai-coach').forEach(sigAiCoachWire);
     const n=(S.obligHold||[]).length;S.obligHold=[];render();
     toast("Held "+n+" back — nothing was sent, they're still drafts.");
   });
-  $("[data-obexpand]").forEach(el=>el.onclick=()=>el.classList.toggle("ob2open"));
   $("[data-oblig-approveall]").forEach(b=>b.onclick=async()=>{
     if(S.bulkApproving) return;
     const rows=obligationQueue().filter(o=>o.status==="draft"&&o.live&&o.sourceKind==="agent");
