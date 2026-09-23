@@ -28,7 +28,7 @@
 <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png?v=2">
 <link rel="manifest" href="/site.webmanifest">
 <script type="application/ld+json">{"@context":"https://schema.org","@type":"SoftwareApplication","name":"Sporv","url":"https://sporv.ai/","applicationCategory":"BusinessApplication","operatingSystem":"Web","description":"Sporv runs the club for you — roster, scheduling, waivers, dues and payouts, with an agent that drafts the busywork and a human who approves it.","publisher":{"@type":"Organization","name":"Sporv","url":"https://sporv.ai/","logo":"https://sporv.ai/icon-512.png"}}</script>
-<meta name="sporve-build" content="bce3c9a9523306ed">
+<meta name="sporve-build" content="5ede6ba2b0e67d5a">
 </head>
 <body>
 <script>
@@ -4901,23 +4901,27 @@ body.reg-coach .rail button.on{font-weight:600}
 .lp26 h3{font-size:17px;letter-spacing:.03em}
 .lp26 p{margin:0}
 .lp26 .dark{background:var(--black);color:#E9EDF3}
-.lp26 .dark .k{color:var(--steel-l)} .lp26 .dark p{color:var(--w-1)} .lp26 .dark .rule{border-color:var(--w-line)}
+.lp26 .dark .k{color:#8A8A8A} .lp26 .dark p{color:var(--w-1)} .lp26 .dark .rule{border-color:var(--w-line)}
 /* TWO-COLOUR LAW (owner 2026-08-31): the landing carries ONLY black and the
    pricing-page grey-slate, one step darker (#DDE4EC), with BLACK text. The
    former dark2 (#161C22), off (#EEF1F5) and white grounds all resolve to the
    slate. Scoped var overrides flip the fine print / hairlines that the markup
    references via --w-1/--w-2/--w-line, so the queue band's captions read dark
    on the light ground. The queue card itself stays the dark product mock. */
+/* MONOCHROME (owner 2026-09-23, 8090.ai): the two-colour law's slate is
+   retired for a SECOND DARK TONE. Black bands stay black; every former
+   slate band is #1C1C1C with white / #B4B4B4 text and #2E2E2E hairlines —
+   8090's alternating near-blacks. Every text token on these bands is now a
+   light literal, per the colour law for dark grounds. */
 .lp26 .dark2,.lp26 .off,.lp26 .light{
-  background:#DDE4EC;color:#0B0D0F;
-  --w-1:rgba(11,13,15,.80);--w-2:rgba(11,13,15,.62);--w-line:rgba(11,13,15,.16);
+  background:#1C1C1C;color:#FFFFFF;
+  --w-1:#B4B4B4;--w-2:#8A8A8A;--w-line:#2E2E2E;
 }
-.lp26 .dark2 .k,.lp26 .off .k,.lp26 .light .k{color:#0B0D0F}
-.lp26 .dark2 p,.lp26 .off p,.lp26 .light p{color:#0B0D0F}
-.lp26 .dark2 .rule,.lp26 .off .rule,.lp26 .light .rule{border-color:rgba(11,13,15,.18)}
-/* The close CTA sits on slate now: dark button, not white. */
-.lp26 .dark2 .btn.pri{background:#0B0D0F;color:#fff;border-color:#0B0D0F}
-.lp26 .dark2 .btn.pri:hover{background:transparent;color:#0B0D0F}
+.lp26 .dark2 .k,.lp26 .off .k,.lp26 .light .k{color:#8A8A8A}
+.lp26 .dark2 p,.lp26 .off p,.lp26 .light p{color:#B4B4B4}
+.lp26 .dark2 .rule,.lp26 .off .rule,.lp26 .light .rule{border-color:#2E2E2E}
+.lp26 .dark2 .btn.pri{background:#FFFFFF;color:#0B0D0F;border-color:#FFFFFF}
+.lp26 .dark2 .btn.pri:hover{background:#E9ECF0;color:#0B0D0F}
 /* The dark queue CARD keeps its own light captions on its own dark ground. */
 .lp26 .queue{color:#E9EDF3;
   --w-1:rgba(226,233,241,.70);--w-2:rgba(226,233,241,.55);--w-line:rgba(174,186,199,.18)}
@@ -4948,7 +4952,7 @@ body.reg-coach .rail button.on{font-weight:600}
   .lp26 .queue .qh .b span:not(.p){display:none}
 }
 .lp26 .band{padding:clamp(72px,9vh,110px) 0}
-.lp26 .light+.dark2,.lp26 .dark2+.light,.lp26 .light+.light,.lp26 .dark2+.dark2{border-top:1px solid rgba(15,23,42,.14)}
+.lp26 .light+.dark2,.lp26 .dark2+.light,.lp26 .light+.light,.lp26 .dark2+.dark2{border-top:1px solid #2E2E2E}
 .lp26 .dark+.dark{border-top:1px solid #1C222B}
 .lp26 .band .head{max-width:60ch;margin-bottom:40px}
 .lp26 .band .head h2{margin-bottom:14px;max-width:20ch}
@@ -4962,12 +4966,12 @@ body.reg-coach .rail button.on{font-weight:600}
 .lp26 .who>div:first-child{padding-left:0}
 .lp26 .who>div:last-child{border-right:0;padding-right:0}
 .lp26 .who h3{margin-bottom:10px}
-.lp26 .who .m{margin-top:16px;padding-top:12px;border-top:1px solid;font-family:"JetBrains Mono",monospace;font-size:14px;color:var(--steel)}
+.lp26 .who .m{margin-top:16px;padding-top:12px;border-top:1px solid;font-family:"JetBrains Mono",monospace;font-size:14px;color:#8A8A8A}
 @media(max-width:820px){.lp26 .who{grid-template-columns:1fr}.lp26 .who>div{border-right:0;border-bottom:1px solid;padding-right:0}}
 .lp26 .price{display:grid;grid-template-columns:1fr 1fr;gap:56px;align-items:center}
 /* 2026-09-22 (owner: the 104px "One" read as unprofessional) — pricing
    takes the same h2 scale as every other section header; .big retired. */
-.lp26 .price .no{font-family:"Archivo",sans-serif;text-transform:uppercase;font-weight:600;font-size:14px;letter-spacing:.06em;margin-top:18px;color:var(--steel-l)}
+.lp26 .price .no{font-family:"Archivo",sans-serif;text-transform:uppercase;font-weight:600;font-size:14px;letter-spacing:.06em;margin-top:18px;color:#B4B4B4}
 @media(max-width:820px){.lp26 .price{grid-template-columns:1fr;gap:24px}}
 .lp26 .switch{display:grid;grid-template-columns:1.1fr 1fr;gap:56px;align-items:center}
 .lp26 .files{border:1px solid var(--w-line);border-radius:10px;background:var(--slate-800);padding:4px}
@@ -5051,7 +5055,7 @@ body.reg-coach .rail button.on{font-weight:600}
 /* Two-colour law: every accent on the slate grounds is black (owner:
    "change the text to black"). */
 .lp26 .off .n,.lp26 .off .m,.lp26 .light .n,.lp26 .light .m,
-.lp26 .dark2 .n,.lp26 .dark2 .m,.lp26 .dark2 .no{color:#0B0D0F}
+.lp26 .dark2 .n,.lp26 .dark2 .m,.lp26 .dark2 .no{color:#B4B4B4}
 
 /* ═══ Scroll-linked pinned showcase (landing only, marketing surface) ═══════
    DEFAULT (no .js-rev — reduced-motion / no-JS): three readable stacked blocks,
@@ -9215,15 +9219,17 @@ function productMenuHTML(){
 }
 /* The three groups of the product, in menu and sidebar order. "More" holds
    the pages that are routable but not headline features. */
-const DOC_GROUPS=[["Run your club",["roster","scheduling","waivers","agent"]],
-  ["Money",["payments","payouts"]],
-  ["About",["what-is","background-checks"]]];
-const DOC_MORE=["instant-booking","messaging","bookings-receipts","athlete-progress","session-notes","media-consent","insights"];
+/* Owner 2026-09-23: no "More" bucket — every page lives under one of the
+   three groups. */
+const DOC_GROUPS=[["Run your club",["roster","scheduling","waivers","agent","session-notes","media-consent","athlete-progress"]],
+  ["Money",["payments","payouts","bookings-receipts","insights"]],
+  ["About",["what-is","background-checks","instant-booking","messaging"]]];
+const DOC_MORE=[];
 function docsShellHTML(id, body){
   /* 8090 docs layout: sticky sidebar (search · groups · footer links) beside
      a reading column. The page body is the unchanged product page; the
      .docs scope restyles it monochrome. */
-  const groupOf=(pid)=>{for(const [g,ids] of DOC_GROUPS) if(ids.includes(pid)) return g; return DOC_MORE.includes(pid)?"More":"";};
+  const groupOf=(pid)=>{for(const [g,ids] of DOC_GROUPS) if(ids.includes(pid)) return g; return "";};
   const active=groupOf(id);
   const link=(pid)=>{const m=PAGE_META[pid];if(!m) return "";return `<button class="docs-link${pid===id?" on":""}" data-pdest="page:${pid}" ${pid===id?'aria-current="page"':""}>${esc(m.t)}</button>`;};
   const group=(g,ids)=>`<details class="docs-group" ${g===active?"open":""}><summary>${esc(g)}<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg></summary><div class="docs-links">${ids.map(link).join("")}</div></details>`;
@@ -9231,7 +9237,7 @@ function docsShellHTML(id, body){
     <aside class="docs-nav" aria-label="Product pages">
       <div class="docs-brand"><span class="docs-brand-mark" aria-hidden="true"></span>Product</div>
       <label class="docs-search"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg><input type="search" placeholder="Search" data-docsearch="1" autocomplete="off"><kbd>⌘K</kbd></label>
-      <nav class="docs-tree">${DOC_GROUPS.map(([g,ids])=>group(g,ids)).join("")}${group("More",DOC_MORE)}</nav>
+      <nav class="docs-tree">${DOC_GROUPS.map(([g,ids])=>group(g,ids)).join("")}</nav>
       <div class="docs-foot">
         <button class="docs-flink" data-nav="pricing">Pricing</button>
         <a class="docs-flink" href="${CALENDLY_URL}" target="_blank" rel="noopener">Book a call</a>
