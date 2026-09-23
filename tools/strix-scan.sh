@@ -94,6 +94,20 @@ fi
 # file exists so the owner never has to paste a key into a chat transcript or
 # a shell command that gets logged: write it once, it works forever, and
 # .gitignore's `.env*` rule keeps it out of every commit.
+# BILLING GUARD (owner 2026-09-22: "never update using the API key, use the
+# subscription"). Strix is the ONE tool in this repo that spends pay-per-use
+# API money — a single run on 2026-09-21 cost $10.10 (Opus, 8.6M tokens) and
+# found nothing. It therefore refuses to run unless the owner opts in for
+# THIS invocation. Exit 3 is "declined on billing", distinct from exit 2
+# "preconditions unmet", so no caller can mistake it for a passing scan.
+if [ "${STRIX_SPEND_OK:-}" != "yes-charge-my-api-key" ]; then
+  note "✗ Strix NOT run: it bills the Anthropic API per run (≈\$10), and the"
+  note "  owner's standing rule is subscription-only. To run it anyway, the"
+  note "  owner types, in their own terminal:"
+  note "    STRIX_SPEND_OK=yes-charge-my-api-key bash tools/strix-scan.sh"
+  note "  Free alternatives: node tools/verify/run.mjs · clo MODE: pentest."
+  exit 3
+fi
 STRIX_ENV_FILE="${STRIX_ENV_FILE:-$WEB_ROOT/.env.strix}"
 if [ -z "${LLM_API_KEY:-}" ] && [ -f "$STRIX_ENV_FILE" ]; then
   # Read it without echoing it. `set -a` exports what the file assigns.

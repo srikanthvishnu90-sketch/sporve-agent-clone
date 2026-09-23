@@ -29,17 +29,11 @@ case "$prompt" in
     if [ $(( n % 10 )) -eq 0 ]; then
       cat <<EOF
 <system-reminder>
-STRIX DUE — $n user prompts since the cadence started. Per the owner's standing
-instruction (a Strix deep security pass every ~10 prompts), run it now as a
-READ-ONLY step that reports findings and applies nothing:
-
-  bash tools/strix-scan.sh
-
-Strix (usestrix/strix) targets the real attack surface — ~/SportsMan-main +
-Supabase, NOT this static site. If its preconditions are unmet it prints the
-exact setup and exits 2; then run the clo agent in MODE: pentest as the
-always-available static triage and tell the owner Strix setup is still pending.
-Do this alongside the current task; do not skip it silently. See docs/strix.md.
+STRIX CHECKPOINT — $n user prompts. Strix is NOT to be run: it bills the
+Anthropic API (~\$10/run) and the owner's standing rule (2026-09-22) is
+subscription-only; tools/strix-scan.sh now exits 3 without an explicit
+owner opt-in. Instead run the FREE static pass — node tools/verify/run.mjs
+(already gating every PR) or the clo agent in MODE: pentest — and report.
 </system-reminder>
 EOF
     fi
