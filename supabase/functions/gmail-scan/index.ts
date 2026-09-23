@@ -17,11 +17,11 @@
 //
 // Auth: service_role only. It is invoked by the cron runner, not by a browser.
 import { createClient } from 'npm:@supabase/supabase-js@2.112.4';
-import { withHttpDeadline, HttpInputError } from '../_shared/http.ts';
-import { googleConfig } from '../_shared/google-oauth.ts';
+import { withHttpDeadline, HttpInputError } from './_shared/http.ts';
+import { googleConfig } from './_shared/google-oauth.ts';
 import {
   actionable, findingFor, listQuery, summarise,
-} from '../_shared/gmail-read.mjs';
+} from './_shared/gmail-read.mjs';
 
 const cors = {
   'Access-Control-Allow-Origin': '*',
