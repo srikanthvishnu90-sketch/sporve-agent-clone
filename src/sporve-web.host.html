@@ -5934,7 +5934,10 @@ body.reg-coach .rail button.on{font-weight:600}
    it to 3 lines. Section H2s capped to ≤32 via the !important rule below,
    overriding the pages' inline clamps without touching each template. */
 .pg-h1{font-size:clamp(30px,2.5vw,36px);margin:20px 0 0;max-width:none;line-height:1.08;letter-spacing:-.01em}
-.pgband h2.pg-serif{font-size:clamp(19px,1.5vw,21px)!important;line-height:1.18}
+/* ROOT FIX 2026-09-23: this cap had drifted to 19–21px — below its own
+   documented intent (≤32) — and was silently shrinking every section head
+   inside the docs shell. Value now matches the comment above. */
+.pgband h2.pg-serif{font-size:clamp(24px,2.2vw,30px)!important;line-height:1.25}
 .pg-sub{font-size:18px;color:var(--muted);max-width:56ch;margin:18px 0 0;line-height:1.55}
 .pg-cta{display:inline-flex;align-items:center;gap:8px;height:var(--h-ctl);padding:0 22px;
   border-radius:var(--r-ctl);background:var(--page-accent);color:var(--page-accent-on);
@@ -6318,8 +6321,7 @@ body.reg-coach .rail button.on{font-weight:600}
 #app .docs .pgroot .pg-worked-math code{display:block;color:#fff!important;margin-bottom:16px}
 #app .docs .pgroot :where(th){background:#202020}
 #app .docs .pgroot :where(.pg-row,.pg-walk-step,.pg-rail-stat,.rule,.pg-lines){border-color:#2E2E2E}
-/* .pgband h2.pg-serif{…!important} (line ~5933) otherwise wins and shrinks section heads to 19–21px */
-#app .docs .pgroot .pgband:not(.pg-hero) h2{font-size:clamp(24px,2.2vw,30px)!important;line-height:1.25;margin-bottom:20px}
+#app .docs .pgroot .pgband:not(.pg-hero) h2{font-size:clamp(24px,2.2vw,30px);line-height:1.25;margin-bottom:20px}
 #app .docs .pgroot .pgband [data-prose]{line-height:1.75}
 @media(max-width:960px){.docs{grid-template-columns:1fr}.docs-nav{position:static;height:auto;border-right:0;border-bottom:1px solid #2E2E2E}
   .docs-group:not([open]) .docs-links{display:none}.docs-main{padding:32px 20px 72px}}
