@@ -14,6 +14,7 @@ import assert from "node:assert/strict";
 import {
   INTENTS, classifyIntents, extractSlots, buildSessionPatch,
   resolveSessionDate, waiverNameFromText, matchWaiverDoc, buildProposal,
+  formatProgramPrice, waiverMediumCopy,
 } from "../agent-intake/finding.mjs";
 
 // 2026-09-23 12:00 UTC — a Wednesday. runNow is fixed so date math is stable.
@@ -217,4 +218,79 @@ test("matchWaiverDoc: matches by title substring, null when unknown", () => {
   assert.equal(matchWaiverDoc(docs, null), null);
   assert.equal(matchWaiverDoc(docs, "Some Other Form"), null);
   assert.equal(matchWaiverDoc([], "Liability Waiver"), null);
+});
+
+/* ── v4 Fix A: programs.price is DOLLARS, never cents ──────────────────── */
+// 2026-09-23: the Queue rendered $149.00 as "$1" (price/100 on a
+// numeric(10,2) DOLLARS column). Whole dollars, no division.
+test("formatProgramPrice: $149.00 renders as \"$149\", not \"$1\"", () => {
+  assert.equal(formatProgramPrice(149.00), "$149");
+  assert.equal(formatProgramPrice(149), "$149");
+  assert.equal(formatProgramPrice(99), "$99");
+  // Rounding, not truncation — still whole dollars.
+  assert.equal(formatProgramPrice(149.50), "$150");
+});
+
+test("formatProgramPrice: never divides by 100", () => {
+  for (const p of [1, 10, 99, 149, 2500]) {
+    assert.equal(formatProgramPrice(p), `$${p}`, `price ${p} must render whole dollars`);
+  }
+});
+
+/* ── v4 Fix B: medium-confidence waiver_claim cites the DB check ───────── */
+// sc03 honesty regression: "we signed the Participation Waiver" with no
+// athlete named → entity unresolved → medium confidence. The copy must cite
+// the actual waiver_signatures check, never generic copy alone, and never
+// invent a waiver name or a check that wasn't performed.
+const DOC = { id: "d1", title: "Participation Waiver" };
+
+test("waiverMediumCopy: signed → cites the row, nothing staged", () => {
+  const copy = waiverMediumCopy({ docTitle: DOC.title, signed: true, docFound: true }, "Alex");
+  assert.ok(copy.includes("Checked the waiver records (waiver_signatures)"));
+  assert.ok(copy.includes(`a signed '${DOC.title}' row already exists for Alex`));
+  assert.ok(copy.includes("the claim checks out"));
+  assert.ok(copy.includes("Nothing is staged."));
+});
+
+test("waiverMediumCopy: unsigned → stays UNSIGNED until a real signature", () => {
+  const copy = waiverMediumCopy({ docTitle: DOC.title, signed: false, docFound: true }, "Alex");
+  assert.ok(copy.includes(`no signed '${DOC.title}' row for Alex`));
+  assert.ok(copy.includes("UNSIGNED until a real signature is recorded"));
+  assert.ok(copy.includes("Nothing is staged until you confirm."));
+});
+
+test("waiverMediumCopy: doc found, athlete unknown → unverifiable, no invention", () => {
+  // signed === null, doc found, no member: checkWaiverClaim skips the
+  // waiver_signatures query (memberId null) — the copy must not claim a
+  // row check happened.
+  const copy = waiverMediumCopy({ docTitle: DOC.title, signed: null, docFound: true }, "");
+  assert.ok(copy.includes(`The claim names '${DOC.title}'`));
+  assert.ok(copy.includes("couldn't pin down which athlete"));
+  assert.ok(copy.includes("nothing is marked signed"));
+  assert.ok(copy.includes("Tell me who it's for and I'll check."));
+  assert.ok(!copy.includes("already exists"), "must not claim a signed row");
+});
+
+test("waiverMediumCopy: no doc match → mentions the email's name or fallback, nothing marked signed", () => {
+  // signed === null, no doc: checkWaiverClaim returned docFound false with
+  // docTitle = the email's extracted name (never invented).
+  const copy = waiverMediumCopy({ docTitle: "the required waiver", signed: null, docFound: false }, "");
+  assert.ok(copy.includes("The claim mentions 'the required waiver'"));
+  assert.ok(copy.includes("couldn't match it to a waiver document on file"));
+  assert.ok(copy.includes("couldn't pin down the athlete"));
+  assert.ok(copy.includes("nothing is marked signed"));
+  assert.ok(!copy.includes("Checked the waiver records"),
+    "no row check ran — must not claim one");
+  const named = waiverMediumCopy({ docTitle: "Medical Release", signed: null, docFound: false }, "");
+  assert.ok(named.includes("The claim mentions 'Medical Release'"),
+    "uses the name from the email, never invents one");
+});
+
+test("waiverMediumCopy: null check → null (non-waiver intents keep generic copy)", () => {
+  assert.equal(waiverMediumCopy(null, "Alex"), null);
+});
+
+test("waiverMediumCopy: missing entity name → 'the athlete'", () => {
+  const copy = waiverMediumCopy({ docTitle: DOC.title, signed: true, docFound: true }, "");
+  assert.ok(copy.includes("for the athlete"), "falls back to 'the athlete'");
 });

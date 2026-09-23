@@ -32,7 +32,7 @@ import { createClient } from "npm:@supabase/supabase-js@2";
 import {
   buildFinding, findingMemberId, INTENTS as RAW_INTENTS,
   classifyIntents, extractSlots, buildSessionPatch, waiverNameFromText,
-  matchWaiverDoc, buildProposal,
+  matchWaiverDoc, buildProposal, formatProgramPrice, waiverMediumCopy,
 } from "./finding.mjs";
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
@@ -656,16 +656,25 @@ async function processEvent(args: {
     if (prop) proposals.push(prop);
   } else if (primary.confidence >= 0.5 || entityAmbiguous) {
     // Medium confidence / ambiguous identity → ask the coach, no proposal.
+    // sc03 honesty: waiver claims still get their waiver_signatures check
+    // cited here. The real trigger ("we signed the Participation Waiver",
+    // no athlete named → entity unresolved → medium confidence) always lands
+    // in this branch — generic copy alone would hide that a DB check exists.
+    const waiverMed = primary.intent === "waiver_claim"
+      ? await checkWaiverClaim({ admin, memberId: entityId, text, docs: ref.waiverDocs })
+      : null;
+    const waiverLine = waiverMediumCopy(waiverMed, namedEntity);
     const cands = need ? entities[need].candidates.map((c) => c.name).slice(0, 3).join(", ") : "";
     findings.push(buildFinding({
       providerId, spec: primary.spec,
       title: entityAmbiguous && need
         ? `Which ${entityLabelFor(primary.intent)}? — confirm before we act`
         : titleFor(primary.intent, namedEntity, slots),
-      detail: (entityAmbiguous && need
-        ? `This update names someone I can't pin down (${cands || "no close match"}). ` +
-          `Pick the right ${entityLabelFor(primary.intent)} in the queue — nothing is staged until you do.`
-        : `I'm not fully sure about this one, so nothing is staged. Confirm and I'll prepare the proposal.`) +
+      detail: (waiverLine ? `${waiverLine}\n\n` : "") +
+        (entityAmbiguous && need
+          ? `This update names someone I can't pin down (${cands || "no close match"}). ` +
+            `Pick the right ${entityLabelFor(primary.intent)} in the queue — nothing is staged until you do.`
+          : `I'm not fully sure about this one, so nothing is staged. Confirm and I'll prepare the proposal.`) +
         `\n\n${fenced}`,
       sourceRef: findingRef,
     }));
@@ -839,7 +848,7 @@ function detailFor(
   if (intent === "program_inquiry" && ref.programs.length) {
     // Real programs only — never invented. Price shown only when on file.
     const progs = ref.programs.slice(0, 5)
-      .map((p) => `• ${p.title}${p.price != null ? ` — $${(p.price / 100).toFixed(0)}` : ""}`)
+      .map((p) => `• ${p.title}${p.price != null ? ` — ${formatProgramPrice(p.price)}` : ""}`)
       .join("\n");
     lines.push(`Programs on file:\n${progs}`);
   }

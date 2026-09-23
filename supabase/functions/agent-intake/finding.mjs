@@ -292,6 +292,33 @@ function trigramSim(a, b) {
   return A.size + B.size === 0 ? 0 : (2 * inter) / (A.size + B.size);
 }
 
+/* ── Queue detail copy helpers (pure; rendered on the coach Queue) ─────────
+   programs.price is numeric(10,2) DOLLARS (the frontend formats it directly) —
+   never cents. A /100 render once showed $149.00 as "$1".                   */
+export function formatProgramPrice(price) {
+  return `$${Number(price).toFixed(0)}`;
+}
+
+/** Medium-confidence waiver-claim citation copy. Takes the real
+    checkWaiverClaim() result ({ docTitle, signed: true|false|null, docFound })
+    — never fabricate it, never invent a waiver name (docTitle comes from
+    waiverNameFromText()/matchWaiverDoc() only). entityName is the resolved
+    athlete or "" (→ "the athlete"). Returns null when there is no check. */
+export function waiverMediumCopy(waiver, entityName) {
+  if (!waiver) return null;
+  const athlete = entityName || "the athlete";
+  if (waiver.signed === true) {
+    return `Checked the waiver records (waiver_signatures): a signed '${waiver.docTitle}' row already exists for ${athlete} — the claim checks out. Nothing is staged.`;
+  }
+  if (waiver.signed === false) {
+    return `Checked the waiver records (waiver_signatures): no signed '${waiver.docTitle}' row for ${athlete} — the waiver stays UNSIGNED until a real signature is recorded. Nothing is staged until you confirm.`;
+  }
+  if (waiver.docFound) {
+    return `The claim names '${waiver.docTitle}' but I couldn't pin down which athlete it's for, so I can't verify it against the waiver records — nothing is marked signed. Tell me who it's for and I'll check.`;
+  }
+  return `The claim mentions '${waiver.docTitle ?? "the required waiver"}' but I couldn't match it to a waiver document on file, and couldn't pin down the athlete — nothing is marked signed.`;
+}
+
 /* ── Approval-gated proposals: pure builder (the ONLY writer is the DB applier) ── */
 /** Stage an approval-gated proposal for high-confidence intents.
     Returns null when the scenario must NOT stage anything (design §3). */
