@@ -6752,6 +6752,9 @@ function initials(u){
    field. smoke.sh asserts the rendered form never offers younger. */
 const MIN_ATHLETE_AGE = 13;
 const isDemo = p => !(p && p.live === true);
+/* Public "Book a call" CTA destination — the owner's real Calendly event URL.
+   Paste the link here; the button opens it in a new tab. */
+const CALENDLY_URL = "https://calendly.com/PASTE-YOUR-LINK";
 /* A rating may render only from real data that actually has reviews. Both
    halves matter: the first stops fabrications, the second stops "★ 0". */
 const showsRating = p => !isDemo(p) && p.reviews > 0;
@@ -9081,7 +9084,7 @@ function coachesMenuHTML(){
             orange budget before the page had painted anything of its own.
             Measured on /product: 3 painted elements against a cap of 2, and
             the third was menu chrome. */""}
-      <button class="btn ghost" data-modal="bookcall" style="margin-top:16px">Book a call</button>
+      <a class="btn ghost" href="${CALENDLY_URL}" target="_blank" rel="noopener" style="margin-top:16px">Book a call</a>
     </div>
   </div></div>`;
 }
@@ -14517,28 +14520,6 @@ function modalHTML(){
   /* PART 7 — single-field entry. Role is inferred from where you came from,
      never asked: the segmented control that used to sit here was the third
      place in the app asking the same question. */
-  /* PART 3 — honest scheduler. No fake calendar integration: this records the
-     request and says plainly that a human replies. */
-  if(m.type==="bookcall") return wrap("Book a call",`
-    <p style="color:var(--muted);margin-bottom:18px;font-size:var(--t-small)">
-      See the coach side end-to-end before you commit to anything. Tell us when
-      suits and someone from Sporv will reply by email.</p>
-    <form id="bookcallForm">
-      <div class="field"><label>Your name</label><input name="name" placeholder="Marcus Reyes" required></div>
-      <div class="field"><label>Email address</label><input name="email" type="email" placeholder="you@example.com" required></div>
-      <div class="field"><label>What works for you?</label>
-        <select name="when">
-          <option>Weekday mornings</option><option>Weekday afternoons</option>
-          <option>Weekday evenings</option><option>Weekends</option>
-        </select></div>
-      <div class="field"><label>Anything we should know? (optional)</label>
-        <textarea name="note" rows="3" placeholder="Sports you coach, how many families you run today"></textarea></div>
-      <div id="bookcallErr" class="err hide" style="margin:8px 0"></div>
-      <button class="btn wide" type="submit">Request a call</button>
-      <p style="text-align:center;color:var(--faint);font-size:var(--t-small);margin-top:11px">
-        We'll reply by email — there's no automated scheduling yet.</p>
-    </form>`);
-
   /* The connector picker sheet (2026-09-20): opened from the chat
      composer's + button. One-tap cards for all 11 connectors, rendered from
      the cached server truth — a centred dialog with the standard X / scrim /
@@ -19108,19 +19089,6 @@ document.querySelectorAll('.sig-ai-coach').forEach(sigAiCoachWire);
     render();
   };
   /* Stubs are labelled as stubs — we don't fake a provider we haven't wired. */
-  /* PART 3 — Coaches-menu destinations */
-  const bcf=document.getElementById("bookcallForm");
-  if(bcf) bcf.onsubmit=e=>{
-    e.preventDefault();
-    const d=Object.fromEntries(new FormData(bcf));
-    const err=document.getElementById("bookcallErr");
-    if(!/^[\w.+-]+@[\w-]+\.[\w.-]+$/.test(d.email)){
-      err.textContent="Please enter a valid email address.";err.classList.remove("hide");return;}
-    (S.callRequests=S.callRequests||[]).unshift({...d,at:TODAY});
-    S.modal=null;render();
-    toast("Request sent — we'll email you back");
-  };
-
   /* coach thread: switch conversation + actually send */
   /* real persistence + disabled-until-dirty */
   const bizf=document.getElementById("bizForm");
