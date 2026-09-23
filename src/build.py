@@ -40,6 +40,9 @@ ORDER = [
     "mod-safety.js", "mod-reviews.js", "mod-coachops.js",
     "mod-payments.js", "mod-search.js", "mod-coachonboard.js",
     "mod-media.js", "mod-notes.js", "mod-insights.js",
+    # Enterprise core tabs (2026-09-22): org profile/locations/staff,
+    # teams CRUD, families/guardians. Self-contained MOD_* modules.
+    "mod-org.js", "mod-teams.js", "mod-families.js",
 ]
 
 host = open(HOST, encoding="utf-8").read()
