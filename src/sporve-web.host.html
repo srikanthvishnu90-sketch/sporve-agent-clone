@@ -4261,6 +4261,12 @@ body.reg-coach .greet{font-size:24px}
   border-bottom:1px solid rgba(174,186,199,.14);
   animation:pmIn .22s cubic-bezier(.2,.7,.2,1)}
 @keyframes pmIn{from{opacity:0;transform:translateY(-6px) scale(.985)}to{opacity:1;transform:none}}
+/* SMOOTHER 2026-09-23: the panel used to vanish on a full re-render. It now
+   animates out (opacity + lift, same curve reversed) before render() removes
+   it — see closeProdMenu(). Rows stop staggering on the way out. */
+#app .productmenu.glassmenu.pm-closing{animation:pmOut .18s cubic-bezier(.4,0,.6,1) forwards;pointer-events:none}
+#app .productmenu.glassmenu.pm-closing .pmrow2{animation:none}
+@keyframes pmOut{to{opacity:0;transform:translateY(-6px) scale(.985)}}
 #app .productmenu.glassmenu .pmglass{max-width:1180px;margin:0 auto;
   display:grid;grid-template-columns:1.1fr 1.25fr 1fr 1fr;gap:40px;
   padding:34px 26px 40px;align-items:start}
@@ -6192,6 +6198,34 @@ body.reg-coach .rail button.on{font-weight:600}
 .pg-hero-math{border-left:1px solid #343A43;padding-left:clamp(24px,4vw,52px);font-family:ui-monospace,"SF Mono",Menlo,monospace}
 .pg-hero-math code{display:block;white-space:pre;color:#fff;font-size:clamp(17px,2vw,24px);line-height:1.45}
 .pg-hero-math span{display:block;color:#AEB8C4;font-size:var(--text-xs);letter-spacing:.12em;margin-top:14px}
+/* SCENARIO HERO (owner 2026-09-23 — the Dues page as the exemplar for every
+   product page). One composition, one spacing scale, one button spec. Wins
+   over every per-page .pg-<id> .pg-hero-* rule above by specificity (0,3,x)
+   without !important. Spacing rides an 8px grid: 16 / 24 / 32 / 48 / 96. */
+:root{--btn-h:52px;--btn-px:28px;--btn-r:8px;--btn-gap:16px;--hero-gap:clamp(32px,4vw,56px)}
+.rebuild-page .pg-hero--scenario{padding:clamp(72px,8vw,96px) 0;border-bottom:1px solid #1C222B}
+.rebuild-page .pg-hero--scenario .pg-hero-inner{display:grid;
+  grid-template-columns:minmax(230px,.72fr) minmax(290px,.76fr) minmax(210px,.52fr);
+  gap:var(--hero-gap);align-items:center;text-align:left}
+.rebuild-page .pg-hero--scenario .pg-hero-title{text-align:left;display:block;padding:0;border:0}
+.rebuild-page .pg-hero--scenario .pg-hero-copy{padding:0;border:0;margin:0;max-width:none}
+.rebuild-page .pg-hero--scenario .pg-eyebrow{margin:0 0 16px;color:#94A3B8}
+.rebuild-page .pg-hero--scenario .pg-h1{margin:0;margin-left:0;max-width:12ch;font-size:clamp(34px,3.6vw,48px);line-height:1.02;color:#fff}
+.rebuild-page .pg-hero--scenario .pg-h1 em{color:var(--ps-bright);font-style:normal}
+.rebuild-page .pg-hero--scenario .pg-sub{margin:0;max-width:52ch;font-size:clamp(16px,1.3vw,18px);line-height:1.6;color:#C9D1DB}
+.rebuild-page .pg-hero--scenario .pg-ctarow{margin-top:32px;gap:var(--btn-gap);justify-content:flex-start}
+.rebuild-page .pg-hero--scenario .pg-hero-math{border-left:1px solid #343A43;padding-left:clamp(24px,3.5vw,48px);justify-self:end;min-width:200px}
+.rebuild-page .pg-hero--scenario .pg-hero-math code{font-size:clamp(17px,1.7vw,22px);line-height:1.5}
+.rebuild-page .pg-hero--scenario .pg-hero-math span{margin-top:16px;font-size:13px;letter-spacing:.16em}
+@media(max-width:900px){.rebuild-page .pg-hero--scenario .pg-hero-inner{grid-template-columns:1fr;gap:32px}
+  .rebuild-page .pg-hero--scenario .pg-hero-math{border-left:0;border-top:1px solid #343A43;padding:24px 0 0;justify-self:start}}
+/* BUTTON SPEC — every product-page CTA and landing button shares one geometry. */
+.rebuild-page .pg-cta,.lp26 .btn{height:var(--btn-h);padding:0 var(--btn-px);border-radius:var(--btn-r);
+  font-size:16px;font-weight:600;letter-spacing:0;text-transform:none;gap:10px;
+  transition:transform .18s cubic-bezier(.2,.7,.2,1),filter .18s,background-color .18s}
+.rebuild-page .pg-cta:hover,.lp26 .btn:hover{transform:translateY(-1px)}
+.rebuild-page .pg-cta:active,.lp26 .btn:active{transform:translateY(0)}
+.rebuild-page .pg-ctarow{gap:var(--btn-gap)}
 .pg-payment-ledger .pg-essay-stat{grid-template-columns:minmax(240px,.58fr) minmax(0,1.42fr)}
 .pg-payment-ledger .pg-stat-rail{order:-1;border-top:0;border-right:1px solid var(--ink);padding-right:clamp(28px,5vw,70px)}
 .pg-payment-ledger .pg-essay{grid-column:2}
@@ -17668,17 +17702,32 @@ document.querySelectorAll('.sig-ai-coach').forEach(sigAiCoachWire);
     S.fdraft=JSON.parse(JSON.stringify(S.filters||{}));
     S.fdOpen={format:true,commitment:true};
     S.modal={type:"filters"};render();});
+  /* One close path: animate the panel out, THEN drop state and re-render. A
+     second close during the animation is a no-op; reduced-motion users get
+     the instant close they had before. */
+  window.closeProdMenu=function(){
+    if(!S.prodMenu||S._pmClosing) return;
+    const m=document.querySelector(".productmenu.glassmenu");
+    const rm=window.matchMedia&&matchMedia("(prefers-reduced-motion:reduce)").matches;
+    if(!m||rm){S.prodMenu=false;render();return;}
+    S._pmClosing=true;m.classList.add("pm-closing");
+    setTimeout(()=>{S._pmClosing=false;S.prodMenu=false;render();},180);
+  };
   $("[data-prodtoggle]").forEach(b=>{
-    b.onclick=e=>{e.stopPropagation();S.prodMenu=!S.prodMenu;render();};
+    /* Hover opens; the click that follows PINS it (no toggle-close under the
+       cursor — that read as a flicker). Only a click on a pinned menu closes. */
+    b.onclick=e=>{e.stopPropagation();clearTimeout(S._pmT);
+      if(S.prodMenu&&S._pmHover){S._pmHover=false;return;}
+      if(S.prodMenu){closeProdMenu();}else{S._pmHover=false;S.prodMenu=true;render();}};
     /* hover-open (owner 2026-09-03): desktop mice get the menu on hover, with
        a grace timer so the pointer can travel from the tab into the panel.
        Click stays for touch/keyboard. */
-    b.onmouseenter=()=>{clearTimeout(S._pmT);if(!S.prodMenu){S.prodMenu=true;render();}};
-    b.onmouseleave=()=>{clearTimeout(S._pmT);S._pmT=setTimeout(()=>{if(S.prodMenu){S.prodMenu=false;render();}},260);};
+    b.onmouseenter=()=>{clearTimeout(S._pmT);if(!S.prodMenu){S._pmHover=true;S.prodMenu=true;render();}};
+    b.onmouseleave=()=>{clearTimeout(S._pmT);S._pmT=setTimeout(()=>{if(S._pmHover)closeProdMenu();},320);};
   });
   $(".productmenu").forEach(m=>{
     m.onmouseenter=()=>clearTimeout(S._pmT);
-    m.onmouseleave=()=>{clearTimeout(S._pmT);S._pmT=setTimeout(()=>{if(S.prodMenu){S.prodMenu=false;render();}},260);};
+    m.onmouseleave=()=>{clearTimeout(S._pmT);S._pmT=setTimeout(()=>{if(S._pmHover)closeProdMenu();},320);};
     /* Sliding hover pill (owner prototype 2026-09-04): one .hov per column;
        row mouseenter positions it, column mouseleave only fades it — top and
        height are kept so the next entry SLIDES from the last position. The
@@ -17692,8 +17741,8 @@ document.querySelectorAll('.sig-ai-coach').forEach(sigAiCoachWire);
     });
   });
   if(S.prodMenu&&!S._prodMenuBound){S._prodMenuBound=true;
-    document.addEventListener("click",e=>{if(S.prodMenu&&!e.target.closest(".productmenu,[data-prodtoggle]")){S.prodMenu=false;render();}});
-    document.addEventListener("keydown",e=>{if(e.key==="Escape"&&S.prodMenu){S.prodMenu=false;render();}});}
+    document.addEventListener("click",e=>{if(S.prodMenu&&!e.target.closest(".productmenu,[data-prodtoggle]")){closeProdMenu();}});
+    document.addEventListener("keydown",e=>{if(e.key==="Escape"&&S.prodMenu){closeProdMenu();}});}
   $("[data-pdest]").forEach(b=>b.onclick=()=>{
     const [kind,arg]=b.dataset.pdest.split(":");
     if(kind==="filters"){if(modModal("filters")){S.modal={type:"filters"};render();}return;}

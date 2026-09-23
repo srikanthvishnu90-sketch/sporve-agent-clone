@@ -26,10 +26,45 @@
     "enterprise", "enterprise-roster", "enterprise-finance", "enterprise-compliance"
   ];
 
+  /* SCENARIO PANELS (owner 2026-09-23, screenshot of the Dues page as the
+     exemplar): every product page opens the same way — dark band, mono
+     eyebrow, uppercase headline, standfirst, one CTA, and a hairline-ruled
+     mono panel showing ONE worked example of the feature. Fifteen scenarios,
+     one per page. Every number is a disclosed demo value (the caption says
+     so), never a state the server confirmed — honesty rule. */
+  var SCENARIO = {
+    "payments":          { label: "DEMO BOOKING",          lines: ["$45.00", "\u00d7   .00", "\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500", "\u2212 $0.00", "= $45.00"] },
+    "payouts":           { label: "DEMO \u00b7 NEXT DEPOSIT",  lines: ["gross   $1,240.00", "fees     \u2212$36.28", "sporv     \u2212$0.00", "\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500", "net     $1,203.72"] },
+    "roster":            { label: "DEMO \u00b7 CSV IMPORT",    lines: ["rows      184", "matched   181", "new         3", "\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500", "roster    184"] },
+    "scheduling":        { label: "DEMO \u00b7 THIS WEEK",     lines: ["Tue 5:30p   U12", "Field 2", "confirmed  14/16", "pending        2"] },
+    "waivers":           { label: "DEMO \u00b7 SPRING SEASON", lines: ["version      v3", "signed       41", "missing       3", "\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500", "eligible     41"] },
+    "agent":             { label: "DEMO \u00b7 LAST NIGHT",    lines: ["drafted       6", "approved      5", "dismissed     1", "\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500", "sent          5"] },
+    "what-is":           { label: "DEMO \u00b7 ONE CLUB",      lines: ["families     92", "staff         7", "seasons       2", "\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500", "one login"] },
+    "background-checks": { label: "DEMO \u00b7 PER PERSON",    lines: ["submitted  05-02", "cleared    05-14", "expires    05-14", "\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500", "eligible"] },
+    "instant-booking":   { label: "DEMO \u00b7 OPEN SLOT",     lines: ["slot   Sat 9:00a", "held       4:59", "paid     $45.00", "\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500", "confirmed"] },
+    "messaging":         { label: "DEMO \u00b7 ONE THREAD",    lines: ["booking   #4412", "from   guardian", "replied      2m", "receipt attached"] },
+    "bookings-receipts": { label: "DEMO \u00b7 RECEIPT",       lines: ["session  $45.00", "tax       $0.00", "\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500", "paid     $45.00", "R-1027"] },
+    "athlete-progress":  { label: "DEMO \u00b7 ONE ATHLETE",   lines: ["sessions     31", "notes        12", "goals         3", "\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500", "on track"] },
+    "session-notes":     { label: "DEMO \u00b7 AFTER PRACTICE",lines: ["Tue        note", "drill  footwork", "next     2 sets", "shared guardian"] },
+    "media-consent":     { label: "DEMO \u00b7 CONSENT STATE", lines: ["photo ok     84", "no photo      8", "pending       0", "\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500", "enforced"] },
+    "insights":          { label: "DEMO \u00b7 THIS WEEK",     lines: ["collected $18,420", "overdue      $610", "chased          6", "\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500", "treasurer view"] }
+  };
+  var currentId = null;
+  function scenarioAside(id) {
+    var sc = SCENARIO[id];
+    if (!sc) return "";
+    return "<aside class='pg-hero-math' aria-label='Disclosed demo example'><code>" +
+      sc.lines.join("\n") + "</code><span>" + sc.label + "</span></aside>";
+  }
+
   function hero(meta, headline, standfirst, options) {
     var o = options || {};
-    var tone = o.tone || "white";
-    var layout = o.layout || "split";
+    var scenario = SCENARIO[currentId] ? scenarioAside(currentId) : "";
+    /* Any page with a scenario takes the exemplar composition: dark, three
+       columns (title | copy | panel). Pages without one keep their own. */
+    var tone = scenario ? "dark" : (o.tone || "white");
+    var layout = scenario ? "scenario" : (o.layout || "split");
+    if (scenario) o.aside = scenario; /* the scenario panel replaces any page-specific figure in the hero */
     var eyebrow = o.eyebrow
       ? "<p class='pg-eyebrow'>" + o.eyebrow + "</p>"
       : "";
@@ -649,6 +684,7 @@
   function render(id) {
     var meta = PAGE_META[id];
     if (!meta) return "";
+    currentId = id;
     if (id === "search") return searchPage(meta);
     if (id === "scheduling") return schedulingPage(meta);
     if (id === "map-search") return mapPage(meta);
