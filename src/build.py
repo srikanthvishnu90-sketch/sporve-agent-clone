@@ -408,11 +408,27 @@ _csp_headers = [
 if len(_csp_headers) != 1:
     sys.exit("FATAL: expected exactly one Content-Security-Policy header; found %d"
              % len(_csp_headers))
-_src = "script-src 'self' " + " ".join(_hashes) + ";"
+# ── PostHog analytics (2026-09-23) ─────────────────────────────────────────
+# The PostHog library loads from the asset CDN and events POST to the API host.
+# Both must be named in the CSP or the integration silently captures nothing
+# (PostHog's own docs warn about exactly this failure mode). script-src is
+# fully rewritten on every build, so the hosts are baked in there; connect-src
+# is extended in place so the existing Supabase host entry is preserved.
+_POSTHOG_HOSTS = ["https://us.posthog.com", "https://us-assets.i.posthog.com"]
+_src = "script-src 'self' " + " ".join(_POSTHOG_HOSTS + _hashes) + ";"
 _current_csp = _csp_headers[0].get("value", "")
 _new_csp, _replaced = re.subn(r"script-src [^;]*;", _src, _current_csp, count=1)
 if _replaced != 1:
     sys.exit("FATAL: CSP header has no replaceable script-src directive")
+def _connect_add(m):
+    d = m.group(0)
+    for h in _POSTHOG_HOSTS:
+        if h not in d:
+            d = d[:-1].rstrip() + " " + h + ";"
+    return d
+_new_csp, _creplaced = re.subn(r"connect-src [^;]*;", _connect_add, _new_csp, count=1)
+if _creplaced != 1:
+    sys.exit("FATAL: CSP header has no replaceable connect-src directive")
 _changed = (_new_csp != _current_csp) or _rw_changed
 _csp_headers[0]["value"] = _new_csp
 if _changed:

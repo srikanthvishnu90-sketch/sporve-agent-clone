@@ -916,8 +916,18 @@
       var st = ACCOUNT.plan();
       if (mark === "cancelled") toast("Checkout cancelled — nothing was charged");
       else if (mark === "portal") toast(st.label);
-      else toast(st.entitled ? st.label
-        : "Stripe has your payment — your plan changes the moment it confirms");
+      else {
+        /* PostHog (2026-09-23): the only client-side point where the app
+           KNOWS a Stripe subscription is live — the user is back from checkout
+           AND the re-read provider row says entitled (i.e. the billing webhook
+           already landed). Firing on the return alone would count checkouts
+           whose webhook had not confirmed yet. */
+        if (mark === "done" && st.entitled) {
+          try { if (typeof window !== "undefined" && typeof window.__phCapture === "function") window.__phCapture("subscription_created", { plan: st.id }); } catch (e) {}
+        }
+        toast(st.entitled ? st.label
+          : "Stripe has your payment — your plan changes the moment it confirms");
+      }
     }).catch(function () {});
   }
 
