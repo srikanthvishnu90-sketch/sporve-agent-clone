@@ -29,6 +29,7 @@
 // ============================================================================
 
 import { createClient } from "npm:@supabase/supabase-js@2";
+import { buildFinding, findingMemberId } from "./finding.mjs";
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const ANON_KEY = Deno.env.get("SUPABASE_ANON_KEY")!;
@@ -655,10 +656,12 @@ async function processEvent(args: {
   const fenced = fenceUntrusted("EMAIL", text);
   if (primary.confidence >= 0.85 && !entityAmbiguous && !entityMissing) {
     // High confidence → exact §3 finding + staged proposal (approval-gated).
+    // Bind member_id only for a resolved athlete: generate_intake_followups()
+    // joins member_id to team_athletes for the availability_ack draft.
     findings.push(buildFinding({
       providerId, spec: primary.spec, title: titleFor(primary.intent, namedEntity, slots),
       detail: detailFor(primary.intent, namedEntity, slots, ref, fenced, false),
-      sourceRef: findingRef,
+      sourceRef: findingRef, memberId: findingMemberId({ need, entityId }),
     }));
     const prop = buildProposal({
       providerId, eventId, intent: primary.intent, confidence: primary.confidence,
@@ -776,15 +779,6 @@ async function callExtract(args: {
 }
 
 /* ═══════════════════ findings & proposals ═══════════════════ */
-function buildFinding(args: {
-  providerId: string; spec: IntentSpec; title: string; detail: string; sourceRef: string;
-}): Record<string, unknown> {
-  return {
-    provider_id: args.providerId, kind: args.spec.kind, code: args.spec.code,
-    severity: args.spec.severity, title: args.title, detail: args.detail,
-    source_ref: args.sourceRef, status: "open",
-  };
-}
 
 function titleFor(intent: string, entityName: string, slots: Record<string, unknown>): string {
   const who = entityName || "Someone";
