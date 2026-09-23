@@ -12918,7 +12918,10 @@ function startAgentRunScreen(){
   line(pv.stripe_charges_enabled?"Stripe connected — payments readable":"Stripe not connected — billing drafts are held","sk");
   ar.phase="read";render();
   window.SporveAPI.rpc("run_agent_read",{p_provider:pv.id}).catch(()=>null).then(n=>{
-    line(typeof n==="number"?("Read pass · "+n+" thing"+(n===1?"":"s")+" noticed"):"Read pass · unavailable this run","hi");
+    /* run_agent_read returns {n_kinds, n_rows}; the copy shows the ROW count so
+       it matches the findings actually rendered below. */
+    const rc=(n&&typeof n==="object")?(+n.n_rows):((typeof n==="number")?n:null);
+    line(rc===null?("Read pass · unavailable this run"):("Read pass · "+rc+" thing"+(rc===1?"":"s")+" noticed"),"hi");
     ar.phase="write";render();
     return window.SporveAPI.rpc("run_agent_drafts",{p_provider:pv.id}).catch(()=>null);
   }).then(r=>{
@@ -18533,7 +18536,9 @@ document.querySelectorAll('.sig-ai-coach').forEach(sigAiCoachWire);
     S.readRunning=true;render();
     window.SporveAPI.rpc("run_agent_read",{p_provider:pv.id})
       .then(n=>{S.readRunning=false;S.findLoaded=false;loadLiveFindings();
-        toast(n?("The agent scanned your records — "+n+" finding"+(n===1?"":"s")+" below."):"Scanned — nothing to flag.");render();})
+        /* run_agent_read returns {n_kinds, n_rows}; toast the ROW count. */
+        const rc=(n&&typeof n==="object")?(+n.n_rows||0):(+n||0);
+        toast(rc?("The agent scanned your records — "+rc+" finding"+(rc===1?"":"s")+" below."):"Scanned — nothing to flag.");render();})
       .catch(e=>{S.readRunning=false;render();toast((e&&e.message)||"Scan failed.");});
   });
   $("[data-agent-toggle-DEAD]").forEach(b=>b.onclick=()=>{
