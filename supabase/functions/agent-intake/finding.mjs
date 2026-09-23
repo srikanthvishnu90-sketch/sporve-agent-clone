@@ -244,19 +244,48 @@ const WAIVER_STOPWORDS = new Set([
 ]);
 
 /** Extract the waiver name a claimant refers to, or null when the text does
-    not name one (callers fall back to "the required waiver" — never guess). */
+    not name one (callers fall back to "the required waiver" — never guess).
+    The generic pattern captures the fragment before the first "waiver";
+    when that fragment is stopword-polluted ("we signed the Participation")
+    the leading stopwords are stripped and the remainder re-checked, so a
+    real name survives its preamble ("Participation"). Returns null when
+    nothing clean remains or the length cap trips. */
 export function waiverNameFromText(text) {
   const quoted = /"([^"]+)"\s*waiver/i.exec(text);
   if (quoted && quoted[1].trim()) return quoted[1].trim();
   const generic = /([\w][\w ]*?)\s+waiver/i.exec(text);
   if (generic) {
     const name = generic[1].trim().replace(/\s+/g, " ");
-    const tokens = name.toLowerCase().split(" ");
-    if (name && name.length <= 60 && !tokens.some((tok) => WAIVER_STOPWORDS.has(tok))) {
-      return name;
+    if (name && name.length <= 60) {
+      // Strip leading stopwords ("we signed the Participation" →
+      // "Participation"); anything still containing a stopword is rejected,
+      // and an empty remainder means the text never named a waiver.
+      const tokens = name.split(" ");
+      let start = 0;
+      while (start < tokens.length && WAIVER_STOPWORDS.has(tokens[start].toLowerCase())) start++;
+      const cleaned = tokens.slice(start).join(" ");
+      const cleanToks = tokens.slice(start).map((t) => t.toLowerCase());
+      if (cleaned && cleaned.length <= 60 && !cleanToks.some((tok) => WAIVER_STOPWORDS.has(tok))) {
+        return cleaned;
+      }
     }
   }
   return null;
+}
+
+/** Doc-first match: return the on-file waiver document whose title appears
+    verbatim in the raw text (case-insensitive), or null. Longest title wins
+    so a generic "Waiver" row never shadows "Participation Waiver". This is
+    the primary lookup in checkWaiverClaim() — when the text names a doc
+    that is on file, use it directly instead of trusting the extractor. */
+export function docTitleInText(docs, text) {
+  if (!Array.isArray(docs) || !docs.length || typeof text !== "string") return null;
+  const lower = text.toLowerCase();
+  const sorted = docs
+    .filter((d) => d && d.title)
+    .slice()
+    .sort((a, b) => b.title.length - a.title.length);
+  return sorted.find((d) => lower.includes(d.title.toLowerCase())) ?? null;
 }
 
 /** Match an extracted waiver name against the provider's waiver_documents.
@@ -302,7 +331,7 @@ export function formatProgramPrice(price) {
 /** Medium-confidence waiver-claim citation copy. Takes the real
     checkWaiverClaim() result ({ docTitle, signed: true|false|null, docFound })
     — never fabricate it, never invent a waiver name (docTitle comes from
-    waiverNameFromText()/matchWaiverDoc() only). entityName is the resolved
+    docTitleInText()/waiverNameFromText()/matchWaiverDoc() only). entityName is the resolved
     athlete or "" (→ "the athlete"). Returns null when there is no check. */
 export function waiverMediumCopy(waiver, entityName) {
   if (!waiver) return null;

@@ -32,7 +32,7 @@ import { createClient } from "npm:@supabase/supabase-js@2";
 import {
   buildFinding, findingMemberId, INTENTS as RAW_INTENTS,
   classifyIntents, extractSlots, buildSessionPatch, waiverNameFromText,
-  matchWaiverDoc, buildProposal, formatProgramPrice, waiverMediumCopy,
+  matchWaiverDoc, docTitleInText, buildProposal, formatProgramPrice, waiverMediumCopy,
 } from "./finding.mjs";
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
@@ -792,15 +792,21 @@ interface WaiverCheck {
 }
 
 /** sc03: verify a "we signed the waiver" claim against waiver_signatures —
-    never take the claim on faith. The doc is matched from waiver_documents
-    against the name extracted from the email; the name is never invented. */
+    never take the claim on faith. Doc-first: if an on-file waiver_documents
+    title appears verbatim in the text (case-insensitive), use that doc
+    directly; otherwise fall back to name-extraction + matchWaiverDoc().
+    The name is never invented. */
 async function checkWaiverClaim(args: {
   admin: any; memberId: string | null; text: string;
   docs: Array<{ id: string; title: string }>;
 }): Promise<WaiverCheck> {
   const { admin, memberId, text, docs } = args;
-  const name = waiverNameFromText(text);
-  const doc = matchWaiverDoc(docs, name);
+  let doc = docTitleInText(docs, text);
+  let name: string | null = null;
+  if (!doc) {
+    name = waiverNameFromText(text);
+    doc = matchWaiverDoc(docs, name);
+  }
   if (!doc) return { docTitle: name ?? "the required waiver", signed: null, docFound: false };
   let signed: boolean | null = null;
   if (memberId) {
@@ -854,13 +860,20 @@ function detailFor(
   }
   if (intent === "waiver_claim") {
     // sc03: cite the actual DB check — the waiver name (from the email, never
-    // invented) plus the athlete — against waiver_signatures.
+    // invented) plus the athlete — against waiver_signatures. The checked
+    // copy is only used when the query actually ran (signed true|false with
+    // a doc match); when nothing could be checked (signed null), the copy
+    // says so — never imply a check happened.
     const athlete = entityName || "the athlete";
-    if (waiver?.signed) {
+    if (waiver?.signed === true) {
       lines.push(`Checked the waiver records (waiver_signatures): a signed '${waiver.docTitle}' row already exists for ${athlete} — the claim checks out, nothing to stage.`);
+    } else if (waiver?.signed === false) {
+      lines.push(`Checked the waiver records (waiver_signatures): no signed '${waiver.docTitle}' row for ${athlete} — the waiver stays UNSIGNED until a real signature is recorded.`);
+    } else if (waiver?.docFound) {
+      lines.push(`The claim names '${waiver.docTitle}', but I couldn't verify it against the waiver records — nothing is marked signed. Once the athlete is confirmed, I'll check the records.`);
     } else {
       const docName = waiver?.docTitle ?? "the required waiver";
-      lines.push(`Checked the waiver records (waiver_signatures): no signed '${docName}' row for ${athlete} — the waiver stays UNSIGNED until a real signature is recorded.`);
+      lines.push(`I couldn't match '${docName}' to a waiver document on file, so the claim can't be verified — nothing is marked signed.`);
     }
   }
   const staged: Record<string, string> = {

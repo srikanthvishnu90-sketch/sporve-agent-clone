@@ -13,7 +13,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import {
   INTENTS, classifyIntents, extractSlots, buildSessionPatch,
-  resolveSessionDate, waiverNameFromText, matchWaiverDoc, buildProposal,
+  resolveSessionDate, waiverNameFromText, matchWaiverDoc, docTitleInText, buildProposal,
   formatProgramPrice, waiverMediumCopy,
 } from "../agent-intake/finding.mjs";
 
@@ -208,7 +208,60 @@ test("waiverNameFromText: quoted waiver names are extracted", () => {
 test("waiverNameFromText: generic claims without a name return null (never invented)", () => {
   assert.equal(waiverNameFromText("We signed the waiver already"), null);
   assert.equal(waiverNameFromText("The waiver is signed"), null);
-  assert.equal(waiverNameFromText("the medical release waiver is attached"), null);
+  assert.equal(waiverNameFromText("signed the waiver for our son"), null);
+});
+
+/* ── Fix 6 (sc03): stopword-strip in waiverNameFromText ──────────────── */
+// "we signed the Participation Waiver" captured "we signed the
+// Participation" and rejected it on the stopword "we" — even though a
+// real name ("Participation") was plainly there. Strip leading stopwords
+// and retry; null only when nothing clean remains.
+test("waiverNameFromText: stopword preamble stripped, real name survives", () => {
+  assert.equal(waiverNameFromText("we signed the Participation Waiver"), "Participation");
+  assert.equal(waiverNameFromText("Hi, we signed the Participation Waiver for Ana yesterday"), "Participation");
+  assert.equal(waiverNameFromText("I attached the Liability waiver"), "Liability");
+  assert.equal(waiverNameFromText("the medical release waiver is attached"), "medical release");
+});
+
+test("waiverNameFromText: stopword-only fragment → null (never invented)", () => {
+  assert.equal(waiverNameFromText("the waiver is signed"), null);
+  assert.equal(waiverNameFromText("we signed the waiver"), null);
+  assert.equal(waiverNameFromText("and the waiver"), null);
+});
+
+test("waiverNameFromText: length cap still holds", () => {
+  const long = "x".repeat(61);
+  assert.equal(waiverNameFromText(`we signed the ${long} waiver`), null);
+});
+
+test("waiverNameFromText: quoted names still win over the generic path", () => {
+  assert.equal(waiverNameFromText('We signed the "Participation Waiver" waiver yesterday'), "Participation Waiver");
+  assert.equal(waiverNameFromText('"Annual Consent" waiver'), "Annual Consent");
+});
+
+/* ── Fix 7 (sc03): doc-first matching in checkWaiverClaim ─────────────── */
+// When the text names a doc that is on file, use it directly (docTitleInText)
+// instead of trusting the extractor's fragment.
+test("docTitleInText: on-file title in text wins, longest first", () => {
+  const docs = [
+    { id: "d1", title: "Participation Waiver" },
+    { id: "d2", title: "Waiver" },
+  ];
+  const hit = docTitleInText(docs, "Hi, we signed the Participation Waiver for Ana yesterday");
+  assert.ok(hit && hit.id === "d1", "longest matching title wins");
+  const shorter = docTitleInText(docs, "we signed the waiver");
+  assert.ok(shorter && shorter.id === "d2", "falls back to the shorter title when it is the only one in the text");
+  const genericOnly = docTitleInText([{ id: "d2", title: "Waiver" }], "we signed the waiver");
+  assert.ok(genericOnly && genericOnly.id === "d2");
+});
+
+test("docTitleInText: case-insensitive, null when absent", () => {
+  const docs = [{ id: "d1", title: "Participation Waiver" }];
+  const hit = docTitleInText(docs, "PARTICIPATION WAIVER signed");
+  assert.ok(hit && hit.id === "d1", "case-insensitive");
+  assert.equal(docTitleInText(docs, "we signed the consent form"), null);
+  assert.equal(docTitleInText([], "we signed the Participation Waiver"), null);
+  assert.equal(docTitleInText(docs, null), null);
 });
 
 test("matchWaiverDoc: matches by title substring, null when unknown", () => {
