@@ -29,7 +29,7 @@
 <link rel="manifest" href="/site.webmanifest">
 <script type="application/ld+json">{"@context":"https://schema.org","@type":"SoftwareApplication","name":"Sporv","url":"https://sporv.ai/","applicationCategory":"BusinessApplication","operatingSystem":"Web","description":"Sporv runs the club for you — roster, scheduling, waivers, dues and payouts, with an agent that drafts the busywork and a human who approves it.","publisher":{"@type":"Organization","name":"Sporv","url":"https://sporv.ai/","logo":"https://sporv.ai/icon-512.png"}}</script>
 <script type="application/ld+json">{"@context":"https://schema.org","@type":"WebSite","name":"Sporv AI","url":"https://sporv.ai/"}</script>
-<meta name="sporve-build" content="d5c9ead85087adeb">
+<meta name="sporve-build" content="273f1b5bda1e3c8b">
 </head>
 <body>
 <script>
@@ -15836,7 +15836,9 @@ function modalHTML(){
       <button class="btn wide" data-modal="signup">Sign up</button>
       <button class="btn ghost wide" data-modal="login" style="margin-top:8px">Log in</button>
       ${group("Go to",[
-        ["explore","Product","Everything Sporv runs for a club"],
+        /* Same fix as NAVROWS above: explore IS the landing page, so this must
+           route to the product docs (page:roster), not data-nav="explore". */
+        ["page:roster","Product","Everything Sporv runs for a club"],
         ["pricing","Pricing","Plans and what each includes"],
         ["about","Help","Contact and support"]],"acg-top")}
       ${/* "Switch to coaching" removed (owner 2026-09-19): the consumer
