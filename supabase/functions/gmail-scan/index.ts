@@ -17,11 +17,11 @@
 //
 // Auth: service_role only. It is invoked by the cron runner, not by a browser.
 import { createClient } from 'npm:@supabase/supabase-js@2.112.4';
-import { withHttpDeadline, HttpInputError } from '../_shared/http.ts';
-import { googleConfig } from '../_shared/google-oauth.ts';
+import { withHttpDeadline, HttpInputError } from './_shared/http.ts';
+import { googleConfig } from './_shared/google-oauth.ts';
 import {
   actionable, findingFor, listQuery, summarise,
-} from '../_shared/gmail-read.mjs';
+} from './_shared/gmail-read.mjs';
 
 const cors = {
   'Access-Control-Allow-Origin': '*',
@@ -153,6 +153,7 @@ Deno.serve(async req => {
 
           let newest = since ?? 0;
           const rows: Array<Record<string, unknown>> = [];
+          const summaries: Array<any> = [];
           for (const id of ids) {
             const full = await gmail(
               `messages/${id}?format=metadata&metadataHeaders=From&metadataHeaders=Subject`,
@@ -163,7 +164,7 @@ Deno.serve(async req => {
               newest = Math.max(newest, Math.floor(Number(full.internalDate) / 1000));
             }
             const match = actionable(s, byEmail);
-            if (match) rows.push(findingFor(c.provider_id, c.id, match));
+            if (match) { rows.push(findingFor(c.provider_id, c.id, match)); summaries.push(s); }
           }
 
           // Idempotence, done explicitly rather than with upsert.
@@ -188,6 +189,29 @@ Deno.serve(async req => {
             if (fresh.length) {
               const { error: fErr } = await admin.from('agent_findings').insert(fresh);
               if (fErr) throw new Error('finding write failed');
+              // Intake events for the agent-intake pass — one row per fresh
+              // finding, keyed by the same source_ref so a re-scan can never
+              // duplicate. Written in the same step as the finding write
+              // (atomic-ish): if this insert fails the whole connector tick
+              // fails and retries next run; the findings dedupe keeps it safe.
+              const events = fresh.map(f => {
+                const s = summaries[rows.indexOf(f)] ?? {};
+                return {
+                  provider_id: c.provider_id,
+                  source: 'gmail',
+                  source_ref: f.source_ref,
+                  payload: {
+                    subject: s.subject ?? null,
+                    snippet: s.snippet ?? null,
+                    from: s.from_address ?? null,
+                  },
+                  received_at: s.received_at ?? new Date().toISOString(),
+                  status: 'new',
+                };
+              });
+              const { error: eErr } = await admin.from('intake_events')
+                .upsert(events, { onConflict: 'source_ref', ignoreDuplicates: true });
+              if (eErr) throw new Error('intake event write failed');
             }
             written = fresh.length;
           }

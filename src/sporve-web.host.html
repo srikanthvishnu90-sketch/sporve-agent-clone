@@ -1194,6 +1194,28 @@ img{max-width:100%;display:block}
 .imp-actions{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-top:16px}
 /* review queue (obligations) */
 .obcard{border:1px solid var(--line);border-radius:12px;padding:16px;margin-top:12px;background:var(--raise)}
+/* AI intake proposals (2026-09-22): staged data changes / message drafts from
+   the intake pass. Same register as the review queue — one primary action
+   (Approve), a ghost secondary (Void), pills for status. */
+.intk-card{border:1px solid var(--line);border-radius:12px;padding:16px;background:var(--raise)}
+/* "See the finding in Queue" sits on the light card — the global .navlink is
+   white-on-dark, so the card gets its own token-compliant link style. */
+.intk-why-link{background:none;border:0;cursor:pointer;padding:4px 0;font:inherit;
+  font-size:var(--text-sm);font-weight:600;color:var(--ink);text-decoration:underline;text-underline-offset:3px}
+.intk-why-link:hover{color:var(--slate)}
+.intk-top{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.intk-kind{display:inline-flex;align-items:center;gap:8px;font-weight:700;font-size:var(--text-sm);color:var(--ink)}
+.intk-kind svg{flex:none;color:var(--muted)}
+.intk-tgt{margin-left:auto}
+.intk-diff{display:flex;flex-direction:column;gap:8px;margin:12px 0 4px}
+.intk-diffrow{display:grid;grid-template-columns:minmax(104px,150px) 1fr 20px 1fr;gap:8px;align-items:baseline;font-size:var(--text-sm);min-width:0}
+.intk-field{color:var(--faint);font-weight:600;overflow-wrap:anywhere}
+.intk-old{color:var(--muted);overflow-wrap:anywhere}
+.intk-old s{text-decoration-thickness:1px}
+.intk-arrow{color:var(--faint);text-align:center}
+.intk-new{font-weight:700;color:var(--ink);overflow-wrap:anywhere}
+.intk-why{margin-top:12px}
+@media (max-width:520px){.intk-diffrow{grid-template-columns:minmax(88px,1fr) 1fr 16px 1fr;gap:6px}}
 .obtop{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:8px}
 .obsrc{color:var(--faint);font-size:var(--text-xs)}
 .obtitle{display:block;font-size:var(--text-base);line-height:1.4}
@@ -7164,6 +7186,11 @@ const S={
      so it is EPHEMERAL and re-fetched at boot — a stale copy in sessionStorage
      would let a coach see an approval state the server has since changed. */
   coachProvider:null,
+  /* AI intake degraded flag (2026-09-22): set when the last agent run's
+     intake pass was degraded (AI budget exhausted / 429). In-memory only —
+     it describes the LAST run, never a fabricated server value. Single place:
+     runAgentIntake writes it, the Queue banner and Approvals section read it. */
+  intakeDegraded:false,
   /* Survives the trip to the confirmation email and back, which is why it is
      NOT ephemeral: signup returns no session, so the provider row cannot be
      created until the coach clicks the link and comes back authenticated. */
@@ -12655,7 +12682,7 @@ function coachEarningsPage(){
 function coachApprovalsPage(){
   /* Refresh the draft queue on EVERY visit (2026-09-20): once-per-session
      hydration showed a stale empty list after the agent queued drafts. */
-  if(realSignedIn()) hydrateQueue();
+  if(realSignedIn()){hydrateQueue();loadIntakeProposals();}
   const ui=window.COACH_UI;
   const live=(S.coachQueue||[]).slice();
   const queueErr=S.queueError;
@@ -12697,6 +12724,11 @@ function coachApprovalsPage(){
     title:"Approval queue",
     subtitle:"Every row requires an explicit decision; no draft is sent merely because it appears here.",
     body:queue,
+  }));
+  blocks.push(ui.Block({
+    title:"Proposed actions",
+    subtitle:"Data changes and message drafts the AI intake staged from your inbox. Nothing changes until you approve — voiding discards a proposal.",
+    body:intakeProposalsHTML(),
   }));
   if(sent.length) blocks.push(ui.Block({
     title:"Approval history",
@@ -12923,6 +12955,10 @@ function startAgentRunScreen(){
     const rc=(n&&typeof n==="object")?(+n.n_rows):((typeof n==="number")?n:null);
     line(rc===null?("Read pass · unavailable this run"):("Read pass · "+rc+" thing"+(rc===1?"":"s")+" noticed"),"hi");
     ar.phase="write";render();
+    /* Intake pass (2026-09-22): sits between read and drafts. It never
+       rejects, so a failure here falls back to today's behaviour exactly. */
+    return runAgentIntake(pv.id,line).catch(()=>null);
+  }).then(()=>{
     return window.SporveAPI.rpc("run_agent_drafts",{p_provider:pv.id}).catch(()=>null);
   }).then(r=>{
     if(r&&typeof r==="object"){
@@ -12939,7 +12975,8 @@ function startAgentRunScreen(){
       line("Draft pass · unavailable this run — the nightly run still covers it","sk");
     }
     ar.phase="write";ar.done=true;
-    S.obligLive=false;S.findLoaded=false;loadLiveObligations();loadLiveFindings();
+    S.obligLive=false;S.findLoaded=false;S.intakePropLoaded=false;
+    loadLiveObligations();loadLiveFindings();loadIntakeProposals();
     render();
   });
   return true;
@@ -12962,6 +12999,302 @@ function agentRunAfterConnect(){
       if(n) toast("The agent drafted "+n+" item"+(n===1?"":"s")+" from your setup — they're in your queue for review. Nothing was sent.");
       render();done();})
     .catch(()=>{done();/* cron still covers it; silence beats a scary error at setup's end */});
+}
+/* ── AI INTAKE — UI half (2026-09-22) ────────────────────────────────────
+   Design: ~/workspace/sporv-ai-intake-design.md §2/§3. Backend half (edge
+   function agent-intake, migration 20260922_001115) is on feat/agent-intake.
+   Integration contract: ~/workspace/sporv-intake-contract.md — the UI below
+   is wired to its real shapes:
+   • Edge fn "agent-intake": SporveAPI.fn("agent-intake",{provider_id}) →
+     {processed, findings, proposals, ai_calls, ai_cost_est, degraded} or
+     {error}. A 429 also means degraded.
+   • Degraded signal (durable): provider_settings key='intake_degraded',
+     value={degraded,at,reason} — read once/session on the Queue tab by
+     loadIntakeDegraded(); the run response's own `degraded` covers the live
+     "Run agent now" run. S.intakeDegraded is the one flag the banner reads.
+   • Proposals read: intake_proposals(id, kind, target_table, target_row_id,
+     patch, confidence, status, created_at, why_finding_id) + the embedded
+     why:why_finding_id(title,detail) join for the "why" link. target_row_id
+     may be null (INSERT proposal — card shows "New …", name from the patch).
+   • Decision RPC: decide_intake_proposal(p_proposal uuid, p_decision text),
+     p_decision ∈ 'approve'|'void' ('approved' also accepted); returns
+     {status:'applied'|'void', ...}. Owner-gated server-side.
+   Nothing here mutates directly — every write goes through the approval RPC. */
+function setIntakeDegraded(v){ S.intakeDegraded=!!v; }
+/* Degraded signal (contract §3): the durable flag lives in provider_settings
+   (key='intake_degraded'), written at the end of EVERY agent-intake run —
+   including the nightly cron path this browser session never sees. Read once
+   per session on the Queue tab. S.intakeDegraded stays the ONE place the
+   banner reads, updated from both this read and the live run response. */
+function loadIntakeDegraded(){
+  const pv=S.coachProvider;
+  if(S.intakeDegradedChecked) return;
+  if(!(pv&&pv.id&&window.SporveAPI&&window.SporveAPI.isSignedIn&&window.SporveAPI.isSignedIn())) return;
+  S.intakeDegradedChecked=true;
+  /* Non-critical secondary state: fetch at idle so the Queue tab's own open
+     stays within the 4-request perf budget (tests/perf/boot-requests.spec.ts).
+     The banner appears a beat later; the live run response flag covers the
+     "Run agent now" path immediately. */
+  const go=function(){
+    window.SporveAPI.from("provider_settings",
+      "select=value&provider_id=eq."+pv.id+"&key=eq.intake_degraded&limit=1")
+      .then(function(rows){
+        const v=Array.isArray(rows)&&rows[0]?rows[0].value:null;
+        setIntakeDegraded(!!(v&&v.degraded));
+      })
+      .catch(function(){/* a failed read never invents a degraded state */});
+  };
+  if(typeof requestIdleCallback==="function") requestIdleCallback(function(){ setTimeout(go,2000); },{timeout:4000});
+  else setTimeout(go,2000);
+}
+const INTAKE_KIND={
+  data_change:{label:"Data change",icon:'<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"/></svg>'},
+  message_draft:{label:"Message draft",icon:'<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 7l9 6 9-6"/></svg>'}
+};
+const INTAKE_TABLE_LABEL={team_athletes:"Athlete",sessions:"Session",
+  staff_certifications:"Credential",organization_members:"Staff member",
+  guardians:"Guardian",programs:"Program",teams:"Team",installments:"Installment",
+  fee_schedules:"Fee schedule",invoices:"Invoice",athletes:"Athlete",
+  waiver_documents:"Waiver document",payment_event_ledger:"Payment",
+  prospects:"Prospect"};
+function intakeTableLabel(t){
+  return INTAKE_TABLE_LABEL[t]||String(t||"record").replace(/_/g," ")
+    .replace(/\b\w/g,function(c){return c.toUpperCase();});
+}
+function intakeRowName(row){
+  if(!row) return null;
+  const fn=((row.first_name||"")+" "+(row.last_name||"")).trim();
+  if(fn) return fn;
+  const keys=["name","title","subject","email","venue","label"];
+  for(const k of keys){ if(row[k]) return String(row[k]); }
+  const dt=row.starts_at||row.scheduled_at||row.session_date;
+  if(dt){ try{ return new Date(dt).toLocaleDateString(undefined,{month:"short",day:"numeric"})+" session"; }catch(e){} }
+  return null;
+}
+function intakeFmtVal(v,isCents){
+  if(v===null||v===undefined) return "—";
+  if(typeof v==="boolean") return v?"Yes":"No";
+  if(typeof v==="number"){
+    if(isCents) return "$"+(v/100).toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2});
+    return String(v);
+  }
+  const s=String(v);
+  if(/^\d{4}-\d{2}-\d{2}T/.test(s)){ try{
+    const d=new Date(s);
+    return d.toLocaleDateString(undefined,{month:"short",day:"numeric"})+", "+
+      d.toLocaleTimeString(undefined,{hour:"numeric",minute:"2-digit"});
+  }catch(e){} }
+  if(/^\d{4}-\d{2}-\d{2}$/.test(s)){ try{
+    return new Date(s+"T12:00:00").toLocaleDateString(undefined,{month:"short",day:"numeric",year:"numeric"});
+  }catch(e){} }
+  if(typeof v==="object") return JSON.stringify(v).slice(0,80);
+  return s.length>80?s.slice(0,80)+"…":s;
+}
+function intakeFieldLabel(k){
+  return String(k).replace(/_cents$/," (amount)").replace(/_/g," ")
+    .replace(/\b\w/g,function(c){return c.toUpperCase();});
+}
+/* Confidence badge. Design thresholds: ≥85% "High", 50–85% "Needs confirm";
+   <50% never becomes a proposal server-side — rendered honestly anyway. */
+function intakeConfBadge(c){
+  if(c===null||c===undefined||c==="") return "";
+  let frac=+c; if(isNaN(frac)) return "";
+  if(frac>1) frac=frac/100; /* tolerate 0–100 inputs */
+  const pct=Math.round(frac*100)+"%";
+  if(frac>=0.85) return `<span class="pill good">High confidence · ${pct}</span>`;
+  if(frac>=0.50) return `<span class="pill warn">Needs confirm · ${pct}</span>`;
+  return `<span class="pill slate">Low confidence · ${pct}</span>`;
+}
+/* Old→new diff: the current row is fetched from target_table/target_row_id so
+   the "before" value is real, never assumed. */
+function intakeDiffRows(p){
+  const patch=p.patch||{}; const keys=Object.keys(patch);
+  if(!keys.length) return `<p class="obdetail">No field changes in this proposal.</p>`;
+  /* INSERT proposal (target_row_id null, e.g. a new prospect): there is no
+     before-value — the card shows what will be created on approval. */
+  const isInsert=!p.target_row_id;
+  return (isInsert?`<p class="obdetail" style="margin-top:12px">New ${esc(intakeTableLabel(p.target_table).toLowerCase())} — created when you approve.</p>`:"")+
+    `<div class="intk-diff">`+keys.map(function(k){
+    const cents=/_cents$/.test(k);
+    const newV=esc(intakeFmtVal(patch[k],cents));
+    if(isInsert) return `<div class="intk-diffrow">
+      <span class="intk-field">${esc(intakeFieldLabel(k))}</span>
+      <span class="intk-new" style="grid-column:2/5">${newV}</span>
+    </div>`;
+    const before=(p.before&&Object.prototype.hasOwnProperty.call(p.before,k))?p.before[k]:undefined;
+    return `<div class="intk-diffrow">
+      <span class="intk-field">${esc(intakeFieldLabel(k))}</span>
+      <span class="intk-old">${before===undefined?"— (current unknown)":"<s>"+esc(intakeFmtVal(before,cents))+"</s>"}</span>
+      <span class="intk-arrow" aria-hidden="true">→</span>
+      <span class="intk-new">${newV}</span>
+    </div>`;
+  }).join("")+`</div>`;
+}
+/* A message_draft proposal carries the staged text instead of field changes. */
+function intakeMessageBody(p){
+  const patch=p.patch||{};
+  const body=patch.body||patch.message||patch.text||patch.draft||"";
+  if(!body) return intakeDiffRows(p);
+  const head=[patch.subject?`<div style="font-weight:700;font-size:var(--text-base);color:var(--ink)">${esc(patch.subject)}</div>`:"",
+    patch.to?`<div style="color:var(--muted);font-size:var(--text-sm)">To: ${esc(patch.to)}</div>`:""].join("");
+  return head+`<div style="font-size:var(--text-sm);color:var(--ink);margin-top:8px">${mdCoach(body)}</div>`;
+}
+function intakeProposalCard(p){
+  const k=INTAKE_KIND[p.kind]||INTAKE_KIND.data_change;
+  const busy=S.intakeDeciding&&S.intakeDeciding[p.id];
+  const why=(p.why&&p.why.title)||null;
+  const whyDetail=(p.why&&p.why.detail)||null;
+  const tgt=`${esc(intakeTableLabel(p.target_table))}${p.rowName?` · ${esc(p.rowName)}`:""}`;
+  return `<div class="intk-card">
+    <div class="intk-top">
+      <span class="intk-kind">${k.icon}${esc(k.label)}</span>
+      ${intakeConfBadge(p.confidence)}
+      <span class="pill slate intk-tgt">${tgt}</span>
+    </div>
+    ${p.kind==="message_draft"?intakeMessageBody(p):intakeDiffRows(p)}
+    ${why?`<div class="ob2why intk-why">Why <span class="ob2sig num">${esc(why)}</span>${
+      whyDetail?` — <span style="color:var(--muted)">${esc(String(whyDetail).slice(0,160))}</span>`:""}</div>
+      <div><button class="intk-why-link" data-ctab="queue">See the finding in Queue</button></div>`:""}
+    <div class="obacts">
+      ${busy?`<span style="color:var(--muted);font-size:var(--text-sm)">Working…</span>`
+        :`<button class="btn sm" data-intake-approve="${esc(p.id)}">Approve</button>
+          <button class="btn ghost sm" data-intake-void="${esc(p.id)}">Void</button>`}
+    </div>
+  </div>`;
+}
+/* Proposed-actions section for the Approvals tab: draft cards, decided rows,
+   plus the four states (loading / error / empty / populated). */
+function intakeProposalsHTML(){
+  if(!realSignedIn()) return `<div class="empty"><h3>Proposed actions</h3>
+    <p style="margin-top:6px">When the AI intake reads something in your club's inbox that needs
+      a data change or a draft reply, it appears here for your decision — nothing changes until you approve.</p>
+    <button class="btn" data-signin="1" style="margin-top:12px">Log in or sign up</button></div>`;
+  if(S.intakePropError) return `<div class="panel" role="alert"><h3>Proposed actions couldn't load</h3>
+    <p style="color:var(--muted);font-size:var(--text-sm);margin-top:4px">${esc(S.intakePropError)}</p>
+    <div class="imp-addrow" style="margin-top:8px"><button class="btn ghost sm" data-intake-retry="1">Try again</button></div></div>`;
+  if(S.intakePropLoading||!S.intakePropLoaded) return `<div class="panel" role="status"><h3>Loading proposed actions…</h3>
+    <p style="color:var(--muted);font-size:var(--text-sm);margin-top:4px">Reading what the AI intake staged from your inbox.</p></div>`;
+  const list=(S.intakeProposals||[]);
+  const drafts=list.filter(function(p){return p.status==="draft";});
+  const decided=list.filter(function(p){return p.status!=="draft";});
+  if(!drafts.length&&!decided.length) return `<div class="empty"><h3>No proposed actions</h3>
+    <p style="margin-top:6px">When the AI intake reads something in your club's inbox that needs
+      a data change or a draft reply, it will appear here for your decision — nothing changes until you approve.</p>
+    <button class="btn sm" data-agent-run="1" style="margin-top:12px">Run agent now</button></div>`;
+  return `<div style="display:flex;flex-direction:column;gap:12px">
+      ${drafts.map(intakeProposalCard).join("")}
+    </div>`+(decided.length?`
+    <div class="sec-head" style="margin:16px 0 0"><h3 style="color:var(--muted);font-size:var(--text-base)">Decided</h3></div>
+    <div style="display:flex;flex-direction:column;gap:8px;margin-top:8px">
+      ${decided.map(function(p){
+        const k=INTAKE_KIND[p.kind]||INTAKE_KIND.data_change;
+        const tgt=`${esc(intakeTableLabel(p.target_table))}${p.rowName?` · ${esc(p.rowName)}`:""}`;
+        return `<div class="panel" style="display:flex;align-items:center;gap:12px;padding:12px 16px">
+          <span class="intk-kind" style="color:var(--faint)">${k.icon}</span>
+          <span style="flex:1;min-width:0"><b style="font-size:var(--text-sm)">${tgt}</b><br>
+            <span style="color:var(--faint);font-size:var(--text-sm)">${esc(k.label)}${p.confidence!=null?` · ${Math.round((+p.confidence>1?+p.confidence/100:+p.confidence)*100)}%`:""}</span></span>
+          <span class="pill ${p.status==="applied"?"good":"slate"}">${p.status==="applied"?"Applied":"Voided"}</span>
+        </div>`;}).join("")}
+    </div>`:"");
+}
+function loadIntakeProposals(){
+  const pv=S.coachProvider;
+  if(S.intakePropLoading||S.intakePropLoaded) return;
+  if(!(pv&&pv.id&&window.SporveAPI&&window.SporveAPI.isSignedIn&&window.SporveAPI.isSignedIn())) return;
+  S.intakePropLoading=true;
+  window.SporveAPI.from("intake_proposals",
+    "select=id,kind,target_table,target_row_id,patch,confidence,status,created_at,why:why_finding_id(title,detail)"+
+    "&provider_id=eq."+pv.id+"&status=eq.draft&order=confidence.desc,created_at.desc&limit=50")
+    .then(function(rows){
+      S.intakeProposals=Array.isArray(rows)?rows:[];
+      S.intakePropLoaded=true;S.intakePropError=null;
+      /* INSERT proposals (target_row_id null) have no row to read — the name
+         comes from the staged patch (name/email). */
+      S.intakeProposals.forEach(function(p){
+        if(!p.target_row_id&&!p.rowName) p.rowName=intakeRowName(p.patch);
+      });
+      /* One read per target row so every diff shows the real before-value. */
+      const seen={}, jobs=[];
+      S.intakeProposals.forEach(function(p){
+        const key=(p.target_table||"")+"::"+(p.target_row_id||"");
+        if(!p.target_table||!p.target_row_id||seen[key]) return;
+        seen[key]=1;
+        jobs.push(window.SporveAPI.from(p.target_table,
+            "select=*&id=eq."+encodeURIComponent(p.target_row_id)+"&limit=1")
+          .then(function(r){
+            const row=Array.isArray(r)&&r[0]?r[0]:null;
+            S.intakeProposals.forEach(function(q){
+              if((q.target_table||"")+"::"+(q.target_row_id||"")===key){
+                q.before=row||{}; q.rowName=intakeRowName(row);
+              }});
+          }).catch(function(){}));
+      });
+      return Promise.all(jobs);
+    })
+    .then(function(){render();})
+    .catch(function(e){
+      /* Honest failure: a missing table (backend still landing on this
+         branch) says so instead of rendering as an empty section. */
+      S.intakePropError=(e&&e.status===404)
+        ?"The proposals table isn't deployed yet — the intake backend is still landing on this branch. Your drafts are unaffected."
+        :(e&&e.message)||"Could not reach the server.";
+    })
+    .finally(function(){S.intakePropLoading=false;render();});
+}
+/* Every decision goes through the owner-gated decide_intake_proposal RPC —
+   the client never mutates a target table directly. In-flight guard in state
+   (same twin-button reasoning as the queue's S.qDeciding). */
+function decideIntakeProposal(id,decision){
+  S.intakeDeciding=S.intakeDeciding||{};
+  if(S.intakeDeciding[id]) return;
+  S.intakeDeciding[id]=true;render();
+  window.SporveAPI.rpc("decide_intake_proposal",{p_proposal:id,p_decision:decision})
+    .then(function(res){
+      /* The RPC stamps applied/void server-side — reflect the honest state. */
+      const row=(S.intakeProposals||[]).find(function(p){return p.id===id;});
+      const stamped=(res&&res.status)||(decision==="approve"?"applied":"void");
+      if(row) row.status=stamped;
+      delete S.intakeDeciding[id];render();
+      toast(decision==="approve"?"Change applied.":"Proposal voided — nothing changed.");
+    })
+    .catch(function(e){delete S.intakeDeciding[id];render();
+      toast((e&&e.message)||"Could not record your decision — try again.");});
+}
+/* The intake pass: one best-effort call to the agent-intake edge function.
+   NEVER rejects — on any failure the run falls back to today's behaviour
+   (deterministic read + drafts only). A degraded signal or a 429 sets the
+   S.intakeDegraded flag the Queue banner reads. */
+function runAgentIntake(providerId,line){
+  return window.SporveAPI.fn("agent-intake",{provider_id:providerId}).then(function(res){
+    const degraded=!!(res&&res.degraded);
+    setIntakeDegraded(degraded);
+    if(line){
+      /* Run-screen copy per contract §4. */
+      if(degraded) line("AI enrichment paused — monthly AI limit reached","sk");
+      else if(res){
+        const pr=+res.processed||0, ai=+res.ai_calls||0;
+        line("Intake pass · "+pr+" update"+(pr===1?"":"s")+" read"+(ai?", "+ai+" AI assist":""),"hi");
+      } else line("Intake pass · unavailable this run","sk");
+    }
+    return {degraded:degraded,n:(res&&+res.proposals)||0};
+  }).catch(function(e){
+    if(e&&e.status===429){
+      setIntakeDegraded(true);
+      if(line) line("AI enrichment paused — monthly AI limit reached","sk");
+      return {degraded:true,n:0};
+    }
+    /* Not deployed / unreachable: fail back to today's behaviour, silently. */
+    return {degraded:false,n:0};
+  });
+}
+/* The Queue tab's degraded banner — reads the one flag set by the last run.
+   Copy rule: vague AI wording only, no numeric quotas, no "Unlimited". */
+function intakeDegradedBannerHTML(){
+  if(!S.intakeDegraded) return "";
+  return `<div class="panel" role="alert" style="margin-top:14px;border-left:3px solid var(--warn,#B87800)">
+    <h3>AI enrichment paused — monthly AI limit reached</h3>
+    <p style="color:var(--muted);font-size:var(--text-sm);margin-top:4px">The scan still read your records — everything it found is below. Inbox items the AI couldn't read this run will be picked up when your AI usage resets.</p>
+  </div>`;
 }
 /* Demo parser for step 5 ("unstructured input is a native input type"). A
    forwarded email/text is pasted; heuristics turn it into DRAFT obligations.
@@ -13513,7 +13846,7 @@ function obligWhy(o){
   return ref.length>1?ref.slice(0,2).join(" · ").replace(/_/g," "):null;
 }
 function coachQueuePage(){
-  if(realSignedIn()) hydrateFor("queue");
+  if(realSignedIn()){hydrateFor("queue");loadIntakeDegraded();}
   const q=obligationQueue();
   const drafts=q.filter(o=>o.status==="draft");
   const approved=q.filter(o=>o.status==="approved");
@@ -13565,6 +13898,7 @@ function coachQueuePage(){
       ${bulkN>3?`<button class="btn ghost sm" data-oblig-approveall="1"${S.bulkApproving?" disabled":""}>${S.bulkApproving?"Approving…":"Approve all "+bulkN}</button>`:""}
       <button class="btn ghost sm" data-agent-read="1"${S.readRunning?" disabled":""}>${S.readRunning?"Scanning…":"Scan now"}</button>
       <button class="btn sm" data-agent-run="1"${S.agentRunning?" disabled":""}>${S.agentRunning?"Running…":"Run agent now"}</button></span>`:""}</div>
+    ${intakeDegradedBannerHTML()}
     ${(S.findings&&S.findings.length)?`<div class="panel" style="margin-top:14px">
       <div class="sec-head" style="margin:0 0 8px"><h3>What the agent noticed</h3>
         <span style="color:var(--faint);font-size:var(--text-sm)">${S.findings.length} finding${S.findings.length===1?"":"s"} · nothing here sends</span></div>
@@ -18681,12 +19015,20 @@ document.querySelectorAll('.sig-ai-coach').forEach(sigAiCoachWire);
     if(startAgentRunScreen()) return;
     const pv=S.coachProvider; if(!pv||!window.SporveAPI||S.agentRunning) return;
     S.agentRunning=true;render();
-    window.SporveAPI.rpc("run_agent_drafts",{p_provider:pv.id})
-      .then(r=>{S.agentRunning=false;S.obligLive=false;loadLiveObligations();
+    /* Same read → intake → drafts sequence as the modal flow. The intake pass
+       never rejects, so the drafts toast copy below is preserved exactly. */
+    runAgentIntake(pv.id).catch(()=>null)
+      .then(()=>window.SporveAPI.rpc("run_agent_drafts",{p_provider:pv.id}))
+      .then(r=>{S.agentRunning=false;S.obligLive=false;S.intakePropLoaded=false;loadIntakeProposals();
         const n=(r&&r.total)||0;
         toast(n?("The agent drafted "+n+" item"+(n===1?"":"s")+" — dues "+r.dues+", waivers "+r.waivers+", practice "+r.practice+", win-back "+r.reactivation+", eligibility "+r.eligibility+". Nothing was sent."):"Nothing to draft — dues, waivers, schedule and roster are all current.");render();})
       .catch(e=>{S.agentRunning=false;render();toast((e&&e.message)||"The agent run failed.");});
   });
+  /* AI intake proposal decisions (2026-09-22): APPROVE / VOID on the
+     "Proposed actions" cards — every write goes through decide_intake_proposal. */
+  $("[data-intake-approve]").forEach(b=>b.onclick=()=>decideIntakeProposal(b.dataset.intakeApprove,"approve"));
+  $("[data-intake-void]").forEach(b=>b.onclick=()=>decideIntakeProposal(b.dataset.intakeVoid,"void"));
+  $("[data-intake-retry]").forEach(b=>b.onclick=()=>{S.intakePropError=null;S.intakePropLoaded=false;loadIntakeProposals();render();});
   $("[data-oblig-dismiss]").forEach(b=>b.onclick=()=>{
     const o=obligBy(b.dataset.obligDismiss);
     if(o&&o.live){
