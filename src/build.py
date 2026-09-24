@@ -288,7 +288,7 @@ else:
 # repo root (owner artwork, 2026-09-04 — replaces the placeholder circle).
 # og/twitter URLs point at sporv.ai; the old sporv.vercel.app host 404s.
 _OG = "https://sporv.ai/og.png?v=2"
-_TITLE = "Sporv — The operating system for youth sports"
+_TITLE = "Sporv AI — The operating system for youth sports"
 _DESC = ("Sporv is the operating system for youth sports. AI agent for clubs, "
          "trainers, and parents: scheduling, payments, client management, and "
          "parent communication.")
@@ -327,6 +327,10 @@ STANDALONE = (
     '"publisher":{"@type":"Organization","name":"Sporv","url":"https://sporv.ai/","logo":"https://sporv.ai/icon-512.png"}}</script>\n'
     '<script type="application/ld+json">{"@context":"https://schema.org","@type":"WebSite",'
     '"name":"Sporv AI","url":"https://sporv.ai/"}</script>\n'
+    '<script type="application/ld+json">{"@context":"https://schema.org","@type":"Organization",'
+    '"name":"Sporv","alternateName":"Sporv AI","url":"https://sporv.ai/",'
+    '"logo":"https://sporv.ai/icon-512.png",'
+    '"description":"Sporv AI is the AI agent for youth-sports organizations. It runs scheduling, rosters, waivers, dues and payouts, and parent communication — the agent drafts the busywork and a human approves every action."}</script>\n'
     "</head>\n<body>\n__SPORVE_BODY__\n</body>\n</html>\n"
 )
 require_once(STANDALONE, "__SPORVE_BODY__", "standalone body token")
