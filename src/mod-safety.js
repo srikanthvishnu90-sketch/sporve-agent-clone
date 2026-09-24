@@ -340,31 +340,28 @@
   }
 
   /* ═══════════════════ VIEW · TRUST &amp; SAFETY ═══════════════════
-     Page-level content, in the order a reader needs it. The per-person check
-     policy is the proof behind the product's central claim, so it leads the
-     page instead of sitting in the third panel down. */
-  /* Anti-slop constitution C1: the icon column is GONE. These four rendered as
-     shield/check/doc/clock cards in a 3-up grid — tells #1 (outline icons over
-     text), #3 (icon+bold+gray as the only pattern), #16 (icon-card grid), and
-     #23: four items in a three-column grid stranded "Checks are re-run" alone
-     on its own row, which is the exact screenshot the constitution opens with.
-     Now a B6 definition list sharing .sf-rule with the rules section below —
-     a document's own rows, hairline-separated, the term doing the work the
-     icon pretended to do.
-
-     One copy correction while here: "stay bookable" was FALSE — since the
-     evidence gate landed, an uncleared provider cannot take a booking at all.
-     The page said the opposite of what the database enforces. */
+     Page-level content, in the order a reader needs it. This is the page the
+     footer points at for "Trust & safety": the protocols the product runs on,
+     what Sporv enforces, and what the organization owns. Written 2026-09-24
+     against the real backend: three client flows (reports, refunds, privacy
+     requests), no check vendor connected, no auto-send anywhere. Nothing here
+     claims monitoring, investigations, response times, or coverage the
+     product does not have. */
   const POLICY = [
-    ["Each person clears their own", "A background check is required before a coach can be booked."],
-    ["Sporv sets the badge",        "An organization cannot verify its own staff."],
-    ["Pending is shown",             "Uncleared listings read Verification pending — visible, but not bookable until the check clears."],
-    ["Checks are re-run",            "A badge that stops being true stops showing."],
+    ["Checks are recorded per person", "The record belongs to one individual: status and dates, never report contents. Per-person gating is the intended model — we state it as a record practice, not as an enforced gate, until it is production-verified."],
+    ["Your organization owns compliance", "Sporv records the checks you run. It does not order checks, choose a vendor, or verify your staff for you."],
+    ["No vendor ordering today", "There is no background-check vendor connected to Sporv right now. Without one the flow fails closed — we say so instead of implying coverage."],
+    ["Status is shown honestly", "What the record says is what is shown. A check that stops being true stops showing as true."],
   ];
   const RULES = [
-    ["Reports go to safety@sporve.com", "During beta a report opens an email to Sporv's safety address. Send it, and keep your copy — that email IS the record."],
-    ["Refunds are reviewed",   "Full refund, partial refund, or a written denial."],
-    ["Deletion is a case",     "Payment and safety records stay under legal hold. We write back."],
+    ["Adults hold the accounts", "Only an adult opens and controls an organization account. Youth records are gated by parental consent."],
+    ["Sensitive data stays compartmented", "Dates of birth, emergency contacts, and medical notes are visible only to guardians and organization admins."],
+    ["The agent drafts, never sends", "Messages, calendar changes, charges, refunds, and every other write wait in your review queue for a human decision."],
+    ["Inbound content is untrusted", "Email and anything extracted from it is treated as input to check — never as instructions to follow."],
+    ["Waivers are versioned", "Each waiver version is tied to the signatures recorded against it. A changed waiver is a new signature."],
+    ["Media consent is per child", "Recorded per child, and revocable at any time."],
+    ["Every request is tracked", "Refund and privacy requests get a reference and a tracked status. Safety reports are taken by email to safety@sporv.ai during beta — the sent email is the record."],
+    ["Emergencies come first", "If anyone is in danger, contact emergency services before reporting here."],
   ];
   /* PICON is the host's stroke-icon set (never emoji); guarded so a module
      loaded against an older host degrades to no icon rather than throwing. */
@@ -423,8 +420,8 @@
     <section class="band alt sf-hero">
       <div class="shell" data-rev>
         <p class="eyebrow">Trust &amp; safety</p>
-        <h1>Every coach must clear their own check.</h1>
-        <p class="lede">A check belongs to a person, not a logo.</p>
+        <h1>Safety is how the product works.</h1>
+        <p class="lede">Sporv is software for youth-sports organizations. These are the protocols it runs on — what the product enforces, and what your organization owns.</p>
 
         <div class="sf-actions">
           <button class="btn" data-sf-open="report">Report a safety concern</button>
@@ -435,7 +432,7 @@
 
         <div class="sf-note sf-note-warn sf-emergency" role="note">
           <h3>If anyone is in danger, call emergency services first</h3>
-          <p>Report here afterwards. During beta this opens an email to safety@sporve.com — send it so there is a record we can act on.</p>
+          <p>Report here afterwards. During beta this opens an email to safety@sporv.ai — send it so there is a record we can act on.</p>
         </div>
       </div>
     </section>
@@ -443,11 +440,11 @@
     <section class="band sf-w">
       <div class="shell">
         <div class="prodsec" data-rev>
-          <h2>The check is per person.</h2>
-          <p class="sub">Approving a business says nothing about who coaches your child.</p>
+          <h2>The safety protocols.</h2>
+          <p class="sub">What the product enforces, in plain language.</p>
         </div>
         <div class="sf-rules" data-rev>
-          ${POLICY.map(([t, d]) => `<div class="sf-rule"><b>${esc(t)}</b><p>${esc(d)}</p></div>`).join("")}
+          ${RULES.map(([t, d]) => `<div class="sf-rule"><b>${esc(t)}</b><p>${esc(d)}</p></div>`).join("")}
         </div>
       </div>
     </section>
@@ -455,27 +452,26 @@
     <section class="band dark">
       <div class="shell">
         <div class="prodsec" data-rev>
-          <p class="eyebrow">The badge</p>
-          <h2>Withheld, never implied.</h2>
+          <p class="eyebrow">Background checks</p>
+          <h2>Recorded, never implied.</h2>
+          <p class="sub" style="margin-top:14px;max-width:62ch">Sporv keeps a check record per person — status and dates, never report contents. What it does not do yet is order checks: there is no vendor connected, so your organization runs its own checks and Sporv records the result.</p>
         </div>
-        ${/* The two pills are the PRODUCT'S REAL UI — the one place an icon is
-             earned, because it encodes state. What goes is the card chrome
-             around them: flat hairline rows on the dark panel, badge left,
-             clause right, same document grammar as the rest of the page. */""}
         <div class="sf-badges" data-rev>
-          <div class="sf-badge"><span class="pill gold">${ICON.shield} Background-checked</span>
-            <p>Check passed, and re-run on schedule.</p></div>
-          <div class="sf-badge"><span class="pill warn">${ICON.shield} Verification pending</span>
-            <p>The badge waits for that person's check.</p></div>
+          <div class="sf-badge"><span class="pill gold">${ICON.shield} Check recorded</span>
+            <p>Status and dates on file for this person.</p></div>
+          <div class="sf-badge"><span class="pill warn">${ICON.shield} No check on file</span>
+            <p>Shown as unverified. Never implied, never borrowed from someone else.</p></div>
+        </div>
+        <div class="sf-rules" data-rev style="margin-top:26px">
+          ${POLICY.map(([t, d]) => `<div class="sf-rule" style="border-top-color:rgba(255,255,255,.14)"><b>${esc(t)}</b><p>${esc(d)}</p></div>`).join("")}
         </div>
       </div>
     </section>
 
     <section class="band alt">
       <div class="shell" data-rev>
-        <div class="prodsec"><h2>Every request is tracked.</h2></div>
-        <div class="sf-rules">
-          ${RULES.map(([t, d]) => `<div class="sf-rule"><b>${esc(t)}</b><p>${esc(d)}</p></div>`).join("")}
+        <div class="prodsec"><h2>Every request is tracked.</h2>
+          <p class="sub" style="margin-top:12px;max-width:62ch">Safety, privacy, and refund requests are tracked. During beta a safety report opens an email to safety@sporv.ai — send it, and keep your copy. That email is the record.</p>
         </div>
       </div>
     </section>
@@ -612,7 +608,7 @@
          believed Sporv was investigating. Sporv never knew.
 
          Until safety_reports exists with a triage path, the honest surface is
-         email: the report opens a pre-filled message to safety@sporve.com, and
+         email: the report opens a pre-filled message to safety@sporv.ai, and
          the sent mail — held by the parent, not by us — is the record. The local
          entry is kept ONLY as the parent's own copy and is labelled as such; it
          no longer claims a case number Sporv is holding. Deleting the false
@@ -626,7 +622,7 @@
             (providerId?("Provider: "+providerId+"\n"):"")+
             (bookingId?("Booking: "+bookingId+"\n"):"")+
             "\nWhat happened:\n"+details+"\n";
-          window.location.href = "mailto:safety@sporve.com"
+          window.location.href = "mailto:safety@sporv.ai"
             + "?subject=" + encodeURIComponent("Safety report — " + (CATEGORY_LABEL[category]||category))
             + "&body=" + encodeURIComponent(body);
         }catch(e){}

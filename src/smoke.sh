@@ -1719,7 +1719,7 @@ safe=$($B js "
  if(/Reports reach a person/.test(src)) bad.push('CLAIMS_A_HUMAN_READS_IT');
  if(/We suspend accounts and preserve records/.test(src)) bad.push('CLAIMS_ENFORCEMENT');
  if(/ref\(\"SR\"/.test(src)) bad.push('MINTS_CASE_NUMBER');
- if(!/safety@sporve\.com/.test(src)) bad.push('NO_REAL_ROUTE');
+ if(!/safety@sporv\.ai/.test(src)) bad.push('NO_REAL_ROUTE');
  return bad.length?bad.join(','):'OK';})()" 2>/dev/null)
 [ "${safe//\"/}" = "OK" ] && pass "safety reports promise only what the code delivers" \
   || fail "the safety surface makes a promise nothing backs: $safe"

@@ -299,34 +299,33 @@
 
   function whatIsPage(meta) {
     var cells = [
-      ["Platform", "Families compare real services by sport, age, level, place, price, format, and dated availability. Coaches publish that supply themselves. An empty match stays empty; Sporv does not pad the roster of offerings with a coach who missed the request. Reopening a result reads its current record again."],
-      ["Verification", "Every person who can accept a booking needs their own cleared background-check state. A company cannot lend its status to staff. A badge that stops being true stops showing, and new booking access stops with it. The named person remains the unit of trust."],
-      ["Booking", "A parent chooses a published opening with duration, place, capacity, and full price attached. Checkout checks the remaining seat again before writing confirmation. A failed payment or a full session never becomes a polite fiction. Both sides leave with the same dated record."],
-      ["Payments", "Families pay the listed service price without an added booking fee. Sporv takes zero percent of bookings, so gross and net payout match on the record. A refund keeps the original charge and adjustment visible. No transfer is reduced to an unexplained balance."],
-      ["Messaging", "A question begins from a listing and remains attributed. If the family books, the same thread follows the dated session. Conversation can clarify fit or arrival; it cannot bypass verification, capacity, payment, or confirmation. Reporting stays separate from an ordinary reply."],
-      ["Progress", "Dated notes, goals, and real measurements stay with the athlete account while retaining each coach's authorship. Parents can read the season without rebuilding it from screenshots, and changing coaches does not erase earlier work. A missing observation is never filled by inference."]
+      ["Read", "The agent reads the operation every night: the inbox, the calendar, the dues ledger, the roster, the shared drive. Overdue installments, failed cards, unsigned waivers, schedule conflicts, and lapsed members surface as findings with the record behind them."],
+      ["Draft", "Each finding becomes a draft in one review queue: the follow-up addressed to the right payer with the right amount, the waiver chase, the schedule notice, the session note. Drafts carry their source, so a message is traceable to the row it came from."],
+      ["Approve", "Nothing sends, charges, or changes a record until a person approves it. Approve sends one draft; bulk approval handles the routine ones. Every approval records who decided. There is no automatic mode."],
+      ["Records", "Session notes, eligibility lists, treasurer summaries, and minutes land as records, not chat. The season reads as one account of what happened, written from the same rows that run billing and scheduling."],
+      ["Money", "Dues run on the organization's own Stripe account, and Sporv takes zero percent of parent payments at launch. The software is a flat subscription — free to start, Pro at thirty-four ninety-nine a month."],
+      ["Safety", "Accounts belong to adults. A parent's consent gates a minor's data, youth details stay compartmented, and inbound email is treated as untrusted input. The safety page lists the full protocols."]
     ];
     var questions = [
-      ["Who is Sporv for?", "Families use Sporv to find and manage youth-sports instruction. Independent coaches, trainers, camps, teams, and authorized organizations use the other side to publish supply and operate the sessions they sell."],
-      ["What does it cost?", "Families pay the coach's listed price and no family booking fee. Coaches keep one hundred percent of booking revenue and run the software on a flat subscription — free to start, Pro at thirty-four ninety-nine a month."],
-      ["When will it be near me?", "Search can only show supply that a real coach has published in the chosen area. Coverage grows coach by coach, so Sporv shows an honest empty result and keeps the criteria visible when a local match does not exist yet."]
+      ["Who is Sporv for?", "Youth-sports organizations — clubs, academies, leagues — and the independent coaches and trainers who run sessions. One account holds the staff, the athletes, the money, and the compliance."],
+      ["What does it cost?", "The organization pays a flat subscription for the software and the agent: free to start, Pro at thirty-four ninety-nine a month, custom for larger organizations. Sporv takes zero percent of parent dues at launch."],
+      ["What does the agent never do?", "Send anything on its own. Every message, charge, and record change waits for a human approval in the review queue. The agent proposes; the organization decides."]
     ];
     var cellCard = function (cell) {
       return "<article><h2>" + cell[0] + "</h2><p data-prose>" + cell[1] + "</p></article>";
     };
     return wrap("what-is", "B01", "manifesto-split-grid-claim-questions", "D-L-L-D-L", hero(meta,
-      "Every sport. One app.",
-      "Sporv is the shared operating record between a family and an independent youth-sports professional. Families discover a suitable service, ask questions, take an actual opening, pay, and keep the receipt. Coaches publish that supply, manage the athlete, write the follow-up, and receive the payout. Verification, consent, capacity, and policy rules decide what either side is allowed to see or do.",
+      "The agent for <em>youth-sports organizations.</em>",
+      "Sporv reads your operation — email, calendar, dues, roster, files — and drafts the work: the follow-ups, the waiver chases, the schedule notices, the session notes. Every draft waits in one review queue, and nothing sends until a person approves it.",
       { tone: "dark", layout: "manifesto", eyebrow: "WHAT IS SPORV" }) +
       "<section class='pgband white pg-capability-section' data-section='capability-grid' data-layout='six-cell-border-grid'><div class='shell pg-capability-grid'>" +
       cells.slice(0, 3).map(cellCard).join("") + "</div></section>" +
       "<section class='pgband slate pg-capability-section' data-section='capability-grid' data-layout='six-cell-border-grid'><div class='shell pg-capability-grid'>" +
       cells.slice(3, 6).map(cellCard).join("") + "</div></section>" +
-      "<section class='pgband dark pg-market-claim' data-section='market-claim' data-layout='claim-band'><div class='shell'><h2 class='pg-serif'>The gossip-and-cash economy, <em class='pg-accent-phrase'>replaced.</em></h2>" +
-      "<p data-prose>One shared record does not erase the difference between parent and coach. It gives both roles evidence they can name: the listing that was offered, the person who cleared the gate, the opening that was taken, the policy saved at purchase, the messages sent, and the money moved. Support can inspect that record instead of asking two people to reconstruct a season from memory.</p></div></section>" +
+      "<section class='pgband dark pg-market-claim' data-section='market-claim' data-layout='claim-band'><div class='shell'><h2 class='pg-serif'>The admin work, <em class='pg-accent-phrase'>drafted before you ask.</em></h2>" +
+      "<p data-prose>One shared record does not erase the difference between a director and a parent. It gives the organization evidence it can name: the installment that is late, the waiver that is unsigned, the check that lapses before Saturday, the message that was approved and sent. The queue holds the drafts; the people hold the decisions.</p></div></section>" +
       "<section class='pgband white pg-what-questions' data-section='question-ledger' data-layout='three-question-close'><div class='shell'><dl class='pg-question-ledger'>" +
-      questions.map(function (row) { return "<div class='pg-question-row'><dt>" + row[0] + "</dt><dd data-prose>" + row[1] + "</dd></div>"; }).join("") +
-      "</dl></div></section>");
+      questions.map(function (row) { return "<div class='pg-question-row'><dt>" + row[0] + "</dt><dd data-prose>" + row[1] + "</dd></div>"; }).join("") + "</dl></div></section>");
   }
 
   function bookingsPage(meta) {
@@ -441,27 +440,27 @@
 
   function backgroundChecksPage(meta) {
     var steps = [
-      ["Invite the person", "The coach receives the screening request in their own name and supplies the identity information and consent the independent vendor requires. A company administrator may begin the invitation, but cannot complete or inherit the check for the person who will coach."],
-      ["Run the vendor check", "The screening vendor compares the submitted identity against the sources included in its service. Sporv receives a state from that process; the coach cannot type a result, design a badge, or approve themselves from the listing editor."],
-      ["Review the result", "A returned result can require operational review before it becomes a product state. Review resolves identity or record questions without turning urgency into clearance. Pending means pending, even when a coach has clients waiting or a business owner asks to publish early."],
-      ["Show a dated badge", "A cleared state makes the named coach eligible for the badge and for bookable supply, subject to the other listing gates. The visible state belongs to that person and date. It never spreads across colleagues, locations, or an organization logo."],
-      ["Re-check the current truth", "The product reads the stored state again when a booking is written. If clearance expires, changes, or is withdrawn, the badge stops showing and the server closes new booking access. An old link or saved coach cannot preserve a safety claim that is no longer true."]
+      ["Keep one record per person", "Each staff member has their own background-check record with a source and a date. A club's standing never extends to an unchecked staff member, and one person's result never becomes another's. The named person is the unit of the record."],
+      ["Record what the organization screened", "The organization runs its own screening through its own process and hands the result to Sporv: who was checked, who ran it, the result, and the date. Sporv records what it is given; it does not order checks itself."],
+      ["Date everything", "Every record carries the check date and, where known, the expiry. A dated record lets the organization see what is current and what has lapsed without reconstructing it from memory."],
+      ["Watch the expiries", "Checks that lapse before game day surface on the eligibility report alongside unpaid dues and unsigned waivers, so a director sees the full Saturday picture in one place."],
+      ["Mind the gap", "No screening vendor is connected to Sporv today, and no automated gate enforces clearance in production yet. The record shows what was supplied; the organization decides who coaches while a check is pending or lapsed."]
     ];
     var questions = [
-      ["Does a club's check cover its coaches?", "No. Every person who can appear as bookable needs their own stored cleared state. Organization membership changes administration, not the identity that was screened or the date attached to that result."],
-      ["Can a pending coach take a booking?", "No. Pending coaches can appear without a badge when verified-only is off. Verified-only removes them. If a family reaches booking from an old result or link, the server reads the current provider state and refuses the booking until the required check is complete."],
-      ["What does the parent see?", "The family sees the named coach and current verification state beside the service. They should report any mismatch between that person and the person who arrives, because the badge cannot travel to a substitute."],
-      ["What happens to earlier bookings?", "Historical records keep what was booked and when for support and review. They do not restore the coach's right to accept another booking after the safety state changes or make an expired badge current again."]
+      ["Does a club's check cover its coaches?", "No. Records are per person. Organization membership changes administration, not the identity that was screened or the date attached to that result."],
+      ["Does Sporv run the background checks?", "No. Sporv does not order background checks and has no screening vendor connected. The organization conducts its own screening and compliance; Sporv records the status and dates it is given."],
+      ["What does the organization see?", "A per-person record: who was checked, who ran the check, the result, the date, and whether it is current. Lapsed checks appear on the eligibility report so nothing hides."],
+      ["What happens when a check lapses?", "The record shows it as lapsed and it stays visible on the eligibility report. The organization decides who may coach while a check is pending or lapsed; Sporv does not pretend an automated enforcement exists that has not been verified."]
     ];
     return wrap("background-checks", "B02", "threshold-head-split-walk-honesty-questions", "D-L-L-D-L", hero(meta,
-      "The check is <em>per person.</em>",
-      "Every coach who can accept a booking must have their own cleared background-check record. A club cannot extend its standing to an unchecked staff member, and a coach cannot set the badge themselves. Sporv shows the current state on the listing and reads it again when a booking is written. If clearance stops being true, the badge and access to new bookings stop with it.",
+      "Background checks, <em>kept honest.</em>",
+      "A check is a per-person record with a source and a date. The organization runs its own screening and compliance; Sporv records the result. No screening vendor is connected today, and Sporv does not order checks.",
       { tone: "dark", layout: "check-threshold", eyebrow: "HOW BACKGROUND CHECKS WORK" }) +
       walkthroughSection(steps.slice(0, 3), { tone: "white", layout: "walk-five" }) +
       walkthroughSection(steps.slice(3, 5), { tone: "slate", layout: "walk-five", start: 3 }) +
       "<section class='pgband dark pg-check-honesty' data-section='honesty-panel' data-layout='two-paragraph-honesty'><div class='shell'><h2>What a check cannot promise</h2><div>" +
-      "<p data-prose>A cleared result is an enforced screening gate, not a guarantee of personality, coaching quality, fit, or every future action. Families should still read the service, ask questions, and decide whether the named professional suits their athlete.</p>" +
-      "<p data-prose>Screening also cannot replace immediate judgment. A parent who sees a different person arrive, unsafe conduct, or an urgent risk should leave the situation and use the appropriate emergency or support route. The badge records a check; it does not ask anyone to ignore new evidence.</p></div></section>" +
+      "<p data-prose>A recorded result is a record, not a guarantee of personality, coaching quality, fit, or every future action. Organizations should still read the whole person, and a parent who sees unsafe conduct should leave the situation and use the appropriate emergency or support route. The record cannot ask anyone to ignore new evidence.</p>" +
+      "<p data-prose>A record is also not enforcement. Until an automated clearance gate is verified in production, the page above states what the product does today: it shows the supplied record and the expiry. Anything stronger would be a claim the product cannot back.</p></div></section>" +
       questionSection(questions, { layout: "compact-parent-questions", className: "pg-check-questions" }));
   }
 
