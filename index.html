@@ -29,7 +29,7 @@
 <link rel="manifest" href="/site.webmanifest">
 <script type="application/ld+json">{"@context":"https://schema.org","@type":"SoftwareApplication","name":"Sporv","url":"https://sporv.ai/","applicationCategory":"BusinessApplication","operatingSystem":"Web","description":"Sporv runs the club for you — roster, scheduling, waivers, dues and payouts, with an agent that drafts the busywork and a human who approves it.","publisher":{"@type":"Organization","name":"Sporv","url":"https://sporv.ai/","logo":"https://sporv.ai/icon-512.png"}}</script>
 <script type="application/ld+json">{"@context":"https://schema.org","@type":"WebSite","name":"Sporv AI","url":"https://sporv.ai/"}</script>
-<meta name="sporve-build" content="3d0639cc8a01e27f">
+<meta name="sporve-build" content="041ea27f3963c488">
 </head>
 <body>
 <script>
@@ -8935,7 +8935,7 @@ function kindBandHTML(id,title,sub,type,full){
 /* The bar carries the brand, the four primary controls, and the account
    cluster. The search pill moved onto the hero photograph; the Product
    mega-dropdown is gone, replaced by the single Product tab below. */
-const LOGO_SRC="/assets/logo.png";  /* was 16KB of base64 in the critical path (2026-09-18); the CSP already allows img-src 'self' */
+const LOGO_SRC="/assets/logo.png?v=3";  /* ?v= bumps on every logo change: /assets ships cache-control immutable (1y), so the address MUST change for browsers to refetch (2026-09-23) */  /* was 16KB of base64 in the critical path (2026-09-18); the CSP already allows img-src 'self' */
 function topbarHTML(){
   const u=S.auth.user;
   const guestFam=S.portal==="family"&&!u;
