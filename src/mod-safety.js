@@ -794,6 +794,11 @@
 }
 .sf-rule b{font-size:var(--text-base);letter-spacing:-.018em}
 .sf-rule p{color:var(--ink-2);font-size:var(--text-base);line-height:1.55;max-width:58ch}
+/* The background-check policy rules sit on the black band: they need the
+   band's light type. Same palette the host uses for .band.dark prose. */
+.band.dark .sf-rule b{color:#fff}
+.band.dark .sf-rule p{color:#AEB8C4}
+.band.dark .sf-rules{border-bottom-color:rgba(255,255,255,.14)}
 
 .sf-block+.sf-block{margin-top:34px;padding-top:26px;border-top:1px solid var(--rule)}
 .sf-sec{display:flex;justify-content:space-between;align-items:baseline;gap:14px;margin-bottom:14px}
