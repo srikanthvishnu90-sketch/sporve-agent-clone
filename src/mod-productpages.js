@@ -32,29 +32,31 @@
      mono panel showing ONE worked example of the feature. Fifteen scenarios,
      one per page. Every number is a disclosed demo value (the caption says
      so), never a state the server confirmed — honesty rule. */
+  /* Owner 2026-09-23: the example is written in WORDS, not a mono ledger.
+     Every figure is a disclosed demo value (the caption says so). */
   var SCENARIO = {
-    "payments":          { label: "DEMO BOOKING",          lines: ["$45.00", "\u00d7   .00", "\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500", "\u2212 $0.00", "= $45.00"] },
-    "payouts":           { label: "DEMO \u00b7 NEXT DEPOSIT",  lines: ["gross   $1,240.00", "fees     \u2212$36.28", "sporv     \u2212$0.00", "\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500", "net     $1,203.72"] },
-    "roster":            { label: "DEMO \u00b7 CSV IMPORT",    lines: ["rows      184", "matched   181", "new         3", "\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500", "roster    184"] },
-    "scheduling":        { label: "DEMO \u00b7 THIS WEEK",     lines: ["Tue 5:30p   U12", "Field 2", "confirmed  14/16", "pending        2"] },
-    "waivers":           { label: "DEMO \u00b7 SPRING SEASON", lines: ["version      v3", "signed       41", "missing       3", "\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500", "eligible     41"] },
-    "agent":             { label: "DEMO \u00b7 LAST NIGHT",    lines: ["drafted       6", "approved      5", "dismissed     1", "\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500", "sent          5"] },
-    "what-is":           { label: "DEMO \u00b7 ONE CLUB",      lines: ["families     92", "staff         7", "seasons       2", "\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500", "one login"] },
-    "background-checks": { label: "DEMO \u00b7 PER PERSON",    lines: ["submitted  05-02", "cleared    05-14", "expires    05-14", "\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500", "eligible"] },
-    "instant-booking":   { label: "DEMO \u00b7 OPEN SLOT",     lines: ["slot   Sat 9:00a", "held       4:59", "paid     $45.00", "\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500", "confirmed"] },
-    "messaging":         { label: "DEMO \u00b7 ONE THREAD",    lines: ["booking   #4412", "from   guardian", "replied      2m", "receipt attached"] },
-    "bookings-receipts": { label: "DEMO \u00b7 RECEIPT",       lines: ["session  $45.00", "tax       $0.00", "\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500", "paid     $45.00", "R-1027"] },
-    "athlete-progress":  { label: "DEMO \u00b7 ONE ATHLETE",   lines: ["sessions     31", "notes        12", "goals         3", "\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500", "on track"] },
-    "session-notes":     { label: "DEMO \u00b7 AFTER PRACTICE",lines: ["Tue        note", "drill  footwork", "next     2 sets", "shared guardian"] },
-    "media-consent":     { label: "DEMO \u00b7 CONSENT STATE", lines: ["photo ok     84", "no photo      8", "pending       0", "\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500", "enforced"] },
-    "insights":          { label: "DEMO \u00b7 THIS WEEK",     lines: ["collected $18,420", "overdue      $610", "chased          6", "\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500", "treasurer view"] }
+    "payments": "A family pays for a $45 lesson. Sporv takes nothing from it, so the coach's payout is the same $45, and the family sees no added fee.",
+    "payouts": "A club collects $1,240 in a week. Card fees take $36.28, Sporv takes $0, and $1,203.72 lands in the club's account on the next deposit.",
+    "roster": "A 184-row SportsEngine export comes in. 181 rows match families already on the roster and 3 are new, so the roster ends at 184 records with no duplicates.",
+    "scheduling": "Tuesday's 5:30 U12 practice on Field 2 shows 14 of 16 families confirmed and 2 still pending, before anyone has to make a call.",
+    "waivers": "Version 3 of the spring waiver has 41 signatures and 3 missing. Those 41 athletes are eligible; the 3 stay blocked until a guardian signs.",
+    "agent": "Overnight the agent drafts 6 follow-ups. The director approves 5 and dismisses 1, and only the 5 approved messages go out.",
+    "what-is": "One club with 92 families, 7 staff and 2 seasons runs its roster, schedule, waivers and dues from a single login.",
+    "background-checks": "A coach's check is submitted on May 2 and clears on May 14. The coach is eligible from that day, and the record expires a year later.",
+    "instant-booking": "A family picks Saturday's 9:00 slot. It is held for five minutes, they pay $45, and the booking is confirmed on the spot.",
+    "messaging": "A guardian asks about booking #4412. The reply lands in the same thread two minutes later, with the receipt attached.",
+    "bookings-receipts": "A $45 session with no tax produces receipt R-1027, paid by card and kept with the booking.",
+    "athlete-progress": "One athlete's record shows 31 sessions, 12 notes and 3 goals, and reads as on track.",
+    "session-notes": "After Tuesday's practice the coach notes a footwork drill and two sets for next time, and shares it with the guardian.",
+    "media-consent": "84 families allow photos, 8 do not, and none are pending. The setting is enforced wherever media is shared.",
+    "insights": "The treasurer view for this week shows $18,420 collected, $610 overdue and 6 families already followed up with."
   };
   var currentId = null;
   function scenarioAside(id) {
-    var sc = SCENARIO[id];
-    if (!sc) return "";
-    return "<aside class='pg-hero-math' aria-label='Disclosed demo example'><code>" +
-      sc.lines.join("\n") + "</code><span>" + sc.label + "</span></aside>";
+    var text = SCENARIO[id];
+    if (!text) return "";
+    return "<aside class='pg-hero-math pg-hero-note' aria-label='Disclosed demo example'><p>" +
+      text + "</p><span>EXAMPLE \u00b7 DEMO VALUES</span></aside>";
   }
 
   function hero(meta, headline, standfirst, options) {
