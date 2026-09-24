@@ -1166,16 +1166,23 @@ return bad.size?[...bad].join(','):'CLEAN'})()" 2>/dev/null)
 [ "${off//\"/}" = "CLEAN" ] && pass "every rendered size is on the 8-step scale" \
   || fail "off-scale font sizes: $off"
 
-# ── The composer bubble: grey slate, white type, one row ──────────────────
+# ── The composer bubble: grey slate, white type, one row, right dock ──────
 # Owner, 2026-08-13, to the Amboras reference. The contrast pairing is the point:
 # the brand slate #7692AE is only 3.23:1 against white and is NOT safe for text
 # someone types and re-reads, so the bubble is the darker sibling #3E4C5A
 # (white 8.80:1, placeholder 5.37:1). Also asserts the single row, because the
 # two-row version was 148px and was the reason replies had no room.
+# Owner, 2026-09-24: the assistant is a RIGHT-SIDE dock panel, not a centred
+# pill. The panel header owns New chat / Expand / X (the X exits the dock);
+# the composer-corner maximize/X buttons are retired. While open there is no
+# FAB — closing reveals the "Sporv AI" launcher. The dashboard reflows beside
+# the dock so no control is ever covered (the 2026-09-24 Queue DISMISS glitch).
+# Layout-critical: pin the desktop viewport first — a stale daemon viewport
+# silently redefines every pixel assertion below.
+$B viewport 1440x900 >/dev/null 2>&1
 comp=$($B js "
-(()=>{S.portal='coach';S.route={name:'dashboard',arg:null};S.aiOpen=true;S.aiMax=false;S.aiCollapsed=false;render();
- /* v3: DOCKED (aiMax) is the default open state now; this probe guards the still-
-    present COMPACT bar path, so it forces aiMax=false to reach the bar. */
+(async()=>{S.portal='coach';S.route={name:'dashboard',arg:null};S.aiOpen=true;S.aiMax=false;S.aiCollapsed=false;render();
+ /* COMPOSER: grey slate bubble, white type, one row. */
  const f=document.querySelector('.aidock-compose'),i=document.querySelector('.aidock-input');
  if(!f||!i) return 'NO_COMPOSER';
  if(getComputedStyle(i).color!=='rgb(255, 255, 255)') return 'TYPE_NOT_WHITE';
@@ -1183,30 +1190,47 @@ comp=$($B js "
  if(bg!=='rgb(62, 76, 90)') return 'BUBBLE_NOT_SLATE_'+bg;
  if(!document.querySelector('.aidock-row')) return 'NOT_ONE_ROW';
  if(f.getBoundingClientRect().height>130) return 'BUBBLE_TOO_TALL_'+Math.round(f.getBoundingClientRect().height);
- /* BAR AT REST (no live chat): compact — chips + composer, maximize + X
-    on the composer, no header, no thread. The dashboard stays usable. */
+ /* DOCK GEOMETRY (desktop): right-side panel, ~400px wide, full height. */
+ const p=document.querySelector('.aipill'),pr=p.getBoundingClientRect();
+ if(Math.round(innerWidth-pr.right)>32) return 'DOCK_NOT_RIGHT_'+Math.round(innerWidth-pr.right);
+ if(Math.abs(pr.width-400)>24) return 'DOCK_WIDTH_'+Math.round(pr.width);
+ if(Math.abs(pr.top-72)>16||Math.abs(Math.round(innerHeight-pr.bottom)-16)>16) return 'DOCK_NOT_DOCKED_'+Math.round(pr.top)+'_'+Math.round(innerHeight-pr.bottom);
+ /* APP REFLOW: the dashboard gives the dock room. The var is set synchronously;
+    the margin animates (240ms), so await the transition before measuring. */
+ const app=document.getElementById('app');
+ if(getComputedStyle(app).getPropertyValue('--aidock-w').trim()!=='416px') return 'NO_REFLOW_VAR';
+ await new Promise(r=>setTimeout(r,400));
+ if(parseFloat(getComputedStyle(app).marginRight)<400) return 'NO_REFLOW_MARGIN';
+ /* HEADER (owner 2026-09-24): always present when open — New chat, Expand, X. */
  S.chat=[];S.chatThinking=false;render();
- if(document.querySelector('.aidock-head')) return 'HEADER_BACK';
- if(document.getElementById('aidockScroll')) return 'THREAD_SHOWN_WHEN_EMPTY';
- if(!document.querySelector('[data-aimaximize]')) return 'NO_MAXBTN_BAR';
- if(!document.querySelector('[data-aiclose]')) return 'NO_X_BAR';
- const barH=document.querySelector('.aipill').getBoundingClientRect().height;
- if(barH>190) return 'BAR_TOO_TALL_'+Math.round(barH);
- /* LIVE CHAT (owner 2026-09-21): the panel centers with its header
-    (new chat / expand / close) and the surfaced thread. */
- S.chat=[{role:'user',text:'x'},{role:'coach',text:'y'}];render();
+ if(!document.querySelector('.aidock-head')) return 'NO_HEAD';
  if(!document.querySelector('.aidock-head [data-aigofull]')) return 'NO_HEAD_EXPAND';
  if(!document.querySelector('.aidock-head [data-ainew]')) return 'NO_HEAD_NEWCHAT';
  if(!document.querySelector('.aidock-head [data-aiclose]')) return 'NO_HEAD_X';
  if(!document.getElementById('aidockScroll')) return 'NO_THREAD_SURFACE';
+ /* LIVE CHAT: the thread surfaces messages. */
+ S.chat=[{role:'user',text:'x'},{role:'coach',text:'y'}];render();
+ if(!document.querySelectorAll('#aidockScroll .bub').length) return 'NO_MSGS_SURFACED';
  S.chat=[];
- S.aiCollapsed=true;render();
- const strip=document.querySelector('.aidock-strip');
- if(!strip) return 'NO_STRIP';
- if(strip.getBoundingClientRect().height>96) return 'STRIP_TOO_TALL_'+Math.round(strip.getBoundingClientRect().height);
- S.aiCollapsed=false;S.portal='family';S.route={name:'home',arg:null};render();
+ /* NO FAB WHILE OPEN — the launcher appears only after the X closes the dock. */
+ if(document.querySelector('.aidock-fab')) return 'FAB_WHILE_OPEN';
+ if(document.querySelector('.aidock-launch')) return 'LAUNCHER_WHILE_OPEN';
+ document.querySelector('[data-aiclose]').click();
+ if(S.aiOpen!==false) return 'X_DID_NOT_CLOSE';
+ if(!document.querySelector('.aidock-launch')) return 'NO_LAUNCHER_WHEN_CLOSED';
+ document.querySelector('.aidock-launch').click();
+ if(S.aiOpen!==true) return 'LAUNCHER_DID_NOT_OPEN';
+ /* THE 2026-09-24 GLITCH: with the dock open, Approvals DISMISS/APPROVE must be
+    topmost and clickable — no fixed layer may intercept them. */
+ S.coachTab='approvals';render();
+ const dis=[...document.querySelectorAll('[data-qdismiss],[data-qapprove]')].find(b=>/dismiss|approve/i.test(b.textContent));
+ if(!dis) return 'NO_DISMISS_TO_PROBE';
+ const r=dis.getBoundingClientRect(),cx=r.left+r.width/2,cy=r.top+r.height/2;
+ const hit=document.elementFromPoint(cx,cy);
+ if(!hit||!hit.closest('[data-qdismiss],[data-qapprove]')) return 'DISMISS_COVERED_BY_'+(hit?hit.className||hit.tagName:'none');
+ S.portal='family';S.route={name:'home',arg:null};render();
  return 'OK'})()" 2>/dev/null)
-[ "${comp//\"/}" = "OK" ] && pass "AI widget at rest is the bar alone — grey slate, white type" \
+[ "${comp//\"/}" = "OK" ] && pass "AI dock: right panel, slate composer, header X, launcher, no control interception" \
   || fail "composer regressed: $comp"
 
 # ── Every footer link resolves, and to a DISTINCT page ────────────────────
@@ -1805,40 +1829,70 @@ noor=$($B js "
 [ "${noor//\"/}" = "CLEAN" ] && pass "no-orange holds for every sport token, mark and ink" \
   || fail "orange sport tokens unmapped on the landing: $noor"
 
-# ── The AI assistant is centred; the S is NOT inside the panel ──────────
-# Both halves matter. The spec centres the assistant AND forbids repositioning
-# the S; if they ever share a parent again, centring drags the S to the middle
-# and the "collapses into the S" contract quietly breaks. Owner 2026-09-21
-# (re-asserting 2026-08-19): the OPEN panel sits dead-centre of the viewport;
-# the COLLAPSED strip stays bottom-centred and compensated so the last table
-# row stays reachable.
+# ── The AI assistant is a right dock; the launcher replaces the FAB ────────
+# Owner 2026-09-24 (supersedes the centred-pill spec): the OPEN panel docks to
+# the right of the viewport — it never covers dashboard controls. The panel
+# header owns New chat / Expand / X; the X exits the dock and reveals the
+# "Sporv AI" launcher (bottom-right). There is no separate FAB while open.
+# On phones (<768px) the dock starts closed so the dashboard is usable.
+# Layout-critical: re-pin the desktop viewport (see above).
+$B viewport 1440x900 >/dev/null 2>&1
 pill=$($B js "
 (()=>{S.portal='coach';S.aiOpen=true;S.aiCollapsed=false;S.chat=[];S.chatThinking=false;
  S.route={name:'dashboard',arg:null};render();
- const p=document.querySelector('.aipill'),f=document.querySelector('.aidock-fab');
- if(!p||!f) return 'MISSING';
- if(p.contains(f)) return 'S_INSIDE_PILL';
- if(!f.querySelector('.aidock-fab-ic')) return 'FAB_NO_CHAT_ICON';
- // BAR AT REST: bottom-centred, dashboard usable
+ const p=document.querySelector('.aipill');
+ if(!p) return 'MISSING_PANEL';
+ /* RIGHT DOCK: right edge hugs the viewport, ~400px wide, full height. */
  const pr=p.getBoundingClientRect();
- if(Math.abs((pr.left+pr.right)/2 - innerWidth/2)>2) return 'BAR_OFFCENTRE_X';
- if(Math.round(innerHeight-pr.bottom)>40) return 'BAR_NOT_AT_BOTTOM';
- // LIVE CHAT (owner 2026-09-21): dead-centre of the viewport
- S.chat=[{role:'user',text:'x'},{role:'coach',text:'y'}];render();
- const pr2=document.querySelector('.aipill').getBoundingClientRect();
- if(Math.abs((pr2.left+pr2.right)/2 - innerWidth/2)>2) return 'PANEL_OFFCENTRE_X';
- if(Math.abs((pr2.top+pr2.bottom)/2 - innerHeight/2)>2) return 'PANEL_OFFCENTRE_Y';
- // COLLAPSED STRIP: bottom-centred and compensated
- S.chat=[];S.aiCollapsed=true;render();
- const st=document.querySelector('.aipill'),sr=st.getBoundingClientRect();
- if(Math.abs((sr.left+sr.right)/2-innerWidth/2)>2) return 'STRIP_OFFCENTRE';
- if(Math.round(innerHeight-sr.bottom)>40) return 'STRIP_NOT_AT_BOTTOM';
- const pad=parseFloat(getComputedStyle(document.getElementById('app')).paddingBottom);
- if(pad < sr.height) return 'NO_COMPENSATION_'+Math.round(pad);
- S.aiCollapsed=false;render();
+ if(Math.round(innerWidth-pr.right)>32) return 'PANEL_NOT_RIGHT_'+Math.round(innerWidth-pr.right);
+ if(Math.abs(pr.width-400)>24) return 'PANEL_WIDTH_'+Math.round(pr.width);
+ /* No FAB while open; the launcher appears only when closed. */
+ if(document.querySelector('.aidock-fab')) return 'FAB_WHILE_OPEN';
+ if(document.querySelector('.aidock-launch')) return 'LAUNCHER_WHILE_OPEN';
+ /* X exits the dock; the launcher reopens it. */
+ document.querySelector('.aidock-head [data-aiclose]').click();
+ if(S.aiOpen!==false) return 'X_DID_NOT_EXIT';
+ if(document.querySelector('.aipill')) return 'PANEL_STILL_UP';
+ const ln=document.querySelector('.aidock-launch');
+ if(!ln) return 'NO_LAUNCHER';
+ const lr=ln.getBoundingClientRect();
+ if(Math.round(innerWidth-lr.right)>64) return 'LAUNCHER_NOT_RIGHT';
+ ln.click();
+ if(S.aiOpen!==true||!document.querySelector('.aipill')) return 'LAUNCHER_DID_NOT_REOPEN';
+ S.portal='family';S.route={name:'home',arg:null};render();
  return 'OK'})()" 2>/dev/null)
-[ "${pill//\"/}" = "OK" ] && pass "AI bar bottom-centre, live panel dead-centre, chat-FAB separate, strip compensated" \
+[ "${pill//\"/}" = "OK" ] && pass "AI dock right-side, header X exits to launcher, launcher reopens" \
   || fail "AI pill invariant broken: $pill"
+
+# ── Mobile: the dock starts closed, opens as a bottom sheet ────────────────
+# Owner 2026-09-24: on phones the dashboard must be clean on arrival. Fresh boot
+# at 390px must default closed (launcher only); the launcher opens a bottom
+# sheet; the X closes it again. Last check in the suite, so no viewport restore.
+# Deterministic boot: clear the persisted snapshot, then reload. A pagehide
+# listener saves S on unload, so the old page's setItem is stubbed to block
+# that save — otherwise the desktop's aiOpen=true resurrects after the clear.
+$B viewport 390x844 >/dev/null 2>&1
+$B js "sessionStorage.clear();sessionStorage.setItem=function(){};location.reload();'reloading'" >/dev/null 2>&1
+sleep 3
+mob=$($B js "
+(()=>{const vw=window.innerWidth;
+ if(vw>=768) return 'VIEWPORT_NOT_MOBILE_'+vw;
+ if(typeof S!=='object'||!document.getElementById('app').children.length) return 'NOT_BOOTED';
+ S.portal='coach';S.route={name:'dashboard',arg:null};S.aiMax=false;S.aiCollapsed=false;render();
+ if(S.aiOpen!==false) return 'MOBILE_OPEN_ON_ARRIVAL';
+ if(document.querySelector('.aipill')) return 'MOBILE_PANEL_UP';
+ const ln=document.querySelector('.aidock-launch');
+ if(!ln) return 'MOBILE_NO_LAUNCHER';
+ ln.click();
+ const sh=document.querySelector('.aipill');
+ if(!sh) return 'MOBILE_SHEET_DID_NOT_OPEN';
+ const r=sh.getBoundingClientRect();
+ if(r.top<innerHeight*0.3) return 'MOBILE_NOT_A_SHEET_'+Math.round(r.top);
+ document.querySelector('.aidock-head [data-aiclose]').click();
+ if(S.aiOpen!==false||document.querySelector('.aipill')) return 'MOBILE_X_DID_NOT_CLOSE';
+ return 'OK'})()" 2>/dev/null)
+[ "${mob//\"/}" = "OK" ] && pass "mobile: dock closed on arrival, launcher opens bottom sheet, X closes" \
+  || fail "mobile dock contract broken: $mob"
 
 echo "─────────────────────────────────────────────────────"
 [ "$FAIL" -eq 0 ] && echo "  SMOKE PASSED" || echo "  SMOKE FAILED -- revert, do not push"
