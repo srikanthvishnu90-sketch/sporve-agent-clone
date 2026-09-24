@@ -2552,48 +2552,48 @@ button.tnav.tnav-cta:hover{background:#FFFFFF;color:#0B0D0F;border-color:#FFFFFF
   pointer-events:none}
 .aipill > *{pointer-events:auto}
 @media(max-width:767px){.aipill{bottom:16px;width:calc(100vw - 24px)}}
-/* RETIRED 2026-09-21 (owner: chatbox always centered): the right-column dock
-   prototype is superseded by the centered panel. The class is no longer
-   emitted; the rules below are dead and kept only so nothing else breaks. */
+/* ── RIGHT-DOCK CHATBOX (owner 2026-09-24; supersedes the 2026-09-21 "always
+   centered" direction) ───────────────────────────────────────────────────
+   The resting chatbox lives in the RIGHT portion of the screen as a docked
+   panel with a header X to exit it — never a bottom-center floater over
+   dashboard content. The floater overlapped cards and ATE THEIR CLICKS
+   (probe-verified: queue DISMISS/APPROVE unclickable beneath the pill), which
+   is the "glitch" the owner reported. A docked panel whose page reflows beside
+   it cannot cover anything. */
 .aipill.aidock-col{
-  left:auto;right:0;bottom:0;top:var(--aidock-top,0px);transform:none;
-  width:var(--aidock-w,400px);height:auto;align-items:stretch;z-index:70}
-.aipill.aidock-col:has(.aidock-panel.talking){top:var(--aidock-top,0px);bottom:0;transform:none}
-/* The column panel is ALWAYS a filled surface (a flex column): thread/empty region
-   grows, composer pins to the bottom. No rounding, no glow, a single border-left. */
+  left:auto;right:16px;top:72px;bottom:16px;transform:none;
+  width:min(400px,calc(100vw - 32px));height:auto;align-items:stretch;z-index:84;
+  pointer-events:auto;display:flex}
+/* The dock panel is ALWAYS a filled surface (a flex column): header, thread/
+   empty region grows, chips, composer pinned to the bottom. */
 .aipill.aidock-col .aidock-panel,
 .aipill.aidock-col .aidock-panel.talking{
-  width:100%;height:100%;max-height:none;border-radius:0;border:0;
-  border-left:1px solid #333A45;box-shadow:none;animation:none;overflow:hidden;
-  background:#0A0C0F;display:flex;flex-direction:column}
+  width:100%;height:100%;max-height:none;animation:none;overflow:hidden;
+  display:flex;flex-direction:column}
 .aipill.aidock-col .aidock-scroll{flex:1 1 auto;min-height:0}
 .aipill.aidock-col .aidock-empty{margin:auto 0}
-.aipill.aidock-col .aidock-chips{max-width:100%;flex-wrap:wrap;flex:0 0 auto}   /* column: chips wrap, never clip off the rail edge (owner 2026-08-24) */
-.aipill.aidock-col .aidock-compose{flex:0 0 auto;margin:0 18px 14px;padding:10px 12px}
-/* Composer shares the scroll's 18px horizontal inset so output and chatbox sit
-   in the same column; slightly reduced padding keeps it compact in the dock. */
+.aipill.aidock-col .aidock-chips{max-width:100%;flex-wrap:wrap;flex:0 0 auto}   /* dock: chips wrap, never clip off the rail edge */
+.aipill.aidock-col .aidock-compose{flex:0 0 auto;margin:0}
+/* The FAB launcher is redundant while the docked panel is open (the header X
+   closes it); it renders only when the dock is closed. */
+/* Below the reflow breakpoint the dock overlays instead: dim the page and
+   catch clicks explicitly. A scrim + X is honest; an invisible floater eating
+   clicks is the glitch this replaces. The scrim closes the dock on tap. */
+.aidock-scrim{display:none}
+@media(max-width:1279px){
+  .aidock-scrim{display:block;position:fixed;inset:0;z-index:83;
+    background:rgba(8,10,12,.55);pointer-events:auto;cursor:pointer}
+}
+/* Mobile: the dock is a bottom sheet, not a side panel. */
+@media(max-width:767px){
+  .aipill.aidock-col{left:12px;right:12px;top:auto;bottom:12px;width:auto;max-height:72vh}
+}
 /* The floating FAB is redundant while the panel is a permanent column. */
 html.coldock .aidock-fab{display:none}
-/* Owner 2026-08-18: an ACTIVE chatbox (a live conversation panel) sits dead
-   centre of the viewport, not pinned to the bottom. Scoped with :has() to the
-   talking state only, so the resting strip keeps its bottom placement and the
-   maximized Amboras state (its own wrapper) is unaffected. top/left 50% +
-   translate(-50%,-50%) is the exact-centre transform that survives the panel's
-   min() width/height changing under it. */
-/* CENTERED DEAD-MIDDLE (owner typed instruction 2026-08-19: "centered at the
-   dead middle of the screen" — re-asserting PR #165 over the grow-up variant;
-   owner re-confirmed 2026-09-21, right-column dock retired). The LIVE chat
-   panel sits at viewport centre on every viewport. The compact bar (no live
-   conversation yet) and the collapsed strip stay bottom-docked — the dashboard
-   must stay usable on arrival.
-   Owner 2026-09-21 (later the same day, supersedes the dead-centre rule for the
-   talking state only): nudge the ACTIVE panel a little right of centre and a
-   little smaller. translate(calc(-50% + 48px),-50%) keeps vertical centring
-   while shifting 48px right; 640px cap instead of 720. On narrow viewports the
-   shift would clip, so mobile keeps exact centre. */
-.aipill:has(.aidock-panel.talking){top:50%;bottom:auto;transform:translate(calc(-50% + 48px),-50%);
-  width:min(640px,calc(100vw - 32px))}
-@media(max-width:767px){.aipill:has(.aidock-panel.talking){transform:translate(-50%,-50%)}}
+/* RETIRED 2026-09-24 (owner: chatbox docks right with an exit X): the centered
+   dead-middle talking panel is superseded. The class is no longer emitted in
+   the resting state; the rules are removed so the dock cannot be recentered.
+   (The maximized Amboras state keeps its own wrapper and is unaffected.) */
 /* The spacer. Defaults to 0 so every page without a pill is untouched, and
    render() overwrites it with the measured height + the 24px offset + a 16px
    breathing gap. On #app rather than body because the coach dark ground is
@@ -7379,7 +7379,7 @@ const S={
   mapPick:null,
   chat:[],
   chatThinking:false,
-  aiOpen:true,                     // coach AI dock: open on arrival, X collapses to the S
+  aiOpen:(typeof window!=="undefined"?window.innerWidth:1440)>=768, // coach AI dock: open on arrival (desktop/tablet); closed on phones so the dashboard stays usable. Set once at boot — never clobbered at render time, so an explicit S.aiOpen=true always wins and sessionStorage restore keeps the user's choice.
   aiMax:false,                     // Centered chat panel is the default open state (owner 2026-09-21).
                                    // 2026-08-25: the chatbox is a permanent right column beside the
                                    // dashboard (Claude-style), never a floating panel that leaves a black
@@ -11048,8 +11048,7 @@ function aiDockHTML(){
      there is no orphaned launcher. */
   if(S.portal!=="coach") return "";
   /* Open on arrival, like the reference: the composer is the surface, not a
-     thing you have to discover. `aiOpen` is EPHEMERAL and defaults true, so
-     closing it lasts for the session and a fresh visit opens again. */
+     thing you have to discover. */
   const open=S.aiOpen!==false;
   const thread=S.chat.length
     ? S.chat.map((m,i)=>m.role==="user"
@@ -11209,7 +11208,9 @@ function aiDockHTML(){
      at viewport centre on every viewport. With no conversation it stays the
      compact bottom bar — the dashboard must stay usable on arrival. The
      right-column dock is retired. */
-  const surface=!!convo;
+  /* SUPERSEDED 2026-09-24 (owner: chatbox docks right with an exit X): the
+     resting chatbox is always a right-dock panel now — the centered-panel and
+     compact-bar distinction above no longer applies. */
   /* Panel header (live chat only): name + connector status + new-chat /
      expand / close. Expand goes STRAIGHT to the fullscreen surface. */
   const headHTML=`<div class="aidock-head">
@@ -11232,9 +11233,15 @@ function aiDockHTML(){
       ${S.chatThinking?`<div class="bub them" style="align-self:flex-start;display:flex;gap:5px;align-items:center">
         <i class="dotdot"></i><i class="dotdot" style="animation-delay:.16s"></i><i class="dotdot" style="animation-delay:.32s"></i></div>`:""}
     </div>`;
-  return `${open?`<div class="aipill"><section class="aidock-panel${surface?" talking":""}" role="dialog" aria-label="Sporv AI helper">
-      ${surface?headHTML:""}
-      ${surface?scrollHTML:""}
+  /* RIGHT DOCK (owner 2026-09-24; supersedes the 2026-09-21 centered rule): the
+     resting chatbox is a right-side panel with a header X — never a
+     bottom-center floater. The floater overlapped dashboard cards and ate their
+     clicks (the reported "glitch"). The scrim (visible <1280px only) closes the
+     dock on tap; the header owns new-chat / expand / close now, so the
+     composer-level maximize/X buttons are gone, and no FAB renders while open. */
+  return `${open?`<div class="aidock-scrim" data-aiclose="1" aria-hidden="true"></div><div class="aipill aidock-col"><section class="aidock-panel talking" role="dialog" aria-label="Sporv AI helper">
+      ${headHTML}
+      ${scrollHTML}
       ${aiChipsHTML()}
       <form class="aidock-compose" id="aiDockForm">
         ${S.aiHistOpen&&!S.aiMax?histDropHTML(true):""}
@@ -11264,27 +11271,14 @@ function aiDockHTML(){
                  stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
               <path d="M22 2 11 13"/><path d="M22 2 15 22l-4-9-9-4z"/></svg></button>
         </div>
-        ${/* Bar at rest (no live chat): maximize + close live on the composer.
-             The live-chat panel's header owns its own window controls, and the
-             thread/history tuck buttons are retired with the column. */""}
-        ${surface?"":`<button type="button" class="aidock-x aidock-maxbtn"
-          data-aimaximize="1" aria-label="Maximize Sporv AI" title="Maximize">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-               stroke-width="2" stroke-linecap="round" aria-hidden="true">
-            <path d="M14 4h6v6M20 4l-7 7M10 20H4v-6M4 20l7-7"/></svg></button>`}
-        ${/* Owner 2026-09-21: the close X lives on the composer in EVERY layout,
-           so the chatbox always has a visible way to dismiss it. data-aiclose
-           sets S.aiOpen=false and rerenders. */
-        `<button type="button" class="aidock-x" data-aiclose="1" aria-label="Close Sporv AI" title="Close">
-          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-               stroke-width="2" stroke-linecap="round" aria-hidden="true">
-            <path d="M6 6l12 12M18 6L6 18"/></svg></button>`}
+        ${/* Dock mode: window controls (new chat / expand / close X) live in the
+             panel header — the composer carries no maximize/X of its own. */""}
       </form>
       ${/* AI-disclosure (Claude Usage Policy) shown once a conversation exists
            — the at-rest bar stays "just the bar" (owner), but the moment it is
            a live chat session the user is told it's AI. */""}
       ${convo?`<p class="aidock-aihint">Sporv AI can make mistakes. You approve any message or change first.</p>`:""}
-    </section></div>`:""}${fabHTML(open)}`;
+    </section></div>`:""}${open?"":fabHTML(false)}`;
 }
 
 /* The S, emitted on its own so it is never a child of the centred pill.
@@ -17626,8 +17620,13 @@ function render(){
     /* RETIRED 2026-09-21 (owner: chatbox always centered): the right-column
        dock is gone, so the page never reflows beside it. Only the maximized
        dock keeps a width offset; the centered floating panel needs none. */
+    /* RIGHT DOCK (owner 2026-09-24): the resting chatbox is a right-side panel,
+       so at desktop widths the page reflows beside it — the dock can never
+       cover dashboard controls. Dock footprint: 400px panel + 16px right
+       gutter = 416px. aiMax keeps its own overlay behavior. */
+    const docked=S.portal==="coach"&&S.aiOpen!==false&&!S.aiCollapsed&&!S.aiMax&&window.innerWidth>=1280;
     const maxDock=S.portal==="coach"&&S.aiOpen!==false&&S.aiMax&&!S.aiFull&&window.innerWidth>=1280;
-    document.documentElement.style.setProperty("--aidock-w",maxDock?"412px":"0px");
+    document.documentElement.style.setProperty("--aidock-w",docked?"416px":(maxDock?"412px":"0px"));
     document.documentElement.style.setProperty("--aidock-top","0px");
     document.documentElement.classList.toggle("coldock",false);
   })();
