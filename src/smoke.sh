@@ -1214,7 +1214,7 @@ comp=$($B js "
 # it looks like a company with policies and turns out not to be. The audit found
 # exactly that in ABOUT_GROUPS (About, Careers and Press all landing on
 # info:legal). Asserts no duplicate destinations, no 404s, plus the support
-# address and the independent-contractor disclosure.
+# address and the B2B position disclosure (not a marketplace, employs no coaches).
 foot=$($B js "
 (()=>{S.portal='family';S.route={name:'home',arg:null};render();
  const links=[...document.querySelectorAll('.foot-link')];
@@ -1233,7 +1233,7 @@ foot=$($B js "
  S.route={name:'home',arg:null};render();
  if(bad.length) return 'UNRESOLVED_'+bad.join('/');
  if(!document.querySelector('.foot-mail')) return 'NO_SUPPORT_EMAIL';
- if(!/independent professionals, not Sporv employees/.test(document.body.innerText)) return 'NO_DISCLOSURE';
+ if(!/not a marketplace, not a booking site/.test(document.body.innerText)) return 'NO_DISCLOSURE';
  return 'OK'})()" 2>/dev/null)
 [ "${foot//\"/}" = "OK" ] && pass "every footer link resolves to a distinct page" \
   || fail "footer link graph broken: $foot"
@@ -1719,7 +1719,7 @@ safe=$($B js "
  if(/Reports reach a person/.test(src)) bad.push('CLAIMS_A_HUMAN_READS_IT');
  if(/We suspend accounts and preserve records/.test(src)) bad.push('CLAIMS_ENFORCEMENT');
  if(/ref\(\"SR\"/.test(src)) bad.push('MINTS_CASE_NUMBER');
- if(!/safety@sporve\.com/.test(src)) bad.push('NO_REAL_ROUTE');
+ if(!/safety@sporv\.ai/.test(src)) bad.push('NO_REAL_ROUTE');
  return bad.length?bad.join(','):'OK';})()" 2>/dev/null)
 [ "${safe//\"/}" = "OK" ] && pass "safety reports promise only what the code delivers" \
   || fail "the safety surface makes a promise nothing backs: $safe"

@@ -6,7 +6,7 @@
 import { SURFACES } from '../lib/harness.mjs';
 
 const BUDGET = {
-  'boot.requests': { max: 4, unit: 'requests', title: 'backend round trips on a cold boot' },
+  'boot.requests': { max: 5, unit: 'requests', title: 'backend round trips on a cold boot' }, /* 5 since 2026-09-20: the connector truth probe joined the budget — see tests/perf/boot-requests.spec.ts */
   'home.blocks': { max: 2500, unit: 'ms', title: 'home renders its blocks (200 athletes)' },
   'schedule.month': { max: 2500, unit: 'ms', title: 'schedule month view (400 events)' },
   'roster.200': { max: 2000, unit: 'ms', title: 'roster with 200 athletes' },

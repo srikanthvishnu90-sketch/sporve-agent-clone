@@ -29,7 +29,7 @@
 <link rel="manifest" href="/site.webmanifest">
 <script type="application/ld+json">{"@context":"https://schema.org","@type":"SoftwareApplication","name":"Sporv","url":"https://sporv.ai/","applicationCategory":"BusinessApplication","operatingSystem":"Web","description":"Sporv runs the club for you — roster, scheduling, waivers, dues and payouts, with an agent that drafts the busywork and a human who approves it.","publisher":{"@type":"Organization","name":"Sporv","url":"https://sporv.ai/","logo":"https://sporv.ai/icon-512.png"}}</script>
 <script type="application/ld+json">{"@context":"https://schema.org","@type":"WebSite","name":"Sporv AI","url":"https://sporv.ai/"}</script>
-<meta name="sporve-build" content="041ea27f3963c488">
+<meta name="sporve-build" content="8ac08e947bc6708d">
 </head>
 <body>
 <script>
@@ -4806,6 +4806,12 @@ body.reg-coach .rail button.on{font-weight:600}
 .band.dark .cxcard p{color:#AEB8C4}
 @media(max-width:900px){.cxgrid{grid-template-columns:repeat(2,1fr)}}
 @media(max-width:560px){.cxgrid{gap:12px}.cxcard{padding:16px}}
+/* Roma-style logo chip (owner 2026-09-24): the connector's real brand mark
+   on a white rounded tile, name and straight description below — the letter
+   monogram (.cxmark) stays for the in-app tiles, the landing band gets logos. */
+.cxlogo{flex:none;width:52px;height:52px;border-radius:14px;background:#fff;color:#101418;
+  display:flex;align-items:center;justify-content:center;box-shadow:0 8px 20px rgba(0,0,0,.35)}
+.cxlogo svg{width:30px;height:30px;display:block}
 /* A HARDCODED rgba the token override could not reach. #app.noorange
    redefines --accent-on-dark, but this rule spelled the colour out, so the
    picker sweep still found it three times on the landing. Literals are exactly
@@ -9252,8 +9258,8 @@ function productMenuHTML(){
 /* Owner 2026-09-23: no "More" bucket — every page lives under one of the
    three groups. */
 const DOC_GROUPS=[["Run your club",["roster","scheduling","waivers","agent","session-notes","media-consent","athlete-progress"]],
-  ["Money",["payments","payouts","bookings-receipts","insights"]],
-  ["About",["what-is","background-checks","instant-booking","messaging"]]];
+  ["Money",["payouts","insights"]],
+  ["About",["what-is","background-checks"]]];
 const DOC_MORE=[];
 function docsShellHTML(id, body){
   /* 8090 docs layout: sticky sidebar (search · groups · footer links) beside
@@ -9519,6 +9525,19 @@ function startHTML(){
     </div>
   </main>`;
 }
+/* Brand marks for the landing connectors band (owner 2026-09-24, Roma-style:
+   real logo on a white chip, not the letter monogram). Inline SVG so the
+   single-file build keeps working offline; descriptive integration use. */
+const CXLOGOS={
+gmail:'<svg viewBox="0 0 24 24" fill="none" stroke-width="3.1" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4.5 19.5v-15" stroke="#4285F4"/><path d="M4.5 4.5L12 12" stroke="#EA4335"/><path d="M12 12l7.5-7.5" stroke="#FBBC04"/><path d="M19.5 4.5v15" stroke="#34A853"/></svg>',
+gcal:'<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3.5" y="3.5" width="17" height="17" rx="3.5" fill="#4285F4"/><rect x="6.2" y="7.2" width="11.6" height="10.3" rx="1.6" fill="#fff"/><text x="12" y="15.6" text-anchor="middle" font-size="7.6" font-weight="700" fill="#1a73e8" font-family="Arial,Helvetica,sans-serif">31</text></svg>',
+outlook:'<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="2.5" y="2.5" width="19" height="19" rx="4.5" fill="#0F6CBD"/><path d="M6.2 8.8l5.8 3.9 5.8-3.9v6.4a1.6 1.6 0 0 1-1.6 1.6H7.8a1.6 1.6 0 0 1-1.6-1.6V8.8z" fill="none" stroke="#fff" stroke-width="1.9" stroke-linejoin="round"/><path d="M6.4 9l5.6 3.7L17.6 9" fill="none" stroke="#fff" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"/></svg>',
+sheets:'<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 2.8h8.2L18.5 7v14.2H6V2.8z" fill="#34A853"/><path d="M14.2 2.8V7h4.3L14.2 2.8z" fill="#188038"/><path d="M9 11.5h6M9 14.5h6M9 17.5h3.6" stroke="#fff" stroke-width="1.7" stroke-linecap="round"/></svg>',
+drive:'<svg viewBox="0 0 24 24" fill="none" stroke-width="3.3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 5.2L6 16" stroke="#34A853"/><path d="M12 5.2l6 10.8" stroke="#FBBC04"/><path d="M6 16h12" stroke="#4285F4"/></svg>',
+stripe:'<svg viewBox="0 0 24 24" aria-hidden="true"><text x="12" y="15.8" text-anchor="middle" font-size="7.4" font-weight="800" fill="#635BFF" font-family="Arial,Helvetica,sans-serif">stripe</text></svg>',
+sms:'<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3.2c-5.4 0-9.2 3.7-9.2 8 0 2.4 1.2 4.6 3.1 6v3.6l3.3-1.9c.9.3 1.8.4 2.8.4 5.4 0 9.2-3.7 9.2-8.1S17.4 3.2 12 3.2z" fill="#34A853"/><circle cx="8.4" cy="11.2" r="1.3" fill="#fff"/><circle cx="12" cy="11.2" r="1.3" fill="#fff"/><circle cx="15.6" cy="11.2" r="1.3" fill="#fff"/></svg>',
+quickbooks:'<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="2.5" y="2.5" width="19" height="19" rx="4.5" fill="#2CA01C"/><text x="12" y="16.6" text-anchor="middle" font-size="10.5" font-weight="800" fill="#fff" font-family="Arial,Helvetica,sans-serif">qb</text></svg>'
+};
 function landingHTML(){
   /* ═══ ANTI-SLOP C2: THE FIVE-ARGUMENT LANDING ════════════════════════════
      The old page was the template skeleton the constitution bans by name
@@ -9669,15 +9688,15 @@ function landingHTML(){
       <h2 data-rev style="margin-top:10px;max-width:22ch">Connects to the tools you already use.</h2>
       <p class="sub" data-rev style="margin-top:16px;max-width:62ch">Plug in once and the agent works from your real records — inbox, calendar, sheets, and payments. Nothing sends or charges until you approve it.</p>
       <div class="cxgrid" data-rev style="margin-top:40px">
-        ${[["Gmail","Reads parent email and tournament PDFs. Drafts only, never sends."],
-           ["Google Calendar","Reads practices, games, and conflicts. Changes only with your approval."],
-           ["Outlook","Microsoft 365 mail and calendar. Read-only — changes need your approval."],
-           ["Google Sheets","The spreadsheet you already run on, read straight in."],
-           ["Google Drive","Waivers and forms, read where you already keep them."],
-           ["Stripe","Dues, refunds, and payouts on your own Stripe account."],
-           ["SMS","Reads inbound parent texts. Replies stay drafts until you send."],
-           ["QuickBooks","Reconciliation, read-only. Your books stay the source of truth."]
-          ].map(([n,d])=>`<div class="cxcard"><span class="cxmark cxmark-dark" aria-hidden="true">${esc(n.charAt(0))}</span><b>${esc(n)}</b><p>${esc(d)}</p></div>`).join("")}
+        ${[["gmail","Gmail","Reads parent email and tournament PDFs. Drafts only, never sends."],
+           ["gcal","Google Calendar","Reads practices, games, and conflicts. Changes only with your approval."],
+           ["outlook","Outlook","Microsoft 365 mail and calendar. Read-only — changes need your approval."],
+           ["sheets","Google Sheets","The spreadsheet you already run on, read straight in."],
+           ["drive","Google Drive","Waivers and forms, read where you already keep them."],
+           ["stripe","Stripe","Dues, refunds, and payouts on your own Stripe account."],
+           ["sms","SMS","Reads inbound parent texts. Replies stay drafts until you send."],
+           ["quickbooks","QuickBooks","Reconciliation, read-only. Your books stay the source of truth."]
+          ].map(([k,n,d])=>`<div class="cxcard"><span class="cxlogo" aria-hidden="true">${CXLOGOS[k]}</span><b>${esc(n)}</b><p>${esc(d)}</p></div>`).join("")}
       </div>
       <p class="sub" data-rev style="margin-top:24px">Connect each one yourself from the Connect page — nothing is connected until you do.</p>
     </div>
@@ -9690,7 +9709,7 @@ function landingHTML(){
       <div data-rev data-rev-d="2"><a class="btn pri" href="${CALENDLY_URL}" target="_blank" rel="noopener">Book a 15-minute setup call</a></div>
     </div>
     ${/* Real footer (spec 01 acceptance: legal reachable, distinct links,
-         support address, contractor disclosure). Every destination is a KEPT
+         support address, B2B position disclosure). Every destination is a KEPT
          route; .close-zone/.foot-brand match the brand gate's contract. */""}
     <div class="wrap close-zone"><div class="foot foot-grid" style="margin-top:72px">
       <span class="foot-brand"><span class="navlogo-crop"><img class="navlogo" src="${LOGO_SRC}" alt="Sporv" width="99" height="24"></span></span>
@@ -9702,7 +9721,7 @@ function landingHTML(){
           .map(function(p){return '<button class="foot-link" data-foot="'+p[0]+'">'+p[1]+'</button>'}).join("")}
       </nav>
       <p class="foot-line"><a class="foot-mail" href="mailto:support@sporv.ai">support@sporv.ai</a> · Chicagoland ·
-        Coaches and clubs on Sporv are independent professionals, not Sporv employees.</p>
+        Sporv is software for youth-sports organizations — not a marketplace, not a booking site.</p>
     </div></div>
   </section>
 
@@ -10121,8 +10140,9 @@ function exploreHTML(){
 
   ${/* T5 — the landing now ends on one continuous obsidian close-zone that
        fuses the final CTA and the footer. The map strip, session-recap,
-       "Two ways in" two-path and the FAQ moved to page:what-is so the landing
-       reads exactly hero → browse → close. */""}
+       "Two ways in" two-path and the FAQ were removed from page:what-is
+       2026-09-24 (marketplace positioning) so the landing reads exactly
+       hero → browse → close. */""}
   ${closeZoneHTML()}`;
 }
 
@@ -10131,41 +10151,36 @@ function exploreHTML(){
    dropdown cannot hold the whole surface area, so this is the full inventory:
    what a family gets, what a coach gets, and what the platform enforces.    */
 function productHTML(){
-  const fam=[
-    [PICON.search,"Coach & program search","Filter every catalogue sport by age, level, price, and format.","nav:explore"],
-    [PICON.shield,"Per-person background checks","Every coach clears their own check. A business never vouches for an individual.","nav:trust"],
-    [PICON.map,"Map search","See what is actually near you before filtering on anything else.","nav:map"],
-    [PICON.sliders,"Advanced filters","Age, level, price, format, distance, rating — and saved searches.","filters"],
-    [PICON.compare,"Side-by-side compare","Shortlisted programs on price, level, capacity, and trust status.","nav:compare"],
-    [PICON.calendar,"Instant booking","Pick a real open slot and pay in one flow. No callback.","nav:explore"],
-    [PICON.message,"Message before you commit","Ask a coach anything first. Conversations stay attached to the booking.","nav:messages"],
-    [PICON.receipt,"Bookings & receipts","Every session, payment, and cancellation in one thread.","nav:bookings"],
-    
-    [PICON.chart,"Athlete progress","Notes, goals, and a plan that follows your athlete, not a coach.","nav:timeline"],
-    [PICON.heart,"Saved","Keep the shortlist. Guests get three saves before signing in.","nav:saved"],
-    [PICON.bell,"Notifications","Choose what reaches you by email, SMS, or push.","nav:notifications"],
+  /* The agent reads the operation. Cards land on the Connect tab, where the
+     connectors live. */
+  const read=[
+    [PICON.message,"Email","Gmail and Outlook, read-only. It triages the inbox and drafts replies from what it knows.","tab:connect"],
+    [PICON.calendar,"Calendar","Google Calendar. It spots conflicts and drafts the schedule change for the families affected.","tab:connect"],
+    [PICON.card,"Payments","Stripe. It watches for overdue dues, failed payments, and cards about to expire.","tab:connect"],
+    [PICON.users,"Roster","Members, guardians, and teams. It finds missing info, unsigned waivers, and lapsed members.","tab:connect"],
+    [PICON.doc,"Files and sheets","Drive and Sheets. It parses tournament documents and league paperwork into draft rows.","tab:connect"],
   ];
-  const co=[
-    [PICON.home,"Command centre","Your day, your roster, and your revenue on one screen.","tab:dashboard"],
-    [PICON.calendar,"Scheduling & availability","Set availability once; families book only what is genuinely open.","tab:slots"],
-    [PICON.card,"Payments & payouts","In-app checkout, automatic payouts, every payout itemised.","tab:finances"],
-    [PICON.users,"Client roster","Every family, session, and note in one place.","tab:roster"],
-    [PICON.list,"Listings","Define what you offer, what it costs, and where you coach.","tab:listings"],
-    [PICON.camera,"Media library","Photos and video with per-athlete consent enforced, not requested.","tab:media"],
-    [PICON.note,"Session notes","Write once; the family sees the progress report.","tab:notes"],
-    [PICON.chart,"Insights","Demand, funnel, price positioning, and a client watchlist.","tab:insights"],
-    [PICON.clock,"Waitlist & recurring slots","Fill cancellations automatically and repeat what works.","tab:listings"],
-    [PICON.doc,"Policies","Your cancellation policy is snapshotted onto every booking.","tab:policies"],
-    [PICON.star,"Reviews","Opened by a completed session — never by a booking.","tab:reviews"],
-    [PICON.check,"Onboarding","Seven steps from application to bookable, check included.","coach"],
+  /* The agent drafts the work. Cards land on the review queue, where every
+     draft waits for a human decision. */
+  const write=[
+    [PICON.clock,"Dues follow-ups","Overdue detection with tone that escalates by days late. You approve each one.","tab:queue"],
+    [PICON.card,"Card fix notices","Failed-payment watch and card-expiry sweeps, drafted to the right guardian.","tab:queue"],
+    [PICON.doc,"Waiver chases","Unsigned waiver detection, one consolidated request per guardian.","tab:queue"],
+    [PICON.calendar,"Schedule notices","Schedule-change notice drafted to the affected families only.","tab:queue"],
+    [PICON.users,"Reactivation notes","Lapsed and never-converted members, drafted back with context.","tab:queue"],
+    [PICON.chart,"Idle-capacity offers","Open slots offered to existing families first, before anyone new.","tab:queue"],
+    [PICON.list,"Payment plan proposals","At 30+ days late it proposes a restructured plan. The button says Apply.","tab:approvals"],
+    [PICON.note,"Session notes and summaries","Per-member notes from attendance, period progress, the weekly eligibility report.","tab:approvals"],
   ];
   const rules=[
-    ["Background checks are per person","An approved organisation never vouches for an individual on its roster. Unverified coaches are filtered out before sport, age, or budget."],
-    ["Parental consent gates child profiles","No consent, no athlete record. Consent is stamped with a version and a timestamp."],
-    ["Media consent is enforced","A coach can request consent for a photo of a minor. A coach can never grant it on a family's behalf."],
-    ["Reviews follow completed sessions","Booking something is not an opinion about it."],
-    ["Refunds follow the policy at purchase","Not whatever the listing says later."],
-    ["Guests browse freely","Auth is triggered by an action — book, message, save — never by a wall, and the action resumes itself afterwards."],
+    ["Adults hold the accounts","Only an adult opens and controls an organization account."],
+    ["Parental consent gates youth records","No consent, no athlete record. Consent is stamped with a version and a timestamp."],
+    ["Sensitive data stays compartmented","Dates of birth, emergency contacts, and medical notes reach only guardians and organization admins."],
+    ["The agent never sends","Every draft waits in the review queue for a human decision. There is no auto state."],
+    ["Inbound content is untrusted","Email and anything extracted from it is treated as input to check, never as instructions."],
+    ["Waivers are versioned","Each version is tied to the signatures recorded against it."],
+    ["Media consent is per child","Recorded per child, and revocable at any time."],
+    ["Every request is tracked","Safety, privacy, and refund requests carry a reference and a status."],
   ];
   const card=(g,t,d,a)=>`<button class="prodcard" data-pdest="${esc(a)}">
     <b>${esc(t)}</b><span>${esc(d)}</span></button>`;
@@ -10189,9 +10204,9 @@ function productHTML(){
     <div class="shell">
       <div class="eyebrow" data-rev>The product</div>
       <h1 style="margin-top:16px;max-width:16ch" data-rev>Everything Sporv does.</h1>
-      <p class="lede" style="margin:16px 0 0;max-width:58ch;text-align:left" data-rev>One product, two
-        sides. The platform families book on is the same one coaches run their week on — and the
-        rules below hold in both.</p>
+      <p class="lede" style="margin:16px 0 0;max-width:58ch;text-align:left" data-rev>Sporv is the agent
+        for youth-sports organizations. It reads your operation, drafts the work, and waits for your
+        call — and the rules below hold everywhere.</p>
       <div class="ctarow" style="margin-top:26px;justify-content:flex-start" data-rev>
         <button class="btn" data-becomecoach="1">Set up your club</button>
       </div>
@@ -10201,30 +10216,29 @@ function productHTML(){
   <section class="band">
     <div class="shell">
       <div class="prodsec" data-rev>
-        <h2>Families pay, sign, and stay informed</h2>
-        <p class="sub">Find someone you would trust with your kid, then book them without leaving the page.</p>
+        <h2>It reads your operation</h2>
+        <p class="sub">Email, calendar, payments, roster, and files. It finds the work hiding in them.</p>
       </div>
-      <div class="prodgrid" data-rev>${fam.map(r=>card(r[0],r[1],r[2],r[3])).join("")}</div>
+      <div class="prodgrid" data-rev>${read.map(r=>card(r[0],r[1],r[2],r[3])).join("")}</div>
     </div>
   </section>
 
   <section class="band dark">
     <div class="shell">
       <div class="prodsec" data-rev>
-        <h2>For coaches and programs</h2>
-        <p class="sub">Free to join and list. Sporv takes 0% of your bookings —
-          the software is a flat subscription, and every payout is itemised.</p>
+        <h2>It drafts the work</h2>
+        <p class="sub">Every draft lands in your review queue — who it is for, what it says, and why.
+          Nothing sends itself.</p>
       </div>
-      <div class="prodgrid" data-rev>${co.map(r=>card(r[0],r[1],r[2],r[3])).join("")}</div>
+      <div class="prodgrid" data-rev>${write.map(r=>card(r[0],r[1],r[2],r[3])).join("")}</div>
     </div>
   </section>
 
   ${/* Second black block, deliberately adjacent to the one above rather than
         alternating back to slate. Two darks in a row read as one chapter --
-        "here is the coach side, and here is what the platform will not let
-        anyone do" belong together -- and it breaks the checkerboard the strict
-        alternation was producing. Rhythm for this page is now
-        slate / white / black / black / white. */""}
+        "what it drafts, and what it will never do" belong together -- and it
+        breaks the checkerboard the strict alternation was producing. Rhythm
+        for this page is now slate / white / black / black / white. */""}
   <section class="band dark">
     <div class="shell">
       <div class="prodsec" data-rev>
@@ -10240,7 +10254,7 @@ function productHTML(){
 
   <section class="band finalcta">
     <div class="shell ctr">
-      <h2 data-rev>Start on either side</h2>
+      <h2 data-rev>One queue. Your call.</h2>
       <div class="ctarow" data-rev>
         <button class="btn" data-becomecoach="1">Set up your club</button>
       </div>
@@ -16012,17 +16026,17 @@ function bootModules(){
    code was changed to match rather than the other way round. */
 const INFO={
   privacy:{title:"Privacy & Security",sections:[
-    {h:"1. What we collect",b:"The information we collect depends on how you use the Services: • Waitlist information: name, email address, ZIP code, athlete/parent/coach role, sports interests, consent status, and submission source. • Account information: name, email address, password credentials handled by our authentication provider, account role, and optional phone number. • Profile and marketplace information: adult profile details, uploaded media, provider business information, sports, qualifications, service area, listings, pricing, availability, and verification status. • Activity information: searches, saved programs, bookings, messages, session notes, support requests, notification preferences, and feature interactions. • Payment records: if payments are activated, our payment processor handles card or bank details. Sporv may receive transaction identifiers, payment status, payout status, and limited billing details, but not full card numbers. • Technical information: IP address, browser or device type, approximate location derived from IP, diagnostic logs, and local browser storage used to keep a session or selected account role working. If youth-profile features are activated after an appropriate consent process is introduced, a parent or guardian may choose to provide a child’s name, date of birth, sports interests, profile image, relevant medical notes, and emergency contact details. Do not provide that information in the current beta."},
-    {h:"2. How we use information",b:"We use information to provide and secure the Services; create and authenticate accounts; operate the waitlist; match families with providers; support listings, bookings, messages, notifications, payments, and customer support; verify providers and investigate safety concerns; improve performance and usability; prevent fraud and abuse; and comply with legal obligations. We also use information to provide the optional AI features described below. AI output can be inaccurate and should be checked against the provider listing, booking record, or other source before anyone relies on it."},
-    {h:"3. AI features and automated processing",b:"Sporv currently uses Anthropic’s API for language tasks such as interpreting a coach search, generating constrained explanations for authorized listing results, answering supported marketplace questions, and drafting provider messages or session summaries. Sporv uses OpenAI’s API to create numerical embeddings that help compare search text with provider listings. The separate provider-match ranking described below does not call a language model. Depending on the feature you choose, the information sent for processing may include a search query; sport, age, budget, approximate location, and marketplace preferences; provider profile and listing facts; booking-policy text; recent message excerpts and a provider’s writing samples; or a child’s first name and the session notes a provider asks Sporv to summarize. Do not enter medical details, government identifiers, emergency information, or other sensitive information into an AI prompt. Do not use Sporv AI for medical advice, emergency help, or as a substitute for a qualified coach. Sporv applies marketplace-eligibility rules before match ranking, restricts returned listings to the eligible set, and orders matches with a deterministic comparison of current rating evidence, distance, price fit, and availability. Names, biographies, credentials, and profile-writing style do not affect that score. Sporv requires a person to review substantive AI-generated drafts before sharing them. For customer-facing coach answers, Sporv reloads current listing facts from its database and allows AI to select only from authorized listing identifiers; price, rating, availability, and policy text are rendered from server-controlled sources. AI does not independently book a session, send a provider draft, determine provider verification, or make a medical or legal decision. The central AI audit log is designed to store request and response hashes, sizes, model, token usage, cost, and latency rather than raw prompt text. Product records needed to provide the feature—such as messages, notes, or generated drafts—may remain in Sporv’s systems under this policy. The search parser also caches normalized search text and location hints to avoid repeated processing; users should treat search text as stored account activity and keep sensitive information out of it. If you choose to send in-app AI feedback, Sporv stores the AI feature name, release version, feedback category, helpfulness choice, and any optional comment you type. The feedback tool does not attach your prompt, the AI response, message history, name, or email address. To limit abuse without placing an account identifier in the feedback record, Sporv converts the authenticated account ID into a private keyed hash. Keep names, contact details, medical information, private messages, and AI conversation text out of the optional comment. Our operational retention schedule clears optional comments after 90 days and deletes the remaining structured feedback after 180 days."},
-    {h:"4. How we share information",b:"We may share information only as needed for the Services: • Service providers that support hosting, authentication and database services (including Supabase), email delivery, security, analytics, push notifications, payment processing, or optional AI features (including Anthropic and OpenAI). • Other marketplace users when a booking or conversation requires a family and provider to see relevant profile, scheduling, or message information. • Professional advisers or authorities when reasonably necessary to protect safety, enforce our terms, comply with law, or respond to a valid legal request. • A successor organization as part of a merger, financing, acquisition, or sale, subject to appropriate confidentiality protections. We do not sell personal information or share it for cross-context behavioral advertising. We do not use information about children for targeted advertising."},
-    {h:"5. Children’s privacy",b:"Sporv is designed for adults arranging youth-sports services; it is not intended for children to create accounts or submit information directly. Children under 13 may not use the Services on their own. During the current beta, adults must not submit personal information about a child under 13. Before enabling collection of personal information from a child under 13, Sporv will provide a parent or legal guardian with direct notice and use a method designed to obtain verifiable parental consent. A parent may request access to, correction of, or deletion of a child’s information, or refuse further collection, by emailing support@sporv.ai . We will verify the requester’s identity and relationship to the child before acting. If we learn that we collected personal information from a child under 13 without the required consent, we will disable access to that information and delete it as required. Please contact us immediately if you believe this has occurred."},
-    {h:"6. Retention",b:"We keep information only for as long as reasonably necessary for the purpose collected, including providing an account, completing transactions, meeting safety and recordkeeping needs, resolving disputes, and complying with law. Waitlist information is kept until launch communications are complete or you ask us to remove it. When information is no longer needed, we delete or de-identify it using reasonable measures. Any future child information will be retained only for the specific service purpose and not indefinitely."},
-    {h:"7. Your choices and privacy rights",b:"You may ask to access, correct, or delete your personal information, receive a portable copy where applicable, withdraw consent, or opt out of marketing messages. You can also unsubscribe using a link in a marketing email. Account-related and safety messages may still be sent when necessary to provide the Services. To make a request, email support@sporv.ai . We may need to verify your identity before responding. Depending on where you live, you may have additional rights and may appeal a decision by replying to our response. We will not discriminate against you for exercising a privacy right."},
-    {h:"8. Security",b:"We use administrative, technical, and organizational safeguards designed to protect information, including access controls and encrypted network connections. No system can guarantee absolute security. Use a unique password and contact us if you believe your account or information has been compromised."},
-    {h:"9. Data locations and external services",b:"Sporv and its service providers may process information in the United States and other locations where they operate. External sites and services have their own privacy practices; this policy does not govern information you provide directly to them."},
-    {h:"10. Changes to this policy",b:"We may update this policy as the Services change. We will post the revised version here and update the date above. If a change materially affects how we use information already collected, we will provide additional notice and request consent when required."},
-    {h:"11. Contact",b:"Sporv is the operator responsible for this privacy notice. For privacy questions, parental requests, or complaints, email support@sporv.ai . You can also use the Contact page ."}
+    {h:"1. What we collect",b:"Sporv is operations software for youth-sports organizations. What we collect depends on how you use it: • Account information: name, email address, account role, and optional phone number; password credentials are handled by our authentication provider. • Organization information: teams, members, guardians, programs, schedules, and the records your organization keeps in Sporv. • Youth records: a child's name, date of birth, sports interests, medical notes, and emergency contacts — provided only by a parent or guardian after verifiable parental consent, and visible only to guardians and organization admins. • Connected data: email, calendar, payments, and files, read through the connectors you connect. Connected email is read-only. • Payment records: Stripe handles card and bank details. Sporv sees transaction identifiers, payment status, and payout status — never full card numbers. • Technical information: IP address, browser or device type, approximate location derived from IP, diagnostic logs, and local browser storage used to keep a session working."},
+    {h:"2. How we use information",b:"We use information to provide the software; run the agent's reads — overdue dues, expiring cards, unsigned waivers, schedule conflicts, missing records; produce drafts for your review queue; keep records; prevent fraud and abuse; and comply with legal obligations. AI output can be inaccurate. Review every draft before you approve it."},
+    {h:"3. AI features and automated processing",b:"Sporv uses Anthropic's API for language tasks such as drafting follow-ups, replies, and summaries, and OpenAI's API to create numerical embeddings that help compare text. The agent drafts; it never sends, charges, schedules, or refunds without a human approval in your review queue. There is no auto state. Do not enter medical details, government identifiers, emergency information, or other sensitive information into an AI prompt. Do not use Sporv AI for medical advice or emergency help."},
+    {h:"4. How we share information",b:"We share information only as needed for the service: • Service providers for hosting, authentication and database (including Supabase), email delivery, analytics, payment processing (Stripe), and AI features (Anthropic and OpenAI). • Professional advisers or authorities when reasonably necessary to protect safety, enforce our terms, comply with law, or respond to a valid legal request. • A successor organization as part of a merger, financing, acquisition, or sale, subject to confidentiality protections. We do not sell personal information or share it for cross-context behavioral advertising. We do not use information about children for targeted advertising."},
+    {h:"5. Children's privacy",b:"Only adults open and control accounts. Youth records exist only with verifiable parental consent. Children under 13 may not use the service on their own. A parent may request access to, correction of, or deletion of a child's information by emailing support@sporv.ai. We verify the requester's identity and relationship to the child before acting. If we learn we hold a child's information without the required consent, we disable access to it and delete it as required."},
+    {h:"6. Retention",b:"We keep information only as long as reasonably necessary: to run an account, complete transactions, meet safety and recordkeeping needs, resolve disputes, and comply with law. Financial and safety records are retained where legally required. When information is no longer needed, we delete or de-identify it."},
+    {h:"7. Your choices and privacy rights",b:"You may ask to access, correct, or delete your personal information, receive a portable copy where applicable, withdraw consent, or opt out of marketing messages. To make a request, email support@sporv.ai. We may need to verify your identity first. We will not discriminate against you for exercising a privacy right."},
+    {h:"8. Security",b:"We use access controls and encrypted connections to protect information. No system can guarantee absolute security. Use a unique password and contact us if you believe your account or information has been compromised."},
+    {h:"9. Data locations and external services",b:"Sporv and its service providers may process information in the United States and other locations where they operate. External sites and services have their own privacy practices."},
+    {h:"10. Changes to this policy",b:"We may update this policy as the service changes. We will post the revised version here. If a change materially affects how we use information already collected, we will provide additional notice."},
+    {h:"11. Contact",b:"Sporv is the operator responsible for this privacy notice. For privacy questions or parental requests, email support@sporv.ai. Safety reports go to safety@sporv.ai."}
   ]},
   /* The ported terms.html turned out to be an ATTORNEY OUTLINE — every section
      read "This section must state that…  [PLACEHOLDER — attorney to complete]".
@@ -16032,30 +16046,32 @@ const INFO={
      which is true, verifiable, and not pretending to be counsel's work. */
   terms:{title:"Terms of Service",sections:[
     {h:"These terms are being finalized",b:"Sporv's full Terms of Service are being completed with counsel. Until they are published, the statements below describe how the service actually operates today, and they are the terms we hold ourselves to. Questions: support@sporv.ai."},
-    {h:"Coaches are independent professionals",b:"Coaches, trainers, camps and teams on Sporv are independent professionals, not Sporv employees. Sporv is the marketplace that connects you and processes payment."},
-    {h:"What Sporv charges",b:"Sporv takes 0% of bookings — coaches keep 100% of what families pay. Coaches run their business on a flat subscription (free to start; Pro is $34.99 a month). Families pay the coach's listed price; Sporv adds no booking fee for family payers. Bookings paid during the earlier 12% era keep their recorded fee on their receipts."},
-    {h:"Background checks",b:"A coach can take a booking only after clearing an individual background check with a recorded completion date. The system refuses bookings for anyone without one — this is enforced in the booking path, not just stated here."},
-    {h:"Accounts and children",b:"An adult opens the account. Athlete profiles are limited to ages 13-18 until a verifiable parental-consent process is live, matching our published privacy notice."},
+    {h:"What Sporv is",b:"Sporv is operations software for youth-sports organizations, with an agent that reads your operation and drafts the work. It is not a marketplace or a booking site. Sporv does not employ coaches or run programs."},
+    {h:"What Sporv charges",b:"We charge a subscription for the software and the agent: Free, Pro at $34.99 a month, and Enterprise on custom terms. We take zero percent of parent dues at launch, and there is no parent-facing platform fee. Parent dues run on your organization's own Stripe connected account, not through Sporv."},
+    {h:"The agent drafts, you decide",b:"Messages, calendar changes, charges, and refunds wait in your review queue for a human decision. Nothing sends or writes automatically. Settings are Off, Observe, or Draft — there is no auto state."},
+    {h:"Background checks",b:"Sporv keeps a check record per person: status and dates, never report contents. Your organization runs its own checks and owns screening and compliance. No check vendor is connected to Sporv today, and Sporv does not order checks."},
+    {h:"Accounts and children",b:"An adult opens and controls the account. Youth records require verifiable parental consent. Dates of birth, emergency contacts, and medical notes are visible only to guardians and organization admins."},
   ]},
-  /* Same defect, same fix: refund.html was an outline addressed to an attorney.
-     What replaced it is a description of what booking_refund_quote() actually
-     computes — the policy the code enforces, which is the only refund policy
-     that exists today. If the code and this page ever disagree, the page is
-     wrong and the code's answer is what a family receives. */
+  /* Refund copy describes how refunds actually move: amounts are computed
+     server-side from the policy saved on the payment, and money moves on
+     Stripe rails. Two payment kinds, no invented windows. If the code and
+     this page ever disagree, the page is wrong and the code's answer is what
+     the customer receives. */
   refund:{title:"Cancellations & Refunds",sections:[
-    {h:"The window",b:"Listings on Sporv currently use the flexible policy: cancel 24 hours or more before the session starts and you are refunded in full to your card. Inside 24 hours, no refund is due. The policy shown at booking is saved onto your booking at that moment, so a later change by the coach cannot alter what you agreed to."},
-    {h:"How the amount is decided",b:"When you request a refund, Sporv computes it from the policy saved on your booking, the time remaining before the session, what you actually paid, and anything already refunded. The amount is decided by the system, not typed in by anyone — including us."},
-    {h:"How money comes back",b:"Refunds are issued through Stripe to the card you paid with. Your booking shows the refund once Stripe confirms it. If nothing is due, the request screen tells you why instead of leaving the request open."},
-    {h:"Disputes and mistakes",b:"If a session did not happen, a coach did not show, or something else went wrong, email support@sporv.ai with the booking reference. A person reviews it. During beta that mailbox is the record — keep your copy."},
+    {h:"Two kinds of payments",b:"Payments through Sporv come in two kinds: your subscription to us, and dues your families pay through your organization's own Stripe connected account."},
+    {h:"Your subscription",b:"Pro is billed monthly. Cancel anytime from Billing, then the Subscription tab; you keep access until the end of the billing period. If you believe a charge was wrong, email support@sporv.ai and a person reviews it."},
+    {h:"Family dues",b:"Dues are processed on your organization's Stripe connected account, not Sporv's. The refund amount follows the policy your organization sets for that payment. Approved refunds go back through Stripe to the card that was paid."},
+    {h:"Disputes and mistakes",b:"If a payment did not happen the way it should have, email support@sporv.ai with the payment reference. A person reviews it. During beta that mailbox is the record — keep your copy."},
   ]},
   help:{title:"Help & Support",sections:[
-    {h:"How do I book?",b:"Open a listing, pick a session slot and your athlete, then confirm. Your sessions show on Home and the Schedule tab."},
-    {h:"Refunds & cancellations",b:"Cancelling records the cancellation. Refund eligibility follows the policy copied onto your booking and is confirmed separately by the payment processor."},
-    {h:"How do I cancel my membership?",b:"Open Billing, then the Subscription tab, and choose Cancel my subscription. The page walks through what cancellation does before you confirm.",link:{t:"Open the cancellation page",href:"?coachtab=billing&tab=subscription"}},
-    {h:"Contact us",b:"Call (224) 602-9341 or email support@sporv.ai. Response times are not guaranteed."},
+    {h:"What is Sporv?",b:"Operations software for youth-sports organizations. The agent reads your email, calendar, payments, roster, and files, then drafts the work into your review queue."},
+    {h:"How do I connect my tools?",b:"Open the Connect page and choose a tile: Gmail, Google Calendar, Outlook, Google Sheets, Google Drive, Stripe, SMS, QuickBooks. Connected email is read-only. Nothing sends or changes without your approval."},
+    {h:"How does the review queue work?",b:"Every draft shows who it is for, what it says, and why — with one button per draft. You can approve in bulk. Every approval records the human who made it."},
+    {h:"How do I cancel my subscription?",b:"Open Billing, then the Subscription tab, and choose Cancel my subscription. The page walks through what cancellation does before you confirm.",link:{t:"Open the cancellation page",href:"?coachtab=billing&tab=subscription"}},
+    {h:"Contact us",b:"Email support@sporv.ai. Response times are not guaranteed."},
   ]},
   legal:{title:"Legal",sections:[
-    {h:"Terms of Service",b:"By using Sporv you agree to book in good faith and follow each coach's policies. Sporv is a marketplace connecting families with independent coaches."},
+    {h:"Terms of Service",b:"By using Sporv you agree to use it lawfully and as described in our Terms. Sporv is operations software for youth-sports organizations, not a marketplace."},
     {h:"Privacy Policy",b:"We process personal data to provide the service and protect athletes. You may request deletion of your account at any time."},
     {h:"Licenses",b:"Sporv is built with open-source software. Component licenses are available on request."},
   ]},
@@ -16076,7 +16092,7 @@ const INFO={
 const ABOUT_GROUPS=[
   ["Product",[["Product","nav:product"],["Pricing","nav:pricing"],
               ["Become a coach","coach"],["Coach dashboard","tab:dashboard"]]],
-  ["Company",[["About","info:legal"],["Careers","info:legal"],["Press","info:legal"]]],
+  ["Company",[["About","nav:about"],["Contact us","info:help"],["Legal","info:legal"]]],
   ["Trust",[["Background checks","nav:trust"],["Privacy & Security","info:privacy"],
             ["Legal","info:legal"],["Report a concern","nav:trust"]]],
   ["Support",[["Help Center","info:help"],["Contact us","info:help"],
@@ -16112,7 +16128,7 @@ function infoHTML(key){
       ${d.sections.map(s=>`<section>
         <h3>${esc(s.h)}</h3>
         <p style="color:var(--ink-2);margin-top:8px;line-height:1.62">${
-          esc(s.b).replace(/support@sporve\.com/,'<a href="mailto:support@sporv.ai" style="color:var(--slate-ink);font-weight:700">support@sporv.ai</a>')
+          esc(s.b).replace(/((?:safety|support)@sporv\.ai)/g,'<a href="mailto:$1" style="color:var(--slate-ink);font-weight:700">$1</a>')
         }</p>
         ${s.link?`<p style="margin-top:8px"><a href="${esc(s.link.href)}" style="color:var(--slate-ink);font-weight:700">${esc(s.link.t)}</a></p>`:""}</section>`).join("")}
     </div>
@@ -16121,10 +16137,8 @@ function infoHTML(key){
       <div style="display:flex;flex-wrap:wrap;gap:22px;margin-top:11px">
         <div><div style="font-weight:700">Support</div>
           <a href="mailto:support@sporv.ai" style="color:var(--slate-ink);font-size:var(--text-base)">support@sporv.ai</a></div>
-        <div><div style="font-weight:700">Phone</div>
-          <a href="tel:+12246029341" style="color:var(--slate-ink);font-size:var(--text-base)">(224) 602-9341</a></div>
         <div><div style="font-weight:700">Safety team</div>
-          <a href="mailto:safety@sporve.com" style="color:var(--slate-ink);font-size:var(--text-base)">safety@sporve.com</a></div>
+          <a href="mailto:safety@sporv.ai" style="color:var(--slate-ink);font-size:var(--text-base)">safety@sporv.ai</a></div>
         <div><div style="font-weight:700">Location</div>
           <div style="color:var(--muted);font-size:var(--text-base)">Chicago, IL</div></div>
       </div>
@@ -16194,10 +16208,10 @@ const FOOT_COLS=[
     ["How background checks work","page:background-checks"],
     ["Accessibility","info:accessibility"],
   ]],
-  ["Families",[
-    ["Browse coaches","nav:explore"],
-    ["Bookings & receipts","page:bookings-receipts"],
-    ["Messaging a coach","page:messaging"],
+  ["Product",[
+    ["The product","nav:product"],
+    ["The agent","page:agent"],
+    ["Waivers & eligibility","page:waivers"],
     ["Media & consent","page:media-consent"],
   ]],
   ["Sporv",[
@@ -16231,11 +16245,10 @@ function closeZoneHTML(){
       </div>
       <div class="closer-base">
         <span>© 2026 Sporv Inc. · Chicago, IL</span>
-        ${/* The independent-contractor disclosure. A marketplace that does not
-             employ the people it lists has to say so, plainly, where a parent
-             can find it — this is the line the brief asked for. */""}
-        <span>Sporv is a marketplace connecting families with independent
-          coaches; coaches are independent professionals, not Sporv employees.</span>
+        ${/* Plain-language position statement. Sporv is B2B operations software;
+             the old marketplace disclosure described a product we do not run. */""}
+        <span>Sporv is operations software for youth-sports organizations. It is
+          not a marketplace, and Sporv does not employ coaches or run programs.</span>
       </div>
     </div></footer>`;
 }
@@ -16249,8 +16262,8 @@ function closeZoneHTML(){
    scaffold hero + cross-links so every route resolves and the link graph has
    no orphan while the pages fan out. */
 const PAGE_META={
-  "what-is":{t:"What is Sporv?",d:"The marketplace — search, book, and pay for youth coaching in one account.",sport:"Soccer",cta:"explore",ctaL:"Find a coach"},
-  "background-checks":{t:"How background checks work",d:"Per-person checks with a dated record — no one takes a booking unverified.",sport:"Swimming",cta:"trust",ctaL:"See the trust center"},
+  "what-is":{t:"What is Sporv?",d:"The agent for youth-sports organizations. It reads your email, calendar, and payments, then drafts the work.",sport:"Soccer",cta:"pricing",ctaL:"See plans"},
+  "background-checks":{t:"How background checks work",d:"Per-person check records with dates — what Sporv enforces and what your organization owns.",sport:"Swimming",cta:"trust",ctaL:"See the trust center"},
   "search":{t:"Search by sport & age",d:"Filter by sport, age, level, and budget — results only from the real catalogue.",sport:"Basketball",cta:"explore",ctaL:"Start searching"},
   "map-search":{t:"Map search",d:"See coaches as places — distance is part of every family's decision.",sport:"Cycling",cta:"map",ctaL:"Open the map"},
   "instant-booking":{t:"Instant booking",d:"Real open slots, with the seat count enforced at the database.",sport:"Baseball",cta:"explore",ctaL:"Find an open slot"},
@@ -16534,67 +16547,67 @@ function pageHTML(id){
      mini-pages keep their own compositions. */
   const cls=`pgroot pg-${id}${id==="ai-coach"?" lay-b":""}`;
   if(id==="background-checks"){
-    /* Recipe α, Swimming: S1 split hero → S3 rows → S5 proof → S7 stats → S8 close.
-       Athletic terms: "first whistle", "show up". No dark band. */
+    /* Recipe α: S1 split hero → S3 rows → S5 proof → S7 stats → S8 close.
+       No dark band. Copy rewritten 2026-09-24 for the B2B model: per-person
+       records with dates, the organization owns compliance, no vendor
+       ordering through Sporv today. */
     return `<div class="${cls}">
     <section class="pgband slate pg-hero split"><div class="shell" data-rev>
       <div class="pg-heroL">
         ${pageEyebrow(meta)}
-        <h1 class="pg-serif pg-h1">The person is checked, <em>not the pool.</em></h1>
-        <p class="pg-sub">Every coach on Sporv clears their own background check before the first whistle — the person who stands on the pool deck, never the swim club that lists them.</p>
-        <div class="pg-ctarow">${pageCTA(meta)}${open||`<button class="pg-textlink" data-nav="page:media-consent">How consent works →</button>`}</div>
+        <h1 class="pg-serif pg-h1">Background checks, <em>kept honest.</em></h1>
+        <p class="pg-sub">Sporv keeps a check record per person — status and dates, never report contents. Your organization runs the checks; Sporv records the result.</p>
+        <div class="pg-ctarow">${pageCTA(meta)}${open||`<button class="pg-textlink" data-nav="trust">The safety protocols →</button>`}</div>
       </div>
       </div></section>
 
     <section class="pgband white pg-figure"><div class="shell" data-rev>${sigHTML(id)}</div></section>
 
     <section class="pgband white"><div class="shell" data-rev><div class="pg-rows">
-      ${[["01","One check per person","Every coach clears their <span class=\"hl\">own background check</span>. A swim club can never vouch for an individual in their place."],
-         ["02","Only Sporv sets the flag","The business submits identity; an independent check clears it. A club cannot mark itself checked — <span class=\"hl\">only Sporv</span> does."],
-         ["03","Pending stays hidden","A coach is bookable only after the check clears. A pending profile <span class=\"hl\">never appears</span> in search, results, or the assistant."]]
+      ${[["01","One record per person","Status and dates, never report contents. One person's clearance <span class=\"hl\">never clears</span> anyone else."],
+         ["02","Your organization owns compliance","Sporv does not order checks, choose a vendor, or verify your staff — <span class=\"hl\">you do</span>, and Sporv records the result."],
+         ["03","No vendor ordering today","There is no check vendor connected to Sporv right now. Without one the flow <span class=\"hl\">fails closed</span> — we say so instead of implying coverage."]]
         .map(([n,b,p])=>`<div class="pg-row"><div class="pg-rnum">${esc(n)}</div><div class="pg-rclaim"><b>${esc(b)}</b></div><div class="pg-rproof">${p}</div></div>`).join("")}
     </div></div></section>
 
     <section class="pgband slate"><div class="shell" data-rev>
       <h2 class="pg-serif" style="font-size:clamp(30px,4vw,42px);max-width:16ch">The record a parent can <em>read.</em></h2>
       <div class="pg-proof" style="margin-top:22px">
-        <div><span class="k">coach</span>   Coral Reef Aquatics — swim</div>
-        <div><span class="k">check</span>   <span class="hl">background-checked</span> · per person</div>
-        <div><span class="k">cleared</span> 2026-05-14 · re-run on a schedule</div>
-        <div><span class="k">scope</span>   the individual, not the swim club</div>
-        <div><span class="k">status</span>  <span class="hl">bookable</span> — shown in search</div>
+        <div><span class="k">record</span>  check record — per person</div>
+        <div><span class="k">status</span>  <span class="hl">recorded</span> · with dates</div>
+        <div><span class="k">scope</span>   the individual, never the organization</div>
+        <div><span class="k">ordering</span> not offered through Sporv today</div>
       </div>
     </div></section>
 
     <section class="pgband slate"><div class="shell" data-rev>
       <div class="pg-stats">
-        ${/* Tell #36 (invented stats): "9 sports" was hardcoded while the
-             catalogue holds 24 — a stat row is only defensible when every
-             number in it is computed or enforced. 100% background-checked IS
-             enforced now: provider_safety_cleared() refuses any booking whose
-             provider lacks a real completed check. */""}
-        ${[["100%","of bookable coaches, background-checked"],[String(new Set(PROGRAMS.map(p=>p.sport)).size),"sports live on Sporv today"],["$0","to browse, save, and message"]]
+        ${/* Tell #36 (invented stats): a stat row is only defensible when every
+             entry in it is a stated position, not a computed claim. These
+             three are positions: per-person records, no vendor ordering,
+             org-owned compliance. */""}
+        ${[["Per person","check records — status and dates, never report contents"],["None","ordered through Sporv today — no vendor connected"],["Yours","compliance stays with your organization"]]
           .map(([n,l])=>`<div class="pg-stat"><div class="n" data-count="${esc(n)}">${esc(n)}</div><div class="l">${esc(l)}</div></div>`).join("")}
       </div>
     </div></section>
 
     <section class="pgband white"><div class="shell" data-rev>
-      <h2 class="pg-serif" style="font-size:clamp(30px,4.4vw,48px);max-width:15ch">Know the person before they <em>show up.</em></h2>
+      <h2 class="pg-serif" style="font-size:clamp(30px,4.4vw,48px);max-width:15ch">Know the record before you <em>rely on it.</em></h2>
       <div class="pg-ctarow">${pageCTA(meta)}</div>
     </div></section>
     </div>`;
   }
   if(id==="what-is"){
     /* Asymmetric editorial, Soccer. Two-column hero (headline left, floating
-       result card right) → full-bleed obsidian demo (headline + wide dark search
+       queue card right) → full-bleed obsidian demo (headline + wide dark queue
        demo, side by side) → numbered claim/proof rows → stats → close. The
        composition is off the single-column stack. Accents wear Soccer via --ps. */
     return `<div class="${cls}">
     <section class="pgband slate pg-hero split"><div class="shell" data-rev>
       <div class="pg-heroL">
         ${pageEyebrow(meta)}
-        <h1 class="pg-serif pg-h1">Every sport your kid wants to try, <em>one place to find it.</em></h1>
-        <p class="pg-sub">Background-checked coaches, camps, and clubs across ${String(new Set(PROGRAMS.map(p=>p.sport)).size)} sports — search, message, and book a real open slot in minutes. One account for every sport your family plays.</p>
+        <h1 class="pg-serif pg-h1">The agent for youth-sports <em>organizations.</em></h1>
+        <p class="pg-sub">It reads your email, calendar, and payments, then drafts the work. You review it, you approve it — nothing reaches a family until you say so.</p>
         <div class="pg-ctarow">${pageCTA(meta)}${open||`<button class="pg-textlink" data-nav="page:background-checks">How the checks work →</button>`}</div>
       </div>
     </div></section>
@@ -16603,121 +16616,57 @@ function pageHTML(id){
          as every sigHTML page. */""}
     <section class="pgband white pg-figure"><div class="shell" data-rev>
       <div class="pg-herocard sig-what-is" aria-hidden="true">
-        <div class="hc-top"><span class="hc-sport">Soccer · Chicago, IL</span></div>
-        <div class="hc-name">Coral Reef FC — U12 Development</div>
-        <div class="hc-meta"><span class="hc-chk">Background-checked</span> · Intermediate · ages 9–12</div>
-        <div class="hc-foot"><span class="hc-price">$45<span style="font-weight:400;color:var(--muted);font-size:var(--text-sm)"> / session</span></span><span class="hc-book">Book</span></div>
+        <div class="hc-top"><span class="hc-sport">Review queue · Monday 7:04 AM</span></div>
+        <div class="hc-name">12 drafts waiting for your call</div>
+        <div class="hc-meta"><span class="hc-chk">7 dues follow-ups</span> · 3 waiver chases · 2 card fixes</div>
+        <div class="hc-foot"><span class="hc-price">Each shows <span style="font-weight:400;color:var(--muted);font-size:var(--text-sm)">who, what, and why</span></span><span class="hc-book">Review</span></div>
       </div>
     </div></section>
 
     <section class="pgband dark bleed"><div class="shell" data-rev><div class="db-in">
       <div>
-        <h2 class="pg-serif" style="font-size:clamp(28px,3.4vw,42px);max-width:13ch">One search, <em>real coaches back.</em></h2>
-        <p class="pg-sub" style="margin-top:14px">Type what you need. Every result is a background-checked coach with a real open slot — the same catalogue the search, the map, and the assistant all read from.</p>
+        <h2 class="pg-serif" style="font-size:clamp(28px,3.4vw,42px);max-width:13ch">One queue, <em>every draft.</em></h2>
+        <p class="pg-sub" style="margin-top:14px">Overnight the agent read your operation and drafted what it found. Each draft shows who it is for, what it says, and why — one button sends it, and that button is yours.</p>
       </div>
       <div class="pg-demo wide" aria-hidden="true">
-        <span class="demonote">The listings below are demo records that show how Sporv works. Real verified coaches are onboarding now.</span>
-        <div class="dq">soccer coach · U12 · within 10 mi of Chicago</div>
-        <div class="drow"><div><div class="dname">Coral Reef FC — U12 Development</div>
-            <div class="dmeta"><span class="dchk">Background-checked</span> · Intermediate · ages 9–12</div></div>
-          <span class="dprice">$45</span></div>
-        <div class="drow"><div><div class="dname">Chicago United — Saturday Skills</div>
-            <div class="dmeta"><span class="dchk">Background-checked</span> · All levels · ages 8–12</div></div>
-          <span class="dprice">$30</span></div>
-        <div class="drow"><div><div class="dname">Biscayne Youth SC — Weeknight Skills</div>
-            <div class="dmeta"><span class="dchk">Background-checked</span> · Beginner · ages 7–11</div></div>
-          <span class="dprice">$38</span></div>
+        <span class="demonote">Example drafts, to show the shape of the queue.</span>
+        <div class="dq">dues follow-up · 34 days late</div>
+        <div class="drow"><div><div class="dname">To the Alvarez family</div>
+            <div class="dmeta"><span class="dchk">Why</span> · $180 due Mar 3 · tone: firm, second notice</div></div>
+          <span class="dprice">Send</span></div>
+        <div class="drow"><div><div class="dname">Card expiring — the Okafor family</div>
+            <div class="dmeta"><span class="dchk">Why</span> · card ends 04/26 · autopay fails next cycle</div></div>
+          <span class="dprice">Send</span></div>
+        <div class="drow"><div><div class="dname">Waiver chase — 6 unsigned</div>
+            <div class="dmeta"><span class="dchk">Why</span> · one request per guardian · version stamped</div></div>
+          <span class="dprice">Send</span></div>
       </div>
     </div></div></section>
 
     <section class="pgband white"><div class="shell" data-rev>
       <div class="pg-rows">
-        ${[["01","Every sport, one bar","One account and one search covers every sport your family plays — soccer this season, swim the next. No ten apps, no ten logins."],
-           ["02","Verified, not vouched","Every coach clears their <span class=\"hl\">own background check</span> before a single slot is bookable. A business can never vouch for an individual in their place."],
-           ["03","A slot, not a callback","Pick a real opening and <span class=\"hl\">pay in the same flow</span>. No enquiry form that vanishes into a voicemail, no waiting to hear back."]]
+        ${[["01","It reads the operation","Email, calendar, payments, roster, and files — the agent watches for <span class=\"hl\">overdue dues, expiring cards, unsigned waivers, and conflicts</span>."],
+           ["02","It drafts, never sends","Every draft lands in your review queue with the <span class=\"hl\">finding that produced it</span>. There is no auto state."],
+           ["03","You stay in charge","One button per draft. Messages, calendar changes, charges, and refunds <span class=\"hl\">wait for your call</span>."]]
           .map(([n,b,p])=>`<div class="pg-row"><div class="pg-rnum">${esc(n)}</div><div class="pg-rclaim"><b>${esc(b)}</b></div><div class="pg-rproof">${p}</div></div>`).join("")}
       </div>
     </div></section>
 
     <section class="pgband slate"><div class="shell" data-rev>
       <div class="pg-stats">
-        ${[[String(new Set(PROGRAMS.map(p=>p.sport)).size),"sports live on Sporv today"],["100%","of bookable coaches, background-checked"],["$0","to browse, message, and save"]]
+        ${[["8","connector categories your agent reads"],["1","review queue for every draft"],["0","messages sent without your approval"]]
           .map(([n,l])=>`<div class="pg-stat"><div class="n" data-count="${esc(n)}">${esc(n)}</div><div class="l">${esc(l)}</div></div>`).join("")}
       </div>
     </div></section>
 
     <section class="pgband white"><div class="shell" data-rev>
-      <h2 class="pg-serif" style="font-size:clamp(30px,4.4vw,48px);max-width:15ch">Find the coach <em>your kid remembers.</em></h2>
+      <h2 class="pg-serif" style="font-size:clamp(30px,4.4vw,48px);max-width:15ch">Your week, <em>already drafted.</em></h2>
       <div class="pg-ctarow">${pageCTA(meta)}</div>
     </div></section>
 
-    ${/* T5 — moved off the landing (exploreHTML) to keep the landing at
-         hero → browse → close. Markup + styles preserved verbatim: the map
-         strip, the dark session-recap chapter, the "Two ways in" two-path,
-         and the FAQ accordion now live here on page:what-is. */""}
-
-
-  <section class="band dark">
-    <div class="shell lgrid">
-      <div data-rev>
-        <div class="eyebrow" style="color:var(--accent-on-dark)">After every session</div>
-        <h2 style="margin-top:12px">You always know how it went.</h2>
-        <p class="sub" style="margin-top:14px">Notes, focus areas and the next booking arrive in one thread — written by the coach, not a form.</p>
-        <div class="lchecks">
-          ${/* Enforcement sweep 2026-08-14: the tick glyphs are deleted, not
-               replaced — the claim carries the row (spec STEP 1). */""}
-          ${[["Session notes tied to your athlete, not a generic log"],
-             ["Receipts and rebooking in the same place"],
-             ["Media shared only with recorded consent"]]
-            .map(([t])=>`<div class="lcheck"><span>${esc(t)}</span></div>`).join("")}
-        </div>
-      </div>
-
-      <div class="lcard" data-rev data-rev-d="1">
-        <div class="lcard-hd">
-          <span class="lcard-live">Session recap</span>
-          <span class="featbadge" style="background:var(--slate-tint);color:var(--slate-ink)">Example</span>
-        </div>
-        <div class="lrow"><span>Focus</span><em>First serve &amp; footwork</em></div>
-        <div class="lrow"><span>Went well</span><em>Toss consistency</em></div>
-        <div class="lrow"><span>Next up</span><em>Second-serve spin</em></div>
-        <div class="lrow"><span>Next session</span><em>Booked · Sat 9:00</em></div>
-      </div>
-    </div>
-  </section>
-
-  <section class="band slate">
-    <div class="shell">
-      <h2 data-rev>Two ways in</h2>
-      <p class="sub" data-rev>The same platform families book on is the one coaches run their week on.</p>
-      <div class="dual">
-        <div class="dpath" data-rev>
-          <div class="eyebrow">For parents</div>
-          <h3>Find someone you'd trust with your kid</h3>
-          <p>Search by sport, your child's age and your budget. Book and pay without leaving the page.</p>
-          <ul class="dlist">
-            ${["Every coach clears a per-person check","Message before you spend anything",
-               "Sessions, receipts and updates in one thread","One account, however many kids"]
-              .map(t=>`<li><span>${esc(t)}</span></li>`).join("")}
-          </ul>
-
-        </div>
-        <div class="dpath" data-rev data-rev-d="1">
-          <div class="eyebrow">For coaches</div>
-          <h3>Run your week, get paid on time</h3>
-          <p>Your calendar, your policies, your prices. Sporv handles the admin around them.</p>
-          <ul class="dlist">
-            ${["Free to join and list","Bring the families you already coach",
-               "Checkout and automatic payouts","Roster, notes, media and insights"]
-              .map(t=>`<li><span>${esc(t)}</span></li>`).join("")}
-          </ul>
-          <button class="btn ghost" data-becomecoach="1">Become a coach</button>
-        </div>
-      </div>
-    </div>
-  </section>
-
-  ${faqSectionHTML()}
+    ${/* Marketplace bands removed 2026-09-24: the session-recap chapter, the
+         "Two ways in" family/coach split, and the marketplace FAQ described a
+         consumer booking product. page:what-is is the B2B agent page now. */""}
     </div>`;
   }
 if(id==="search"){
@@ -24592,31 +24541,28 @@ window.MOD_COACHUI = { css:CSS, wire:wire };
   }
 
   /* ═══════════════════ VIEW · TRUST &amp; SAFETY ═══════════════════
-     Page-level content, in the order a reader needs it. The per-person check
-     policy is the proof behind the product's central claim, so it leads the
-     page instead of sitting in the third panel down. */
-  /* Anti-slop constitution C1: the icon column is GONE. These four rendered as
-     shield/check/doc/clock cards in a 3-up grid — tells #1 (outline icons over
-     text), #3 (icon+bold+gray as the only pattern), #16 (icon-card grid), and
-     #23: four items in a three-column grid stranded "Checks are re-run" alone
-     on its own row, which is the exact screenshot the constitution opens with.
-     Now a B6 definition list sharing .sf-rule with the rules section below —
-     a document's own rows, hairline-separated, the term doing the work the
-     icon pretended to do.
-
-     One copy correction while here: "stay bookable" was FALSE — since the
-     evidence gate landed, an uncleared provider cannot take a booking at all.
-     The page said the opposite of what the database enforces. */
+     Page-level content, in the order a reader needs it. This is the page the
+     footer points at for "Trust & safety": the protocols the product runs on,
+     what Sporv enforces, and what the organization owns. Written 2026-09-24
+     against the real backend: three client flows (reports, refunds, privacy
+     requests), no check vendor connected, no auto-send anywhere. Nothing here
+     claims monitoring, investigations, response times, or coverage the
+     product does not have. */
   const POLICY = [
-    ["Each person clears their own", "A background check is required before a coach can be booked."],
-    ["Sporv sets the badge",        "An organization cannot verify its own staff."],
-    ["Pending is shown",             "Uncleared listings read Verification pending — visible, but not bookable until the check clears."],
-    ["Checks are re-run",            "A badge that stops being true stops showing."],
+    ["Checks are recorded per person", "The record belongs to one individual: status and dates, never report contents. Per-person gating is the intended model — we state it as a record practice, not as an enforced gate, until it is production-verified."],
+    ["Your organization owns compliance", "Sporv records the checks you run. It does not order checks, choose a vendor, or verify your staff for you."],
+    ["No vendor ordering today", "There is no background-check vendor connected to Sporv right now. Without one the flow fails closed — we say so instead of implying coverage."],
+    ["Status is shown honestly", "What the record says is what is shown. A check that stops being true stops showing as true."],
   ];
   const RULES = [
-    ["Reports go to safety@sporve.com", "During beta a report opens an email to Sporv's safety address. Send it, and keep your copy — that email IS the record."],
-    ["Refunds are reviewed",   "Full refund, partial refund, or a written denial."],
-    ["Deletion is a case",     "Payment and safety records stay under legal hold. We write back."],
+    ["Adults hold the accounts", "Only an adult opens and controls an organization account. Youth records are gated by parental consent."],
+    ["Sensitive data stays compartmented", "Dates of birth, emergency contacts, and medical notes are visible only to guardians and organization admins."],
+    ["The agent drafts, never sends", "Messages, calendar changes, charges, refunds, and every other write wait in your review queue for a human decision."],
+    ["Inbound content is untrusted", "Email and anything extracted from it is treated as input to check — never as instructions to follow."],
+    ["Waivers are versioned", "Each waiver version is tied to the signatures recorded against it. A changed waiver is a new signature."],
+    ["Media consent is per child", "Recorded per child, and revocable at any time."],
+    ["Every request is tracked", "Refund and privacy requests get a reference and a tracked status. Safety reports are taken by email to safety@sporv.ai during beta — the sent email is the record."],
+    ["Emergencies come first", "If anyone is in danger, contact emergency services before reporting here."],
   ];
   /* PICON is the host's stroke-icon set (never emoji); guarded so a module
      loaded against an older host degrades to no icon rather than throwing. */
@@ -24675,8 +24621,8 @@ window.MOD_COACHUI = { css:CSS, wire:wire };
     <section class="band alt sf-hero">
       <div class="shell" data-rev>
         <p class="eyebrow">Trust &amp; safety</p>
-        <h1>Every coach must clear their own check.</h1>
-        <p class="lede">A check belongs to a person, not a logo.</p>
+        <h1>Safety is how the product works.</h1>
+        <p class="lede">Sporv is software for youth-sports organizations. These are the protocols it runs on — what the product enforces, and what your organization owns.</p>
 
         <div class="sf-actions">
           <button class="btn" data-sf-open="report">Report a safety concern</button>
@@ -24687,7 +24633,7 @@ window.MOD_COACHUI = { css:CSS, wire:wire };
 
         <div class="sf-note sf-note-warn sf-emergency" role="note">
           <h3>If anyone is in danger, call emergency services first</h3>
-          <p>Report here afterwards. During beta this opens an email to safety@sporve.com — send it so there is a record we can act on.</p>
+          <p>Report here afterwards. During beta this opens an email to safety@sporv.ai — send it so there is a record we can act on.</p>
         </div>
       </div>
     </section>
@@ -24695,11 +24641,11 @@ window.MOD_COACHUI = { css:CSS, wire:wire };
     <section class="band sf-w">
       <div class="shell">
         <div class="prodsec" data-rev>
-          <h2>The check is per person.</h2>
-          <p class="sub">Approving a business says nothing about who coaches your child.</p>
+          <h2>The safety protocols.</h2>
+          <p class="sub">What the product enforces, in plain language.</p>
         </div>
         <div class="sf-rules" data-rev>
-          ${POLICY.map(([t, d]) => `<div class="sf-rule"><b>${esc(t)}</b><p>${esc(d)}</p></div>`).join("")}
+          ${RULES.map(([t, d]) => `<div class="sf-rule"><b>${esc(t)}</b><p>${esc(d)}</p></div>`).join("")}
         </div>
       </div>
     </section>
@@ -24707,27 +24653,26 @@ window.MOD_COACHUI = { css:CSS, wire:wire };
     <section class="band dark">
       <div class="shell">
         <div class="prodsec" data-rev>
-          <p class="eyebrow">The badge</p>
-          <h2>Withheld, never implied.</h2>
+          <p class="eyebrow">Background checks</p>
+          <h2>Recorded, never implied.</h2>
+          <p class="sub" style="margin-top:14px;max-width:62ch">Sporv keeps a check record per person — status and dates, never report contents. What it does not do yet is order checks: there is no vendor connected, so your organization runs its own checks and Sporv records the result.</p>
         </div>
-        ${/* The two pills are the PRODUCT'S REAL UI — the one place an icon is
-             earned, because it encodes state. What goes is the card chrome
-             around them: flat hairline rows on the dark panel, badge left,
-             clause right, same document grammar as the rest of the page. */""}
         <div class="sf-badges" data-rev>
-          <div class="sf-badge"><span class="pill gold">${ICON.shield} Background-checked</span>
-            <p>Check passed, and re-run on schedule.</p></div>
-          <div class="sf-badge"><span class="pill warn">${ICON.shield} Verification pending</span>
-            <p>The badge waits for that person's check.</p></div>
+          <div class="sf-badge"><span class="pill gold">${ICON.shield} Check recorded</span>
+            <p>Status and dates on file for this person.</p></div>
+          <div class="sf-badge"><span class="pill warn">${ICON.shield} No check on file</span>
+            <p>Shown as unverified. Never implied, never borrowed from someone else.</p></div>
+        </div>
+        <div class="sf-rules" data-rev style="margin-top:26px">
+          ${POLICY.map(([t, d]) => `<div class="sf-rule" style="border-top-color:rgba(255,255,255,.14)"><b>${esc(t)}</b><p>${esc(d)}</p></div>`).join("")}
         </div>
       </div>
     </section>
 
     <section class="band alt">
       <div class="shell" data-rev>
-        <div class="prodsec"><h2>Every request is tracked.</h2></div>
-        <div class="sf-rules">
-          ${RULES.map(([t, d]) => `<div class="sf-rule"><b>${esc(t)}</b><p>${esc(d)}</p></div>`).join("")}
+        <div class="prodsec"><h2>Every request is tracked.</h2>
+          <p class="sub" style="margin-top:12px;max-width:62ch">Safety, privacy, and refund requests are tracked. During beta a safety report opens an email to safety@sporv.ai — send it, and keep your copy. That email is the record.</p>
         </div>
       </div>
     </section>
@@ -24864,7 +24809,7 @@ window.MOD_COACHUI = { css:CSS, wire:wire };
          believed Sporv was investigating. Sporv never knew.
 
          Until safety_reports exists with a triage path, the honest surface is
-         email: the report opens a pre-filled message to safety@sporve.com, and
+         email: the report opens a pre-filled message to safety@sporv.ai, and
          the sent mail — held by the parent, not by us — is the record. The local
          entry is kept ONLY as the parent's own copy and is labelled as such; it
          no longer claims a case number Sporv is holding. Deleting the false
@@ -24878,7 +24823,7 @@ window.MOD_COACHUI = { css:CSS, wire:wire };
             (providerId?("Provider: "+providerId+"\n"):"")+
             (bookingId?("Booking: "+bookingId+"\n"):"")+
             "\nWhat happened:\n"+details+"\n";
-          window.location.href = "mailto:safety@sporve.com"
+          window.location.href = "mailto:safety@sporv.ai"
             + "?subject=" + encodeURIComponent("Safety report — " + (CATEGORY_LABEL[category]||category))
             + "&body=" + encodeURIComponent(body);
         }catch(e){}
@@ -25050,6 +24995,11 @@ window.MOD_COACHUI = { css:CSS, wire:wire };
 }
 .sf-rule b{font-size:var(--text-base);letter-spacing:-.018em}
 .sf-rule p{color:var(--ink-2);font-size:var(--text-base);line-height:1.55;max-width:58ch}
+/* The background-check policy rules sit on the black band: they need the
+   band's light type. Same palette the host uses for .band.dark prose. */
+.band.dark .sf-rule b{color:#fff}
+.band.dark .sf-rule p{color:#AEB8C4}
+.band.dark .sf-rules{border-bottom-color:rgba(255,255,255,.14)}
 
 .sf-block+.sf-block{margin-top:34px;padding-top:26px;border-top:1px solid var(--rule)}
 .sf-sec{display:flex;justify-content:space-between;align-items:baseline;gap:14px;margin-bottom:14px}
@@ -32801,34 +32751,33 @@ window.MOD_FAMILIES = {
 
   function whatIsPage(meta) {
     var cells = [
-      ["Platform", "Families compare real services by sport, age, level, place, price, format, and dated availability. Coaches publish that supply themselves. An empty match stays empty; Sporv does not pad the roster of offerings with a coach who missed the request. Reopening a result reads its current record again."],
-      ["Verification", "Every person who can accept a booking needs their own cleared background-check state. A company cannot lend its status to staff. A badge that stops being true stops showing, and new booking access stops with it. The named person remains the unit of trust."],
-      ["Booking", "A parent chooses a published opening with duration, place, capacity, and full price attached. Checkout checks the remaining seat again before writing confirmation. A failed payment or a full session never becomes a polite fiction. Both sides leave with the same dated record."],
-      ["Payments", "Families pay the listed service price without an added booking fee. Sporv takes zero percent of bookings, so gross and net payout match on the record. A refund keeps the original charge and adjustment visible. No transfer is reduced to an unexplained balance."],
-      ["Messaging", "A question begins from a listing and remains attributed. If the family books, the same thread follows the dated session. Conversation can clarify fit or arrival; it cannot bypass verification, capacity, payment, or confirmation. Reporting stays separate from an ordinary reply."],
-      ["Progress", "Dated notes, goals, and real measurements stay with the athlete account while retaining each coach's authorship. Parents can read the season without rebuilding it from screenshots, and changing coaches does not erase earlier work. A missing observation is never filled by inference."]
+      ["Read", "The agent reads the operation every night: the inbox, the calendar, the dues ledger, the roster, the shared drive. Overdue installments, failed cards, unsigned waivers, schedule conflicts, and lapsed members surface as findings with the record behind them."],
+      ["Draft", "Each finding becomes a draft in one review queue: the follow-up addressed to the right payer with the right amount, the waiver chase, the schedule notice, the session note. Drafts carry their source, so a message is traceable to the row it came from."],
+      ["Approve", "Nothing sends, charges, or changes a record until a person approves it. Approve sends one draft; bulk approval handles the routine ones. Every approval records who decided. There is no automatic mode."],
+      ["Records", "Session notes, eligibility lists, treasurer summaries, and minutes land as records, not chat. The season reads as one account of what happened, written from the same rows that run billing and scheduling."],
+      ["Money", "Dues run on the organization's own Stripe account, and Sporv takes zero percent of parent payments at launch. The software is a flat subscription — free to start, Pro at thirty-four ninety-nine a month."],
+      ["Safety", "Accounts belong to adults. A parent's consent gates a minor's data, youth details stay compartmented, and inbound email is treated as untrusted input. The safety page lists the full protocols."]
     ];
     var questions = [
-      ["Who is Sporv for?", "Families use Sporv to find and manage youth-sports instruction. Independent coaches, trainers, camps, teams, and authorized organizations use the other side to publish supply and operate the sessions they sell."],
-      ["What does it cost?", "Families pay the coach's listed price and no family booking fee. Coaches keep one hundred percent of booking revenue and run the software on a flat subscription — free to start, Pro at thirty-four ninety-nine a month."],
-      ["When will it be near me?", "Search can only show supply that a real coach has published in the chosen area. Coverage grows coach by coach, so Sporv shows an honest empty result and keeps the criteria visible when a local match does not exist yet."]
+      ["Who is Sporv for?", "Youth-sports organizations — clubs, academies, leagues — and the independent coaches and trainers who run sessions. One account holds the staff, the athletes, the money, and the compliance."],
+      ["What does it cost?", "The organization pays a flat subscription for the software and the agent: free to start, Pro at thirty-four ninety-nine a month, custom for larger organizations. Sporv takes zero percent of parent dues at launch."],
+      ["What does the agent never do?", "Send anything on its own. Every message, charge, and record change waits for a human approval in the review queue. The agent proposes; the organization decides."]
     ];
     var cellCard = function (cell) {
       return "<article><h2>" + cell[0] + "</h2><p data-prose>" + cell[1] + "</p></article>";
     };
     return wrap("what-is", "B01", "manifesto-split-grid-claim-questions", "D-L-L-D-L", hero(meta,
-      "Every sport. One app.",
-      "Sporv is the shared operating record between a family and an independent youth-sports professional. Families discover a suitable service, ask questions, take an actual opening, pay, and keep the receipt. Coaches publish that supply, manage the athlete, write the follow-up, and receive the payout. Verification, consent, capacity, and policy rules decide what either side is allowed to see or do.",
+      "The agent for <em>youth-sports organizations.</em>",
+      "Sporv reads your operation — email, calendar, dues, roster, files — and drafts the work: the follow-ups, the waiver chases, the schedule notices, the session notes. Every draft waits in one review queue, and nothing sends until a person approves it.",
       { tone: "dark", layout: "manifesto", eyebrow: "WHAT IS SPORV" }) +
       "<section class='pgband white pg-capability-section' data-section='capability-grid' data-layout='six-cell-border-grid'><div class='shell pg-capability-grid'>" +
       cells.slice(0, 3).map(cellCard).join("") + "</div></section>" +
       "<section class='pgband slate pg-capability-section' data-section='capability-grid' data-layout='six-cell-border-grid'><div class='shell pg-capability-grid'>" +
       cells.slice(3, 6).map(cellCard).join("") + "</div></section>" +
-      "<section class='pgband dark pg-market-claim' data-section='market-claim' data-layout='claim-band'><div class='shell'><h2 class='pg-serif'>The gossip-and-cash economy, <em class='pg-accent-phrase'>replaced.</em></h2>" +
-      "<p data-prose>One shared record does not erase the difference between parent and coach. It gives both roles evidence they can name: the listing that was offered, the person who cleared the gate, the opening that was taken, the policy saved at purchase, the messages sent, and the money moved. Support can inspect that record instead of asking two people to reconstruct a season from memory.</p></div></section>" +
+      "<section class='pgband dark pg-market-claim' data-section='market-claim' data-layout='claim-band'><div class='shell'><h2 class='pg-serif'>The admin work, <em class='pg-accent-phrase'>drafted before you ask.</em></h2>" +
+      "<p data-prose>One shared record does not erase the difference between a director and a parent. It gives the organization evidence it can name: the installment that is late, the waiver that is unsigned, the check that lapses before Saturday, the message that was approved and sent. The queue holds the drafts; the people hold the decisions.</p></div></section>" +
       "<section class='pgband white pg-what-questions' data-section='question-ledger' data-layout='three-question-close'><div class='shell'><dl class='pg-question-ledger'>" +
-      questions.map(function (row) { return "<div class='pg-question-row'><dt>" + row[0] + "</dt><dd data-prose>" + row[1] + "</dd></div>"; }).join("") +
-      "</dl></div></section>");
+      questions.map(function (row) { return "<div class='pg-question-row'><dt>" + row[0] + "</dt><dd data-prose>" + row[1] + "</dd></div>"; }).join("") + "</dl></div></section>");
   }
 
   function bookingsPage(meta) {
@@ -32943,27 +32892,27 @@ window.MOD_FAMILIES = {
 
   function backgroundChecksPage(meta) {
     var steps = [
-      ["Invite the person", "The coach receives the screening request in their own name and supplies the identity information and consent the independent vendor requires. A company administrator may begin the invitation, but cannot complete or inherit the check for the person who will coach."],
-      ["Run the vendor check", "The screening vendor compares the submitted identity against the sources included in its service. Sporv receives a state from that process; the coach cannot type a result, design a badge, or approve themselves from the listing editor."],
-      ["Review the result", "A returned result can require operational review before it becomes a product state. Review resolves identity or record questions without turning urgency into clearance. Pending means pending, even when a coach has clients waiting or a business owner asks to publish early."],
-      ["Show a dated badge", "A cleared state makes the named coach eligible for the badge and for bookable supply, subject to the other listing gates. The visible state belongs to that person and date. It never spreads across colleagues, locations, or an organization logo."],
-      ["Re-check the current truth", "The product reads the stored state again when a booking is written. If clearance expires, changes, or is withdrawn, the badge stops showing and the server closes new booking access. An old link or saved coach cannot preserve a safety claim that is no longer true."]
+      ["Keep one record per person", "Each staff member has their own background-check record with a source and a date. A club's standing never extends to an unchecked staff member, and one person's result never becomes another's. The named person is the unit of the record."],
+      ["Record what the organization screened", "The organization runs its own screening through its own process and hands the result to Sporv: who was checked, who ran it, the result, and the date. Sporv records what it is given; it does not order checks itself."],
+      ["Date everything", "Every record carries the check date and, where known, the expiry. A dated record lets the organization see what is current and what has lapsed without reconstructing it from memory."],
+      ["Watch the expiries", "Checks that lapse before game day surface on the eligibility report alongside unpaid dues and unsigned waivers, so a director sees the full Saturday picture in one place."],
+      ["Mind the gap", "No screening vendor is connected to Sporv today, and no automated gate enforces clearance in production yet. The record shows what was supplied; the organization decides who coaches while a check is pending or lapsed."]
     ];
     var questions = [
-      ["Does a club's check cover its coaches?", "No. Every person who can appear as bookable needs their own stored cleared state. Organization membership changes administration, not the identity that was screened or the date attached to that result."],
-      ["Can a pending coach take a booking?", "No. Pending coaches can appear without a badge when verified-only is off. Verified-only removes them. If a family reaches booking from an old result or link, the server reads the current provider state and refuses the booking until the required check is complete."],
-      ["What does the parent see?", "The family sees the named coach and current verification state beside the service. They should report any mismatch between that person and the person who arrives, because the badge cannot travel to a substitute."],
-      ["What happens to earlier bookings?", "Historical records keep what was booked and when for support and review. They do not restore the coach's right to accept another booking after the safety state changes or make an expired badge current again."]
+      ["Does a club's check cover its coaches?", "No. Records are per person. Organization membership changes administration, not the identity that was screened or the date attached to that result."],
+      ["Does Sporv run the background checks?", "No. Sporv does not order background checks and has no screening vendor connected. The organization conducts its own screening and compliance; Sporv records the status and dates it is given."],
+      ["What does the organization see?", "A per-person record: who was checked, who ran the check, the result, the date, and whether it is current. Lapsed checks appear on the eligibility report so nothing hides."],
+      ["What happens when a check lapses?", "The record shows it as lapsed and it stays visible on the eligibility report. The organization decides who may coach while a check is pending or lapsed; Sporv does not pretend an automated enforcement exists that has not been verified."]
     ];
     return wrap("background-checks", "B02", "threshold-head-split-walk-honesty-questions", "D-L-L-D-L", hero(meta,
-      "The check is <em>per person.</em>",
-      "Every coach who can accept a booking must have their own cleared background-check record. A club cannot extend its standing to an unchecked staff member, and a coach cannot set the badge themselves. Sporv shows the current state on the listing and reads it again when a booking is written. If clearance stops being true, the badge and access to new bookings stop with it.",
+      "Background checks, <em>kept honest.</em>",
+      "A check is a per-person record with a source and a date. The organization runs its own screening and compliance; Sporv records the result. No screening vendor is connected today, and Sporv does not order checks.",
       { tone: "dark", layout: "check-threshold", eyebrow: "HOW BACKGROUND CHECKS WORK" }) +
       walkthroughSection(steps.slice(0, 3), { tone: "white", layout: "walk-five" }) +
       walkthroughSection(steps.slice(3, 5), { tone: "slate", layout: "walk-five", start: 3 }) +
       "<section class='pgband dark pg-check-honesty' data-section='honesty-panel' data-layout='two-paragraph-honesty'><div class='shell'><h2>What a check cannot promise</h2><div>" +
-      "<p data-prose>A cleared result is an enforced screening gate, not a guarantee of personality, coaching quality, fit, or every future action. Families should still read the service, ask questions, and decide whether the named professional suits their athlete.</p>" +
-      "<p data-prose>Screening also cannot replace immediate judgment. A parent who sees a different person arrive, unsafe conduct, or an urgent risk should leave the situation and use the appropriate emergency or support route. The badge records a check; it does not ask anyone to ignore new evidence.</p></div></section>" +
+      "<p data-prose>A recorded result is a record, not a guarantee of personality, coaching quality, fit, or every future action. Organizations should still read the whole person, and a parent who sees unsafe conduct should leave the situation and use the appropriate emergency or support route. The record cannot ask anyone to ignore new evidence.</p>" +
+      "<p data-prose>A record is also not enforcement. Until an automated clearance gate is verified in production, the page above states what the product does today: it shows the supplied record and the expiry. Anything stronger would be a claim the product cannot back.</p></div></section>" +
       questionSection(questions, { layout: "compact-parent-questions", className: "pg-check-questions" }));
   }
 
