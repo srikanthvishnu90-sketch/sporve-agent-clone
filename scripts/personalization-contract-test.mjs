@@ -199,6 +199,68 @@ check(!!un.unmatched, "unmatched request gets a plain closest-option answer");
 check(P.vocabLookup("Your clients are here.", { person:"student", personPlural:"students" }) === "Your students are here.",
   "vocabLookup renames forward text");
 
+/* ---------- bug regressions (2026-09-25 sweep) ---------- */
+/* reseed drops stale proposals: baseVersion indexes must never dangle */
+P.seedWorkspace("solo_trainer", "tester");
+const dangling = P.proposeChange("call them students, not clients", { config: P.currentConfig(), role: "owner" }).proposal;
+P.seedWorkspace("team_coach", "tester");
+const staleApply = P.applyProposal(dangling.id, { role: "owner" });
+check(!staleApply.ok && staleApply.errors[0] === "Proposal not found.",
+  "reseed clears pending proposals — stale proposal cannot apply");
+
+/* module add/remove ops keep modulesOn a flat array (no nested arrays) */
+P.seedWorkspace("solo_trainer", "tester");
+let mc = P.currentConfig();
+let mr = P.applyPatchOps(mc, [{ op:"add", path:"modulesOn", moduleId:"roster", value:"roster" }]);
+check(mr.config.modulesOn.includes("roster") && !mr.config.modulesOn.some(Array.isArray),
+  "module add keeps modulesOn flat");
+mr = P.applyPatchOps(mr.config, [{ op:"remove", path:"modulesOn", moduleId:"roster" }]);
+check(!mr.config.modulesOn.includes("roster") && !mr.config.modulesOn.some(Array.isArray),
+  "module remove keeps modulesOn flat");
+
+/* module toggle validation: dependents block non-cascade removal */
+P.seedWorkspace("camp", "tester");
+const campCfg = P.currentConfig();
+const cascadeBlock = P.validateProposal(
+  [{ op:"remove", path:"modulesOn", moduleId:"registration" }],
+  { role:"owner", config:campCfg, modulesOn:campCfg.modulesOn });
+check(!cascadeBlock.ok && cascadeBlock.errors.join(" ").includes("capacity_waitlist"),
+  "removing a module with dependents is refused without cascade");
+const kernelBlock = P.validateProposal(
+  [{ op:"remove", path:"modulesOn", moduleId:"payments" }],
+  { role:"owner", config:campCfg, modulesOn:campCfg.modulesOn });
+check(!kernelBlock.ok && kernelBlock.errors.join(" ").includes("core"),
+  "kernel module removal is refused");
+
+/* template move preserves workspace customizations */
+P.seedWorkspace("solo_trainer", "tester");
+const vp = P.proposeChange("call them students, not clients", { config: P.currentConfig(), role: "owner" }).proposal;
+P.applyProposal(vp.id, { role: "owner" });
+const mv2 = P.proposeChange("we're a club now", { config: P.currentConfig(), role: "owner" }).proposal;
+P.applyProposal(mv2.id, { role: "owner" });
+check(P.currentConfig().vocabulary.person === "student",
+  "template move replays workspace customizations (vocabulary survives)");
+check(P.currentConfig().templateId === "club", "template move still switches template");
+
+/* restoreVersion targets the exact version and stays append-only */
+P.seedWorkspace("solo_trainer", "tester");
+P.applyProposal(P.proposeChange("call them students, not clients", { config: P.currentConfig(), role: "owner" }).proposal.id, { role: "owner" });
+P.applyProposal(P.proposeChange("sound more casual", { config: P.currentConfig(), role: "owner" }).proposal.id, { role: "owner" });
+const rv = P.restoreVersion(1);
+check(rv.ok && P.currentVersion() === 3 && P.currentConfig().vocabulary.person === "student",
+  "restoreVersion(1) restores exactly version 1 as a new version 3");
+check(P.versions().length === 4, "restore is append-only, history never rewritten");
+check(!P.restoreVersion(99).ok, "restore of a missing version fails cleanly");
+
+/* diffVersions reports nested paths, not just top-level keys */
+P.seedWorkspace("solo_trainer", "tester");
+const dv = P.diffVersions(P.versions()[0], P.versions()[0]);
+check(dv === "No differences.", "identical versions diff clean");
+const aCfg = P.currentConfig();
+const bCfg = P.applyPatchOps(aCfg, [{ op:"replace", path:"agent.voice", value:"warm" }]).config;
+const dv2 = P.diffVersions({ config:aCfg }, { config:bCfg });
+check(dv2.includes("agent.voice"), "diff reports the nested path agent.voice");
+
 /* version history is inspectable */
 check(P.versions().length >= 1 && P.versions()[0].source === "template", "version history records sources");
 
