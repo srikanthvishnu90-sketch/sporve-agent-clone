@@ -11073,6 +11073,7 @@ function aiDockHTML(){
              ${m.err&&m.retry?`<button class="btn ghost sm" data-airetry="${i}" style="align-self:flex-start">Try again</button>`:""}
              ${m.nav?`<button class="btn ghost sm" data-coachtab="${esc(m.nav.tab)}" style="align-self:flex-start">${esc(m.nav.label)}</button>`:""}
              ${m.proposal?propCardHTML(m.proposal,i):""}
+             ${m.persProposal&&window.SporvPersonalizeUI?window.SporvPersonalizeUI.persPropCardHTML(m.persProposal,i):""}
              ${m.facilities?facilitiesCardHTML(m.facilities):""}
              ${m.leads?leadsCardHTML(m.leads,m.leadsSaved):""}
              ${m.document?documentCardHTML(m.document):""}
@@ -12265,13 +12266,17 @@ function dashHomeHTML(){
 }
 function coachHomePage(){
   const ui=window.COACH_UI;
+  /* Personalization setup nudge (spec 30): one calm banner until the
+     workspace is seeded. Dismissed permanently by completing setup. */
+  const setupBanner=(window.SporvPersonalization&&window.SporvPersonalizeUI&&!window.SporvPersonalizeUI.seeded())
+    ?`<div class="pob-banner"><div><b>Set up your workspace.</b><p>Four quick screens — template, five questions, connections, done. After that the assistant proposes changes for your approval instead of asking twice.</p></div><button class="btn sm" data-ctab="personalize-onboard">Run setup</button></div>`:"";
   if(queueIsLive()){
     loadDashboardHome();
     const gs=gettingStarted();
     const pv=S.coachProvider||{};
     return ui.Page({page:"home",eyebrow:"Home",h1:pv.business_name||"Home",
       lede:"What needs you today, resolved for your role from your organization's own records.",
-      body:(gs&&gs.total&&gs.done<gs.total?ui.Block({title:"Getting started",subtitle:gs.done+" of "+gs.total+" setup steps complete.",
+      body:setupBanner+(gs&&gs.total&&gs.done<gs.total?ui.Block({title:"Getting started",subtitle:gs.done+" of "+gs.total+" setup steps complete.",
         action:ui.Button({label:"Open guide",size:"sm",variant:"secondary",attrs:'data-ctab="getting-started"'}),body:""}):"")+dashHomeHTML()});
   }
   if(realSignedIn()) hydrateFor("marketplace");
@@ -12322,7 +12327,7 @@ function coachHomePage(){
     lede:isCoachGuest()
       ? "A disclosed sample workspace showing how a team runs clients, sessions, and bookings in one place."
       : "The operational state of your coaching business, from setup through today's schedule.",
-    body:body,
+    body:setupBanner+body,
   });
 }
 
@@ -13925,8 +13930,8 @@ function coachSettingsPage(){
   const pv=S.coachProvider||{};
   const tab=S.setTab||"automation";
   const live=!!S.setLoaded;
-  const rail=[["Account",[["profile","Profile"]]],
-    ["Organization",[["automation","Automation"],["connectors","Connectors"],["money","Money"],["documents","Documents"],["org","Organization"],["people","People"],["plan","Plan & billing"]]]];
+  const rail=[["Account",[["profile","Profile"],["personal","Personal"]]],
+    ["Organization",[["automation","Automation"],["connectors","Connectors"],["money","Money"],["documents","Documents"],["org","Organization"],["people","People"],["plan","Plan & billing"],["workspace","Workspace"]]]];
   const seg=(k,allowAuto)=>{const m=setJobMode(k);
     return `<span class="stseg" data-stjob="${k}">
       ${["off","draft"].concat(allowAuto?["auto"]:[]).map(v=>
@@ -13945,6 +13950,14 @@ function coachSettingsPage(){
     </div>
     <div class="sthead" style="margin-top:22px"><h2>Business profile</h2><p>Public name, bio, sports and media live on their own page.</p></div>
     <div class="stcard">${row("Edit your public profile","",`<button class="btn ghost sm" data-ctab="profile">Open business profile →</button>`)}</div>`;
+  }
+  if(tab==="personal"){
+    body = window.SporvPersonalizeUI ? window.SporvPersonalizeUI.personalSettingsHTML()
+      : `<div class="sthead"><h2>Personal</h2><p>Personal settings did not load.</p></div>`;
+  }
+  if(tab==="workspace"){
+    body = window.SporvPersonalizeUI ? window.SporvPersonalizeUI.workspaceSettingsHTML()
+      : `<div class="sthead"><h2>Workspace</h2><p>Workspace settings did not load.</p></div>`;
   }
   if(tab==="automation"){
     const mode=(setKVget("agent_mode",{})||{}).mode||"draft";
@@ -14201,6 +14214,8 @@ function coachBody(t){
   const pp=SEED.providerProfile;
   if(t==="queue") return coachQueuePage();
   if(t==="settings") return coachSettingsPage();
+  /* Personalization onboarding (spec 30): four screens, then the workspace. */
+  if(t==="setup") return window.SporvPersonalizeUI ? window.SporvPersonalizeUI.onboardView() : "";
   if(t==="connect") return connectPageHTML();
   if(t==="dashboard") return coachHomePage();
   if(t==="roster") return coachClientsPage();
@@ -15916,6 +15931,7 @@ function setCoachTab(v){
      pane (or leave a stale URL that disagrees with the visible fallback). */
   if(window.COACH_UI&&window.COACH_UI.clearTab) window.COACH_UI.clearTab();
   if(v==="slots"){S.coachTab="schedule";S.schedTab="slots";S.schedulePageTab="availability";return;}
+  if(v==="personalize-onboard"){S.coachTab="setup";return;}
   /* Insights, Reviews, Policies and Automated messages merged into Operations;
      every old name still resolves, landing on its sub-tab rather than a rail
      entry that no longer exists. */
@@ -20825,6 +20841,20 @@ function askCoach(q){
       chatArchive(); /* F2 persistence (2026-09-19) */
       if(S.aiOpen===false) S.aiUnread=(S.aiUnread||0)+1;
       render(); return;
+    }
+    /* PERSONALIZATION (spec 30): a plain-words workspace or personal change
+       request becomes a proposal card client-side — approval-gated like every
+       other write. Fires only once setup seeded a workspace; anything the
+       classifier does not understand falls through to the server path below. */
+    if(window.SporvPersonalizeUI){
+      const pp=window.SporvPersonalizeUI.persProposalFor(text);
+      if(pp){
+        S.chatThinking=false;
+        S.chat=[...S.chat,{role:"coach",text:pp.reply,persProposal:pp.persProposal||null}];
+        chatArchive();
+        if(S.aiOpen===false) S.aiUnread=(S.aiUnread||0)+1;
+        render(); return;
+      }
     }
   }
 

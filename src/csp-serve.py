@@ -46,4 +46,9 @@ class Handler(http.server.SimpleHTTPRequestHandler):
         pass
 
 
-http.server.HTTPServer(("127.0.0.1", PORT), Handler).serve_forever()
+# Threading: the browser opens several connections at once (document,
+# favicon, keep-alive) and a single-threaded server stalls mid-transfer,
+# serving a truncated page that fails the boot check for harness reasons.
+# 2026-09-24: this exact stall blanked the CSP boot check while every hash
+# was correct.
+http.server.ThreadingHTTPServer(("127.0.0.1", PORT), Handler).serve_forever()
