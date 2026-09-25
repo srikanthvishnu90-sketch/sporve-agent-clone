@@ -23,6 +23,12 @@ ORDER = [
     # Shared Media-derived coach page shell and components. It has no API
     # dependency, but every coach view may call window.COACH_UI at render time.
     "mod-coachui.js",
+    # mod-personalization.js: templates + layered config engine (spec 30).
+    # Pure logic, no API dependency; UI modules call window.SporvPersonalization.
+    "mod-personalization.js",
+    # mod-personalize-ui.js: onboarding, dock proposal cards, personal +
+    # workspace settings (spec 30 UI). Reads window.SporvPersonalization lazily.
+    "mod-personalize-ui.js",
     # mod-api.js first: it defines window.SporveAPI, which later modules use.
     "mod-api.js",
     # mod-auth.js second: it registers its refresh hook on window.SporveAPI.
@@ -360,16 +366,19 @@ _page = _page.replace(
 # once a hash or nonce is present, so dropping it is the point rather than a
 # side effect.
 #
-# Hashes cover <script> bodies only, never inline event-handler attributes or
-# javascript: URLs, so smoke asserts the built page has none. style-src keeps
-# 'unsafe-inline' because the page uses inline style="" attributes throughout,
-# which hashes cannot cover; a style injection is a defacement risk, not code
+# Hashes cover every inline <script> body, whatever its attributes
+# (including type="application/ld+json" — CSP script-src is enforced on
+# those too; 2026-09-24: the old "<script>"-only pattern silently dropped
+# the two JSON-LD blocks). Hashes never cover inline event-handler
+# attributes or javascript: URLs, so smoke asserts the built page has
+# none. style-src keeps 'unsafe-inline' because the page uses inline
+# style="" attributes throughout, which hashes cannot cover; a style injection is a defacement risk, not code
 # execution, so that trade is deliberate.
 #
 # Failure mode to respect: a stale hash blocks EVERY script and serves a blank
 # page. That is why this is generated on every build and asserted in smoke,
 # rather than hand-maintained.
-_scripts = re.findall(r"<script>(.*?)</script>", _page, re.S)
+_scripts = re.findall(r"<script(?:\s[^>]*)?>(.*?)</script>", _page, re.S)
 _hashes = [
     "'sha256-" + base64.b64encode(hashlib.sha256(s.encode("utf-8")).digest()).decode() + "'"
     for s in _scripts

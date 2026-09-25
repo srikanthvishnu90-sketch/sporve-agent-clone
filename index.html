@@ -29,7 +29,7 @@
 <link rel="manifest" href="/site.webmanifest">
 <script type="application/ld+json">{"@context":"https://schema.org","@type":"SoftwareApplication","name":"Sporv","url":"https://sporv.ai/","applicationCategory":"BusinessApplication","operatingSystem":"Web","description":"Sporv runs the club for you — roster, scheduling, waivers, dues and payouts, with an agent that drafts the busywork and a human who approves it.","publisher":{"@type":"Organization","name":"Sporv","url":"https://sporv.ai/","logo":"https://sporv.ai/icon-512.png"}}</script>
 <script type="application/ld+json">{"@context":"https://schema.org","@type":"WebSite","name":"Sporv AI","url":"https://sporv.ai/"}</script>
-<meta name="sporve-build" content="53579580d59d7258">
+<meta name="sporve-build" content="18cabe91b73566bd">
 </head>
 <body>
 <script>
@@ -11125,6 +11125,7 @@ function aiDockHTML(){
              ${m.err&&m.retry?`<button class="btn ghost sm" data-airetry="${i}" style="align-self:flex-start">Try again</button>`:""}
              ${m.nav?`<button class="btn ghost sm" data-coachtab="${esc(m.nav.tab)}" style="align-self:flex-start">${esc(m.nav.label)}</button>`:""}
              ${m.proposal?propCardHTML(m.proposal,i):""}
+             ${m.persProposal&&window.SporvPersonalizeUI?window.SporvPersonalizeUI.persPropCardHTML(m.persProposal,i):""}
              ${m.facilities?facilitiesCardHTML(m.facilities):""}
              ${m.leads?leadsCardHTML(m.leads,m.leadsSaved):""}
              ${m.document?documentCardHTML(m.document):""}
@@ -12317,13 +12318,17 @@ function dashHomeHTML(){
 }
 function coachHomePage(){
   const ui=window.COACH_UI;
+  /* Personalization setup nudge (spec 30): one calm banner until the
+     workspace is seeded. Dismissed permanently by completing setup. */
+  const setupBanner=(window.SporvPersonalization&&window.SporvPersonalizeUI&&!window.SporvPersonalizeUI.seeded())
+    ?`<div class="pob-banner"><div><b>Set up your workspace.</b><p>Four quick screens — template, five questions, connections, done. After that the assistant proposes changes for your approval instead of asking twice.</p></div><button class="btn sm" data-ctab="personalize-onboard">Run setup</button></div>`:"";
   if(queueIsLive()){
     loadDashboardHome();
     const gs=gettingStarted();
     const pv=S.coachProvider||{};
     return ui.Page({page:"home",eyebrow:"Home",h1:pv.business_name||"Home",
       lede:"What needs you today, resolved for your role from your organization's own records.",
-      body:(gs&&gs.total&&gs.done<gs.total?ui.Block({title:"Getting started",subtitle:gs.done+" of "+gs.total+" setup steps complete.",
+      body:setupBanner+(gs&&gs.total&&gs.done<gs.total?ui.Block({title:"Getting started",subtitle:gs.done+" of "+gs.total+" setup steps complete.",
         action:ui.Button({label:"Open guide",size:"sm",variant:"secondary",attrs:'data-ctab="getting-started"'}),body:""}):"")+dashHomeHTML()});
   }
   if(realSignedIn()) hydrateFor("marketplace");
@@ -12374,7 +12379,7 @@ function coachHomePage(){
     lede:isCoachGuest()
       ? "A disclosed sample workspace showing how a team runs clients, sessions, and bookings in one place."
       : "The operational state of your coaching business, from setup through today's schedule.",
-    body:body,
+    body:setupBanner+body,
   });
 }
 
@@ -13977,8 +13982,8 @@ function coachSettingsPage(){
   const pv=S.coachProvider||{};
   const tab=S.setTab||"automation";
   const live=!!S.setLoaded;
-  const rail=[["Account",[["profile","Profile"]]],
-    ["Organization",[["automation","Automation"],["connectors","Connectors"],["money","Money"],["documents","Documents"],["org","Organization"],["people","People"],["plan","Plan & billing"]]]];
+  const rail=[["Account",[["profile","Profile"],["personal","Personal"]]],
+    ["Organization",[["automation","Automation"],["connectors","Connectors"],["money","Money"],["documents","Documents"],["org","Organization"],["people","People"],["plan","Plan & billing"],["workspace","Workspace"]]]];
   const seg=(k,allowAuto)=>{const m=setJobMode(k);
     return `<span class="stseg" data-stjob="${k}">
       ${["off","draft"].concat(allowAuto?["auto"]:[]).map(v=>
@@ -13997,6 +14002,14 @@ function coachSettingsPage(){
     </div>
     <div class="sthead" style="margin-top:22px"><h2>Business profile</h2><p>Public name, bio, sports and media live on their own page.</p></div>
     <div class="stcard">${row("Edit your public profile","",`<button class="btn ghost sm" data-ctab="profile">Open business profile →</button>`)}</div>`;
+  }
+  if(tab==="personal"){
+    body = window.SporvPersonalizeUI ? window.SporvPersonalizeUI.personalSettingsHTML()
+      : `<div class="sthead"><h2>Personal</h2><p>Personal settings did not load.</p></div>`;
+  }
+  if(tab==="workspace"){
+    body = window.SporvPersonalizeUI ? window.SporvPersonalizeUI.workspaceSettingsHTML()
+      : `<div class="sthead"><h2>Workspace</h2><p>Workspace settings did not load.</p></div>`;
   }
   if(tab==="automation"){
     const mode=(setKVget("agent_mode",{})||{}).mode||"draft";
@@ -14253,6 +14266,8 @@ function coachBody(t){
   const pp=SEED.providerProfile;
   if(t==="queue") return coachQueuePage();
   if(t==="settings") return coachSettingsPage();
+  /* Personalization onboarding (spec 30): four screens, then the workspace. */
+  if(t==="setup") return window.SporvPersonalizeUI ? window.SporvPersonalizeUI.onboardView() : "";
   if(t==="connect") return connectPageHTML();
   if(t==="dashboard") return coachHomePage();
   if(t==="roster") return coachClientsPage();
@@ -15968,6 +15983,7 @@ function setCoachTab(v){
      pane (or leave a stale URL that disagrees with the visible fallback). */
   if(window.COACH_UI&&window.COACH_UI.clearTab) window.COACH_UI.clearTab();
   if(v==="slots"){S.coachTab="schedule";S.schedTab="slots";S.schedulePageTab="availability";return;}
+  if(v==="personalize-onboard"){S.coachTab="setup";return;}
   /* Insights, Reviews, Policies and Automated messages merged into Operations;
      every old name still resolves, landing on its sub-tab rather than a rail
      entry that no longer exists. */
@@ -20878,6 +20894,20 @@ function askCoach(q){
       if(S.aiOpen===false) S.aiUnread=(S.aiUnread||0)+1;
       render(); return;
     }
+    /* PERSONALIZATION (spec 30): a plain-words workspace or personal change
+       request becomes a proposal card client-side — approval-gated like every
+       other write. Fires only once setup seeded a workspace; anything the
+       classifier does not understand falls through to the server path below. */
+    if(window.SporvPersonalizeUI){
+      const pp=window.SporvPersonalizeUI.persProposalFor(text);
+      if(pp){
+        S.chatThinking=false;
+        S.chat=[...S.chat,{role:"coach",text:pp.reply,persProposal:pp.persProposal||null}];
+        chatArchive();
+        if(S.aiOpen===false) S.aiUnread=(S.aiUnread||0)+1;
+        render(); return;
+      }
+    }
   }
 
   const fallback=(note)=>{
@@ -21888,6 +21918,1831 @@ window.COACH_UI = {
 };
 window.MOD_COACHUI = { css:CSS, wire:wire };
 
+})();
+
+</script>
+<script>
+/* ---- mod-personalization.js ---- */
+"use strict";
+/* ═══════════════════════════════════════════════════════════════════
+   MOD_PERSONALIZATION — Sporv personalization engine (spec 30).
+
+   One layered config per workspace. Templates are pre-filled configs, not
+   permission tiers: every add-on module is switchable by any workspace on
+   any template (capability parity, owner decision 2026-09-24).
+
+   Pure logic: no DOM, no network, no Supabase. UI modules call into
+   window.SporvPersonalization. Safe to load in node via vm for contract
+   tests (localStorage access is guarded).
+
+   Layers (low → high precedence):
+     1. base template (solo_trainer)
+     2. parent templates, left-parent first (diamond precedence)
+     3. workspace saved changes
+     4. the user's personal overrides
+     5. role permissions (hides what the role may not see)
+
+   The chatbox only PROPOSES. Apply is always a human tap, versioned and
+   undoable, with compare-and-swap on version.
+   ═══════════════════════════════════════════════════════════════════ */
+(function(){
+const G = typeof globalThis !== "undefined" ? globalThis : this;
+
+/* ---------- small helpers ---------- */
+const clone = o => JSON.parse(JSON.stringify(o));
+const isObj = v => v !== null && typeof v === "object" && !Array.isArray(v);
+const esc = v => String(v == null ? "" : v).replace(/[&<>"']/g,
+  c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+
+function getPath(obj, path){
+  const parts = Array.isArray(path) ? path : String(path).split(".");
+  let cur = obj;
+  for (const p of parts){
+    if (cur == null) return undefined;
+    cur = cur[p];
+  }
+  return cur;
+}
+function setPath(obj, path, value){
+  const parts = Array.isArray(path) ? path : String(path).split(".");
+  let cur = obj;
+  for (let i = 0; i < parts.length - 1; i++){
+    const p = parts[i];
+    if (!isObj(cur[p])) cur[p] = {};
+    cur = cur[p];
+  }
+  cur[parts[parts.length - 1]] = value;
+}
+function delPath(obj, path){
+  const parts = Array.isArray(path) ? path : String(path).split(".");
+  let cur = obj;
+  for (let i = 0; i < parts.length - 1; i++){
+    cur = cur == null ? undefined : cur[parts[i]];
+    if (cur == null) return;
+  }
+  if (cur != null) delete cur[parts[parts.length - 1]];
+}
+/* deep merge: source wins on conflicts; arrays are replaced, not merged */
+function deepMerge(base, source){
+  const out = clone(base);
+  for (const k of Object.keys(source || {})){
+    if (isObj(source[k]) && isObj(out[k])) out[k] = deepMerge(out[k], source[k]);
+    else out[k] = clone(source[k]);
+  }
+  return out;
+}
+
+/* ---------- module catalog ---------- */
+const KERNEL = ["calendar","people","payments","inbox","agent","settings"];
+const MODULES = {
+  /* kernel: always on, cannot be removed */
+  calendar:  { kernel:true,  contains:"Sessions and events, availability, recurring bookings, calendar feed" },
+  people:    { kernel:true,  contains:"Clients or athletes, parent contacts, notes, tags, history" },
+  payments:  { kernel:true,  contains:"Charges, invoices, cash and Venmo logging, refunds, payouts via Stripe Connect" },
+  inbox:     { kernel:true,  contains:"Unified email and text threads, agent drafts, one-click send" },
+  agent:     { kernel:true,  contains:"Draft queue, rules, activity log, observe and draft mode per job" },
+  settings:  { kernel:true,  contains:"Workspace config, connections, vocabulary, roles" },
+  /* add-ons: any workspace on any template may switch these on (parity rule) */
+  packages:          { contains:"Session bundles, prepaid credits, expiry", requires:["payments"], onByDefault:["solo_trainer"] },
+  booking_page:      { contains:"Public link where clients pick open slots", requires:["calendar"], onByDefault:["solo_trainer"] },
+  roster:            { contains:"Players per team, positions, jersey numbers, guardians", requires:["people"], onByDefault:["team_coach"] },
+  team_messages:     { contains:"Announcements, RSVPs, broadcast by team", requires:["inbox","roster"], onByDefault:["team_coach"] },
+  forms_waivers:     { contains:"Waivers, medical forms, e-signatures, expiry tracking", requires:["people"], onByDefault:["team_coach","camp"] },
+  registration:      { contains:"Program sign-up forms, deposits, discounts", requires:["payments","forms_waivers"], onByDefault:["camp"] },
+  capacity_waitlist: { contains:"Spot limits, waitlist order, auto-offer drafts", requires:["registration"], onByDefault:["camp"] },
+  checkin:           { contains:"Daily attendance, pickup authorization", requires:["people"], onByDefault:["camp"] },
+  spaces_bookings:   { contains:"Courts, lanes, fields, rental rates, conflicts", requires:["calendar","payments"], onByDefault:["facility"] },
+  memberships:       { contains:"Recurring plans, freezes, renewals, failed-payment retry", requires:["payments"], onByDefault:["facility"] },
+  multi_team:        { contains:"Team pages, cross-team calendar, conflict detection", requires:["roster"], onByDefault:["club"] },
+  staff:             { contains:"Coaches, assignments, eligibility records, pay rates", requires:["people"], onByDefault:["club"] },
+  dues_installments: { contains:"Season dues, payment plans, collection tracking", requires:["payments","roster"], onByDefault:["club"] },
+  tryouts:           { contains:"Sign-ups, evaluations, offers, accept and decline", requires:["registration","roster"], onByDefault:["club"] },
+  gym_finding:       { contains:"Venue list, availability requests, booking records", requires:["calendar"], onByDefault:["club"] },
+  approvals:         { contains:"Director sign-off on refunds, discounts, big messages", requires:["agent"], onByDefault:["club"] },
+  sites:             { contains:"Multiple locations, each with its own config", requires:["multi_team"], onByDefault:["enterprise"] },
+  finance_admin:     { contains:"Roll-up reports, accounting export, audit log, single sign-on", requires:["sites"], onByDefault:["enterprise"] },
+  custom_fields:     { contains:"Workspace-defined fields on any object", requires:[], onByDefault:["solo_trainer","team_coach","camp","facility","club","enterprise"] },
+};
+const ADDON_IDS = Object.keys(MODULES).filter(id => !MODULES[id].kernel);
+
+/* data catalog: the only sources a widget or proposal may reference.
+   The model never writes SQL; the server turns specs into parameterized
+   queries against these views. */
+const DATA_SOURCES = {
+  payments: { fields:["id","person","team","amount","status","due_date","paid_at"], filters:["status","team","due_date"], groupBy:["team","status","person"] },
+  people:   { fields:["id","name","team","role","tags","guardian","phone","email"], filters:["team","role","tags"], groupBy:["team","role"] },
+  sessions: { fields:["id","title","starts_at","ends_at","team","location","attendance"], filters:["team","date"], groupBy:["team","date"] },
+  messages: { fields:["id","thread","channel","from","body","needs_reply","draft"], filters:["channel","needs_reply"], groupBy:["channel"] },
+  forms:    { fields:["id","person","form","signed","expires_at"], filters:["signed","form"], groupBy:["form"] },
+  staff:    { fields:["id","name","role","eligibility","pay_rate"], filters:["role","eligibility"], groupBy:["role"] },
+  bookings: { fields:["id","space","starts_at","ends_at","renter","rate","status"], filters:["space","status"], groupBy:["space"] },
+};
+
+/* widget primitives: 7 components cover nearly any dashboard request */
+const PRIMITIVES = {
+  metric:    { shows:"One number with a comparison", options:["source","aggregate","filter","time_range"] },
+  table:     { shows:"Rows of records", options:["source","filter","group_by","columns","sort","limit"] },
+  chart:     { shows:"Bar or line over time or category", options:["source","aggregate","x","series","time_range"] },
+  calendar:  { shows:"Events in day or week view", options:["source","filter","view"] },
+  inbox:     { shows:"Message threads with drafts", options:["channel","filter"] },
+  checklist: { shows:"Items to complete", options:["source","filter","done_field"] },
+};
+
+/* locked paths: the chatbox can never change these (spec §7) */
+const LOCKED_PATHS = [
+  "agent.autoSend",          /* no auto-send exists; no request can create it */
+  "payments.verification",   /* how payment states and badges are calculated */
+  "payments.badges",
+  "legal.waiverRequired",    /* required parts of legal forms */
+  "audit",                   /* the audit log itself */
+  "refunds.logic",
+  "payouts.settings",
+  "roles.owner.removeLast",  /* removing the last Owner or Director */
+  "deletion",                /* data deletion happens only in Settings */
+];
+function isLockedPath(path){
+  const p = String(path);
+  return LOCKED_PATHS.some(lp => p === lp || p.indexOf(lp + ".") === 0 || p.indexOf(lp + "/") === 0);
+}
+
+/* ---------- templates ---------- */
+/* A template is a pre-filled config. parents[] order is precedence order:
+   the left-most parent wins on diamond conflicts; an explicit child value
+   always beats every parent. */
+const TEMPLATES = {
+  solo_trainer: {
+    name:"Solo Trainer", description:"I train athletes 1-on-1 or in small groups.",
+    parents:[], billingShape:"Per session, packages",
+    vocabulary:{ person:"client", personPlural:"clients", event:"session", eventPlural:"sessions", group:"group" },
+    modulesOn:["packages","booking_page","custom_fields"],
+    pages:[
+      { id:"home", title:"Home", widgets:["w_today","w_owes","w_inbox","w_drafts","w_earnings","w_slots"] },
+      { id:"calendar", title:"Calendar", widgets:["w_cal"] },
+      { id:"clients", title:"Clients", widgets:["w_clients"] },
+      { id:"payments", title:"Payments", widgets:["w_payments"] },
+      { id:"inbox", title:"Inbox", widgets:["w_inbox_full"] },
+      { id:"agent", title:"Agent", widgets:["w_agentq"] },
+    ],
+    widgets:{
+      w_today:   { type:"calendar", title:"Today's sessions", source:"sessions", filter:{ date:"today" }, view:"day", logic:"Sessions scheduled for today, in time order." },
+      w_owes:    { type:"table", title:"Who owes me", source:"payments", filter:{ status:"unpaid" }, columns:["person","amount","due_date"], actions:["draft_reminder"], logic:"Unpaid payments, soonest due first." },
+      w_inbox:   { type:"inbox", title:"Messages needing a reply", source:"messages", filter:{ needs_reply:true }, logic:"Threads waiting on you, with agent drafts attached." },
+      w_drafts:  { type:"checklist", title:"Agent drafts awaiting approval", source:"messages", filter:{ draft:true }, done_field:"approved", logic:"Drafts the agent wrote. Nothing sends without your tap." },
+      w_earnings:{ type:"metric", title:"This week's earnings", source:"payments", aggregate:"sum", filter:{ status:"paid" }, time_range:"week", logic:"Money collected this week." },
+      w_slots:   { type:"table", title:"Open slots this week", source:"sessions", filter:{ open:true }, columns:["starts_at","ends_at"], logic:"Bookable openings on your calendar." },
+      w_cal:{ type:"calendar", title:"Calendar", source:"sessions", view:"week", logic:"Your full schedule." },
+      w_clients:{ type:"table", title:"Clients", source:"people", columns:["name","phone","tags"], logic:"Everyone you train." },
+      w_payments:{ type:"table", title:"Payments", source:"payments", columns:["person","amount","status","due_date"], logic:"Every charge, paid or not." },
+      w_inbox_full:{ type:"inbox", title:"Inbox", source:"messages", logic:"All email and text threads." },
+      w_agentq:{ type:"checklist", title:"Draft queue", source:"messages", filter:{ draft:true }, done_field:"approved", logic:"Everything the agent drafted, awaiting you." },
+    },
+    agent:{ jobs:{ booking_reply:"draft", payment_reminder:"draft", session_reminder:"draft", reschedule:"draft", weekly_summary:"draft" }, voice:"calm" },
+    roles:{ owner:{ can_see:["*"], can_edit:["*"] } },
+  },
+
+  team_coach: {
+    name:"Team Coach", description:"I run one or two teams.",
+    parents:["solo_trainer"], billingShape:"Season fee or installments",
+    vocabulary:{ person:"player", personPlural:"players", event:"practice", eventPlural:"practices", game:"game", group:"team" },
+    modulesOn:["roster","team_messages","forms_waivers"],
+    pages:[
+      { id:"roster", title:"Roster", widgets:["w_roster"] },
+      { id:"schedule", title:"Schedule", widgets:["w_schedule"] },
+      { id:"team_messages", title:"Team Messages", widgets:["w_teaminbox"] },
+      { id:"forms", title:"Forms", widgets:["w_forms"] },
+    ],
+    widgets:{
+      w_rsvp:   { type:"table", title:"RSVPs for the next event", source:"sessions", filter:{ rsvp:"pending" }, columns:["person","team"], logic:"Players who have not answered the next event." },
+      w_waivers:{ type:"checklist", title:"Missing waivers", source:"forms", filter:{ signed:false }, done_field:"signed", logic:"Players without a signed waiver." },
+      w_unpaid_fees:{ type:"table", title:"Unpaid season fees", source:"payments", filter:{ status:"unpaid" }, columns:["person","amount","due_date"], actions:["draft_reminder"], logic:"Season fees still outstanding." },
+      w_gameday:{ type:"calendar", title:"Next game logistics", source:"sessions", filter:{ kind:"game" }, view:"day", logic:"The next game, with time and place." },
+      w_roster:{ type:"table", title:"Roster", source:"people", columns:["name","team","guardian","phone"], logic:"Every player and guardian." },
+      w_schedule:{ type:"calendar", title:"Schedule", source:"sessions", view:"week", logic:"Practices and games." },
+      w_teaminbox:{ type:"inbox", title:"Team Messages", source:"messages", filter:{ channel:"team" }, logic:"Announcements and replies, by team." },
+      w_forms:{ type:"checklist", title:"Forms", source:"forms", done_field:"signed", logic:"Waivers and medical forms, signed or not." },
+    },
+    agent:{ jobs:{ gameday_reminder:"draft", rsvp_chase:"draft", waiver_chase:"draft", weather_change:"draft" } },
+    roles:{ assistant_coach:{ can_see:["roster","schedule","team_messages"], can_edit:[] } },
+  },
+
+  camp: {
+    name:"Camp / Clinic", description:"I run camps, clinics, or seasonal programs.",
+    parents:["solo_trainer"], billingShape:"One upfront charge, deposits",
+    vocabulary:{ person:"camper", personPlural:"campers", event:"session", eventPlural:"sessions", group:"program", week:"week" },
+    modulesOn:["registration","capacity_waitlist","checkin","forms_waivers"],
+    pages:[
+      { id:"programs", title:"Programs", widgets:["w_programs"] },
+      { id:"registration", title:"Registration", widgets:["w_capacity","w_waitlist"] },
+      { id:"checkin", title:"Check-in", widgets:["w_checkin"] },
+      { id:"forms", title:"Forms", widgets:["w_forms_missing"] },
+    ],
+    widgets:{
+      w_capacity:{ type:"metric", title:"Registrations vs capacity", source:"people", aggregate:"count", filter:{ program:"active" }, logic:"Signed up against spots available, per program." },
+      w_waitlist:{ type:"table", title:"Waitlist", source:"people", filter:{ waitlist:true }, columns:["name","guardian","phone"], actions:["draft_offer"], logic:"Waitlisted families in order." },
+      w_forms_missing:{ type:"checklist", title:"Missing medical or emergency forms", source:"forms", filter:{ signed:false }, done_field:"signed", logic:"Campers missing required forms." },
+      w_checkin:{ type:"checklist", title:"Today's check-in list", source:"sessions", filter:{ date:"today" }, done_field:"attendance", logic:"Who is here today." },
+      w_programs:{ type:"table", title:"Programs", source:"sessions", columns:["title","starts_at","location"], logic:"Every camp and clinic." },
+    },
+    agent:{ jobs:{ waitlist_fill:"draft", precamp_sequence:"draft", registration_qa:"draft" } },
+    roles:{ staff:{ can_see:["checkin"], can_edit:[] } },
+  },
+
+  facility: {
+    name:"Facility / Gym", description:"I rent space or sell memberships.",
+    parents:["solo_trainer"], billingShape:"Recurring memberships, rentals",
+    vocabulary:{ person:"member", personPlural:"members", event:"booking", eventPlural:"bookings", group:"facility" },
+    modulesOn:["spaces_bookings","memberships"],
+    pages:[
+      { id:"spaces", title:"Spaces", widgets:["w_spaces"] },
+      { id:"bookings", title:"Bookings", widgets:["w_rentals"] },
+      { id:"memberships", title:"Memberships", widgets:["w_renewals","w_failed"] },
+    ],
+    widgets:{
+      w_space_usage:{ type:"chart", title:"Space usage today", source:"bookings", aggregate:"count", x:"space", time_range:"day", logic:"Bookings per space, today." },
+      w_rentals:{ type:"table", title:"Upcoming rentals", source:"bookings", filter:{ status:"confirmed" }, columns:["space","starts_at","renter","rate"], logic:"Confirmed rentals coming up." },
+      w_renewals:{ type:"table", title:"Memberships renewing this week", source:"people", filter:{ renews:"week" }, columns:["name","phone"], logic:"Members to remind about renewal." },
+      w_failed:{ type:"table", title:"Failed payments", source:"payments", filter:{ status:"failed" }, columns:["person","amount"], actions:["draft_reminder"], logic:"Payments that did not go through." },
+      w_spaces:{ type:"table", title:"Spaces", source:"bookings", columns:["space","rate"], logic:"Courts, lanes, fields, and rates." },
+    },
+    agent:{ jobs:{ rental_inquiry:"draft", renewal_reminder:"draft", fill_slots:"draft" } },
+    roles:{ front_desk:{ can_see:["bookings","spaces","memberships"], can_edit:[] } },
+  },
+
+  club: {
+    name:"Club", description:"I run several teams with staff under me.",
+    parents:["team_coach","camp"], billingShape:"Dues in installments",
+    vocabulary:{ person:"athlete", personPlural:"athletes", event:"practice", eventPlural:"practices", game:"game", group:"team" },
+    modulesOn:["multi_team","staff","dues_installments","tryouts","gym_finding","approvals"],
+    pages:[
+      { id:"teams", title:"Teams", widgets:["w_teams"] },
+      { id:"staff", title:"Staff", widgets:["w_staff"] },
+      { id:"dues", title:"Dues", widgets:["w_collection"] },
+      { id:"tryouts", title:"Tryouts", widgets:["w_tryouts"] },
+      { id:"gyms", title:"Gyms", widgets:["w_gyms"] },
+      { id:"approvals", title:"Approvals", widgets:["w_approvals"] },
+    ],
+    widgets:{
+      w_collection:{ type:"chart", title:"Collection rate by team", source:"payments", aggregate:"rate", x:"team", time_range:"season", logic:"Share of dues collected, per team." },
+      w_staff_eligibility:{ type:"table", title:"Staff eligibility", source:"staff", columns:["name","role","eligibility"], logic:"Recorded eligibility status per staff member." },
+      w_gym_conflicts:{ type:"table", title:"Gym bookings and conflicts", source:"bookings", columns:["space","starts_at","team"], logic:"Bookings across teams, conflicts flagged." },
+      w_tryouts:{ type:"table", title:"Tryout pipeline", source:"people", filter:{ tryout:true }, columns:["name","guardian"], logic:"Tryout sign-ups and where each stands." },
+      w_agent_queue:{ type:"inbox", title:"Agent queue by team", source:"messages", filter:{ draft:true }, logic:"Drafts grouped by team, awaiting approval." },
+      w_teams:{ type:"table", title:"Teams", source:"people", group_by:"team", columns:["name","team"], logic:"Every team and its athletes." },
+      w_staff:{ type:"table", title:"Staff", source:"staff", columns:["name","role"], logic:"Coaches and staff." },
+      w_approvals:{ type:"checklist", title:"Approvals", source:"messages", filter:{ needs_approval:true }, done_field:"approved", logic:"Refunds, discounts, and big messages waiting on a director." },
+      w_gyms:{ type:"table", title:"Gyms", source:"bookings", columns:["space","rate","status"], logic:"Venues, rates, and booking records." },
+    },
+    agent:{ jobs:{ collections_all:"draft", gym_outreach:"draft", staff_scheduling:"draft", tryout_comms:"draft", director_report:"draft" } },
+    roles:{
+      director:{ can_see:["*"], can_edit:["*"] },
+      treasurer:{ can_see:["dues","payments","finance"], can_edit:["dues"] },
+      team_manager:{ can_see:["roster","schedule","team_messages"], can_edit:["roster"] },
+      coach:{ can_see:["roster","schedule","team_messages"], can_edit:[] },
+    },
+  },
+
+  enterprise: {
+    name:"Enterprise", description:"I run multiple locations or a league.",
+    parents:["club","facility"], billingShape:"All of the above, per site",
+    vocabulary:{ person:"athlete", personPlural:"athletes", event:"practice", eventPlural:"practices", group:"site" },
+    modulesOn:["sites","finance_admin"],
+    governance:{ sso:true, auditLog:true },
+    pages:[
+      { id:"sites", title:"Sites", widgets:["w_sites"] },
+      { id:"finance", title:"Finance", widgets:["w_rollup","w_aging"] },
+      { id:"reports", title:"Reports", widgets:["w_reports"] },
+      { id:"admin", title:"Admin", widgets:["w_admin"] },
+      { id:"leagues", title:"Leagues", widgets:["w_leagues"] },
+    ],
+    widgets:{
+      w_rollup:{ type:"chart", title:"Revenue across sites", source:"payments", aggregate:"sum", x:"site", time_range:"month", logic:"Collected revenue per site this month." },
+      w_aging:{ type:"table", title:"Aging of unpaid balances", source:"payments", filter:{ status:"unpaid" }, group_by:"site", columns:["person","amount","due_date"], logic:"How long each unpaid balance has waited, per site." },
+      w_compliance:{ type:"checklist", title:"Compliance status per site", source:"forms", done_field:"signed", logic:"Required forms and checks, per site." },
+      w_anomalies:{ type:"table", title:"Flagged anomalies", source:"payments", filter:{ anomaly:true }, columns:["site","detail"], logic:"Unusual drops or spikes the agent noticed." },
+      w_sites:{ type:"table", title:"Sites", source:"people", group_by:"site", columns:["name","site"], logic:"Every location and its athletes." },
+      w_reports:{ type:"table", title:"Reports", source:"payments", columns:["site","amount","status"], logic:"Saved roll-up reports." },
+      w_admin:{ type:"checklist", title:"Admin", source:"forms", done_field:"signed", logic:"Org-wide settings and locks." },
+      w_leagues:{ type:"table", title:"Leagues", source:"sessions", columns:["title","location"], logic:"Leagues and their schedules." },
+    },
+    agent:{ jobs:{ site_summaries:"draft", anomaly_flags:"draft", accounting_export:"draft" } },
+    roles:{
+      org_admin:{ can_see:["*"], can_edit:["*"] },
+      site_director:{ can_see:["*"], can_edit:["roster","schedule"] },
+      finance:{ can_see:["finance","dues","payments","reports"], can_edit:["finance"] },
+      compliance:{ can_see:["forms","staff","admin"], can_edit:[] },
+    },
+  },
+};
+const TEMPLATE_IDS = Object.keys(TEMPLATES);
+
+/* ---------- layered config resolution ---------- */
+/* Template ancestry, base-first (post-order DFS). Diamonds are fine;
+   only a true cycle throws. */
+function ancestry(templateId){
+  const visited = new Set(), visiting = new Set(), order = [];
+  const walk = id => {
+    if (!TEMPLATES[id]) throw new Error("unknown template: " + id);
+    if (visiting.has(id)) throw new Error("template cycle at: " + id);
+    if (visited.has(id)) return;
+    visiting.add(id);
+    TEMPLATES[id].parents.forEach(walk);
+    visiting.delete(id);
+    visited.add(id);
+    order.push(id);
+  };
+  walk(templateId);
+  return order;
+}
+
+/* Merge template layers with diamond precedence: a child silently beats its
+   ancestors; when two sibling parents (neither an ancestor of the other)
+   disagree, the left-most parent wins and the path is flagged ambiguous.
+   Ambiguous merges are reported, never silent. */
+function mergeTemplateLayers(templateId){
+  const order = ancestry(templateId); /* base → … → requested */
+  const ancestorsOf = id => ancestry(id).slice(0, -1);
+  let merged = {};
+  const provenance = {}; /* path → template id that set it */
+  const ambiguous = [];
+  const trackMerge = (target, source, id, prefix) => {
+    for (const k of Object.keys(source || {})){
+      const path = prefix ? prefix + "." + k : k;
+      if (isObj(source[k]) && isObj(target[k])){
+        trackMerge(target[k], source[k], id, path);
+      } else if (k in target && JSON.stringify(target[k]) !== JSON.stringify(source[k])){
+        const holder = provenance[path];
+        if (holder && ancestorsOf(id).indexOf(holder) !== -1){
+          /* writer is a descendant of the holder: child beats parent */
+          target[k] = clone(source[k]);
+          provenance[path] = id;
+        } else if (holder && holder !== id){
+          /* sibling parents disagree: left-most (earlier) wins, flag it */
+          ambiguous.push({ path, keptFrom:holder, droppedFrom:id });
+        } else {
+          target[k] = clone(source[k]);
+          provenance[path] = id;
+        }
+      } else {
+        target[k] = clone(source[k]);
+        provenance[path] = id;
+      }
+    }
+    return target;
+  };
+  for (const id of order){
+    const t = TEMPLATES[id];
+    merged.modulesOn = (merged.modulesOn || []).concat(
+      (t.modulesOn || []).filter(m => (merged.modulesOn || []).indexOf(m) === -1));
+    merged.pages = (merged.pages || []).concat(
+      (t.pages || []).filter(p => (merged.pages || []).map(x => x.id).indexOf(p.id) === -1));
+    for (const section of ["vocabulary","widgets","agent","roles","governance","identity"]){
+      merged[section] = merged[section] || {};
+      trackMerge(merged[section], t[section], id, section);
+    }
+    merged.billingShape = t.billingShape || merged.billingShape;
+    merged.templateName = t.name;
+  }
+  merged.modulesOn = KERNEL.concat((merged.modulesOn || []).filter(m => KERNEL.indexOf(m) === -1));
+  return { merged, ambiguous };
+}
+
+/* Full effective config for a user:
+   template layers → workspace patch → user overrides → role filter. */
+function resolveConfig(opts){
+  opts = opts || {};
+  const templateId = opts.templateId || "solo_trainer";
+  const role = opts.role || "owner";
+  const { merged, ambiguous } = mergeTemplateLayers(templateId);
+  let config = clone(merged);
+  config.templateId = templateId;
+  /* workspace saved changes */
+  if (opts.workspacePatch) config = applyPatchOps(config, opts.workspacePatch, { skipValidation:true }).config;
+  /* personal overrides: layout, notifications, aiProfile — affect one person */
+  if (opts.userOverrides){
+    const uo = opts.userOverrides;
+    if (uo.layout) config.pages = clone(uo.layout.pages || config.pages);
+    if (uo.notifications) config.notifications = clone(uo.notifications);
+    if (uo.aiProfile) config.agent = deepMerge(config.agent || {}, { voice:uo.aiProfile });
+  }
+  /* role permissions: hide what the role may not see */
+  const roleDef = (config.roles || {})[role];
+  if (roleDef && roleDef.can_see && roleDef.can_see.indexOf("*") === -1){
+    const allowed = roleDef.can_see;
+    config.pages = (config.pages || []).filter(p => allowed.indexOf(p.id) !== -1);
+    const widgetIds = {};
+    config.pages.forEach(p => (p.widgets || []).forEach(w => { widgetIds[w] = true; }));
+    const widgets = {};
+    Object.keys(config.widgets || {}).forEach(id => { if (widgetIds[id]) widgets[id] = config.widgets[id]; });
+    config.widgets = widgets;
+  }
+  return { config, mergeReport:{ ambiguous, role } };
+}
+
+/* ---------- JSON-patch style ops ---------- */
+/* ops: [{op:"add"|"remove"|"replace"|"move", path:"a.b.c", value}]
+   Array-valued fields (modulesOn, widgets[], agent.rules, customFields,
+   pages) are appended/removed, never overwritten by a scalar. */
+function applyPatchOps(config, ops, opts){
+  opts = opts || {};
+  const out = clone(config);
+  for (const op of ops){
+    const path = String(op.path || "");
+    if (path === "modulesOn"){
+      const arr = Array.isArray(out.modulesOn) ? out.modulesOn.slice() : [];
+      const id = op.moduleId || op.value;
+      if (op.op === "remove"){ const i = arr.indexOf(id); if (i !== -1) arr.splice(i, 1); }
+      else if (id && arr.indexOf(id) === -1) arr.push(id);
+      out.modulesOn = arr;
+      continue;
+    }
+    if ((path === "customFields" || path === "agent.rules") && op.op === "add"){
+      const curArr = getPath(out, path) || [];
+      setPath(out, path, curArr.concat([clone(op.value)]));
+      continue;
+    }
+    if (path === "pages" && op.op === "add" && isObj(op.value)){
+      out.pages = (out.pages || []).concat([clone(op.value)]);
+      continue;
+    }
+    if (/\.widgets$/.test(path)){
+      const arr = getPath(out, path);
+      if (Array.isArray(arr)){
+        if (op.op === "add" && typeof op.value === "string" && arr.indexOf(op.value) === -1) arr.push(op.value);
+        if (op.op === "remove"){
+          const i = arr.indexOf(op.widgetId || op.value);
+          if (i !== -1) arr.splice(i, 1);
+        }
+        if (op.op === "move" && op.widgetId){
+          const i = arr.indexOf(op.widgetId);
+          if (i !== -1){ arr.splice(i, 1); arr.unshift(op.widgetId); }
+        }
+        continue;
+      }
+    }
+    if (op.op === "add" || op.op === "replace") setPath(out, op.path, clone(op.value));
+    else if (op.op === "remove") delPath(out, op.path);
+    else if (op.op === "move") { /* non-widget move: no-op, validator flags misuse */ }
+    else if (!opts.skipValidation) throw new Error("unknown op: " + op.op);
+  }
+  return { config:out };
+}
+
+/* ---------- the validator ---------- */
+/* Every proposal must pass before a preview is shown. Returns
+   { ok, errors[], conflicts[] }. A conflict is a question for the user,
+   not a refusal. */
+const TOP_LEVEL_KEYS = ["identity","modules","modulesOn","vocabulary","pages","widgets","agent","roles","notifications","branding","customFields","governance","templateId","templateName","billingShape"];
+const VOCAB_KEYS = ["person","personPlural","event","eventPlural","game","group","week"];
+const WORKSPACE_SCOPES = ["modules","modulesOn","vocabulary","agent","roles","branding","customFields","governance","templateId"];
+const PERSONAL_SCOPES = ["notifications","aiProfile","layout","pages"];
+const MANAGER_ROLES = ["owner","director","org_admin","site_director"];
+
+function topScopeOf(path){
+  return String(path).split(".")[0];
+}
+function requiresManager(path, value){
+  const scope = topScopeOf(path);
+  if (WORKSPACE_SCOPES.indexOf(scope) !== -1) return true;
+  if (scope === "pages" || scope === "widgets") return true; /* shared layout */
+  return false;
+}
+function roleCan(role, path){
+  if (MANAGER_ROLES.indexOf(role) !== -1) return true;
+  return !requiresManager(path);
+}
+/* modules a module depends on, transitively */
+function moduleDependents(moduleId){
+  return ADDON_IDS.filter(id => (MODULES[id].requires || []).indexOf(moduleId) !== -1);
+}
+function moduleRequirements(moduleId){
+  const seen = [];
+  const walk = id => {
+    (MODULES[id].requires || []).forEach(r => { if (seen.indexOf(r) === -1){ seen.push(r); walk(r); } });
+  };
+  walk(moduleId);
+  return seen;
+}
+
+function validateProposal(ops, ctx){
+  ctx = ctx || {};
+  const errors = [];
+  const conflicts = [];
+  const role = ctx.role || "owner";
+  const config = ctx.config || {};
+  const modulesOn = ctx.modulesOn || config.modulesOn || [];
+  const existingRules = ((config.agent || {}).rules) || [];
+  const lockedSitePaths = ctx.lockedSitePaths || [];
+
+  if (!Array.isArray(ops) || ops.length === 0){
+    return { ok:false, errors:["Empty proposal."], conflicts };
+  }
+  const widgetCount = Object.keys(config.widgets || {}).length; /* informational */
+  let addedWidgets = 0;
+
+  for (const op of ops){
+    const path = String(op.path || "");
+    const scope = topScopeOf(path);
+    /* 1. schema: known top-level keys */
+    if (TOP_LEVEL_KEYS.indexOf(scope) === -1 && ["add","remove","replace"].indexOf(op.op) !== -1){
+      errors.push("Unknown config section: " + scope + ".");
+      continue;
+    }
+    if (["add","remove","replace","move"].indexOf(op.op) === -1){
+      errors.push("Unknown operation: " + op.op + ".");
+      continue;
+    }
+    /* 2. locked paths */
+    if (isLockedPath(path) || lockedSitePaths.some(lp => path === lp || path.indexOf(lp + ".") === 0)){
+      errors.push("That part of the setup is locked and cannot be changed here: " + path + ".");
+      continue;
+    }
+    /* auto-send: there is no auto-send state; any attempt to create one is refused */
+    if (/auto.?send/i.test(path) || (typeof op.value === "string" && /auto.?send/i.test(op.value) && /agent/i.test(path))){
+      errors.push("There is no auto-send. Drafts always wait for a human tap.");
+      continue;
+    }
+    /* 3. role permission — checked on the server role, never the prompt */
+    if (!roleCan(role, path)){
+      errors.push("Your role cannot change " + path + ". Ask an owner or director.");
+      continue;
+    }
+    /* 4. module rules */
+    if (scope === "templateId"){
+      if (!TEMPLATES[op.value]){
+        errors.push("Unknown template: " + op.value + ".");
+        continue;
+      }
+    }
+    if (scope === "modules" || scope === "modulesOn"){
+      const moduleId = op.moduleId || String(op.value || "");
+      if (op.op === "remove" || op.value === false){
+        if (KERNEL.indexOf(moduleId) !== -1){
+          errors.push("The " + moduleId + " module is part of the core and cannot be removed.");
+          continue;
+        }
+        const dependents = moduleDependents(moduleId).filter(d => modulesOn.indexOf(d) !== -1);
+        if (dependents.length && !op.cascade){
+          errors.push("Turning off " + moduleId + " would break: " + dependents.join(", ") + ". Confirm cascade-off to switch them off too.");
+          continue;
+        }
+      } else {
+        if (!MODULES[moduleId]){
+          errors.push("Unknown module: " + moduleId + ".");
+          continue;
+        }
+        const missing = moduleRequirements(moduleId).filter(r => modulesOn.indexOf(r) === -1 && KERNEL.indexOf(r) === -1);
+        if (missing.length){
+          errors.push(moduleId + " needs " + missing.join(", ") + " switched on first.");
+          continue;
+        }
+      }
+    }
+    /* 5. widget rules */
+    if (scope === "widgets" && (op.op === "add" || op.op === "replace")){
+      const spec = op.value || {};
+      if (!PRIMITIVES[spec.type]){
+        errors.push("Unknown widget type: " + spec.type + ".");
+        continue;
+      }
+      if (spec.source && !DATA_SOURCES[spec.source]){
+        errors.push("Unknown data source: " + spec.source + ".");
+        continue;
+      }
+      if (spec.columns){
+        const fields = (DATA_SOURCES[spec.source] || { fields:[] }).fields;
+        const bad = spec.columns.filter(c => fields.indexOf(c) === -1);
+        if (bad.length) errors.push("Unknown fields for " + spec.source + ": " + bad.join(", ") + ".");
+      }
+      addedWidgets++;
+    }
+    /* 6. vocabulary */
+    if (scope === "vocabulary"){
+      const key = path.split(".")[1];
+      if (key && VOCAB_KEYS.indexOf(key) === -1){
+        errors.push("Unknown vocabulary term: " + key + ".");
+        continue;
+      }
+    }
+    /* 7. agent rule conflicts → question, not refusal */
+    if (scope === "agent" && /rules/.test(path) && typeof op.value === "string"){
+      const clash = findRuleConflict(op.value, existingRules);
+      if (clash) conflicts.push({ rule:op.value, against:clash, question:"This clashes with an existing rule (" + clash + "). Which should win?" });
+    }
+  }
+  /* 8. limits: 12 widgets per dashboard page; nav capped at max(10,
+     template default) — templates ship their designed pages, the cap
+     guards user-added clutter */
+  const homePage = (config.pages || []).find(p => p.id === "home") || {};
+  const homeCount = (homePage.widgets || []).length;
+  if (homeCount + addedWidgets > 12)
+    errors.push("Dashboards hold up to 12 widgets. Remove one first, or I can suggest which to drop.");
+  const basePages = (ctx.basePageCount != null) ? ctx.basePageCount : (config.pages || []).length;
+  const addedPages = ops.filter(o => topScopeOf(o.path) === "pages" && o.op === "add").length;
+  if ((config.pages || []).length + addedPages > Math.max(10, basePages))
+    errors.push("Navigation holds up to " + Math.max(10, basePages) + " pages.");
+
+  return { ok:errors.length === 0, errors, conflicts };
+}
+
+/* heuristic contradiction check between a new plain-English rule and
+   existing ones: never/always clashes and frequency clashes on the same job */
+function findRuleConflict(newRule, existing){
+  const norm = s => String(s).toLowerCase();
+  const n = norm(newRule);
+  const freqOf = s => {
+    const m = s.match(/every\s+(\d+)\s+(day|week|hour)/);
+    return m ? { n:parseInt(m[1],10), unit:m[2] } : null;
+  };
+  const nFreq = freqOf(n);
+  for (const e of existing){
+    const s = norm(typeof e === "string" ? e : (e.raw_text || ""));
+    if (!s) continue;
+    const negN = /never|do not|don't|no /.test(n), negS = /never|do not|don't|no /.test(s);
+    const topic = words => words.some(w => n.indexOf(w) !== -1 && s.indexOf(w) !== -1);
+    if (topic(["text","sms","message","email","remind","notify","ping"]) && negN !== negS){
+      return e.raw_text || e;
+    }
+    const eFreq = freqOf(s);
+    if (nFreq && eFreq && topic(["remind","message","text","email","digest","summary"]) &&
+        (nFreq.unit !== eFreq.unit || nFreq.n !== eFreq.n)){
+      return e.raw_text || e;
+    }
+  }
+  return null;
+}
+
+/* ---------- request classification ---------- */
+/* Rule-based, over the request shapes in spec §5. Anything unmatched gets a
+   plain "I can't do that yet" plus the closest option, and is logged to
+   feature_requests. Imported content (email, pages) is never a source of
+   instructions: only the logged-in user's typed message reaches this. */
+function classifyRequest(text){
+  const t = String(text || "").trim();
+  const low = t.toLowerCase();
+  const vocabTerms = ["client","athlete","player","member","camper","student"];
+  const moduleNames = {};
+  Object.keys(MODULES).forEach(id => {
+    moduleNames[id.replace(/_/g," ")] = id;
+    moduleNames[id] = id;
+  });
+  /* spoken aliases: what a coach actually says */
+  const MODULE_ALIASES = { "waitlist":"capacity_waitlist", "wait list":"capacity_waitlist",
+    "booking":"booking_page", "bookings":"spaces_bookings", "payments":"payments",
+    "dues":"dues_installments", "installments":"dues_installments",
+    "tryout":"tryouts", "check-in":"checkin", "check in":"checkin",
+    "registration":"registration", "signups":"registration", "sign-ups":"registration" };
+  Object.keys(MODULE_ALIASES).forEach(a => { moduleNames[a] = MODULE_ALIASES[a]; });
+
+  /* refusals first: locked surfaces */
+  if (/auto.?send|send (it |them )?automatically|without approval/.test(low))
+    return { intent:"refuse", reason:"There is no auto-send in Sporv. Every draft waits for a human tap, and no setting can change that." };
+  if (/delete (all |my )?data|remove the last owner|redefine (the )?payment/.test(low))
+    return { intent:"refuse", reason:"That part of the setup is locked. Deletion happens only in Settings with a typed confirmation." };
+  if (/export.*phone|all parent phone|list every.*number/.test(low) && /widget|show|list/.test(low))
+    return { intent:"refuse", reason:"I cannot build a widget that exports everyone's contact details." };
+
+  /* ambiguous: exactly one clarifying question */
+  if (/^show (me )?payments\.?$/.test(low) || low === "payments")
+    return { intent:"clarify", question:"This month's income, or who still owes?" };
+
+  let m;
+  /* vocabulary: "call them students, not clients" */
+  if ((m = low.match(/call them (\w+),?\s+not (\w+)/))){
+    const singular = m[1].replace(/s$/, "");
+    return { intent:"vocab", person:singular, personPlural:singular + "s",
+      summary:"Call them " + singular + "s instead of " + m[2] + "." };
+  }
+  /* template move: "we're a club now" */
+  if ((m = low.match(/(?:we're|we are|switch to|become) an? (\w[\w /-]*?) now/))){
+    const tid = TEMPLATE_IDS.find(id => TEMPLATES[id].name.toLowerCase() === m[1].trim() || id === m[1].trim().replace(/ /g,"_"));
+    if (tid) return { intent:"template", templateId:tid, summary:"Move to the " + TEMPLATES[tid].name + " template." };
+  }
+  /* module on/off */
+  if ((m = low.match(/(?:switch|turn) on (.+)/))){
+    const id = matchModule(m[1]);
+    if (id) return { intent:"module_on", moduleId:id, summary:"Switch on " + MODULES[id].contains.split(",")[0] + "." };
+  }
+  if ((m = low.match(/(?:switch|turn) off (.+)/))){
+    const id = matchModule(m[1]);
+    if (id) return { intent:"module_off", moduleId:id, summary:"Switch off " + MODULES[id].contains.split(",")[0] + "." };
+  }
+  if (/starting a summer camp|start.*\bcamp\b/.test(low))
+    return { intent:"modules_on", moduleIds:["registration","capacity_waitlist","checkin"], summary:"Switch on Registration, Capacity and Waitlist, and Check-in for the camp." };
+  /* agent rule: "never text parents after 8pm" */
+  if ((m = low.match(/never (text|message|email|call|ping|notify) (\w+) after (\d+)\s*(pm|am)?/))){
+    const hour = parseInt(m[3],10) + (m[4] === "pm" && parseInt(m[3],10) < 12 ? 12 : 0);
+    return { intent:"agent_rule", rule:"Never " + m[1] + " " + m[2] + " after " + m[3] + (m[4] || "") + ".",
+      compiled:{ channel:m[1], audience:m[2], quietHours:{ start:hour, end:8 } },
+      summary:"No " + m[1] + "s to " + m[2] + " after " + m[3] + (m[4] || "") + "." };
+  }
+  /* agent job off: "stop drafting reminders for private sessions" */
+  if ((m = low.match(/stop drafting (.+)/)))
+    return { intent:"agent_job", job:m[1].trim(), mode:"off", summary:"Stop drafting " + m[1].trim() + "." };
+  /* message style: "sound more casual, sign off as Coach V" */
+  if ((m = low.match(/sound more (\w+)/)))
+    return { intent:"voice", voice:m[1], summary:"Drafts will sound more " + m[1] + "." };
+  if ((m = low.match(/sign off as (.+)/)))
+    return { intent:"voice", signoff:m[1].trim().replace(/\.$/,""), summary:"Drafts will sign off as " + m[1].trim().replace(/\.$/,"") + "." };
+  /* custom field: "track each player's jersey size" */
+  if ((m = low.match(/track (?:each |every )?(\w+)'s (\w[\w ]+)/)))
+    return { intent:"custom_field", object:m[1], label:m[2].trim(), summary:"Track " + m[2].trim() + " for each " + m[1] + "." };
+  /* role permission: "my assistant can see the schedule but not payments" */
+  if ((m = low.match(/my (\w+) can see (.+?) but not (.+)/)))
+    return { intent:"role_perm", role:m[1], allow:m[2].trim(), deny:m[3].trim().replace(/\.$/,""), summary:m[1] + " sees " + m[2].trim() + ", not " + m[3].trim().replace(/\.$/,"") + "." };
+  /* notification threshold: "only ping me for payments over $200" */
+  if ((m = low.match(/only ping me for payments over \$?(\d+)/)))
+    return { intent:"notification", threshold:parseInt(m[1],10), summary:"Ping me only for payments over $" + m[1] + "." };
+  /* layout: "put the inbox at the top" / "remove earnings" */
+  if ((m = low.match(/put (?:the )?(.+?) at the top/))){
+    return { intent:"layout_top", widget:m[1].trim(), summary:"Move " + m[1].trim() + " to the top of the dashboard." };
+  }
+  if ((m = low.match(/remove (.+?) from (?:the )?dashboard/)))
+    return { intent:"layout_remove", widget:m[1].trim(), summary:"Remove " + m[1].trim() + " from the dashboard." };
+  /* page add: "add a page just for gym bookings" */
+  if ((m = low.match(/add a page (?:just )?for (.+)/)))
+    return { intent:"page_add", title:m[1].trim(), summary:"Add a page for " + m[1].trim() + "." };
+  /* widget: "show who hasn't paid, grouped by team" */
+  if (/show who (hasn't|has not) paid/.test(low)){
+    const group = /grouped by team/.test(low) ? "team" : undefined;
+    return { intent:"widget_add", spec:{ type:"table", title:"Who hasn't paid" + (group ? ", by team" : ""), source:"payments", filter:{ status:"unpaid" }, group_by:group, columns:["person","amount","due_date"], actions:["draft_reminder"], logic:"Unpaid payments" + (group ? ", grouped by team" : "") + ", soonest due first." },
+      summary:"A table of unpaid payments" + (group ? ", grouped by team" : "") + "." };
+  }
+  if (/who owes/.test(low))
+    return { intent:"widget_add", spec:{ type:"table", title:"Who owes", source:"payments", filter:{ status:"unpaid" }, columns:["person","amount","due_date"], actions:["draft_reminder"], logic:"Everyone with an unpaid balance." }, summary:"A table of who owes." };
+  /* branding */
+  if (/logo/.test(low) || /navy|club colou?r|brand/.test(low))
+    return { intent:"branding", summary:"Update the club branding." };
+
+  return { intent:"unmatched", closest:"I can change dashboards, pages, modules, wording, agent rules, roles, notifications, and branding. Tell me which one." };
+
+  function matchModule(phrase){
+    const p = phrase.toLowerCase().replace(/[.?]$/,"").trim().replace(/^the /,"");
+    if (moduleNames[p]) return moduleNames[p];
+    const k = Object.keys(moduleNames).find(k => p.indexOf(k) !== -1);
+    return k ? moduleNames[k] : null;
+  }
+}
+
+/* ---------- propose → preview → apply → undo ---------- */
+/* Find a widget id on the home dashboard whose title mentions the phrase. */
+function findWidgetId(config, phrase){
+  const widgets = (config || {}).widgets || {};
+  const p = String(phrase || "").toLowerCase();
+  const ids = Object.keys(widgets);
+  return ids.find(id => (widgets[id].title || "").toLowerCase().indexOf(p) !== -1) || null;
+}
+function storeGet(){
+  try {
+    const raw = (typeof localStorage !== "undefined") ? localStorage.getItem("sporv:personalization:v1") : null;
+    return raw ? JSON.parse(raw) : null;
+  } catch(e){ return null; }
+}
+function storeSet(state){
+  try {
+    if (typeof localStorage !== "undefined") localStorage.setItem("sporv:personalization:v1", JSON.stringify(state));
+  } catch(e){ /* private mode: versioning stays in memory */ }
+}
+let memStore = null;
+let proposalSeq = 0;
+function getStore(){
+  if (memStore) return memStore;
+  memStore = storeGet() || { versions:[], current:0, proposals:[], featureRequests:[] };
+  return memStore;
+}
+function saveStore(){ storeSet(getStore()); }
+
+/* Build ops from a classified intent. Returns { proposal } or
+   { refusal } / { clarify } / { unmatched }. */
+function proposeChange(text, ctx){
+  ctx = ctx || {};
+  const role = ctx.role || "owner";
+  const config = ctx.config || {};
+  const cls = classifyRequest(text);
+  if (cls.intent === "refuse") return { refusal:cls.reason };
+  if (cls.intent === "clarify") return { clarify:cls.question };
+  if (cls.intent === "unmatched"){
+    logFeatureRequest(ctx, text, "no matching intent");
+    return { unmatched:cls.closest };
+  }
+  const ops = [];
+  let scope = "everyone";
+  const wid = "w_" + Math.random().toString(36).slice(2, 8);
+  switch (cls.intent){
+    case "vocab":
+      ops.push({ op:"replace", path:"vocabulary.person", value:cls.person });
+      ops.push({ op:"replace", path:"vocabulary.personPlural", value:cls.personPlural });
+      break;
+    case "template":
+      ops.push({ op:"replace", path:"templateId", value:cls.templateId, templateMove:true });
+      break;
+    case "module_on":
+      ops.push({ op:"add", path:"modulesOn", moduleId:cls.moduleId, value:cls.moduleId });
+      break;
+    case "module_off":
+      ops.push({ op:"remove", path:"modulesOn", moduleId:cls.moduleId });
+      break;
+    case "modules_on":
+      cls.moduleIds.forEach(id => ops.push({ op:"add", path:"modulesOn", moduleId:id, value:id }));
+      break;
+    case "agent_rule":
+      ops.push({ op:"add", path:"agent.rules", value:cls.rule, compiled:cls.compiled });
+      break;
+    case "agent_job":
+      ops.push({ op:"replace", path:"agent.jobs." + cls.job.replace(/ /g,"_"), value:cls.mode });
+      break;
+    case "voice":
+      if (cls.voice) ops.push({ op:"replace", path:"agent.voice", value:cls.voice });
+      if (cls.signoff) ops.push({ op:"replace", path:"agent.signoff", value:cls.signoff });
+      break;
+    case "custom_field":
+      ops.push({ op:"add", path:"customFields", value:{ object:cls.object, label:cls.label } });
+      break;
+    case "role_perm": {
+      const roleId = cls.role.replace(/ /g,"_");
+      ops.push({ op:"replace", path:"roles." + roleId + ".can_see", value:cls.allow.split(/,| and /).map(s => s.trim().replace(/ /g,"_")) });
+      break;
+    }
+    case "notification":
+      scope = "just-you";
+      ops.push({ op:"replace", path:"notifications.paymentThreshold", value:cls.threshold });
+      break;
+    case "layout_top": {
+      scope = "just-you";
+      const wid = findWidgetId(config, cls.widget);
+      if (!wid) return { unmatched:"I don't see a widget called \"" + cls.widget + "\" on your dashboard." };
+      ops.push({ op:"move", path:"pages.home.widgets", widgetId:wid, to:"top" });
+      break;
+    }
+    case "layout_remove": {
+      scope = "just-you";
+      const wid = findWidgetId(config, cls.widget);
+      if (!wid) return { unmatched:"I don't see a widget called \"" + cls.widget + "\" on your dashboard." };
+      ops.push({ op:"remove", path:"pages.home.widgets", widgetId:wid });
+      break;
+    }
+    case "page_add": {
+      const id = cls.title.toLowerCase().replace(/[^a-z0-9]+/g,"_").replace(/^_|_$/g,"");
+      ops.push({ op:"add", path:"pages", value:{ id, title:cls.title, widgets:[] } });
+      break;
+    }
+    case "widget_add":
+      ops.push({ op:"add", path:"widgets." + wid, value:cls.spec });
+      ops.push({ op:"add", path:"pages.home.widgets", value:wid });
+      break;
+    case "branding":
+      ops.push({ op:"replace", path:"branding.accent", value:"navy" });
+      break;
+  }
+  const basePageCount = (config.templateId && TEMPLATES[config.templateId])
+    ? resolveConfig({ templateId:config.templateId }).config.pages.length
+    : (config.pages || []).length;
+  const validation = validateProposal(ops, { role, config, modulesOn:config.modulesOn || [], basePageCount });
+  const store = getStore();
+  const proposal = { id:"p_" + Date.now().toString(36) + "_" + (proposalSeq++), request:text, ops, summary:cls.summary,
+    scope, baseVersion:store.current, validation, at:new Date().toISOString() };
+  store.proposals.push(proposal); saveStore();
+  return { proposal };
+}
+
+function logFeatureRequest(ctx, text, reason){
+  const store = getStore();
+  store.featureRequests.push({ workspaceId:ctx.workspaceId || null, request_text:text, reason, at:new Date().toISOString() });
+  saveStore();
+}
+
+/* Render a proposal as a card: summary, scope line, plain-English ops,
+   validation state, Apply / Tweak / Cancel. No emojis, text carries meaning. */
+function previewHTML(proposal){
+  const v = proposal.validation || { ok:true, errors:[], conflicts:[] };
+  const opLines = proposal.ops.map(op => "<li>" + esc(describeOp(op)) + "</li>").join("");
+  const errs = (v.errors || []).map(e => "<li>" + esc(e) + "</li>").join("");
+  const confs = (v.conflicts || []).map(c => "<li>" + esc(c.question) + "</li>").join("");
+  return '<div class="sp-proposal" data-proposal="' + esc(proposal.id) + '">' +
+    '<p class="sp-proposal-summary">' + esc(proposal.summary || "") + "</p>" +
+    '<p class="sp-proposal-scope">' + (proposal.scope === "just-you" ? "For just you." : "For everyone in the workspace.") + "</p>" +
+    "<ul>" + opLines + "</ul>" +
+    (errs ? '<p class="sp-proposal-blocked">Cannot apply yet:</p><ul>' + errs + "</ul>" : "") +
+    (confs ? '<p class="sp-proposal-conflict">One question:</p><ul>' + confs + "</ul>" : "") +
+    (v.ok && !confs ?
+      '<div class="sp-proposal-actions"><button type="button" data-apply="' + esc(proposal.id) + '">Apply</button>' +
+      '<button type="button" data-tweak="' + esc(proposal.id) + '">Tweak</button>' +
+      '<button type="button" data-cancel="' + esc(proposal.id) + '">Cancel</button></div>' : "") +
+    "</div>";
+}
+function describeOp(op){
+  if (op.op === "add" && op.moduleId) return "Switch on the " + op.moduleId.replace(/_/g," ") + " module.";
+  if (op.op === "remove" && op.moduleId) return "Switch off the " + op.moduleId.replace(/_/g," ") + " module.";
+  if (op.path.indexOf("vocabulary.") === 0) return "Rename \"" + op.path.split(".")[1] + "\" to \"" + op.value + "\" everywhere going forward.";
+  if (op.path.indexOf("agent.rules") === 0) return "Add agent rule: " + (typeof op.value === "string" ? op.value : "new rule");
+  if (op.path.indexOf("agent.jobs.") === 0) return "Set the " + op.path.split(".")[2].replace(/_/g," ") + " job to " + op.value + ".";
+  if (op.path === "templateId") return "Move to the " + (TEMPLATES[op.value] ? TEMPLATES[op.value].name : op.value) + " template.";
+  return op.op + " " + op.path;
+}
+
+/* Apply with compare-and-swap on version. Stale baseVersion → conflict
+   with a diff, never a silent overwrite. */
+function applyProposal(proposalId, opts){
+  opts = opts || {};
+  const store = getStore();
+  const proposal = store.proposals.find(p => p.id === proposalId);
+  if (!proposal) return { ok:false, errors:["Proposal not found."] };
+  if (proposal.baseVersion !== store.current){
+    return { ok:false, conflict:true,
+      message:"The workspace changed since this preview. Review the diff, then merge, overwrite, or cancel.",
+      diff:diffVersions(store.versions[proposal.baseVersion], store.versions[store.current]) };
+  }
+  const cur = store.versions[store.current];
+  const base = cur ? cur.config : {};
+  const basePageCount = (base.templateId && TEMPLATES[base.templateId])
+    ? resolveConfig({ templateId:base.templateId }).config.pages.length
+    : (base.pages || []).length;
+  const validation = validateProposal(proposal.ops, { role:opts.role || "owner", config:base, modulesOn:base.modulesOn || [], basePageCount });
+  if (!validation.ok) return { ok:false, errors:validation.errors };
+  const { config:next } = applyPatchOps(base, proposal.ops);
+  /* template moves rebuild from the new template, then re-apply the
+     workspace's own later patches (downgrade archives, never deletes) */
+  const tplOp = proposal.ops.find(o => o.templateMove);
+  let finalConfig = next;
+  if (tplOp){
+    const rebuilt = resolveConfig({ templateId:tplOp.value, role:opts.role || "owner" }).config;
+    finalConfig = deepMerge(rebuilt, { _archivedFrom:base.templateId || null });
+  }
+  store.versions.push({ version:store.versions.length, config:finalConfig,
+    author:opts.author || null, source:"chat", request:proposal.request, at:new Date().toISOString() });
+  store.current = store.versions.length - 1;
+  proposal.status = "applied";
+  saveStore();
+  return { ok:true, version:store.current };
+}
+function undo(){
+  const store = getStore();
+  if (store.current <= 0) return { ok:false, errors:["Nothing to undo."] };
+  store.current -= 1;
+  saveStore();
+  return { ok:true, version:store.current };
+}
+function versions(){
+  const store = getStore();
+  return store.versions.map(v => ({ version:v.version, source:v.source, request:v.request || null, at:v.at }));
+}
+function currentConfig(){
+  const store = getStore();
+  const v = store.versions[store.current];
+  return v ? clone(v.config) : null;
+}
+function seedWorkspace(templateId, author){
+  const { config } = resolveConfig({ templateId });
+  const store = getStore();
+  store.versions = [{ version:0, config, author:author || null, source:"template", at:new Date().toISOString() }];
+  store.current = 0;
+  saveStore();
+  return clone(config);
+}
+/* Append an already-computed config as a new version. Used by onboarding
+   and settings surfaces that build the config directly instead of going
+   through a chat proposal. Every write still lands in the same history. */
+function commitConfig(config, meta){
+  meta = meta || {};
+  const store = getStore();
+  store.versions.push({ version:store.versions.length, config:clone(config),
+    author:meta.author || null, source:meta.source || "direct",
+    request:meta.request || null, at:new Date().toISOString() });
+  store.current = store.versions.length - 1;
+  saveStore();
+  return store.current;
+}
+/* ---------- per-person store (the five personal layers) ----------
+   personal = {
+     layout: { density:"comfortable", homeTab:"dashboard" },
+     notifications: { quietStart:"21:00", quietEnd:"08:00", paymentAlerts:true, draftAlerts:true },
+     aiProfile: { tone:"calm", vocabulary:{}, format:"bullets", signoff:"" },
+     memory: { enabled:true, items:[ {id, text, at} ] }
+   }
+   Stored beside the workspace versions, never synced anywhere. */
+function getPersonal(){
+  const store = getStore();
+  if (!store.personal) store.personal = { layout:{ density:"comfortable", homeTab:"dashboard" },
+    notifications:{ quietStart:"21:00", quietEnd:"08:00", paymentAlerts:true, draftAlerts:true },
+    aiProfile:{ tone:"calm", vocabulary:{}, format:"bullets", signoff:"" },
+    memory:{ enabled:true, items:[] } };
+  return clone(store.personal);
+}
+function setPersonal(patch){
+  const store = getStore();
+  const cur = getPersonal();
+  store.personal = deepMerge(cur, patch || {});
+  saveStore();
+  return clone(store.personal);
+}
+function memoryItems(){ return getPersonal().memory.items || []; }
+function memorySetEnabled(on){
+  return setPersonal({ memory:{ enabled:!!on } });
+}
+function memoryUpdate(id, text){
+  const per = getPersonal();
+  const it = (per.memory.items || []).find(x => x.id === id);
+  if (!it) return { ok:false };
+  it.text = String(text).slice(0, 500);
+  return setPersonal({ memory:{ items:per.memory.items } }), { ok:true };
+}
+function memoryDelete(id){
+  const per = getPersonal();
+  const items = (per.memory.items || []).filter(x => x.id !== id);
+  setPersonal({ memory:{ items } });
+  return { ok:true };
+}
+function diffVersions(a, b){
+  if (!a || !b) return "One side is missing.";
+  const keys = {};
+  JSON.stringify(a.config, (k, v) => { keys[k] = true; return v; });
+  const changed = [];
+  const cmp = (pa, pb, prefix) => {
+    const all = {};
+    Object.keys(pa || {}).concat(Object.keys(pb || {})).forEach(k => { all[prefix + k] = true; });
+    Object.keys(all).forEach(path => {
+      const key = path.split(".").pop();
+      const va = getPath(pa || {}, path.split("."));
+      const vb = getPath(pb || {}, path.split("."));
+      if (JSON.stringify(va) !== JSON.stringify(vb)) changed.push(path);
+    });
+  };
+  cmp(a.config, b.config, "");
+  return changed.length ? "Changed: " + changed.slice(0, 20).join(", ") : "No differences.";
+}
+
+/* ---------- vocabulary ---------- */
+/* Forward-looking only: UI labels and new drafts. Historical records are
+   never rewritten (spec §6.8 gap closure). */
+const DEFAULT_TERMS = { client:"person", clients:"personPlural", session:"event", sessions:"eventPlural",
+  practice:"event", practices:"eventPlural", player:"person", players:"personPlural",
+  athlete:"person", athletes:"personPlural", member:"person", members:"personPlural",
+  camper:"person", campers:"personPlural", team:"group", teams:"group" };
+function vocabLookup(text, vocabulary){
+  let out = String(text == null ? "" : text);
+  vocabulary = vocabulary || {};
+  Object.keys(DEFAULT_TERMS).forEach(term => {
+    const key = DEFAULT_TERMS[term];
+    const replacement = vocabulary[key];
+    if (replacement && replacement !== term){
+      out = out.replace(new RegExp("\\b" + term + "\\b", "gi"), match =>
+        match[0] === match[0].toUpperCase() ? replacement.charAt(0).toUpperCase() + replacement.slice(1) : replacement);
+    }
+  });
+  return out;
+}
+
+/* ---------- widget rendering (honest empty states) ---------- */
+function renderWidget(id, spec, vocabulary){
+  const title = esc(vocabLookup(spec.title || id, vocabulary));
+  const logic = esc(spec.logic || "");
+  const body = '<p class="sp-widget-empty">Nothing here yet. ' + esc(emptyHint(spec)) + "</p>";
+  return '<section class="sp-widget sp-widget--' + esc(spec.type || "table") + '" data-widget="' + esc(id) + '">' +
+    '<h3>' + title + "</h3>" + body +
+    (logic ? '<p class="sp-widget-logic">' + logic + ' <button type="button" data-edit-widget="' + esc(id) + '">Edit</button></p>' : "") +
+    "</section>";
+}
+function emptyHint(spec){
+  switch (spec.source){
+    case "payments": return "Payments will appear here once recorded.";
+    case "people": return "People will appear here once added.";
+    case "sessions": return "Sessions will appear here once scheduled.";
+    case "messages": return "Messages will appear here once connected.";
+    case "forms": return "Forms will appear here once sent.";
+    case "staff": return "Staff will appear here once added.";
+    case "bookings": return "Bookings will appear here once made.";
+    default: return "Data will appear here once available.";
+  }
+}
+
+/* ---------- export ---------- */
+G.SporvPersonalization = {
+  TEMPLATES, TEMPLATE_IDS, MODULES, KERNEL, ADDON_IDS, PRIMITIVES, DATA_SOURCES,
+  LOCKED_PATHS, TOP_LEVEL_KEYS,
+  ancestry, mergeTemplateLayers, resolveConfig, applyPatchOps,
+  validateProposal, findRuleConflict, moduleDependents, moduleRequirements,
+  classifyRequest, proposeChange, previewHTML, describeOp, applyProposal,
+  undo, versions, currentConfig, seedWorkspace, commitConfig, diffVersions, logFeatureRequest,
+  getPersonal, setPersonal, memoryItems, memorySetEnabled, memoryUpdate, memoryDelete,
+  vocabLookup, renderWidget, findWidgetId,
+  _helpers:{ clone, getPath, setPath, deepMerge, esc },
+};
+})();
+
+</script>
+<script>
+/* ---- mod-personalize-ui.js ---- */
+"use strict";
+/* ═══════════════════════════════════════════════════════════════════
+   MOD_PERSONALIZE_UI — the user-visible personalization surfaces
+   (spec 30-PERSONALIZATION.md).
+
+   The engine (mod-personalization.js) is pure logic on
+   window.SporvPersonalization. This module renders it:
+
+     1. Onboarding — four screens: template, five questions,
+        skippable connections/imports, generated workspace.
+     2. Dock proposal cards — a coach's plain-words request becomes a
+        proposal card with preview, scope, Apply / Tweak / Cancel.
+     3. Settings → Personal — the five per-person layers.
+     4. Settings → Workspace — template, modules, chatbox config,
+        version history and undo.
+
+   Frontend-only: everything persists to localStorage under the
+   engine's own key until the backend phase is authorized. Personal
+   rows are labelled "Saved on this device" so nobody mistakes them
+   for server state.
+
+   Host contract used (never redefined here):
+     S, render(), toast(), esc(), go(), coachSettingsPage dispatch,
+     aiDockHTML message rendering, wire() module hook.
+   ═══════════════════════════════════════════════════════════════════ */
+(function(){
+const G = typeof globalThis !== "undefined" ? globalThis : this;
+const P = () => (G.SporvPersonalization || null);
+const esc = (s) => String(s == null ? "" : s).replace(/[&<>"']/g,
+  (c) => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+
+/* ── module state (lives in S so it survives re-render) ── */
+function st(){
+  if (!S.pers) S.pers = {
+    obStep: 0,
+    ob: { templateId:null, orgName:"", runsWhat:"", rosterSize:"", sport:"", commStyle:"calm",
+          rosterChoice:"skip", calChoice:"skip", inboxChoice:"skip" },
+    tweakFor: null,          // proposal id with the tweak editor open
+    tweakText: "",
+    histOpen: false,
+  };
+  return S.pers;
+}
+const role = () => "owner";   // single-owner workspaces today; roles arrive with the backend phase
+const author = () => (S.coachProvider && S.coachProvider.id) || "local";
+function cfg(){ const p = P(); return p ? (p.currentConfig() || null) : null; }
+function seeded(){ return !!cfg(); }
+
+/* ═══════════════ CSS ═══════════════ */
+const css = `
+/* personalization: onboarding */
+.pob-wrap{max-width:760px;margin:34px auto 60px;padding:0 20px}
+.pob-banner{max-width:1200px;margin:0 0 24px;padding:16px 24px;border:1px solid var(--rule);border-radius:12px;background:var(--panel,var(--raise));display:flex;align-items:center;gap:24px;justify-content:space-between}
+.pob-banner b{font-size:16px;font-weight:700;display:block;margin-bottom:4px}
+.pob-banner p{font-size:14px;color:var(--muted);margin:0;max-width:640px}
+.pob-banner .btn{flex:none}
+.pob-eyebrow{font-size:14px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin-bottom:10px}
+.pob-wrap h1{font-size:30px;line-height:1.2;margin:0 0 8px}
+.pob-sub{font-size:15px;color:var(--muted);margin:0 0 26px;max-width:56ch}
+.pob-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin:0 0 26px}
+@media(max-width:640px){.pob-grid{grid-template-columns:1fr 1fr}}
+.pob-tcard{text-align:left;background:var(--raise);border:1px solid var(--rule);border-radius:12px;padding:16px;cursor:pointer;font-family:var(--sans)}
+.pob-tcard b{display:block;font-size:15px;margin-bottom:6px}
+.pob-tcard span{font-size:14px;color:var(--muted);line-height:1.45;display:block}
+.pob-tcard[aria-pressed="true"]{border-color:var(--ink);box-shadow:0 0 0 1px var(--ink)}
+.pob-tcard small{display:block;margin-top:10px;font-size:14px;color:var(--muted)}
+/* 44px minimum touch target on every personalization surface. The host's
+   .btn.sm is 42px; these flows keep the compact look but never go under. */
+.pob-wrap .btn{min-height:44px}
+.sthead .btn,.stcard .btn{min-height:44px}
+.pob-q{margin:0 0 18px}
+.pob-q label{display:block;font-size:15px;font-weight:700;margin-bottom:8px}
+.pob-q input[type=text],.pob-q select{width:100%;max-width:420px;font-size:15px;font-family:var(--sans);padding:10px 12px;border:1px solid var(--rule);border-radius:8px;background:var(--raise);color:var(--ink)}
+.pob-seg{display:flex;gap:8px;flex-wrap:wrap}
+.pob-seg button{font-size:14px;font-family:var(--sans);padding:9px 14px;border:1px solid var(--rule);border-radius:999px;background:var(--raise);color:var(--ink);cursor:pointer}
+.pob-seg button[aria-pressed="true"]{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+.pob-row{display:flex;gap:10px;align-items:center;margin-top:26px;flex-wrap:wrap}
+.pob-skip{background:none;border:none;color:var(--muted);font-size:15px;cursor:pointer;font-family:var(--sans);text-decoration:underline;text-underline-offset:3px}
+.pob-conn{display:flex;gap:14px;align-items:flex-start;background:var(--raise);border:1px solid var(--rule);border-radius:12px;padding:16px;margin-bottom:12px}
+.pob-conn b{display:block;font-size:15px;margin-bottom:4px}
+.pob-conn p{font-size:14px;color:var(--muted);margin:0}
+.pob-conn .pob-seg{margin-left:auto;flex:none}
+.pob-done{background:var(--raise);border:1px solid var(--rule);border-radius:12px;padding:20px;margin-bottom:12px}
+.pob-done b{display:block;font-size:15px;margin-bottom:6px}
+.pob-done p{font-size:14px;color:var(--muted);margin:0}
+.pob-prog{display:flex;gap:6px;margin-bottom:22px}
+.pob-prog i{height:4px;flex:1;border-radius:2px;background:var(--rule)}
+.pob-prog i.on{background:var(--ink)}
+/* personalization: proposal card in the dock */
+.ppcard{background:var(--raise);border:1px solid var(--rule);border-radius:12px;padding:14px;margin-top:4px}
+.ppcard-head{font-size:14px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);margin-bottom:8px}
+.ppcard-title{font-size:15px;font-weight:700;margin:0 0 4px}
+.ppcard-scope{font-size:14px;color:var(--muted);margin:0 0 10px}
+.ppcard ul{margin:0 0 10px;padding-left:20px;font-size:14px}
+.ppcard li{margin-bottom:4px}
+.ppcard-err{background:rgba(180,40,40,.08);border:1px solid rgba(180,40,40,.3);border-radius:8px;padding:10px 12px;font-size:14px;margin:0 0 10px}
+.ppcard-row{display:flex;gap:8px;flex-wrap:wrap}
+.ppcard textarea{width:100%;font-size:14px;font-family:var(--sans);padding:10px;border:1px solid var(--rule);border-radius:8px;background:var(--bg);color:var(--ink);margin:0 0 10px;min-height:70px}
+/* personalization: settings additions */
+.ps-note{font-size:14px;color:var(--muted);margin:-6px 0 16px}
+.ps-dev{font-size:14px;color:var(--muted);margin-top:8px}
+`;
+
+/* Inject the stylesheet once. Without this the module renders unstyled. */
+function injectCSS(){
+  if (typeof document === "undefined") return;
+  if (document.getElementById("sporv-personalize-css")) return;
+  const el = document.createElement("style");
+  el.id = "sporv-personalize-css";
+  el.textContent = css;
+  document.head.appendChild(el);
+}
+
+/* ═══════════════ ONBOARDING — four screens ═══════════════
+   Screen 1: template. Screen 2: five questions. Screen 3: skippable
+   connections/imports. Screen 4: generated workspace, chatbox open. */
+const TEMPLATE_ORDER = ["solo_trainer","team_coach","camp","facility","club","enterprise"];
+
+function onboardView(){
+  const s = st(), p = P();
+  if (!p) return `<div class="pob-wrap"><div class="pob-eyebrow">Setup</div><h1>Setup is unavailable right now.</h1><p class="pob-sub">The personalization engine did not load. Reload the page and try again.</p></div>`;
+  const step = s.obStep;
+  const prog = `<div class="pob-prog" aria-hidden="true">${[0,1,2,3].map(i=>`<i class="${i<=step?"on":""}"></i>`).join("")}</div>`;
+  let body = "";
+  if (step === 0) body = obScreenTemplate(s, p);
+  else if (step === 1) body = obScreenQuestions(s, p);
+  else if (step === 2) body = obScreenConnections(s);
+  else body = obScreenDone(s, p);
+  return `<div class="pob-wrap">${prog}${body}</div>`;
+}
+
+function obScreenTemplate(s, p){
+  const cards = TEMPLATE_ORDER.map(id => {
+    const t = p.TEMPLATES[id];
+    const mods = (t.modulesOn || []).length;
+    return `<button type="button" class="pob-tcard" data-ob-tpl="${id}" aria-pressed="${s.ob.templateId===id}">` +
+      `<b>${esc(t.name)}</b><span>${esc(t.description)}</span>` +
+      `<small>${mods} add-on module${mods===1?"":"s"} on · ${esc(t.billingShape||"")}</small></button>`;
+  }).join("");
+  return `<div class="pob-eyebrow">Setup · 1 of 4</div>
+    <h1>What best describes you.</h1>
+    <p class="pob-sub">This sets your starting workspace. Every template has the same capabilities — it only changes what is switched on first. You can change it any time.</p>
+    <div class="pob-grid" role="group" aria-label="Choose a template">${cards}</div>
+    <div class="pob-row">
+      <button type="button" class="btn sm" data-ob-next="1" ${s.ob.templateId?"":"disabled"}>Continue</button>
+    </div>`;
+}
+
+function obScreenQuestions(s, p){
+  const o = s.ob;
+  const seg = (key, opts) => `<div class="pob-seg" role="group" aria-label="${esc(key)}">` +
+    opts.map(([v,l]) => `<button type="button" data-ob-q="${key}" data-v="${esc(v)}" aria-pressed="${o[key]===v}">${esc(l)}</button>`).join("") + `</div>`;
+  const tplName = o.templateId ? p.TEMPLATES[o.templateId].name : "your workspace";
+  return `<div class="pob-eyebrow">Setup · 2 of 4</div>
+    <h1>Five quick questions.</h1>
+    <p class="pob-sub">These shape ${esc(tplName)} around your real roster, schedule, and services. Nothing here is final.</p>
+    <div class="pob-q"><label for="obOrg">Organization or business name</label>
+      <input type="text" id="obOrg" data-ob-field="orgName" value="${esc(o.orgName)}" placeholder="Northside Basketball Academy" autocomplete="organization"></div>
+    <div class="pob-q"><label>What do you run</label>
+      ${seg("runsWhat",[["sessions","1-on-1 sessions"],["teams","Teams"],["camps","Camps / clinics"],["facility","A facility"],["mixed","A mix"]])}</div>
+    <div class="pob-q"><label>Athletes on your roster</label>
+      ${seg("rosterSize",[["1-25","1–25"],["26-100","26–100"],["101-500","101–500"],["500+","500+"]])}</div>
+    <div class="pob-q"><label for="obSport">Primary sport</label>
+      <input type="text" id="obSport" data-ob-field="sport" value="${esc(o.sport)}" placeholder="Basketball" autocomplete="off"></div>
+    <div class="pob-q"><label>How should Sporv sound to your people</label>
+      ${seg("commStyle",[["calm","Calm and plain"],["direct","Short and direct"],["warm","Warm and personal"]])}</div>
+    <div class="pob-row">
+      <button type="button" class="btn ghost sm" data-ob-next="0">Back</button>
+      <button type="button" class="btn sm" data-ob-next="2">Continue</button>
+    </div>`;
+}
+
+function obScreenConnections(s){
+  const o = s.ob;
+  const connRow = (key, title, sub) => {
+    const v = o[key];
+    return `<div class="pob-conn"><div><b>${esc(title)}</b><p>${esc(sub)}</p></div>
+      <div class="pob-seg">
+        <button type="button" data-ob-conn="${key}" data-v="later" aria-pressed="${v==="later"}">Remind me</button>
+        <button type="button" data-ob-conn="${key}" data-v="skip" aria-pressed="${v==="skip"}">Skip</button>
+      </div></div>`;
+  };
+  return `<div class="pob-eyebrow">Setup · 3 of 4</div>
+    <h1>Connect what you want.</h1>
+    <p class="pob-sub">Each one gives the agent something real to work with. Skip anything — nothing here blocks setup.</p>
+    ${connRow("rosterChoice","Bring your roster","Import athletes from a file. Names and groups only — medical details stay out.")}
+    ${connRow("calChoice","Connect your calendar","Sessions and availability read from your real calendar.")}
+    ${connRow("inboxChoice","Connect your inbox","Drafts and follow-ups reference real threads.")}
+    <div class="pob-row">
+      <button type="button" class="btn ghost sm" data-ob-next="1">Back</button>
+      <button type="button" class="btn sm" data-ob-next="3">Continue</button>
+      <button type="button" class="pob-skip" data-ob-next="3">Skip all for now</button>
+    </div>`;
+}
+
+function obScreenDone(s, p){
+  const o = s.ob;
+  const t = o.templateId ? p.TEMPLATES[o.templateId] : null;
+  const lines = [];
+  if (t) lines.push(["Template", t.name + " — " + (t.modulesOn||[]).length + " add-on modules on."]);
+  if (o.orgName) lines.push(["Organization", o.orgName]);
+  if (o.runsWhat) lines.push(["You run", {sessions:"1-on-1 sessions",teams:"Teams",camps:"Camps and clinics",facility:"A facility",mixed:"A mix"}[o.runsWhat] || o.runsWhat]);
+  if (o.rosterSize) lines.push(["Roster", o.rosterSize + " athletes."]);
+  if (o.sport) lines.push(["Sport", o.sport]);
+  lines.push(["Assistant tone", {calm:"Calm and plain.",direct:"Short and direct.",warm:"Warm and personal."}[o.commStyle] || o.commStyle]);
+  const pending = [["rosterChoice","Roster import"],["calChoice","Calendar"],["inboxChoice","Inbox"]]
+    .filter(([k]) => o[k]==="later").map(([,l]) => l);
+  if (pending.length) lines.push(["Remind me about", pending.join(", ") + "."]);
+  return `<div class="pob-eyebrow">Setup · 4 of 4</div>
+    <h1>Your workspace is ready.</h1>
+    <p class="pob-sub">Built from your answers. The assistant opens beside it — ask for anything in plain words and it proposes the change before touching anything.</p>
+    ${lines.map(([k,v]) => `<div class="pob-done"><b>${esc(k)}</b><p>${esc(v)}</p></div>`).join("")}
+    <div class="pob-row">
+      <button type="button" class="btn ghost sm" data-ob-next="2">Back</button>
+      <button type="button" class="btn sm" data-ob-finish="1">Open my workspace</button>
+    </div>`;
+}
+
+/* Apply the onboarding answers: seed the template, then commit the
+   answers as version 1 so history shows exactly what setup wrote. */
+function finishOnboarding(){
+  const s = st(), p = P(), o = s.ob;
+  if (!p || !o.templateId) return;
+  p.seedWorkspace(o.templateId, author());
+  const ops = [];
+  if (o.orgName) ops.push({ op:"replace", path:"orgName", value:o.orgName });
+  if (o.sport) ops.push({ op:"replace", path:"sport", value:o.sport });
+  if (o.commStyle) ops.push({ op:"replace", path:"agent.voice", value:o.commStyle });
+  if (o.runsWhat || o.rosterSize){
+    const note = [o.runsWhat, o.rosterSize ? o.rosterSize + " athletes" : null].filter(Boolean).join(", ");
+    if (note) ops.push({ op:"replace", path:"profile", value:note });
+  }
+  if (ops.length){
+    const cur = p.currentConfig() || {};
+    const patched = p.applyPatchOps(cur, ops).config;
+    p.commitConfig(patched, { author:author(), source:"onboarding", request:"setup answers" });
+  }
+  S.coachTab = "dashboard";
+  S.aiOpen = true; S.aiMax = false; S.aiFull = false;
+  toast("Workspace ready.");
+  render();
+}
+
+/* ═══════════════ DOCK — proposal cards ═══════════════
+   Called from the dock send flow (host), next to coachDemoProposal.
+   A plain-words personalization request becomes a proposal card on the
+   assistant's reply. Anything the classifier does not understand falls
+   through to the normal server path — this never swallows a message. */
+function persProposalFor(text){
+  const p = P();
+  if (!p || !seeded()) return null;
+  let r;
+  try { r = p.proposeChange(text, { role:role(), config:cfg() || {} }); }
+  catch(e){ return null; }
+  if (r.refusal) return { reply:r.refusal, persProposal:null, refused:true };
+  if (r.clarify) return { reply:r.clarify, persProposal:null, clarify:true };
+  if (r.unmatched || !r.proposal) return null;
+  const prop = r.proposal;
+  const reply = prop.summary
+    ? "Here is the change as I understand it. Nothing changes until you approve."
+    : "Here is a proposal. Nothing changes until you approve.";
+  return { reply, persProposal:prop };
+}
+
+/* Rendered inside aiDockHTML for messages carrying m.persProposal. */
+function persPropCardHTML(prop, i){
+  const p = P();
+  const s = st();
+  const tweaking = s.tweakFor === prop.id;
+  if (prop.status === "applied" || prop.status === "cancelled"){
+    return `<div class="ppcard" data-pers-card="${esc(prop.id)}">
+      <div class="ppcard-head">Proposed change</div>
+      <p class="ps-note" style="margin:0">${prop.status === "applied" ? "Applied." : "Cancelled."} ${esc(prop.summary || "")}</p>
+    </div>`;
+  }
+  return `<div class="ppcard" data-pers-card="${esc(prop.id)}">
+    <div class="ppcard-head">Proposed change — nothing changes until you approve</div>
+    ${p ? p.previewHTML(prop) : ""}
+    ${tweaking ? `<label class="ps-dev" for="persTweak${i}">Describe the change in your own words</label>
+      <textarea id="persTweak${i}" data-pers-tweaktext="${esc(prop.id)}" aria-label="Describe the change in your own words">${esc(s.tweakText)}</textarea>
+      <div class="ppcard-row">
+        <button type="button" class="btn sm" data-pers-tweakgo="${esc(prop.id)}">Propose the tweak</button>
+        <button type="button" class="btn ghost sm" data-pers-tweakcancel="${esc(prop.id)}">Back</button>
+      </div>` : ""}
+  </div>`;
+}
+
+/* Apply / Tweak / Cancel actions. Apply uses compare-and-swap: a stale
+   preview shows the diff instead of overwriting. */
+function persApply(id){
+  const p = P();
+  if (!p) return;
+  const r = p.applyProposal(id, { role:role(), author:author() });
+  if (r.conflict){
+    toast("The workspace changed since this preview.");
+    S.chat = [...S.chat, { role:"coach",
+      text:"This preview is stale — the workspace changed underneath it. " + r.message + " " + (r.diff || ""),
+      persProposal:null }];
+    render();
+    return;
+  }
+  if (!r.ok){
+    toast("Could not apply: " + (r.errors || ["unknown error"]).join(" "));
+    return;
+  }
+  markProposalDone(id, "applied");
+  toast("Change applied. Undo is in Settings, Workspace.");
+  render();
+}
+function persCancel(id){
+  markProposalDone(id, "cancelled");
+  render();
+}
+function markProposalDone(id, status){
+  for (const m of S.chat){
+    if (m.persProposal && m.persProposal.id === id){ m.persProposal.status = status; }
+  }
+  if (st().tweakFor === id){ st().tweakFor = null; st().tweakText = ""; }
+}
+function persTweakOpen(id){
+  const s = st();
+  s.tweakFor = id;
+  s.tweakText = "";
+  render();
+  const ta = document.querySelector(`[data-pers-tweaktext="${id}"]`);
+  if (ta) ta.focus();
+}
+/* Leaving tweak mode keeps the proposal pending — it does not cancel it. */
+function persTweakCancel(id){
+  const s = st();
+  if (s.tweakFor === id){ s.tweakFor = null; s.tweakText = ""; }
+  render();
+}
+function persTweakGo(id){
+  const p = P();
+  const ta = document.querySelector(`[data-pers-tweaktext="${id}"]`);
+  const text = ta ? ta.value.trim() : "";
+  if (!text){ toast("Describe the tweak first."); return; }
+  /* A tweak is a new proposal; the old one is cancelled so history is honest. */
+  markProposalDone(id, "cancelled");
+  const r = p.proposeChange(text, { role:role(), config:cfg() || {} });
+  if (r.proposal){
+    S.chat = [...S.chat, { role:"coach", text:"Here is the tweaked proposal. Nothing changes until you approve.", persProposal:r.proposal }];
+  } else if (r.refusal || r.clarify){
+    S.chat = [...S.chat, { role:"coach", text:r.refusal || r.clarify }];
+  } else {
+    S.chat = [...S.chat, { role:"coach", text:"I could not turn that tweak into a change. Say it another way." }];
+  }
+  st().tweakFor = null; st().tweakText = "";
+  render();
+}
+
+/* ═══════════════ SETTINGS → PERSONAL — the five per-person layers ═══════════════
+   Rendered by the host's settings dispatch. Every control writes to the
+   personal store (this device). Comfort controls are never gated: this tab
+   renders for every role. */
+function personalSettingsHTML(){
+  const p = P();
+  const cfgNow = cfg();
+  const per = p ? p.getPersonal() : null;
+  if (!p || !per){
+    return `<div class="sthead"><h2>Personal</h2><p>Your own layer of Sporv.</p></div>
+      <div class="stcard"><p style="font-size:15px">Personal settings are unavailable until the workspace is set up.</p>
+      ${seeded() ? "" : `<button class="btn sm" data-ctab="personalize-onboard">Run setup</button>`}</div>`;
+  }
+  const tplName = cfgNow && cfgNow.templateId && p.TEMPLATES[cfgNow.templateId]
+    ? p.TEMPLATES[cfgNow.templateId].name : "Not set up yet";
+  const mods = cfgNow && cfgNow.modulesOn ? cfgNow.modulesOn.length : 0;
+  const row = (b, small, ctl) => `<div class="strow"><div class="stlab"><b>${b}</b>${small?`<small>${small}</small>`:""}</div><div class="stctl">${ctl}</div></div>`;
+  const seg = (name, val, opts) => `<span class="stseg" data-pers-seg="${name}">` +
+    opts.map(([v,l]) => `<button type="button" data-v="${v}" class="${val===v?"on":""}">${l}</button>`).join("") + `</span>`;
+  const mem = per.memory || { enabled:true, items:[] };
+
+  return `<div class="sthead"><h2>Personal</h2><p>Your own layer of Sporv. These change Sporv for you only — never for anyone else. Saved on this device.</p></div>
+
+  <div class="sthead" style="margin-top:22px"><h2>Organization baseline</h2><p>What your workspace starts from. Read-only here — change it in Workspace.</p></div>
+  <div class="stcard">
+    ${row("Template", "", `<span class="stro">${esc(tplName)}</span>`)}
+    ${row("Add-on modules on", "", `<span class="stro num">${mods}</span>`)}
+  </div>
+
+  <div class="sthead" style="margin-top:22px"><h2>Role defaults</h2><p>What your role can see. Read-only here.</p></div>
+  <div class="stcard">
+    ${row("Your role", "", `<span class="stro">Owner</span>`)}
+    ${row("Can see", "", `<span class="stro">Everything in this workspace</span>`)}
+  </div>
+
+  <div class="sthead" style="margin-top:22px"><h2>Private preferences</h2><p>Layout and notifications, yours alone.</p></div>
+  <div class="stcard">
+    ${row("Density", "Comfortable breathes. Compact fits more on screen.", seg("density", per.layout.density, [["comfortable","Comfortable"],["compact","Compact"]]))}
+    ${row("Home tab", "Where you land after signing in.", seg("homeTab", per.layout.homeTab, [["dashboard","Home"],["schedule","Schedule"],["inbox","Messages"]]))}
+    ${row("Quiet hours", "No notifications in this window.", `<input type="time" class="stin" data-pers-time="quietStart" value="${esc(per.notifications.quietStart)}" style="width:110px" aria-label="Quiet hours start"> <span class="stmut">to</span> <input type="time" class="stin" data-pers-time="quietEnd" value="${esc(per.notifications.quietEnd)}" style="width:110px" aria-label="Quiet hours end">`)}
+    ${row("Payment alerts", "", seg("paymentAlerts", String(per.notifications.paymentAlerts), [["true","On"],["false","Off"]]))}
+    ${row("Draft alerts", "When the agent queues a draft for you.", seg("draftAlerts", String(per.notifications.draftAlerts), [["true","On"],["false","Off"]]))}
+  </div>
+
+  <div class="sthead" style="margin-top:22px"><h2>AI instructions</h2><p>Explicit instructions the assistant follows for you. They beat everything except safety rules.</p></div>
+  <div class="stcard">
+    ${row("Tone", "", seg("tone", per.aiProfile.tone, [["calm","Calm"],["direct","Direct"],["warm","Warm"]]))}
+    ${row("Format", "How answers are shaped.", seg("format", per.aiProfile.format, [["bullets","Bullets"],["paragraphs","Paragraphs"]]))}
+    ${row("Sign-off", "Appended to messages the agent drafts for you.", `<input type="text" class="stin" data-pers-text="signoff" value="${esc(per.aiProfile.signoff)}" placeholder="— Coach" style="max-width:280px">`)}
+    ${row("What to call athletes", "Overrides the template's word for you only.", `<input type="text" class="stin" data-pers-text="personWord" value="${esc((per.aiProfile.vocabulary||{}).person||"")}" placeholder="players" style="max-width:200px">`)}
+  </div>
+
+  <div class="sthead" style="margin-top:22px"><h2>Learned memory</h2><p>What Sporv has learned about how you work. Inspect, edit, or delete anything. Turning it off stops new learning — existing items stay until you delete them.</p></div>
+  <div class="stcard">
+    ${row("Learning", "", seg("memoryEnabled", String(mem.enabled), [["true","On"],["false","Off"]]))}
+    ${(mem.items||[]).length ? mem.items.map(it => {
+      const editing = st().memEditing === it.id;
+      const body = editing
+        ? `<input type="text" class="stin" data-pers-meminput="${esc(it.id)}" value="${esc(it.text)}" aria-label="Edit memory" style="max-width:320px">
+           <div class="stctl"><button type="button" class="btn sm" data-pers-memsave="${esc(it.id)}">Save</button>
+           <button type="button" class="btn ghost sm" data-pers-memcancel>Cancel</button></div>`
+        : `<b style="font-weight:400">${esc(it.text)}</b>
+           <div class="stctl"><button type="button" class="btn ghost sm" data-pers-memedit="${esc(it.id)}">Edit</button>
+           <button type="button" class="btn ghost sm" data-pers-memdel="${esc(it.id)}">Delete</button></div>`;
+      return `<div class="strow"><div class="stlab">${body}<small>Learned ${esc((it.at||"").slice(0,10))}</small></div></div>`;
+    }).join("")
+      : `<p class="ps-note" style="margin:12px 0 0">Nothing learned yet. As you work, Sporv notes durable preferences here — each one editable.</p>`}
+  </div>
+  <p class="ps-dev">Personal settings live on this device until the backend phase ships. They never change anyone else's view.</p>`;
+}
+
+/* ═══════════════ SETTINGS → WORKSPACE — org baseline, history, chatbox ═══════════════
+   Modules, pages, roles, vocabulary, version history/undo, and the chatbox
+   appearance/targeting/handoff/data layers. Writes here go through proposals
+   where they touch governance (modules, roles, vocabulary); simple fields
+   commit directly with history. */
+function workspaceSettingsHTML(){
+  const p = P();
+  const cfgNow = cfg();
+  if (!p || !seeded() || !cfgNow){
+    return `<div class="sthead"><h2>Workspace</h2><p>How your whole workspace is configured.</p></div>
+      <div class="stcard"><p style="font-size:15px">Run setup first — this tab configures a workspace that exists.</p>
+      <button class="btn sm" data-ctab="personalize-onboard">Run setup</button></div>`;
+  }
+  const mods = (p.TEMPLATES[cfgNow.templateId] ? Object.keys(p.MODULES) : []);
+  const modList = Object.keys(p.MODULES).sort();
+  const on = new Set(cfgNow.modulesOn || []);
+  const row = (b, small, ctl) => `<div class="strow"><div class="stlab"><b>${b}</b>${small?`<small>${small}</small>`:""}</div><div class="stctl">${ctl}</div></div>`;
+  const seg = (name, val, opts) => `<span class="stseg" data-ws-seg="${name}">` +
+    opts.map(([v,l]) => `<button type="button" data-v="${v}" class="${val===v?"on":""}">${l}</button>`).join("") + `</span>`;
+  const vers = p.versions();
+  const cur = p._store ? 0 : vers.length - 1;
+
+  const vocabRows = Object.keys((cfgNow.vocabulary && cfgNow.vocabulary.words) || {}).map(w =>
+    `<div class="strow"><div class="stlab"><b>${esc(w)}</b><small>Used in agent drafts and on-screen copy</small></div>
+     <div class="stctl"><input type="text" class="stin" data-ws-vocab="${esc(w)}" value="${esc(cfgNow.vocabulary.words[w])}" style="max-width:200px"></div></div>`).join("");
+
+  return `<div class="sthead"><h2>Workspace</h2><p>How your whole workspace is configured. Changes here affect everyone and apply right away — every change is versioned, so you can undo from history below.</p></div>
+
+  <div class="sthead" style="margin-top:22px"><h2>Modules</h2><p>Add-on modules switch whole feature sets on or off. Turning one off cascades to its widgets and pages — the proposal shows exactly what goes.</p></div>
+  <div class="stcard">
+    ${modList.map(m => {
+      const meta = p.MODULES[m] || {};
+      const isOn = on.has(m);
+      return `<div class="strow"><div class="stlab"><b>${esc(m)}</b><small>${esc(meta.blurb || "")}</small></div>
+        <div class="stctl"><button type="button" class="btn ${isOn?"":"ghost"} sm" data-ws-module="${esc(m)}" data-state="${isOn?"off":"on"}" aria-pressed="${isOn}">${isOn?"On":"Off"}</button></div></div>`;
+    }).join("")}
+  </div>
+
+  <div class="sthead" style="margin-top:22px"><h2>Pages</h2><p>Which pages exist in the workspace navigation.</p></div>
+  <div class="stcard">
+    ${(cfgNow.pages || []).map(pg => `<div class="strow"><div class="stlab"><b>${esc(pg.label || pg.id)}</b></div>
+      <div class="stctl"><span class="stro">Shown</span></div></div>`).join("") || `<p class="ps-note">No pages configured.</p>`}
+  </div>
+
+  <div class="sthead" style="margin-top:22px"><h2>Vocabulary</h2><p>Words the agent uses for you. Changing a word here rewrites it everywhere it appears — past invoices keep the word they were sent with.</p></div>
+  <div class="stcard">
+    ${vocabRows || `<p class="ps-note">No vocabulary overrides on this template.</p>`}
+  </div>
+
+  <div class="sthead" style="margin-top:22px"><h2>Chatbox</h2><p>The widget your customers talk to. Five layers: appearance, guidance, targeting, escalation, per-user data.</p></div>
+  <div class="stcard">
+    ${row("Chatbox on", "", seg("chatboxOn", String(!!(cfgNow.chatbox && cfgNow.chatbox.on)), [["true","On"],["false","Off"]]))}
+    ${row("Welcome message", "", `<input type="text" class="stin" data-ws-cb="greeting" value="${esc((cfgNow.chatbox||{}).greeting||"")}" style="max-width:320px">`)}
+    ${row("Who sees it", "", seg("chatboxAudience", String((cfgNow.chatbox||{}).audience||"everyone"), [["everyone","Everyone"],["members","Members only"],["guests","Guests only"]]))}
+    ${row("Escalation", "When the chatbox hands off to a human.", `<input type="text" class="stin" data-ws-cb="escalation" value="${esc((cfgNow.chatbox||{}).escalation||"")}" style="max-width:320px" placeholder="e.g. billing questions, injuries">`)}
+    ${row("Remembers the visitor", "The chatbox recalls the visitor's name and last topic.", seg("chatboxMemory", String(!!(cfgNow.chatbox&&cfgNow.chatbox.rememberVisitor)), [["true","On"],["false","Off"]]))}
+  </div>
+
+  <div class="sthead" style="margin-top:22px"><h2>Version history</h2><p>Every change, who made it, when. Undo restores a version — it never deletes history.</p></div>
+  <div class="stcard">
+    ${vers.slice().reverse().map((v, ri) => {
+      const idx = vers.length - 1 - ri;
+      const isCur = idx === vers.length - 1;
+      return `<div class="strow"><div class="stlab"><b>Version ${v.version}${isCur?" — current":""}</b>
+        <small>${esc(v.author || "system")} · ${esc((v.at||"").slice(0,16).replace("T"," "))} · ${esc(v.source || "")}${v.request?` · ${esc(v.request.slice(0,60))}`:""}</small></div>
+        <div class="stctl">${isCur ? `<span class="stro">Current</span>` : `<button type="button" class="btn ghost sm" data-ws-undo="${v.version}">Restore</button>`}</div></div>`;
+    }).join("")}
+  </div>
+  <p class="ps-dev">Restoring a version is itself a new version — the audit trail is append-only.</p>`;
+}
+
+/* Workspace settings writes. Governance changes (modules, roles) go through
+   a proposal card; simple fields commit directly with history. */
+function wsSetModule(mod, turnOn){
+  const p = P(), cur = cfg();
+  if (!p || !cur) return;
+  const on = new Set(cur.modulesOn || []);
+  if (turnOn) on.add(mod); else on.delete(mod);
+  if (on.size === (cur.modulesOn||[]).length && on.has(mod) === turnOn) return;
+  const ops = [{ op:"replace", path:"modulesOn", value:[...on] }];
+  const r = p.applyPatchOps(cur, ops);
+  if (!r.ok){ toast("Cannot turn that module " + (turnOn?"on":"off") + ": " + (r.errors||[]).join(" ")); return; }
+  p.commitConfig(r.config, { author:author(), source:"settings", request:(turnOn?"enable":"disable")+" module "+mod });
+  toast("Module " + (turnOn?"enabled.":"disabled.") + " Undo is in version history.");
+  render();
+}
+function wsSetChatboxField(field, value){
+  const p = P(), cur = cfg();
+  if (!p || !cur) return;
+  const ops = [{ op:"replace", path:"chatbox."+field, value }];
+  const r = p.applyPatchOps(cur, ops);
+  if (!r.ok){ toast("Could not save: " + (r.errors||[]).join(" ")); return; }
+  p.commitConfig(r.config, { author:author(), source:"settings", request:"chatbox "+field });
+  render();
+}
+function wsSetVocab(word, value){
+  const p = P(), cur = cfg();
+  if (!p || !cur) return;
+  const ops = [{ op:"replace", path:"vocabulary.words."+word, value }];
+  const r = p.applyPatchOps(cur, ops);
+  if (!r.ok){ toast("Could not save: " + (r.errors||[]).join(" ")); return; }
+  p.commitConfig(r.config, { author:author(), source:"settings", request:"vocabulary: "+word });
+  render();
+}
+function wsUndo(versionIdx){
+  const p = P();
+  if (!p) return;
+  const r = p.undo(versionIdx, { author:author() });
+  if (!r.ok){ toast("Could not restore: " + (r.errors||[]).join(" ")); return; }
+  toast("Restored version " + versionIdx + ".");
+  render();
+}
+
+/* ═══════════════ WIRING ═══════════════
+   One delegated click listener per render cycle (bound once, guarded). */
+let wired = false;
+function wire(){
+  injectCSS();
+  if (wired || typeof document === "undefined") return;
+  wired = true;
+  document.addEventListener("click", (e) => {
+    const q = (sel) => e.target.closest ? e.target.closest(sel) : null;
+    let el;
+    /* proposal card actions (bare data-apply/tweak/cancel come from the
+       engine's previewHTML; pers- variants are this module's own) */
+    if ((el = q("[data-apply]"))){ e.preventDefault(); persApply(el.getAttribute("data-apply")); return; }
+    if ((el = q("[data-cancel]"))){ e.preventDefault(); persCancel(el.getAttribute("data-cancel")); return; }
+    if ((el = q("[data-tweak]"))){ e.preventDefault(); persTweakOpen(el.getAttribute("data-tweak")); return; }
+    if ((el = q("[data-pers-tweakgo]"))){ e.preventDefault(); persTweakGo(el.getAttribute("data-pers-tweakgo")); return; }
+    if ((el = q("[data-pers-tweakcancel]"))){ e.preventDefault(); persTweakCancel(el.getAttribute("data-pers-tweakcancel")); return; }
+    /* onboarding */
+    if ((el = q("[data-ob-tpl]"))){ st().ob.templateId = el.getAttribute("data-ob-tpl"); render(); return; }
+    if ((el = q("[data-ob-q]"))){ st().ob[el.getAttribute("data-ob-q")] = el.getAttribute("data-v"); render(); return; }
+    if ((el = q("[data-ob-conn]"))){ st().ob[el.getAttribute("data-ob-conn")] = el.getAttribute("data-v"); render(); return; }
+    if ((el = q("[data-ob-next]"))){ if (!el.disabled){ st().obStep = parseInt(el.getAttribute("data-ob-next"), 10) || 0; render(); } return; }
+    if ((el = q("[data-ob-finish]"))){ finishOnboarding(); return; }
+    /* personal settings segmented controls */
+    if ((el = q("[data-pers-seg] button"))){
+      const segName = el.closest("[data-pers-seg]").getAttribute("data-pers-seg");
+      persSet(segName, el.getAttribute("data-v"));
+      return;
+    }
+    /* workspace settings segmented controls */
+    if ((el = q("[data-ws-seg] button"))){
+      const segName = el.closest("[data-ws-seg]").getAttribute("data-ws-seg");
+      wsSeg(segName, el.getAttribute("data-v"));
+      return;
+    }
+    if ((el = q("[data-ws-module]"))){
+      wsSetModule(el.getAttribute("data-ws-module"), el.getAttribute("data-state") === "on");
+      return;
+    }
+    if ((el = q("[data-ws-undo]"))){ wsUndo(parseInt(el.getAttribute("data-ws-undo"), 10)); return; }
+    /* memory item edit/delete */
+    if ((el = q("[data-pers-memdel]"))){ memDel(el.getAttribute("data-pers-memdel")); return; }
+    if ((el = q("[data-pers-memedit]"))){ memEdit(el.getAttribute("data-pers-memedit")); return; }
+    if ((el = q("[data-pers-memsave]"))){ memSave(el.getAttribute("data-pers-memsave")); return; }
+    if ((el = q("[data-pers-memcancel]"))){ memEditCancel(); return; }
+  });
+  document.addEventListener("input", (e) => {
+    const t = e.target;
+    if (!t || !t.getAttribute) return;
+    if (t.hasAttribute("data-ob-field")){
+      st().ob[t.getAttribute("data-ob-field")] = t.value;
+      return; /* no render: keep focus while typing */
+    }
+    if (t.hasAttribute("data-pers-text") && t.getAttribute("data-pers-text") === "signoff"){
+      /* commit on change below; input only stages */
+    }
+  });
+  document.addEventListener("change", (e) => {
+    const t = e.target;
+    if (!t || !t.getAttribute) return;
+    if (t.hasAttribute("data-pers-time")){
+      persSetTime(t.getAttribute("data-pers-time"), t.value);
+    }
+    if (t.hasAttribute("data-pers-text")){
+      persSetText(t.getAttribute("data-pers-text"), t.value);
+    }
+    if (t.hasAttribute("data-ws-cb")){
+      wsSetChatboxField(t.getAttribute("data-ws-cb"), t.type === "checkbox" ? t.checked : t.value);
+    }
+    if (t.hasAttribute("data-ws-vocab")){
+      wsSetVocab(t.getAttribute("data-ws-vocab"), t.value);
+    }
+  });
+}
+
+/* Personal store writes (device-local). */
+function persSet(name, v){
+  const p = P();
+  if (!p) return;
+  const patch = {};
+  if (name === "density") patch.layout = { density:v };
+  else if (name === "homeTab") patch.layout = { homeTab:v };
+  else if (name === "paymentAlerts") patch.notifications = { paymentAlerts:v === "true" };
+  else if (name === "draftAlerts") patch.notifications = { draftAlerts:v === "true" };
+  else if (name === "tone") patch.aiProfile = { tone:v };
+  else if (name === "format") patch.aiProfile = { format:v };
+  else if (name === "memoryEnabled"){ p.memorySetEnabled(v === "true"); render(); return; }
+  p.setPersonal(patch);
+  /* density changes apply instantly */
+  if (name === "density"){ document.documentElement.dataset.density = v; }
+  render();
+}
+function persSetTime(name, v){
+  const p = P();
+  if (!p || !v) return;
+  const n = {}; n[name] = v;
+  p.setPersonal({ notifications:n });
+  render();
+}
+function persSetText(name, v){
+  const p = P();
+  if (!p) return;
+  if (name === "signoff") p.setPersonal({ aiProfile:{ signoff:v } });
+  else if (name === "personWord") p.setPersonal({ aiProfile:{ vocabulary:{ person:v } } });
+  render();
+}
+function memDel(id){
+  const p = P();
+  if (!p) return;
+  p.memoryDelete(id);
+  toast("Memory deleted.");
+  render();
+}
+function memEdit(id){
+  const s = st();
+  s.memEditing = id;
+  render();
+  const inp = document.querySelector(`[data-pers-meminput="${id}"]`);
+  if (inp){ inp.focus(); inp.setSelectionRange(inp.value.length, inp.value.length); }
+}
+function memEditCancel(){
+  st().memEditing = null;
+  render();
+}
+function memSave(id){
+  const p = P();
+  if (!p) return;
+  const inp = document.querySelector(`[data-pers-meminput="${id}"]`);
+  const next = inp ? inp.value.trim() : "";
+  if (!next){ toast("Memory cannot be empty — delete it instead."); return; }
+  p.memoryUpdate(id, next);
+  st().memEditing = null;
+  toast("Memory updated.");
+  render();
+}
+
+/* Workspace segmented controls. */
+function wsSeg(name, v){
+  const bool = v === "true";
+  if (name === "chatboxOn") wsSetChatboxField("on", bool);
+  else if (name === "chatboxAudience") wsSetChatboxField("audience", v);
+  else if (name === "chatboxMemory") wsSetChatboxField("rememberVisitor", bool);
+  else render();
+}
+
+/* Density attribute for CSS hooks. */
+function applyDensity(){
+  const p = P();
+  if (!p) return;
+  try {
+    const d = p.getPersonal().layout.density;
+    document.documentElement.dataset.density = d;
+  } catch(e){}
+}
+
+/* Boot: wire once, apply density. The host calls wire() from its own wire(). */
+if (typeof document !== "undefined"){
+  if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", () => { wire(); applyDensity(); });
+  else { wire(); applyDensity(); }
+}
+
+/* ═══════════════ EXPORT ═══════════════ */
+/* The host renders through this module's view functions but never calls
+   wire(); attach once at load so clicks/inputs work and styles apply. */
+injectCSS();
+wire();
+G.SporvPersonalizeUI = {
+  /* onboarding */
+  onboardView, finishOnboarding,
+  /* dock */
+  persProposalFor, persPropCardHTML, persApply, persCancel, persTweakOpen, persTweakGo,
+  /* settings */
+  personalSettingsHTML, workspaceSettingsHTML,
+  /* plumbing */
+  seeded, cfg, role, author, applyDensity, wire,
+};
 })();
 
 </script>

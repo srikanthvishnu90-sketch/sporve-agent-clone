@@ -60,7 +60,7 @@ for (const name of modules) {
     `${name} must be inlined exactly once into index.html`);
 }
 
-const scriptBodies = [...index.matchAll(/<script>([\s\S]*?)<\/script>/g)]
+const scriptBodies = [...index.matchAll(/<script(?:\s[^>]*)?>([\s\S]*?)<\/script>/g)]
   .map((match) => match[1]);
 check(scriptBodies.length > modules.length,
   "generated index must include host scripts as well as every feature module");
