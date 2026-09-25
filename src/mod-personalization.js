@@ -940,10 +940,22 @@ function applyProposal(proposalId, opts){
   let finalConfig = next;
   if (tplOp){
     const rebuilt = resolveConfig({ templateId:tplOp.value, role:opts.role || "owner" }).config;
-    finalConfig = deepMerge(rebuilt, { _archivedFrom:base.templateId || null });
+    /* replay every op the workspace applied after its seed, so a template
+       move keeps customizations instead of silently dropping them */
+    const priorOps = [];
+    for (let i = 0; i < store.versions.length; i++){
+      const v = store.versions[i];
+      if (v.source === "template"){ priorOps.length = 0; continue; }
+      (v.ops || []).forEach(o => { if (!o.templateMove) priorOps.push(o); });
+    }
+    finalConfig = priorOps.length
+      ? applyPatchOps(rebuilt, priorOps, { skipValidation:true }).config
+      : rebuilt;
+    finalConfig._archivedFrom = base.templateId || null;
   }
   store.versions.push({ version:store.versions.length, config:finalConfig,
-    author:opts.author || null, source:"chat", request:proposal.request, at:new Date().toISOString() });
+    author:opts.author || null, source:"chat", request:proposal.request, at:new Date().toISOString(),
+    ops:clone(proposal.ops || []) });
   store.current = store.versions.length - 1;
   proposal.status = "applied";
   saveStore();
@@ -955,6 +967,22 @@ function undo(){
   store.current -= 1;
   saveStore();
   return { ok:true, version:store.current };
+}
+/* Restore an exact version by index. Appends a new version (audit trail
+   stays append-only) instead of moving the pointer, so "current" is always
+   the last version and the badge never lies. */
+function restoreVersion(idx){
+  const store = getStore();
+  const v = store.versions[idx];
+  if (!v) return { ok:false, errors:["Version " + idx + " does not exist."] };
+  store.versions.push({ version:store.versions.length, config:clone(v.config),
+    author:null, source:"restore", request:"restore version " + idx, at:new Date().toISOString() });
+  store.current = store.versions.length - 1;
+  saveStore();
+  return { ok:true, version:store.current };
+}
+function currentVersion(){
+  return getStore().current;
 }
 function versions(){
   const store = getStore();
@@ -970,6 +998,9 @@ function seedWorkspace(templateId, author){
   const store = getStore();
   store.versions = [{ version:0, config, author:author || null, source:"template", at:new Date().toISOString() }];
   store.current = 0;
+  /* A reseed invalidates every pending proposal: their baseVersion indexes
+     point at versions that no longer exist. Drop them, never apply stale. */
+  store.proposals = [];
   saveStore();
   return clone(config);
 }
@@ -981,7 +1012,8 @@ function commitConfig(config, meta){
   const store = getStore();
   store.versions.push({ version:store.versions.length, config:clone(config),
     author:meta.author || null, source:meta.source || "direct",
-    request:meta.request || null, at:new Date().toISOString() });
+    request:meta.request || null, at:new Date().toISOString(),
+    ops:clone(meta.ops || []) });
   store.current = store.versions.length - 1;
   saveStore();
   return store.current;
@@ -1028,17 +1060,15 @@ function memoryDelete(id){
 }
 function diffVersions(a, b){
   if (!a || !b) return "One side is missing.";
-  const keys = {};
-  JSON.stringify(a.config, (k, v) => { keys[k] = true; return v; });
   const changed = [];
   const cmp = (pa, pb, prefix) => {
-    const all = {};
-    Object.keys(pa || {}).concat(Object.keys(pb || {})).forEach(k => { all[prefix + k] = true; });
-    Object.keys(all).forEach(path => {
-      const key = path.split(".").pop();
-      const va = getPath(pa || {}, path.split("."));
-      const vb = getPath(pb || {}, path.split("."));
-      if (JSON.stringify(va) !== JSON.stringify(vb)) changed.push(path);
+    const keys = {};
+    Object.keys(pa || {}).concat(Object.keys(pb || {})).forEach(k => { keys[k] = true; });
+    Object.keys(keys).forEach(k => {
+      const path = prefix ? prefix + "." + k : k;
+      const va = (pa || {})[k], vb = (pb || {})[k];
+      if (isObj(va) && isObj(vb)) cmp(va, vb, path);
+      else if (JSON.stringify(va) !== JSON.stringify(vb)) changed.push(path);
     });
   };
   cmp(a.config, b.config, "");
@@ -1096,7 +1126,7 @@ G.SporvPersonalization = {
   ancestry, mergeTemplateLayers, resolveConfig, applyPatchOps,
   validateProposal, findRuleConflict, moduleDependents, moduleRequirements,
   classifyRequest, proposeChange, previewHTML, describeOp, applyProposal,
-  undo, versions, currentConfig, seedWorkspace, commitConfig, diffVersions, logFeatureRequest,
+  undo, restoreVersion, currentVersion, versions, currentConfig, seedWorkspace, commitConfig, diffVersions, logFeatureRequest,
   getPersonal, setPersonal, memoryItems, memorySetEnabled, memoryUpdate, memoryDelete,
   vocabLookup, renderWidget, findWidgetId,
   _helpers:{ clone, getPath, setPath, deepMerge, esc },

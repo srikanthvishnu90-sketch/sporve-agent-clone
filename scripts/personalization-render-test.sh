@@ -112,6 +112,18 @@ $B js "(function(){var P=window.SporvPersonalization;P.setPersonal({memory:{enab
 $B js "(function(){document.querySelector('[data-pers-memedit]').click();var i=document.querySelector('[data-pers-meminput]');return i&&i.value==='Prefers morning sessions'?'editing':'no-input'})()" 2>/dev/null | grep -q "editing"; ok $? "memory edit opens inline input"
 $B js "(function(){var i=document.querySelector('[data-pers-meminput]');i.value='Prefers evening sessions';document.querySelector('[data-pers-memsave]').click();var items=window.SporvPersonalization.memoryItems();return items.length&&items[0].text==='Prefers evening sessions'?'saved':'not-saved'})()" 2>/dev/null | grep -q "saved"; ok $? "memory inline save updates text"
 
+# 6e. workspace settings: vocabulary editor shows the template's terms (flat structure)
+$B js "(function(){var P=window.SporvPersonalization;P.seedWorkspace('solo_trainer','t');S.portal='coach';S.setTab='workspace';S.coachTab='settings';S.aiOpen=false;render();var n=document.querySelectorAll('input[data-ws-vocab]').length;var noOver=document.querySelector('.stmain').textContent.indexOf('No vocabulary overrides')>-1;return (n===5&&!noOver)?'vocab-ok':'vocab-broken:'+n})()" 2>/dev/null | grep -q "vocab-ok"; ok $? "vocabulary editor lists template terms"
+
+# 6f. workspace settings: module rows show descriptions, page rows show titles
+$B js "(function(){var h=document.querySelector('.stmain').textContent;var modDesc=h.indexOf('Session bundles')>-1;var pageTitle=h.indexOf('Home')>-1&&h.indexOf('Clients')>-1;return (modDesc&&pageTitle)?'labels-ok':'labels-broken'})()" 2>/dev/null | grep -q "labels-ok"; ok $? "module descriptions and page titles render"
+
+# 6g. module toggle keeps modulesOn a flat array (no nested-array corruption)
+$B js "(function(){var P=window.SporvPersonalization;document.querySelector('[data-ws-module=\"roster\"]').click();var mo=P.currentConfig().modulesOn;var flat=!mo.some(function(x){return Array.isArray(x)});return (flat&&mo.indexOf('roster')>-1)?'toggle-ok':'toggle-broken'})()" 2>/dev/null | grep -q "toggle-ok"; ok $? "module toggle keeps modulesOn flat"
+
+# 6h. restore button targets the exact version
+$B js "(function(){var P=window.SporvPersonalization;P.seedWorkspace('solo_trainer','t');var id1=P.proposeChange('call them students, not clients',{config:P.currentConfig(),role:'owner'}).proposal.id;P.applyProposal(id1,{role:'owner'});var r=P.restoreVersion(0);return (r.ok&&P.currentConfig().vocabulary.person==='client')?'restore-ok':'restore-broken'})()" 2>/dev/null | grep -q "restore-ok"; ok $? "version restore targets the selected version"
+
 # 7. no new JS errors after all that (logo artifact filtered, see above)
 ERRS=$(real_errors | wc -l)
 [ "$ERRS" -eq 0 ]; ok $? "no JS errors after render suite ($ERRS)"

@@ -223,18 +223,22 @@ function finishOnboarding(){
   if (!p || !o.templateId) return;
   p.seedWorkspace(o.templateId, author());
   const ops = [];
-  if (o.orgName) ops.push({ op:"replace", path:"orgName", value:o.orgName });
-  if (o.sport) ops.push({ op:"replace", path:"sport", value:o.sport });
+  if (o.orgName) ops.push({ op:"replace", path:"identity.orgName", value:o.orgName });
+  if (o.sport) ops.push({ op:"replace", path:"identity.sport", value:o.sport });
   if (o.commStyle) ops.push({ op:"replace", path:"agent.voice", value:o.commStyle });
   if (o.runsWhat || o.rosterSize){
     const note = [o.runsWhat, o.rosterSize ? o.rosterSize + " athletes" : null].filter(Boolean).join(", ");
-    if (note) ops.push({ op:"replace", path:"profile", value:note });
+    if (note) ops.push({ op:"replace", path:"identity.profile", value:note });
   }
   if (ops.length){
     const cur = p.currentConfig() || {};
     const patched = p.applyPatchOps(cur, ops).config;
-    p.commitConfig(patched, { author:author(), source:"onboarding", request:"setup answers" });
+    p.commitConfig(patched, { author:author(), source:"onboarding", request:"setup answers", ops });
   }
+  /* reset the wizard so a later visit starts clean */
+  s.obStep = 0;
+  s.ob = { templateId:null, orgName:"", runsWhat:"", rosterSize:"", sport:"", commStyle:"calm",
+           rosterChoice:"skip", calChoice:"skip", inboxChoice:"skip" };
   S.coachTab = "dashboard";
   S.aiOpen = true; S.aiMax = false; S.aiFull = false;
   toast("Workspace ready.");
@@ -441,27 +445,33 @@ function workspaceSettingsHTML(){
   const seg = (name, val, opts) => `<span class="stseg" data-ws-seg="${name}">` +
     opts.map(([v,l]) => `<button type="button" data-v="${v}" class="${val===v?"on":""}">${l}</button>`).join("") + `</span>`;
   const vers = p.versions();
-  const cur = p._store ? 0 : vers.length - 1;
+  const curIdx = (typeof p.currentVersion === "function") ? p.currentVersion() : vers.length - 1;
 
-  const vocabRows = Object.keys((cfgNow.vocabulary && cfgNow.vocabulary.words) || {}).map(w =>
+  const vocabRows = Object.keys(cfgNow.vocabulary || {}).map(w =>
     `<div class="strow"><div class="stlab"><b>${esc(w)}</b><small>Used in agent drafts and on-screen copy</small></div>
-     <div class="stctl"><input type="text" class="stin" data-ws-vocab="${esc(w)}" value="${esc(cfgNow.vocabulary.words[w])}" style="max-width:200px"></div></div>`).join("");
+     <div class="stctl"><input type="text" class="stin" data-ws-vocab="${esc(w)}" value="${esc(cfgNow.vocabulary[w])}" style="max-width:200px"></div></div>`).join("");
 
   return `<div class="sthead"><h2>Workspace</h2><p>How your whole workspace is configured. Changes here affect everyone and apply right away — every change is versioned, so you can undo from history below.</p></div>
+
+  <div class="sthead" style="margin-top:22px"><h2>Organization</h2><p>What you told setup. Edit any field.</p></div>
+  <div class="stcard">
+    ${row("Organization name", "", `<input type="text" class="stin" data-ws-ident="orgName" value="${esc((cfgNow.identity||{}).orgName||"")}" style="max-width:320px">`)}
+    ${row("Primary sport", "", `<input type="text" class="stin" data-ws-ident="sport" value="${esc((cfgNow.identity||{}).sport||"")}" style="max-width:200px">`)}
+  </div>
 
   <div class="sthead" style="margin-top:22px"><h2>Modules</h2><p>Add-on modules switch whole feature sets on or off. Turning one off cascades to its widgets and pages — the proposal shows exactly what goes.</p></div>
   <div class="stcard">
     ${modList.map(m => {
       const meta = p.MODULES[m] || {};
       const isOn = on.has(m);
-      return `<div class="strow"><div class="stlab"><b>${esc(m)}</b><small>${esc(meta.blurb || "")}</small></div>
+      return `<div class="strow"><div class="stlab"><b>${esc(m)}</b><small>${esc(meta.contains || "")}</small></div>
         <div class="stctl"><button type="button" class="btn ${isOn?"":"ghost"} sm" data-ws-module="${esc(m)}" data-state="${isOn?"off":"on"}" aria-pressed="${isOn}">${isOn?"On":"Off"}</button></div></div>`;
     }).join("")}
   </div>
 
   <div class="sthead" style="margin-top:22px"><h2>Pages</h2><p>Which pages exist in the workspace navigation.</p></div>
   <div class="stcard">
-    ${(cfgNow.pages || []).map(pg => `<div class="strow"><div class="stlab"><b>${esc(pg.label || pg.id)}</b></div>
+    ${(cfgNow.pages || []).map(pg => `<div class="strow"><div class="stlab"><b>${esc(pg.title || pg.id)}</b></div>
       <div class="stctl"><span class="stro">Shown</span></div></div>`).join("") || `<p class="ps-note">No pages configured.</p>`}
   </div>
 
@@ -483,7 +493,7 @@ function workspaceSettingsHTML(){
   <div class="stcard">
     ${vers.slice().reverse().map((v, ri) => {
       const idx = vers.length - 1 - ri;
-      const isCur = idx === vers.length - 1;
+      const isCur = idx === curIdx;
       return `<div class="strow"><div class="stlab"><b>Version ${v.version}${isCur?" — current":""}</b>
         <small>${esc(v.author || "system")} · ${esc((v.at||"").slice(0,16).replace("T"," "))} · ${esc(v.source || "")}${v.request?` · ${esc(v.request.slice(0,60))}`:""}</small></div>
         <div class="stctl">${isCur ? `<span class="stro">Current</span>` : `<button type="button" class="btn ghost sm" data-ws-undo="${v.version}">Restore</button>`}</div></div>`;
@@ -492,43 +502,54 @@ function workspaceSettingsHTML(){
   <p class="ps-dev">Restoring a version is itself a new version — the audit trail is append-only.</p>`;
 }
 
+function wsSetIdent(field, value){
+  const p = P(), cur = cfg();
+  if (!p || !cur) return;
+  const op = { op:"replace", path:"identity."+field, value };
+  const r = p.applyPatchOps(cur, [op]);
+  p.commitConfig(r.config, { author:author(), source:"settings", request:"organization "+field, ops:[op] });
+  render();
+}
 /* Workspace settings writes. Governance changes (modules, roles) go through
-   a proposal card; simple fields commit directly with history. */
+   validation; simple fields commit directly with history. */
 function wsSetModule(mod, turnOn){
   const p = P(), cur = cfg();
   if (!p || !cur) return;
   const on = new Set(cur.modulesOn || []);
-  if (turnOn) on.add(mod); else on.delete(mod);
-  if (on.size === (cur.modulesOn||[]).length && on.has(mod) === turnOn) return;
-  const ops = [{ op:"replace", path:"modulesOn", value:[...on] }];
-  const r = p.applyPatchOps(cur, ops);
-  if (!r.ok){ toast("Cannot turn that module " + (turnOn?"on":"off") + ": " + (r.errors||[]).join(" ")); return; }
-  p.commitConfig(r.config, { author:author(), source:"settings", request:(turnOn?"enable":"disable")+" module "+mod });
+  if (on.has(mod) === turnOn) return;
+  /* Validate first: turning off a module with dependents needs cascade
+     confirmation, unknown modules are refused, requirements are checked. */
+  const op = turnOn
+    ? { op:"add", path:"modulesOn", moduleId:mod, value:mod }
+    : { op:"remove", path:"modulesOn", moduleId:mod };
+  const v = p.validateProposal([op], { role:role(), config:cur, modulesOn:cur.modulesOn || [] });
+  if (!v.ok){ toast("Cannot turn that module " + (turnOn?"on":"off") + ": " + v.errors.join(" ")); return; }
+  const r = p.applyPatchOps(cur, [op]);
+  p.commitConfig(r.config, { author:author(), source:"settings",
+    request:(turnOn?"enable":"disable")+" module "+mod, ops:[op] });
   toast("Module " + (turnOn?"enabled.":"disabled.") + " Undo is in version history.");
   render();
 }
 function wsSetChatboxField(field, value){
   const p = P(), cur = cfg();
   if (!p || !cur) return;
-  const ops = [{ op:"replace", path:"chatbox."+field, value }];
-  const r = p.applyPatchOps(cur, ops);
-  if (!r.ok){ toast("Could not save: " + (r.errors||[]).join(" ")); return; }
-  p.commitConfig(r.config, { author:author(), source:"settings", request:"chatbox "+field });
+  const op = { op:"replace", path:"chatbox."+field, value };
+  const r = p.applyPatchOps(cur, [op]);
+  p.commitConfig(r.config, { author:author(), source:"settings", request:"chatbox "+field, ops:[op] });
   render();
 }
 function wsSetVocab(word, value){
   const p = P(), cur = cfg();
   if (!p || !cur) return;
-  const ops = [{ op:"replace", path:"vocabulary.words."+word, value }];
-  const r = p.applyPatchOps(cur, ops);
-  if (!r.ok){ toast("Could not save: " + (r.errors||[]).join(" ")); return; }
-  p.commitConfig(r.config, { author:author(), source:"settings", request:"vocabulary: "+word });
+  const op = { op:"replace", path:"vocabulary."+word, value };
+  const r = p.applyPatchOps(cur, [op]);
+  p.commitConfig(r.config, { author:author(), source:"settings", request:"vocabulary: "+word, ops:[op] });
   render();
 }
 function wsUndo(versionIdx){
   const p = P();
   if (!p) return;
-  const r = p.undo(versionIdx, { author:author() });
+  const r = p.restoreVersion(versionIdx);
   if (!r.ok){ toast("Could not restore: " + (r.errors||[]).join(" ")); return; }
   toast("Restored version " + versionIdx + ".");
   render();
@@ -605,6 +626,9 @@ function wire(){
     }
     if (t.hasAttribute("data-ws-vocab")){
       wsSetVocab(t.getAttribute("data-ws-vocab"), t.value);
+    }
+    if (t.hasAttribute("data-ws-ident")){
+      wsSetIdent(t.getAttribute("data-ws-ident"), t.value);
     }
   });
 }
