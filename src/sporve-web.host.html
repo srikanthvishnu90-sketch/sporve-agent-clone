@@ -3024,81 +3024,76 @@ html.coldock .aidock-fab{display:none}
   .aidock{right:14px;bottom:14px}
   .aidock-panel{max-height:min(70vh,calc(100vh - 116px))}
 }
-/* ── MAYWOOD CHAT RESTYLE (owner 2026-09-27: "look at maywoods, and copy
-   that") ──────────────────────────────────────────────────────────────
-   The AI chatbox — and ONLY the chatbox — wears Maywood's institutional
-   fintech language: a deep navy ground, hairline borders, flat restrained
-   surfaces (the slate glow is retired), a serif wordmark echoing Maywood's
-   own, and sentence-case display type. Every selector below is scoped to
-   .aidock* so the dashboard pages around it are untouched. Colours are
-   literals, not tokens: like the coach-dark rule at the end of this file,
-   an always-navy surface must never resolve through a theme token (the
-   same inversion-defect class §3 documents). Contrast verified 2026-09-27:
-   panel body 13.94:1, assistant bubble 10.75:1, user bubble 7.82:1,
-   composer placeholder 5.35:1, chips 9.92:1 — all clear the 4.5:1 bar. */
-.aidock-panel{background:#13283F;border:1px solid #2A435E;border-radius:16px;
+/* ── MAYWOOD CHAT FORMAT (owner 2026-09-27: "look at maywoods" — format only)
+   The AI chatbox — and ONLY the chatbox — keeps Maywood's format language:
+   hairline borders, flat restrained surfaces (the slate glow is retired), a
+   serif wordmark, and sentence-case display type. COLOURS are Sporv's original
+   chatbox palette, restored 2026-09-27 per owner ("the color shouldn't be the
+   same, it should just have the same format"). Every selector below is scoped
+   to .aidock* so the dashboard pages around it are untouched. Contrast
+   re-verified after the colour restore — see the audit log. */
+.aidock-panel{background:#0A0C0F;border:1px solid #333A45;border-radius:16px;
   color:#F5F7F9;box-shadow:0 18px 50px rgba(4,10,18,.55)}
-#app.coachdark + #layer .aidock-panel{border-color:#2A435E;
-  box-shadow:0 18px 50px rgba(4,10,18,.55)}
-.aidock-head{background:#0F2236;border-bottom:1px solid #2A435E;border-radius:16px 16px 0 0}
+#app.coachdark + #layer .aidock-panel{box-shadow:none;border-color:#1B1F26}
+.aidock-head{background:#131519;border-bottom:1px solid #242932;border-radius:16px 16px 0 0}
 .aidock-head .aidock-head-t{font-family:Georgia,"Times New Roman",serif;
-  text-transform:none;letter-spacing:.01em;font-size:17px;font-weight:400;color:#FFFFFF}
-.aidock-panel .bub.them{background:#1D3A58;border:1px solid #2C4A6E;
-  color:#F2F6FA;border-radius:14px}
-.aidock-panel .bub.me{background:#2C5480;color:#FFFFFF;border-radius:14px}
-.aidock-panel .bub.bub-err{background:#3A1E28;color:#F3B8C4;border:1px solid #6E2F3E}
+  text-transform:none;letter-spacing:.01em;font-size:17px;font-weight:400;color:#F5F7F9}
+.aidock-panel .bub.them{background:#1B2129;border:1px solid #2A313B;
+  color:#F5F7F9;border-radius:14px}
+.aidock-panel .bub.me{background:#3E4C5A;color:#FFFFFF;border-radius:14px}
+.aidock-panel .bub.bub-err{background:#2A1215;color:#F0B5AE;border:1px solid #57262B}
 .aidock-panel .aidock-scroll,.aidock-panel .aidock-empty h3,.aidock-panel b{color:#F5F7F9}
-.aidock-panel .aidock-sub,.aidock-panel .aidock-empty p{color:#9DB4C9}
-.aidock-panel .dotdot{background:#8FA6BD}
-.aidock-compose{background:#1A3049;border:1px solid #33567E;border-radius:22px;box-shadow:none}
-.aidock-compose:focus-within{border-color:#4A739F;box-shadow:0 0 0 3px rgba(74,115,159,.22)}
+.aidock-panel .aidock-sub,.aidock-panel .aidock-empty p{color:#9AA6B2}
+.aidock-panel .dotdot{background:var(--muted)}
+.aidock-compose{background:#3E4C5A;border:1px solid #4E5D6D;border-radius:22px;box-shadow:none}
+.aidock-compose:focus-within{border-color:#6B7C8D;box-shadow:0 0 0 3px rgba(154,166,178,.22)}
 .aidock-compose .aidock-input{color:#FFFFFF}
-.aidock-compose .aidock-input::placeholder{color:#8FA6BD}
-.aidock-panel .aidock-ic{color:#B9C9DA}
-.aidock-panel .aidock-ic:hover{background:rgba(255,255,255,.10);color:#FFFFFF}
+.aidock-compose .aidock-input::placeholder{color:#C3CBD4}
+.aidock-panel .aidock-ic{color:#DCE3EA}
+.aidock-panel .aidock-ic:hover{background:rgba(255,255,255,.14);color:#FFFFFF}
 .aidock-compose .aidock-ic[data-aiattach]{background:rgba(255,255,255,.10)}
-.aidock-panel .aidock-model{color:#8FA6BD}
+.aidock-panel .aidock-model{color:#C3CBD4}
 .aidock-panel .aidock-model b{color:#FFFFFF}
-.aidock-head .cxpill{background:#16293F;border-color:#2C4A6E;color:#C6D4E2}
-.aidock-head .cxpill .cxpdot{background:#7FA8D0}
-.aidock-panel .aifile{background:rgba(255,255,255,.08);border-color:#33567E;color:#EAF0F6}
-.aidock-panel .aidock-chip{color:#C6D4E2;background:transparent;border:1px solid #33567E}
-.aidock-panel .aidock-chip:hover{background:#1D3A58;border-color:#4A739F;color:#FFFFFF}
-.aidock-panel .aidock-ctxchip{color:#9DB4C9;background:rgba(157,180,201,.10)}
-.aidock-panel .aidock-kbd{color:#8FA6BD;border-color:#33567E}
+.aidock-head .cxpill{background:#1B2129;border-color:#2A313B;color:#C3CBD4}
+.aidock-head .cxpill .cxpdot{background:var(--gold)}
+.aidock-panel .aifile{background:rgba(255,255,255,.14);border-color:#2A313B;color:#C3CBD4}
+.aidock-panel .aidock-chip{color:#C3CBD4;background:#131519;border:1px solid #2A313B}
+.aidock-panel .aidock-chip:hover{background:#1B1F26;border-color:#414B57;color:#F5F7F9}
+.aidock-panel .aidock-ctxchip{color:#9AA6B2;background:rgba(154,166,178,.12)}
+.aidock-panel .aidock-kbd{color:#8A93A0;border-color:#2A313B}
 .aidock-panel .aidock-empty.aidock-empty-coach h3{font-family:Georgia,"Times New Roman",serif;
-  text-transform:none;letter-spacing:0;font-size:24px;font-weight:400;color:#FFFFFF}
-.aidock-panel .aidock-sugg .aidock-suggbtn{background:#16293F;border-color:#2C4A6E;color:#F2F6FA}
-.aidock-panel .aidock-sugg .aidock-suggbtn:hover{border-color:#4A739F}
-.aidock-panel .aidock-explore .aidock-explorebtn{border-color:#2C4A6E;color:#9DB4C9}
-.aidock-panel .aidock-explore .aidock-explorebtn:hover{color:#FFFFFF}
-.aidock-panel .propcard{background:#16293F;border-color:#2C4A6E}
-.aidock-panel .propcard .b{color:#F2F6FA}
-.aidock-panel .faccard{background:#16293F;border-color:#2A435E}
-.aidock-panel .facrow{border-color:#22394F}
-.aidock-panel .facmain em,.aidock-panel .facfine{color:#9DB4C9}
-.aidock-panel .facrate{color:#B9C9DA}
-.aidock-panel .aidock-pick{background:#16293F;border-color:#2C4A6E;color:#F2F6FA}
-.aidock-panel .aidock-pick:hover{background:#1D3A58;color:#FFFFFF}
-.aidock-panel .aimax-ic{color:#B9C9DA}
-.aidock-panel .aimax-ic:hover{background:rgba(255,255,255,.10);color:#FFFFFF}
-.aidock-panel .aimax-rail{border-color:#22394F}
-.aidock-panel .aimax-railnew{color:#C6D4E2;border-color:#33567E}
-.aidock-panel .aimax-railnew:hover{background:#1D3A58;color:#FFFFFF}
-.aidock-panel .aimax-railg{color:#8FA6BD}
-.aidock-panel .aimax-railg:hover{background:rgba(255,255,255,.08);color:#FFFFFF}
-.aidock-panel .aimax-aihint{color:#8FA6BD}
-.aidock-strip{background:#13283F;border:1px solid #33567E;color:#F2F6FA;
+  text-transform:none;letter-spacing:0;font-size:24px;font-weight:400;color:#F5F7F9}
+.aidock-panel .aidock-sugg .aidock-suggbtn{background:#1A2025;border-color:#2F373F;color:#F5F7F9}
+.aidock-panel .aidock-sugg .aidock-suggbtn:hover{border-color:#4A5462}
+.aidock-panel .aidock-explore .aidock-explorebtn{border-color:#2F373F;color:#9AA6B2}
+.aidock-panel .aidock-explore .aidock-explorebtn:hover{color:#F5F7F9}
+.aidock-panel .propcard{background:#131519;border-color:#333A45}
+.aidock-panel .propcard .b{color:#F5F7F9}
+.aidock-panel .faccard{background:#131519;border-color:#2A313A}
+.aidock-panel .facrow{border-color:#1F2630}
+.aidock-panel .facmain em,.aidock-panel .facfine{color:#9AA6B2}
+.aidock-panel .facrate{color:#B9C7DB}
+.aidock-panel .aidock-pick{background:#131519;border-color:#333A45;color:#F5F7F9}
+.aidock-panel .aidock-pick:hover{background:#1B1F26}
+.aidock-panel .aimax-ic{color:#9AA6B2}
+.aidock-panel .aimax-ic:hover{background:#1B1F26;color:#F5F7F9}
+.aidock-panel .aimax-rail{border-color:#2A313B}
+.aidock-panel .aimax-railnew{color:#F5F7F9;border-color:#2A313B}
+.aidock-panel .aimax-railnew:hover{background:#1B1F26}
+.aidock-panel .aimax-railg{color:#9AA6B2}
+.aidock-panel .aimax-railg:hover{background:#1B1F26;color:#F5F7F9}
+.aidock-panel .aimax-aihint{color:#9AA6B2}
+.aidock-strip{background:#0F1113;border:1px solid #2A313B;
   box-shadow:0 10px 30px rgba(4,10,18,.5)}
-.aidock-strip .aidock-striptext{color:#8FA6BD}
-.aidock-strip .aidock-stripbtn{border-color:#33567E;color:#C6D4E2}
-.aidock-strip .aidock-stripbtn:hover{background:#1D3A58;color:#FFFFFF}
-.aidock .aidock-launch{background:#1B3A5C;border:1px solid #3A5A7E;color:#FFFFFF;
+.aidock-strip .aidock-striptext{color:#8A93A0}
+.aidock-strip .aidock-stripbtn{border-color:#2A313B;color:#C3CBD4}
+.aidock-strip .aidock-stripbtn:hover{background:#1B1F26;color:#F5F7F9}
+.aidock .aidock-launch{background:#20262E;border:1px solid #3A434E;color:#E7ECF2;
   box-shadow:0 8px 24px rgba(4,10,18,.5);animation:none}
-.aidock .aidock-launch:hover{transform:translateY(-1px)}
-.aidock-fab{background:#1B3A5C;border:1px solid #3A5A7E;color:#FFFFFF;
+.aidock .aidock-launch:hover{transform:translateY(-1px);background:#28303A;border-color:#55606D}
+.aidock-fab{background:var(--slate);border:1px solid #3A434E;color:var(--slate-on);
   box-shadow:0 8px 24px rgba(4,10,18,.5)}
-.aidock-fab:hover{background:#24466D}
+.aidock-fab:hover{background:var(--slate-deep)}
 /* The .hascmd offset that used to lift the dock clear of the coach command bar
    went with the bar itself — nothing sits at the bottom of the viewport now. */
 @keyframes fade{from{opacity:0}}
