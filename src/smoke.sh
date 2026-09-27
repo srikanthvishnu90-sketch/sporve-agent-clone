@@ -1206,11 +1206,14 @@ return bad.size?[...bad].join(','):'CLEAN'})()" 2>/dev/null)
 [ "${off//\"/}" = "CLEAN" ] && pass "every rendered size is on the 8-step scale" \
   || fail "off-scale font sizes: $off"
 
-# ── The composer bubble: grey slate, white type, one row, right dock ──────
+# ── The composer bubble: navy, white type, one row, right dock ──────────────
 # Owner, 2026-08-13, to the Amboras reference. The contrast pairing is the point:
 # the brand slate #7692AE is only 3.23:1 against white and is NOT safe for text
-# someone types and re-reads, so the bubble is the darker sibling #3E4C5A
-# (white 8.80:1, placeholder 5.37:1). Also asserts the single row, because the
+# someone types and re-reads.
+# Owner, 2026-09-27 (Maywood chatbox restyle): the whole chatbox wears Maywood's
+# institutional navy language now, so the composer bubble is deep navy #1A3049
+# (white 13.94:1, placeholder #8FA6BD 5.35:1 — both clear the 4.5:1 bar) with a
+# hairline #33567E border and no glow. Also asserts the single row, because the
 # two-row version was 148px and was the reason replies had no room.
 # Owner, 2026-09-24: the assistant is a RIGHT-SIDE dock panel, not a centred
 # pill. The panel header owns New chat / Expand / X (the X exits the dock);
@@ -1222,12 +1225,12 @@ return bad.size?[...bad].join(','):'CLEAN'})()" 2>/dev/null)
 $B viewport 1440x900 >/dev/null 2>&1
 comp=$($B js "
 (async()=>{S.portal='coach';S.route={name:'dashboard',arg:null};S.aiOpen=true;S.aiMax=false;S.aiCollapsed=false;render();
- /* COMPOSER: grey slate bubble, white type, one row. */
+ /* COMPOSER: deep navy bubble (owner 2026-09-27 Maywood restyle), white type, one row. */
  const f=document.querySelector('.aidock-compose'),i=document.querySelector('.aidock-input');
  if(!f||!i) return 'NO_COMPOSER';
  if(getComputedStyle(i).color!=='rgb(255, 255, 255)') return 'TYPE_NOT_WHITE';
  const bg=getComputedStyle(f).backgroundColor;
- if(bg!=='rgb(62, 76, 90)') return 'BUBBLE_NOT_SLATE_'+bg;
+ if(bg!=='rgb(26, 48, 73)') return 'BUBBLE_NOT_NAVY_'+bg;
  if(!document.querySelector('.aidock-row')) return 'NOT_ONE_ROW';
  if(f.getBoundingClientRect().height>130) return 'BUBBLE_TOO_TALL_'+Math.round(f.getBoundingClientRect().height);
  /* DOCK GEOMETRY (desktop): right-side panel, ~400px wide, full height. */
