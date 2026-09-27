@@ -1193,7 +1193,7 @@ img{max-width:100%;display:block}
    #111827 on #FFFFFF = 16.9:1 · #C4362F on #F8FAFC = 5.0:1 ·
    #57606E on #F8FAFC = 5.6:1 · #566274 on #E5EAF1 = 4.6:1 (disabled). */
 .cw .cg-wordmark{color:#111827}
-.cw .imp-sub{color:var(--muted);margin-bottom:16px;font-size:var(--text-base)}
+.cw .imp-sub{color:var(--ink-2);margin-bottom:16px;font-size:var(--text-base)}
 .imp-steps{display:flex;align-items:center;gap:10px;margin-bottom:18px}
 .imp-dot{font-family:var(--sans);font-size:var(--text-xs);font-weight:700;letter-spacing:.02em;color:var(--faint)}
 .imp-dot.on{color:var(--ink)}.imp-dot.done{color:var(--muted)}
@@ -1204,7 +1204,7 @@ img{max-width:100%;display:block}
 .imp-addrow .btn{flex:0 0 auto}
 .imp-list{list-style:none;margin:12px 0 18px;padding:0;display:flex;flex-direction:column;gap:2px}
 .imp-list li{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:9px 2px;border-bottom:1px solid var(--rule);font-size:var(--text-base)}
-.imp-x{font-family:var(--sans);font-size:var(--text-sm);font-weight:600;color:var(--muted);background:none;border:0;padding:4px 6px;cursor:pointer;border-radius:6px}
+.imp-x{font-family:var(--sans);font-size:var(--text-sm);font-weight:600;color:var(--ink);background:none;border:0;padding:4px 6px;cursor:pointer;border-radius:6px}
 .imp-x:hover{color:var(--ink);background:var(--raise2)}
 .imp-empty{color:var(--faint);font-size:var(--text-sm);margin:12px 0 18px}
 .imp-actions{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-top:16px}
@@ -2574,6 +2574,33 @@ button.tnav.tnav-cta:hover{background:#FFFFFF;color:#0B0D0F;border-color:#FFFFFF
 .aipill.aidock-col .aidock-empty{margin:auto 0}
 .aipill.aidock-col .aidock-chips{max-width:100%;flex-wrap:wrap;flex:0 0 auto}   /* dock: chips wrap, never clip off the rail edge */
 .aipill.aidock-col .aidock-compose{flex:0 0 auto;margin:0}
+/* ── LAYOUT COLUMN (owner 2026-09-27; supersedes the fixed-overlay dock) ──
+   "dont make the chatbox an overlay, but rather a backportion of the screen."
+   On desktop (>=1280, coach portal) the chatbox is a permanent right-hand
+   column of the page itself — nav | content | chat as real flex siblings —
+   never a position:fixed panel floating over the dashboard. body becomes a
+   flex row: #app takes the free space, #layer carries the chat column as an
+   in-flow sibling. The column is sticky full-height, so it stays put while
+   the dashboard scrolls beneath it. No margin compensation is needed (the
+   --aidock-w mechanism is retired below): flex shrink/grow keeps the two
+   regions disjoint by construction, so overlap is impossible.
+   Below 1280 the panel keeps its honest overlay+scrim behaviour; on mobile
+   it stays a bottom sheet. */
+@media(min-width:1280px){
+  body:has(#app.coachdark){display:flex;align-items:stretch}
+  #app.coachdark{flex:1 1 auto;min-width:0;margin-right:0}
+  #app.coachdark + #layer{flex:0 0 auto;display:flex;min-width:0}
+  /* Reference width: ~24% of the viewport, clamped so the column never
+     squeezes the dashboard or sprawls on ultrawide. */
+  #app.coachdark + #layer .aipill.aidock-col{
+    position:sticky;top:0;left:auto;right:auto;bottom:auto;transform:none;
+    width:clamp(340px,24vw,440px);height:100vh;height:100dvh;max-height:none;
+    z-index:auto;border-left:1px solid #1B1F26}
+  /* A flush full-height column has no rounded outer corners and no border
+     of its own — the hairline divider on the column is the separation. */
+  #app.coachdark + #layer .aipill.aidock-col .aidock-panel{border:0;border-radius:0}
+  #app.coachdark + #layer .aidock-head{border-radius:0}
+}
 /* The FAB launcher is redundant while the docked panel is open (the header X
    closes it); it renders only when the dock is closed. */
 /* Below the reflow breakpoint the dock overlays instead: dim the page and
@@ -2600,13 +2627,11 @@ html.coldock .aidock-fab{display:none}
    painted on #app, and padding inside it keeps that ground behind the pill. */
 :root{--aipill-h:0px}
 #app{padding-bottom:var(--aipill-h)}
-/* v3 DOCKED reflow: at >=1280 the coach content shifts left by the panel width +
-   gutter so the docked assistant never overlaps a dashboard row. render() writes
-   --aidock-w (412px when docked, 0 otherwise); the transition moves the page in
-   sync with the panel's 240ms slide. Below 1280 it stays 0 and the panel overlays. */
-:root{--aidock-w:0px}
-#app{transition:margin-right .24s cubic-bezier(.32,.72,0,1)}
-@media(min-width:1280px){#app{margin-right:var(--aidock-w,0px)}}
+/* RETIRED 2026-09-27 (owner: the chatbox is a layout column, not an overlay).
+   The --aidock-w margin-right compensation is gone: at >=1280 the chat column
+   is a real flex sibling of #app, so the two regions are disjoint by
+   construction and no margin shift is needed. Below 1280 the panel overlays
+   with a scrim, which needs no compensation either. */
 /* SLATE FAB (owner, 2026-08-19 — supersedes the accent/baby-blue button).
    Slate is the one chromatic chrome colour and carries buttons by the colour
    law, so the assistant launcher wears --slate with --slate-on text (#14202C on
@@ -2745,9 +2770,10 @@ html.coldock .aidock-fab{display:none}
 /* v3 DOCKED (owner, 2026-08-20): the open panel is a NARROW, TALL, phone-
    proportioned surface pinned to the RIGHT EDGE and vertically centred — the
    mobile app's chat screen embedded in the page, not a wide centred bar (that
-   centred bar was "the defect being fixed"). At >=1280 the wrap is click-through
-   so the page reflows BESIDE the panel (see --aidock-w / #app margin-right) and
-   the content stays usable; below 1280 the panel overlays with a 20% backdrop. */
+   centred bar was "the defect being fixed"). RETIRED 2026-09-27: at >=1280
+   the chatbox is a real flex layout column beside #app (never an overlay),
+   so the page needs no reflow compensation; below 1280 the panel overlays
+   with a 20% backdrop. */
 /* Maximized = a CENTERED dark modal (owner 2026-08-22). Was a right-docked
    380px widget with a transparent wrap, so on desktop the panel floated over the
    untouched light page — the "white barrier." Now the wrap is a full dark scrim
@@ -3024,6 +3050,103 @@ html.coldock .aidock-fab{display:none}
   .aidock{right:14px;bottom:14px}
   .aidock-panel{max-height:min(70vh,calc(100vh - 116px))}
 }
+/* ── MAYWOOD CHAT FORMAT (owner 2026-09-27: "look at maywoods" — format only)
+   The AI chatbox — and ONLY the chatbox — keeps Maywood's format language:
+   hairline borders, flat restrained surfaces (the slate glow is retired), a
+   serif wordmark, and sentence-case display type. COLOURS are Sporv's original
+   chatbox palette, restored 2026-09-27 per owner ("the color shouldn't be the
+   same, it should just have the same format"). Every selector below is scoped
+   to .aidock* so the dashboard pages around it are untouched. Contrast
+   re-verified after the colour restore — see the audit log. */
+.aidock-panel{background:#0A0C0F;border:1px solid #333A45;border-radius:16px;
+  color:#F5F7F9;box-shadow:0 18px 50px rgba(4,10,18,.55)}
+#app.coachdark + #layer .aidock-panel{box-shadow:none;border-color:#1B1F26}
+.aidock-head{background:#131519;border-bottom:1px solid #242932;border-radius:16px 16px 0 0}
+.aidock-head .aidock-head-t{font-family:Georgia,"Times New Roman",serif;
+  text-transform:none;letter-spacing:.01em;font-size:17px;font-weight:400;color:#F5F7F9}
+.aidock-panel .bub.them{background:#1B2129;border:1px solid #2A313B;
+  color:#F5F7F9;border-radius:14px}
+.aidock-panel .bub.me{background:#3E4C5A;color:#FFFFFF;border-radius:14px}
+.aidock-panel .bub.bub-err{background:#2A1215;color:#F0B5AE;border:1px solid #57262B}
+.aidock-panel .aidock-scroll,.aidock-panel .aidock-empty h3,.aidock-panel b{color:#F5F7F9}
+.aidock-panel .aidock-sub,.aidock-panel .aidock-empty p{color:#9AA6B2}
+.aidock-panel .dotdot{background:var(--muted)}
+.aidock-compose{background:#3E4C5A;border:1px solid #4E5D6D;border-radius:22px;box-shadow:none}
+.aidock-compose:focus-within{border-color:#6B7C8D;box-shadow:0 0 0 3px rgba(154,166,178,.22)}
+.aidock-compose .aidock-input{color:#FFFFFF}
+.aidock-compose .aidock-input::placeholder{color:#C3CBD4}
+.aidock-panel .aidock-ic{color:#DCE3EA}
+.aidock-panel .aidock-ic:hover{background:rgba(255,255,255,.14);color:#FFFFFF}
+.aidock-compose .aidock-ic[data-aiattach]{background:rgba(255,255,255,.10)}
+.aidock-panel .aidock-model{color:#C3CBD4}
+.aidock-panel .aidock-model b{color:#FFFFFF}
+.aidock-head .cxpill{background:#1B2129;border-color:#2A313B;color:#C3CBD4}
+.aidock-head .cxpill .cxpdot{background:var(--gold)}
+.aidock-panel .aifile{background:rgba(255,255,255,.14);border-color:#2A313B;color:#C3CBD4}
+.aidock-panel .aidock-chip{color:#C3CBD4;background:#131519;border:1px solid #2A313B}
+.aidock-panel .aidock-chip:hover{background:#1B1F26;border-color:#414B57;color:#F5F7F9}
+.aidock-panel .aidock-ctxchip{color:#9AA6B2;background:rgba(154,166,178,.12)}
+.aidock-panel .aidock-kbd{color:#8A93A0;border-color:#2A313B}
+.aidock-panel .aidock-empty.aidock-empty-coach h3{font-family:Georgia,"Times New Roman",serif;
+  text-transform:none;letter-spacing:0;font-size:24px;font-weight:400;color:#F5F7F9}
+.aidock-panel .aidock-sugg .aidock-suggbtn{background:#1A2025;border-color:#2F373F;color:#F5F7F9}
+.aidock-panel .aidock-sugg .aidock-suggbtn:hover{border-color:#4A5462}
+.aidock-panel .aidock-explore .aidock-explorebtn{border-color:#2F373F;color:#9AA6B2}
+.aidock-panel .aidock-explore .aidock-explorebtn:hover{color:#F5F7F9}
+.aidock-panel .propcard{background:#131519;border-color:#333A45}
+/* ── REFERENCE TREATMENT (owner 2026-09-27) ───────────────────────────────
+   Structure copied from the owner's reference screenshot; colours stay
+   Sporv's original dark palette. Large generously-rounded message bubbles
+   with comfortable padding, airy thread spacing, pill-shaped inline
+   status chips, and a clean sans header (the serif wordmark is retired —
+   the reference is decisively clean-sans). */
+/* Bubbles: 24px radius, 16/20px padding — the reference's generous
+   rectangles. Speaker still changes colour only, never size. */
+.aidock-panel .bub.them,.aidock-panel .bub.me,.aidock-panel .bub.bub-err{
+  border-radius:24px;padding:16px 20px}
+/* Airy thread: 16px gaps, 20px scroll padding (8px grid). */
+.aidock-panel .aidock-scroll{gap:16px;padding:20px}
+/* Inline status chips: the quiet "Checked your schedule…" line becomes a
+   pill like the reference's "Studio launch party / Tomorrow, 10 am" chip —
+   dark pill, hairline border, small gold status dot. */
+.aidock-toolsline{display:inline-flex;align-items:center;gap:8px;
+  align-self:flex-start;background:#131519;border:1px solid #2A313B;
+  color:#C3CBD4;border-radius:999px;padding:8px 16px;font-size:14px;
+  line-height:1.4}
+.aidock-toolsline::before{content:"";width:8px;height:8px;flex:none;
+  border-radius:50%;background:var(--gold)}
+/* Header: clean sans, sentence case — no serif. */
+.aidock-head .aidock-head-t{font-family:var(--sans);font-weight:600;
+  font-size:16px;letter-spacing:0;text-transform:none;color:#F5F7F9;
+  white-space:nowrap;flex:none}
+.aidock-panel .aidock-empty.aidock-empty-coach h3{font-family:var(--sans);
+  font-weight:600;letter-spacing:0;font-size:22px;color:#F5F7F9}
+.aidock-panel .propcard .b{color:#F5F7F9}
+.aidock-panel .faccard{background:#131519;border-color:#2A313A}
+.aidock-panel .facrow{border-color:#1F2630}
+.aidock-panel .facmain em,.aidock-panel .facfine{color:#9AA6B2}
+.aidock-panel .facrate{color:#B9C7DB}
+.aidock-panel .aidock-pick{background:#131519;border-color:#333A45;color:#F5F7F9}
+.aidock-panel .aidock-pick:hover{background:#1B1F26}
+.aidock-panel .aimax-ic{color:#9AA6B2}
+.aidock-panel .aimax-ic:hover{background:#1B1F26;color:#F5F7F9}
+.aidock-panel .aimax-rail{border-color:#2A313B}
+.aidock-panel .aimax-railnew{color:#F5F7F9;border-color:#2A313B}
+.aidock-panel .aimax-railnew:hover{background:#1B1F26}
+.aidock-panel .aimax-railg{color:#9AA6B2}
+.aidock-panel .aimax-railg:hover{background:#1B1F26;color:#F5F7F9}
+.aidock-panel .aimax-aihint{color:#9AA6B2}
+.aidock-strip{background:#0F1113;border:1px solid #2A313B;
+  box-shadow:0 10px 30px rgba(4,10,18,.5)}
+.aidock-strip .aidock-striptext{color:#8A93A0}
+.aidock-strip .aidock-stripbtn{border-color:#2A313B;color:#C3CBD4}
+.aidock-strip .aidock-stripbtn:hover{background:#1B1F26;color:#F5F7F9}
+.aidock .aidock-launch{background:#20262E;border:1px solid #3A434E;color:#E7ECF2;
+  box-shadow:0 8px 24px rgba(4,10,18,.5);animation:none}
+.aidock .aidock-launch:hover{transform:translateY(-1px);background:#28303A;border-color:#55606D}
+.aidock-fab{background:var(--slate);border:1px solid #3A434E;color:var(--slate-on);
+  box-shadow:0 8px 24px rgba(4,10,18,.5)}
+.aidock-fab:hover{background:var(--slate-deep)}
 /* The .hascmd offset that used to lift the dock clear of the coach command bar
    went with the bar itself — nothing sits at the bottom of the viewport now. */
 @keyframes fade{from{opacity:0}}
@@ -3078,7 +3201,7 @@ html.coldock .aidock-fab{display:none}
 /* Uppercase condensed screen title, as the reference sets it. */
 .modal.stage .modal-head{background:#0B0D0F;border-bottom-color:#202429}
 .modal.stage .modal-head b{text-transform:uppercase;letter-spacing:.035em}
-.modal.stage .x{color:#6B7480}
+.modal.stage .x{color:var(--ink)}
 .modal.stage .x:hover{background:#171A1E;color:#EDEFF2}
 /* The filled CTA is steel; its label is white, as the reference sets it.
    Without this the label inherits --paper, which is now near-black. */
@@ -3221,7 +3344,7 @@ html.coldock .aidock-fab{display:none}
   .modal.stage .modal-head b{font-size:var(--text-lg)}
   .modal.stage .modal-body{padding:22px 16px 84px}
 }
-.x{width:32px;height:32px;border-radius:999px;display:grid;place-items:center;color:var(--muted)}
+.x{width:32px;height:32px;border-radius:999px;display:grid;place-items:center;color:var(--ink)}
 .x:hover{background:var(--raise2);color:var(--ink)}
 .rail-lite{transition:background .14s}
 .rail-lite:hover{background:var(--raise2)}
@@ -17636,14 +17759,10 @@ function render(){
     /* RETIRED 2026-09-21 (owner: chatbox always centered): the right-column
        dock is gone, so the page never reflows beside it. Only the maximized
        dock keeps a width offset; the centered floating panel needs none. */
-    /* RIGHT DOCK (owner 2026-09-24): the resting chatbox is a right-side panel,
-       so at desktop widths the page reflows beside it — the dock can never
-       cover dashboard controls. Dock footprint: 400px panel + 16px right
-       gutter = 416px. aiMax keeps its own overlay behavior. */
-    const docked=S.portal==="coach"&&S.aiOpen!==false&&!S.aiCollapsed&&!S.aiMax&&window.innerWidth>=1280;
-    const maxDock=S.portal==="coach"&&S.aiOpen!==false&&S.aiMax&&!S.aiFull&&window.innerWidth>=1280;
-    document.documentElement.style.setProperty("--aidock-w",docked?"416px":(maxDock?"412px":"0px"));
-    document.documentElement.style.setProperty("--aidock-top","0px");
+    /* RIGHT DOCK (owner 2026-09-27): the chatbox is a real flex layout column
+       beside #app at >=1280 — never an overlay — so no width compensation is
+       written. The flex row keeps the regions disjoint by construction.
+       aiMax keeps its own centered-overlay behavior. */
     document.documentElement.classList.toggle("coldock",false);
   })();
 
