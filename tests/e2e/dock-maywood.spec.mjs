@@ -1,12 +1,13 @@
-// tests/e2e/dock-maywood.spec.mjs — Maywood chatbox FORMAT (owner 2026-09-27).
+// tests/e2e/dock-maywood.spec.mjs — chatbox layout + palette contract.
 //
-// The chatbox — and only the chatbox — keeps Maywood's format language: serif
-// wordmark, sentence case, flat restrained surfaces, hairline borders. COLOURS
-// are Sporv's ORIGINAL chatbox palette (restored 2026-09-27 per owner: "the
-// color shouldn't be the same, it should just have the same format"). This
-// spec pins that contract in computed styles so a later palette edit can't
-// silently drift it, and so dashboard chrome outside the chatbox provably
-// stays untouched.
+// Direction history: 2026-09-27 began as a Maywood format copy (serif
+// wordmark etc.), then the owner sent a reference screenshot and clarified:
+// "dont make the chatbox an overlay, but rather a backportion of the screen."
+// So on desktop (>=1280, coach portal) the chatbox is a permanent right-hand
+// LAYOUT COLUMN — nav | content | chat as real flex siblings, never a
+// floating overlay — with the reference's widths (~24% viewport), large
+// rounded bubbles, and pill status chips. COLOURS stay Sporv's ORIGINAL dark
+// palette throughout. This spec pins that contract.
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { chromium } from 'playwright';
@@ -15,8 +16,8 @@ import { mount, freshDb, session } from './fake-supabase.mjs';
 const INDEX = 'file://' + new URL('../../index.html', import.meta.url).pathname;
 let browser; test.before(async () => { browser = await chromium.launch(); }); test.after(async () => { await browser?.close(); });
 
-async function boot(chat) {
-  const ctx = await browser.newContext();
+async function boot(chat, viewport) {
+  const ctx = await browser.newContext({ viewport: viewport || { width: 1440, height: 900 } });
   await ctx.addInitScript((s) => localStorage.setItem('sporve:session:v1', JSON.stringify(s)), session());
   const page = await ctx.newPage();
   await mount(page, freshDb({ onboarded: true, name: 'Rivertown FC' }));
@@ -39,6 +40,52 @@ const css = (page, sel, prop) => page.evaluate(([s, p]) => {
   return getComputedStyle(el)[p];
 }, [sel, prop]);
 
+const rect = (page, sel) => page.evaluate((s) => {
+  const el = document.querySelector(s); if (!el) return null;
+  const r = el.getBoundingClientRect(); return { left: r.left, right: r.right, top: r.top, bottom: r.bottom, width: r.width, height: r.height };
+}, sel);
+
+test('the chatbox is a layout column, never an overlay, on desktop', async (t) => {
+  const { ctx, page } = await boot(); t.after(() => ctx.close());
+  const pos = await css(page, '.aipill.aidock-col', 'position');
+  assert.equal(pos, 'sticky', `dock column is sticky (in-flow), not fixed overlay — got ${pos}`);
+  const col = await rect(page, '.aipill.aidock-col');
+  const app = await rect(page, '#app');
+  assert.ok(col.left >= app.right - 1, `column starts at/beyond #app right edge (no overlap): col.left=${col.left} app.right=${app.right}`);
+  assert.ok(app.right <= 1440, `#app does not run under the column: app.right=${app.right}`);
+  const ratio = col.width / 1440;
+  assert.ok(ratio >= 0.22 && ratio <= 0.27, `column is ~24% of viewport width, got ${(ratio * 100).toFixed(1)}%`);
+  assert.ok(Math.abs(col.height - 900) <= 2, `column is full viewport height, got ${col.height}`);
+});
+
+test('collapsing the chatbox returns its space to the dashboard', async (t) => {
+  const { ctx, page } = await boot(); t.after(() => ctx.close());
+  const wide = (await rect(page, '#app')).width;
+  await page.evaluate(() => { S.aiOpen = false; render(); });
+  await page.waitForSelector('.aidock-launch', { timeout: 10000 });
+  assert.equal(await page.locator('.aipill.aidock-col').count(), 0, 'column is gone when collapsed');
+  const full = (await rect(page, '#app')).width;
+  assert.ok(full > wide + 200, `#app expands when the column collapses (was ${wide}, now ${full})`);
+  // the launcher re-opens the column
+  await page.click('.aidock-launch');
+  await page.waitForSelector('.aipill.aidock-col', { timeout: 10000 });
+  assert.equal(await css(page, '.aipill.aidock-col', 'position'), 'sticky', 're-opened as a layout column');
+});
+
+test('on mobile the chatbox stays a bottom sheet overlay', async (t) => {
+  const { ctx, page } = await boot(undefined, { width: 390, height: 844 }); t.after(() => ctx.close());
+  const pos = await css(page, '.aipill.aidock-col', 'position');
+  assert.equal(pos, 'fixed', `mobile keeps the bottom-sheet overlay — got ${pos}`);
+});
+
+test('bubbles are large and generously rounded per the reference', async (t) => {
+  const { ctx, page } = await boot(); t.after(() => ctx.close());
+  const radius = await css(page, '.aidock-panel .bub.me', 'borderRadius');
+  assert.ok(radius.startsWith('24px'), `bubble radius is 24px, got ${radius}`);
+  const padTop = await css(page, '.aidock-panel .bub.me', 'paddingTop');
+  assert.equal(padTop, '16px', `bubble padding is comfortable, got ${padTop}`);
+});
+
 test('the panel is Sporv charcoal, flat, and the dashboard chrome stays black', async (t) => {
   const { ctx, page } = await boot(); t.after(() => ctx.close());
   const panelBg = await css(page, '.aidock-panel', 'backgroundColor');
@@ -49,16 +96,14 @@ test('the panel is Sporv charcoal, flat, and the dashboard chrome stays black', 
   assert.ok(dashCard === null || !/19, 40, 63/.test(dashCard), `dashboard chrome is not navy, got ${dashCard}`);
 });
 
-test('the wordmark is serif and sentence case', async (t) => {
+test('the wordmark is clean sans and sentence case', async (t) => {
   const { ctx, page } = await boot([]); t.after(() => ctx.close());
   const face = await css(page, '.aidock-head .aidock-head-t', 'fontFamily');
-  assert.ok(/Georgia/i.test(face), `header wordmark is serif, got ${face}`);
+  assert.ok(!/Georgia/i.test(face), `header wordmark is clean sans (serif retired per reference), got ${face}`);
   const transform = await css(page, '.aidock-head .aidock-head-t', 'textTransform');
   assert.equal(transform, 'none', 'wordmark is sentence case, not uppercase');
-  const empty = await css(page, '.aidock-empty-coach h3', 'textTransform');
-  assert.equal(empty, 'none', 'empty-state greeting is sentence case, not uppercase');
   const emptyFace = await css(page, '.aidock-empty-coach h3', 'fontFamily');
-  assert.ok(/Georgia/i.test(emptyFace), `empty-state greeting is serif, got ${emptyFace}`);
+  assert.ok(!/Georgia/i.test(emptyFace), `empty-state greeting is clean sans, got ${emptyFace}`);
 });
 
 test('bubbles carry the Sporv palette with readable text', async (t) => {

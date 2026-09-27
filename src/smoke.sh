@@ -1234,17 +1234,19 @@ comp=$($B js "
  if(bg!=='rgb(62, 76, 90)') return 'BUBBLE_NOT_SLATE_'+bg;
  if(!document.querySelector('.aidock-row')) return 'NOT_ONE_ROW';
  if(f.getBoundingClientRect().height>130) return 'BUBBLE_TOO_TALL_'+Math.round(f.getBoundingClientRect().height);
- /* DOCK GEOMETRY (desktop): right-side panel, ~400px wide, full height. */
+ /* DOCK GEOMETRY (desktop, owner 2026-09-27): the panel is a real flex
+    layout column ~24% of the viewport (clamp 340–440px), full height,
+    flush to the viewport edges — never a floating overlay. */
  const p=document.querySelector('.aipill'),pr=p.getBoundingClientRect();
- if(Math.round(innerWidth-pr.right)>32) return 'DOCK_NOT_RIGHT_'+Math.round(innerWidth-pr.right);
- if(Math.abs(pr.width-400)>24) return 'DOCK_WIDTH_'+Math.round(pr.width);
- if(Math.abs(pr.top-72)>16||Math.abs(Math.round(innerHeight-pr.bottom)-16)>16) return 'DOCK_NOT_DOCKED_'+Math.round(pr.top)+'_'+Math.round(innerHeight-pr.bottom);
- /* APP REFLOW: the dashboard gives the dock room. The var is set synchronously;
-    the margin animates (240ms), so await the transition before measuring. */
+ if(Math.round(innerWidth-pr.right)>4) return 'DOCK_NOT_RIGHT_'+Math.round(innerWidth-pr.right);
+ const wantW=Math.min(440,Math.max(340,innerWidth*0.24));
+ if(Math.abs(pr.width-wantW)>4) return 'DOCK_WIDTH_'+Math.round(pr.width);
+ if(Math.abs(pr.top)>4||Math.abs(Math.round(innerHeight-pr.bottom))>4) return 'DOCK_NOT_DOCKED_'+Math.round(pr.top)+'_'+Math.round(innerHeight-pr.bottom);
+ /* LAYOUT COLUMN: the panel is a flex sibling of #app — no overlay, so no
+    margin compensation. The two regions must be disjoint (no overlap). */
  const app=document.getElementById('app');
- if(getComputedStyle(app).getPropertyValue('--aidock-w').trim()!=='416px') return 'NO_REFLOW_VAR';
- await new Promise(r=>setTimeout(r,400));
- if(parseFloat(getComputedStyle(app).marginRight)<400) return 'NO_REFLOW_MARGIN';
+ const ar=app.getBoundingClientRect();
+ if(pr.left<ar.right-1) return 'DOCK_OVERLAPS_APP_'+Math.round(pr.left)+'_'+Math.round(ar.right);
  /* HEADER (owner 2026-09-24): always present when open — New chat, Expand, X. */
  S.chat=[];S.chatThinking=false;render();
  if(!document.querySelector('.aidock-head')) return 'NO_HEAD';
@@ -1886,10 +1888,13 @@ pill=$($B js "
  S.route={name:'dashboard',arg:null};render();
  const p=document.querySelector('.aipill');
  if(!p) return 'MISSING_PANEL';
- /* RIGHT DOCK: right edge hugs the viewport, ~400px wide, full height. */
+ /* RIGHT DOCK (owner 2026-09-27): the panel is a real flex layout column —
+    ~24% of the viewport (clamp 340–440px), full height, flush right — never
+    an overlay, so it cannot cover dashboard controls. */
  const pr=p.getBoundingClientRect();
- if(Math.round(innerWidth-pr.right)>32) return 'PANEL_NOT_RIGHT_'+Math.round(innerWidth-pr.right);
- if(Math.abs(pr.width-400)>24) return 'PANEL_WIDTH_'+Math.round(pr.width);
+ if(Math.round(innerWidth-pr.right)>4) return 'PANEL_NOT_RIGHT_'+Math.round(innerWidth-pr.right);
+ const wantW2=Math.min(440,Math.max(340,innerWidth*0.24));
+ if(Math.abs(pr.width-wantW2)>4) return 'PANEL_WIDTH_'+Math.round(pr.width);
  /* No FAB while open; the launcher appears only when closed. */
  if(document.querySelector('.aidock-fab')) return 'FAB_WHILE_OPEN';
  if(document.querySelector('.aidock-launch')) return 'LAUNCHER_WHILE_OPEN';
