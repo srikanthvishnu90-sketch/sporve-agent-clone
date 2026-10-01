@@ -12,10 +12,12 @@
 > current instructions conflict, `AGENTS.md` wins, and text marked retired or
 > superseded is historical only.
 
-> **Progress contract (2026-08-29).** Read `GATES.md` before proposing work.
-> G1–G4 are the only progress grade; if none moves, report `NOTHING MOVED`.
-> Tests, feature scores, audits, and commits are evidence only, and no new AI
-> tool may be proposed or added until G4 is `TRUE`.
+> **Progress contract (2026-08-29, ladder rewritten 2026-09-15).** Read
+> `GATES.md` before proposing work. It is the ONLY file that defines gate
+> numbers - G1-G10 since the v2 rewrite; cite them from there and nowhere else.
+> If no gate moves, report `NOTHING MOVED`. Tests, feature scores, audits, and
+> commits are evidence only, and no new AI tool may be proposed or added until
+> G6 (WRITES ARE SAFE) is `TRUE`.
 
 ## 0. Coordinate with Codex before editing
 
