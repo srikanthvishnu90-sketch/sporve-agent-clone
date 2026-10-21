@@ -49,6 +49,9 @@ ORDER = [
     # Enterprise core tabs (2026-09-22): org profile/locations/staff,
     # teams CRUD, families/guardians. Self-contained MOD_* modules.
     "mod-org.js", "mod-teams.js", "mod-families.js",
+    # Coach-app visual layer (owner 2026-10-21, Harvey-style redesign). Last,
+    # so its <style> lands after every module's own injected CSS.
+    "mod-harvey.js",
 ]
 
 host = open(HOST, encoding="utf-8").read()
@@ -98,6 +101,10 @@ FAMILY_BY_PREFIX = {
     "inter": "Inter",                   # retired 2026-09-21 (Archivo swap)
     "robotocondensed": "Roboto Condensed",  # retired 2026-09-21 (Archivo swap)
     "sentinel": "Sentinel",
+    # Editorial serif for page titles and display headings (owner 2026-10-21,
+    # Harvey-style redesign). OFL, from @fontsource-variable/newsreader
+    # (wght 200-800 + opsz 6-72 axes, latin subset).
+    "newsreader": "Newsreader",
 }
 # Google serves ONE variable woff2 per family — every weight URL in a css2
 # response for Syne or Plus Jakarta Sans returns a byte-identical file. Seven
@@ -113,6 +120,7 @@ VARIABLE_RANGE = {"Syne": "600 800", "Plus Jakarta Sans": "400 700",
                   # Archivo does display AND body, so it needs the full axis —
                   # 400 body, 700 UI labels, 800-900 headlines.
                   "Archivo": "100 900", "Inter": "400 700",
+                  "Newsreader": "200 800",
                   # JetBrains Mono: tabular numerals only (prices, ratings,
                   # counts, distances). Instrument Serif ships as static
                   # Regular/Italic faces, so it needs no variable range here.

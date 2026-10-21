@@ -251,7 +251,7 @@ function lockedBody(){
       : "Organization is part of the Enterprise workspace.";
   return u.Block({
     title: "Multi-staff management",
-    subtitle: "The org's public profile, every training location, and the full staff roster — roles, commissions, and background-check status.",
+    subtitle: "Roles, commissions and background-check status for every staff member.",
     body:
       u.Card(
         `<div class="org-staffrow"><div><b>Organization workspace</b>` +
@@ -589,10 +589,10 @@ function orgView(){
     return u.Page({
       page: "organization",
       eyebrow: "Enterprise",
-      h1: st.gateState === "loading" || st.gateState === "unknown" ? "Organization" : "Organization is an Enterprise feature",
+      h1: "Organization",
       lede: st.gateState === "loading" || st.gateState === "unknown"
         ? "Your organization's profile, locations, and staff."
-        : "Organization is where a multi-staff academy runs its business: the org's public profile, every training location, and the full staff roster — roles, commissions, and background-check status.",
+        : "Your public profile, training locations and staff roster. Available on Enterprise.",
       body: (st.gateState === "loading" || st.gateState === "unknown") ? loadingBody() : lockedBody(),
     });
   }

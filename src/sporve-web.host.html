@@ -9509,157 +9509,135 @@ function landingHTML(){
      where that badge is the product), .featgrid, .stepgrid, the shield-pill
      trustband (tell 4 — four decorative shields), and the centred finalcta
      whose "Background-checked. Bookable today." the catalogue cannot back. */
-  const f=landingFacts();
-  const heroSports=["Soccer","Basketball","Tennis","Baseball","Swimming"];
+  /* ═══ HARVEY-STYLE LANDING (owner 2026-10-21) ═══════════════════════════
+     "harvey's design ... is genuinely brilliant ... make the website look like
+     harveys". Replaces the full-screen stadium hero and the dark B2B chapter:
+     a two-column serif headline, the product shown in a window over the one
+     stadium photograph, then calm light sections. The previous markup is in
+     git history (pre 2026-10-21). Kept contracts: one still hero photo inside
+     .hero-panel with a centred .hero-in, the footer's .close-zone/.foot-brand
+     logo and .foot-link destinations (smoke.sh gates all of them). Every claim
+     below maps to a shipped feature; the connector list says which ones are
+     live rather than implying all of them are. */
+  const rows=[
+    ["Dana Reyes","Flight 14U","Installment 3 for Ava's season fee was due Sept 1.","$390","Ready"],
+    ["Priya Thomas","Flight 14U","Installment 3 hasn't come through yet.","$390","Ready"],
+    ["Sam Kowalski","Flight 16U","Liam's third installment is outstanding as of today.","$425","Ready"],
+    ["Marcus Bell","Summer camp","Held: guardian disputed this charge on Aug 14.","$260","Needs you"],
+    ["Elena Novak","Flight 16U","Installment 3 for Mia's season is outstanding.","$425","Ready"],
+  ];
+  const connectors=[["gmail","Gmail","Reads parent email and tournament PDFs. Drafts only, never sends."],
+     ["gcal","Google Calendar","Reads practices, games and conflicts. Changes only with your approval."],
+     ["outlook","Outlook","Microsoft 365 mail and calendar, with the same rules."],
+     ["sheets","Google Sheets","The spreadsheet you already run on, read straight in."],
+     ["drive","Google Drive","Waivers and forms, read where you keep them."],
+     ["stripe","Stripe","Dues, refunds and payouts on your own Stripe account."],
+     ["sms","SMS","Reads inbound parent texts. Replies stay drafts until you send."],
+     ["quickbooks","QuickBooks","Reconciliation, read-only. Your books stay the source of truth."]];
   return `
-  ${/* FULL-SCREEN STADIUM HERO (owner 2026-08-30 v4): the stadium photograph
-       IS the first screen — full viewport, headline overlaid, and the B2B
-       chapter flows directly beneath as ONE page. The search pill and sport
-       chips are DELETED (owner: "there shouldn't be a single searchbar…
-       there is no marketplace"). heroMediaHTML() + the hero-media scrim are
-       the same machinery the browse hero uses. */""}
-  <section class="hero herofull">
-    <div class="hero-panel">
-      ${heroMediaHTML()}
-      <div class="hero-in herofull-in">
-        ${/* The EXPLORE hero's exact look (owner screenshot 2026-08-30):
-             centred "Sporv, the AI for youth sports." + the sports ticker on
-             the stadium — WITHOUT the search bar (no marketplace). */""}
-        <h1 class="hero-ai">Sporv, the AI <span>for youth sports.</span></h1>
-        ${heroSportCycleHTML()}
-      </div>
-    </div>
-  </section>
-
-  ${/* ORDER corrected 2026-09-04 (owner: "the stadium image should still be
-       the first image seen"): hero FIRST, and the review-queue chapter
-       (owner screenshot #67) is the first section directly after it. */""}
-  <div class="lp26">
-  <section class="dark2 band" id="queue">
-    <div class="wrap">
-      <div class="head"><p class="k" data-rev>The review queue</p>
-        <h2 data-rev data-rev-d="1">You billed the season. You didn't collect all of it.</h2>
-        <p data-rev data-rev-d="2" style="margin-top:14px">Rosters, dues, and waivers for travel teams, camps, and private trainers. The follow-ups write themselves — you press send.</p></div>
-
-      <div class="queue" data-rev data-rev-d="2">
-        <div class="qh">
-          <span class="t">Review queue</span><span class="c">12 drafted · $4,290</span>
-          <span class="b"><span class="p">Approve all</span><span>Review each</span></span>
+  <div class="hvl">
+  <section class="hvl-hero">
+    <div class="hvl-wrap hvl-hero-grid">
+      <h1 class="hvl-h1">Every season, accounted for.</h1>
+      <div class="hvl-hero-side">
+        <p class="hvl-lede">Sporv reads your roster, dues and schedule, then drafts every follow-up a club director would write. You review the batch and press send.</p>
+        <div class="hvl-ctas">
+          <a class="hvl-btn hvl-btn-pri" href="${CALENDLY_URL}" target="_blank" rel="noopener">Book a setup call</a>
+          <button class="hvl-btn hvl-btn-sec" data-nav="pricing">See pricing</button>
         </div>
-      <div class="r"><span class="nm">Dana Reyes<small>Flight 14U</small></span><span class="msg">Hi Dana — installment 3 for Ava's season fee was due Sept 1…</span><span class="amt">$390</span><span class="st">Ready</span></div>
-      <div class="r"><span class="nm">Priya Thomas<small>Flight 14U</small></span><span class="msg">Hi Priya — quick note that installment 3 hasn't come through…</span><span class="amt">$390</span><span class="st">Ready</span></div>
-      <div class="r"><span class="nm">Sam Kowalski<small>Flight 16U</small></span><span class="msg">Hi Sam — Liam's third installment is outstanding as of today…</span><span class="amt">$425</span><span class="st">Ready</span></div>
-      <div class="r"><span class="nm">Ruth Delgado<small>Flight 12U</small></span><span class="msg">Hi Ruth — following up on the September installment…</span><span class="amt">$340</span><span class="st">Ready</span></div>
-      <div class="r"><span class="nm">Marcus Bell<small>Summer camp</small></span><span class="msg">Held — guardian disputed this charge on Aug 14</span><span class="amt">$260</span><span class="st hold">Needs you</span></div>
-      <div class="r"><span class="nm">Elena Novak<small>Flight 16U</small></span><span class="msg">Hi Elena — installment 3 for Mia's season is outstanding…</span><span class="amt">$425</span><span class="st">Ready</span></div>
-        <div class="qf">6 of 12 shown. Nothing here sends until someone approves it.</div>
       </div>
-      <p data-rev data-rev-d="2" style="margin-top:14px;font-size:14px;color:var(--w-2)">Product preview. Names and amounts are illustrative.</p>
     </div>
-  </section>
-  </div>
-
-  ${/* Company/marketplace rail removed 2026-08-30 (owner: "remove the company
-       marketplace features — make sure they are still saved"). peekRowHTML()
-       stays defined; re-add per docs/archive/landing-sections-2026-08-30.md. */""}
-
-  ${/* Pinned scrollytelling demo removed 2026-08-30 (owner: "the only thing that shouldve been removed is the demo scrolling"). Saved verbatim in docs/archive/landing-sections-2026-08-30.md; wireLanding()'s [data-scrolly] guard makes its handler a no-op. */""}
-
-  ${/* Family middle chapter (comparison table, dark rules, definition list) and the FAQ removed 2026-08-30 — owner: landing = stadium hero + the B2B chapter only. Saved verbatim in docs/archive/landing-sections-2026-08-30.md; faqSectionHTML stays defined (page:what-is still calls it). */""}
-
-  ${/* ═══ B2B LANDING v3 (owner 2026-08-30, third ask): the paste COPIED, not
-       adapted — its own scoped stylesheet (.lp26), its exact copy, grounds and
-       sizes. The stadium hero above REPLACES the paste hero's headline+grid;
-       everything from the queue down is the paste verbatim. Reveals use the
-       existing data-rev observer. */""}
-  <div class="lp26">
-
-  <section class="off band">
-    <div class="wrap">
-      <div class="head"><p class="k" data-rev>What it does</p><h2 data-rev data-rev-d="1">Three things, done properly.</h2></div>
-      <div class="lines rule">
-        <div class="row rule" data-rev><span class="n">01</span><div><h3>Import your roster in ten minutes</h3><p style="margin-top:8px">Teams, families, guardians, and contact details, from whatever you keep them in now.</p></div></div>
-        <div class="row rule" data-rev data-rev-d="1"><span class="n">02</span><div><h3>Bill the season as installments, by card or bank</h3><p style="margin-top:8px">One charge for a camp, a payment plan for a season, per session for a trainer. Same ledger underneath.</p></div></div>
-        <div class="row rule" data-rev data-rev-d="2"><span class="n">03</span><div><h3>Chase what's late, with your approval on every message</h3><p style="margin-top:8px">The follow-ups are drafted before you log in, addressed to the right guardian with the right amount. You read the batch and send once.</p></div></div>
+    <div class="hvl-wrap">
+      <div class="hero-panel hvl-shot">
+        ${heroMediaHTML()}
+        <div class="hero-in hvl-shot-in">
+          <div class="hvl-win" role="img" aria-label="Product preview: the Sporv review queue">
+            <div class="hvl-win-rail">
+              <b>Sporv</b>
+              <span class="on">Today</span><span>Queue</span><span>Families</span><span>Schedule</span><span>Money</span>
+            </div>
+            <div class="hvl-win-main">
+              <div class="hvl-win-top"><span class="hvl-win-title">Northside Flight</span><span class="hvl-win-ask">Ask Sporv</span></div>
+              <div class="hvl-win-banner">Sporv drafted 12 follow-ups overnight. Nothing sends until you approve.</div>
+              <div class="hvl-win-stats">
+                <div><span>Outstanding</span><b>$4,290</b></div>
+                <div><span>Drafts waiting</span><b>12</b></div>
+                <div><span>Next practice</span><b>Thu 6:00</b></div>
+              </div>
+              <div class="hvl-win-list">
+                ${rows.map(([n,t,m,a,st])=>`<div class="hvl-win-row"><span class="nm">${esc(n)}<small>${esc(t)}</small></span><span class="msg">${esc(m)}</span><span class="amt">${esc(a)}</span><span class="st${st==="Needs you"?" hold":""}">${esc(st)}</span></div>`).join("")}
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
+      <p class="hvl-note">Product preview. Names and amounts are illustrative.</p>
     </div>
   </section>
 
-  <section class="light band">
-    <div class="wrap">
-      <div class="head"><p class="k" data-rev>Who it's for</p><h2 data-rev data-rev-d="1">Travel and AAU teams. Camps. Private trainers.</h2></div>
-      <div class="who rule">
-        <div data-rev><h3>Travel and AAU teams</h3><p>A season fee split across installments, with families at different points in the plan.</p><p class="m rule">Billing · N installments</p></div>
-        <div class="rule" data-rev data-rev-d="1"><h3>Camps</h3><p>A block of days with a roster cap and one charge up front.</p><p class="m rule">Billing · one charge</p></div>
-        <div class="rule" data-rev data-rev-d="2"><h3>Private trainers</h3><p>Individual sessions billed as they happen, with a running balance per family.</p><p class="m rule">Billing · per session</p></div>
+  <section class="hvl-sec">
+    <div class="hvl-wrap">
+      <h2 class="hvl-h2 hvl-center">Built for travel and AAU teams, camps, and private trainers.</h2>
+      <div class="hvl-who">
+        <div><h3>Travel and AAU teams</h3><p>A season fee split across installments, with families at different points in the plan.</p><span>Billed in installments</span></div>
+        <div><h3>Camps</h3><p>A block of days with a roster cap and one charge up front.</p><span>Billed once</span></div>
+        <div><h3>Private trainers</h3><p>Individual sessions billed as they happen, with a running balance per family.</p><span>Billed per session</span></div>
       </div>
     </div>
   </section>
 
-  <section class="dark2 band">
-    <div class="wrap price">
-      <div data-rev>
-        <p class="k">Pricing</p>
-        <h2 style="margin-top:14px;max-width:14ch">One subscription.</h2>
-        <div class="no">Nothing per booking, nothing per family, no cut of dues</div>
-      </div>
-      <div data-rev data-rev-d="1">
-        <p>A flat subscription for the software and the agent. It is the only thing Sporv charges. Not a cut of dues. Not a per-team price. Not a seat count. No annual contract.</p>
-        <p style="margin-top:16px">Most clubs already pay more than this for software that chases nobody.</p>
+  <section class="hvl-sec hvl-sec-alt">
+    <div class="hvl-wrap hvl-split">
+      <div><h2 class="hvl-h2">Three things, done properly.</h2>
+        <p class="hvl-p">The work that eats a director's evenings, handled before you log in.</p></div>
+      <ol class="hvl-steps">
+        <li><span>1</span><div><h3>Import your roster in ten minutes</h3><p>Teams, families, guardians and contact details, from whatever you keep them in now.</p></div></li>
+        <li><span>2</span><div><h3>Bill the season, by card or bank</h3><p>One charge for a camp, a payment plan for a season, per session for a trainer. Same ledger underneath.</p></div></li>
+        <li><span>3</span><div><h3>Chase what's late, with your approval</h3><p>Follow-ups are addressed to the right guardian with the right amount. You read the batch and send once.</p></div></li>
+      </ol>
+    </div>
+  </section>
+
+  <section class="hvl-sec">
+    <div class="hvl-wrap hvl-split">
+      <div><h2 class="hvl-h2">Send us your export. Your roster is in before the call ends.</h2>
+        <p class="hvl-p">SportsEngine, TeamSnap, LeagueApps, or a spreadsheet somebody has kept for four years. We import it on the call, with you watching, and your current system keeps running until you're satisfied.</p></div>
+      <div class="hvl-files">
+        <div><span>roster_fall_2026.csv</span><small>SportsEngine</small></div>
+        <div><span>teamsnap_members.xlsx</span><small>TeamSnap</small></div>
+        <div><span>Dues tracker (Sheet1)</span><small>Google Sheets</small></div>
+        <div><span>waivers_signed.pdf</span><small>Scanned</small></div>
       </div>
     </div>
   </section>
 
-  <section class="dark band">
-    <div class="wrap switch">
-      <div data-rev>
-        <p class="k">Switching</p>
-        <h2 style="margin:14px 0 16px">Send us your export. Your roster is in before the call ends.</h2>
-        <p>SportsEngine, TeamSnap, LeagueApps, or a spreadsheet somebody has maintained for four years. We do the import on the call, with you watching, and you keep your current system running until you're satisfied.</p>
-      </div>
-      <div class="files" data-rev data-rev-d="1">
-        <div><span>roster_fall_2026.csv</span><span class="s">SportsEngine</span></div>
-        <div><span>teamsnap_members.xlsx</span><span class="s">TeamSnap</span></div>
-        <div><span>Dues tracker (Sheet1)</span><span class="s">Google Sheets</span></div>
-        <div><span>waivers_signed.pdf</span><span class="s">Scanned</span></div>
+  <section class="hvl-sec hvl-sec-alt">
+    <div class="hvl-wrap">
+      <h2 class="hvl-h2">Works from the tools you already use.</h2>
+      <p class="hvl-p" style="max-width:62ch">Stripe, CSV import and your website work today. Inbox, calendar and the rest are rolling out, and each one shows its real status on your Connect page. Nothing sends or charges until you approve it.</p>
+      <div class="hvl-cx">
+        ${connectors.map(([k,n,d])=>`<div class="hvl-cx-card"><span class="cxlogo" aria-hidden="true">${CXLOGOS[k]}</span><b>${esc(n)}</b><p>${esc(d)}</p></div>`).join("")}
       </div>
     </div>
   </section>
 
-  ${/* Connectors band (2026-09-23, owner direction): Roma-style connector
-       cards on a black ground, text straight (sentence case), tailored to the
-       connectors Sporv actually ships. No integration is claimed as connected
-       before the visitor connects it themselves. */""}
-  <section class="band dark">
-    <div class="shell" data-rev>
-      <div class="eyebrow" data-rev>Connectors</div>
-      <h2 data-rev style="margin-top:10px;max-width:22ch">Connects to the tools you already use.</h2>
-      <p class="sub" data-rev style="margin-top:16px;max-width:62ch">Plug in once and the agent works from your real records — inbox, calendar, sheets, and payments. Nothing sends or charges until you approve it.</p>
-      <div class="cxgrid" data-rev style="margin-top:40px">
-        ${[["gmail","Gmail","Reads parent email and tournament PDFs. Drafts only, never sends."],
-           ["gcal","Google Calendar","Reads practices, games, and conflicts. Changes only with your approval."],
-           ["outlook","Outlook","Microsoft 365 mail and calendar. Read-only — changes need your approval."],
-           ["sheets","Google Sheets","The spreadsheet you already run on, read straight in."],
-           ["drive","Google Drive","Waivers and forms, read where you already keep them."],
-           ["stripe","Stripe","Dues, refunds, and payouts on your own Stripe account."],
-           ["sms","SMS","Reads inbound parent texts. Replies stay drafts until you send."],
-           ["quickbooks","QuickBooks","Reconciliation, read-only. Your books stay the source of truth."]
-          ].map(([k,n,d])=>`<div class="cxcard"><span class="cxlogo" aria-hidden="true">${CXLOGOS[k]}</span><b>${esc(n)}</b><p>${esc(d)}</p></div>`).join("")}
-      </div>
-      <p class="sub" data-rev style="margin-top:24px">Connect each one yourself from the Connect page — nothing is connected until you do.</p>
+  <section class="hvl-sec">
+    <div class="hvl-wrap hvl-split">
+      <div><h2 class="hvl-h2">One subscription. No cut of dues.</h2></div>
+      <div><p class="hvl-p">A flat subscription for the software and the agent. Nothing per booking, nothing per family, no percentage of what families pay you, and no annual contract.</p>
+        <button class="hvl-btn hvl-btn-sec" data-nav="pricing" style="margin-top:20px">See pricing</button></div>
     </div>
   </section>
 
-  <section class="dark close">
-    <div class="wrap">
-      <h2 data-rev>Fifteen minutes, your real roster.</h2>
-      <p data-rev data-rev-d="1">Bring last season's export. We import it on the call and show you what the queue would have caught. If it isn't obviously better than what you do now, that's the end of it.</p>
-      <div data-rev data-rev-d="2"><a class="btn pri" href="${CALENDLY_URL}" target="_blank" rel="noopener">Book a 15-minute setup call</a></div>
+  <section class="hvl-close">
+    <div class="hvl-wrap hvl-center">
+      <h2 class="hvl-h1 hvl-h1-sm">Bring your real roster.</h2>
+      <p class="hvl-p">Bring last season's export. We import it on the call and show you what the queue would have caught. If it isn't clearly better than what you do now, that's the end of it.</p>
+      <div class="hvl-ctas hvl-center-row"><a class="hvl-btn hvl-btn-pri" href="${CALENDLY_URL}" target="_blank" rel="noopener">Book a setup call</a></div>
     </div>
-    ${/* Real footer (spec 01 acceptance: legal reachable, distinct links,
-         support address, B2B position disclosure). Every destination is a KEPT
-         route; .close-zone/.foot-brand match the brand gate's contract. */""}
-    <div class="wrap close-zone"><div class="foot foot-grid" style="margin-top:72px">
+    ${/* Real footer (spec 01 acceptance): legal reachable, distinct links,
+         support address, B2B position disclosure. */""}
+    <div class="hvl-wrap close-zone"><div class="foot foot-grid hvl-foot">
       <span class="foot-brand"><span class="navlogo-crop"><img class="navlogo" src="${LOGO_SRC}" alt="Sporv" width="99" height="24"></span></span>
       <nav class="foot-links" aria-label="Footer">
         ${[["nav:product","Product"],["nav:pricing","Pricing"],["nav:trust","Trust & safety"],
@@ -9669,10 +9647,9 @@ function landingHTML(){
           .map(function(p){return '<button class="foot-link" data-foot="'+p[0]+'">'+p[1]+'</button>'}).join("")}
       </nav>
       <p class="foot-line"><a class="foot-mail" href="mailto:support@sporv.ai">support@sporv.ai</a> · Chicagoland ·
-        Sporv is software for youth-sports organizations — not a marketplace, not a booking site.</p>
+        Sporv is software for youth-sports organizations: not a marketplace, not a booking site.</p>
     </div></div>
   </section>
-
   </div>`;
 }
 
@@ -12232,6 +12209,9 @@ function dashRowsHTML(b){
   else if(b.key==="people.recent") list=rows.map(r=>line(r.name,r.kind||"",String(r.at||"").slice(0,10)));
   else list=rows.map(r=>line(r.title||r.name||b.key,"",""));
   // the declared empty text and nothing else — no generic fallback line (doc 28 law 1)
+  /* An empty block only proves nothing was found in what Sporv holds. When the
+     roster itself is empty, "everyone is current" would be a false all-clear. */
+  if(!list.length&&b.key==="roster.gaps") return `<div class="cui-card cui-empty"><b>${esc(b.empty)}</b><p>This only covers the roster Sporv has. If you have not imported yours yet, do that first.</p></div>`;
   if(!list.length) return `<div class="cui-card cui-empty"><b>${esc(b.empty)}</b></div>`;
   return ui.ListCard(list);
 }
@@ -12275,7 +12255,7 @@ function coachHomePage(){
     const gs=gettingStarted();
     const pv=S.coachProvider||{};
     return ui.Page({page:"home",eyebrow:"Home",h1:pv.business_name||"Home",
-      lede:"What needs you today, resolved for your role from your organization's own records.",
+      lede:"What needs you today.",
       body:setupBanner+(gs&&gs.total&&gs.done<gs.total?ui.Block({title:"Getting started",subtitle:gs.done+" of "+gs.total+" setup steps complete.",
         action:ui.Button({label:"Open guide",size:"sm",variant:"secondary",attrs:'data-ctab="getting-started"'}),body:""}):"")+dashHomeHTML()});
   }
@@ -12301,17 +12281,17 @@ function coachHomePage(){
   const body=[
     ui.Block({
       title:"Stats",
-      subtitle:"Loaded listings, clients, sessions, and paid booking records in this workspace.",
+      subtitle:"This workspace at a glance.",
       body:ui.StatGrid([
-        {label:"Active listings",value:String(mine.length),context:"Published records loaded"},
+        {label:"Active listings",value:String(mine.length),context:"Published"},
         {label:"Clients",value:String(roster.length),context:"Athletes on the current roster"},
-        {label:"Upcoming sessions",value:String(sessions.length),context:"From the loaded schedule"},
-        {label:"Received",value:money(received),context:"Paid booking records only"},
+        {label:"Upcoming sessions",value:String(sessions.length),context:"Scheduled ahead"},
+        {label:"Received",value:money(received),context:"Paid bookings"},
       ]),
     }),
     ui.Block({
       title:"Getting started",
-      subtitle:"Each step is derived from your profile, catalogue, availability, verification, and payout state.",
+      subtitle:"Seven steps to a fully set up workspace.",
       action:ui.Button({label:"Open guide",size:"sm",variant:"secondary",attrs:'data-ctab="getting-started"'}),
       body:ui.ListCard(steps),
     }),
@@ -12362,7 +12342,7 @@ function coachClientsPage(){
   if(active==="roster"){
     body+=ui.Block({
       title:queueIsLive()?((S.coachProvider&&S.coachProvider.business_name)||"Roster"):SEED.teams[0].name,
-      subtitle:queueIsLive()?"Everyone on your organization's roster; payment status comes from each loaded relationship.":"Clients currently attached to this team; payment status comes from each loaded relationship.",
+      subtitle:queueIsLive()?"Everyone on your roster, and whether they have paid.":"Players on this team, and whether they have paid.",
       body:ui.DataTable({
         columns:[{key:"client",label:"Client"},{key:"jersey",label:sportField().label,mono:true},{key:"available",label:"Available"},{key:"payment",label:"Payment"},{key:"actions",label:"Actions"}],
         rows:roster.map((row,index)=>({
@@ -12394,7 +12374,7 @@ function coachClientsPage(){
   } else if(active==="requests"){
     body=ui.Block({
       title:"Client requests",
-      subtitle:"Waitlist and roster requests loaded for your listings; an offer never charges a family.",
+      subtitle:"Waitlist and roster requests. Sending an offer never charges a family.",
       body:ui.DataTable({
         columns:[{key:"athlete",label:"Athlete"},{key:"guardian",label:"Guardian"},{key:"listing",label:"Listing"},{key:"status",label:"Status"},{key:"actions",label:"Actions"}],
         rows:requests.map(row=>{
@@ -12442,7 +12422,7 @@ function coachClientsPage(){
   } else {
     body=ui.Block({
       title:"Client history",
-      subtitle:"Read-only booking history for relationships currently loaded into this workspace.",
+      subtitle:"Past bookings for the families in this workspace.",
       body:ui.DataTable({
         columns:[{key:"date",label:"Date",mono:true},{key:"client",label:"Client"},{key:"listing",label:"Listing"},{key:"status",label:"Status"},{key:"amount",label:"Amount",mono:true}],
         rows:history.map(row=>({
@@ -12455,7 +12435,7 @@ function coachClientsPage(){
   }
   return ui.Page({
     page:"clients",eyebrow:"Clients",h1:"Clients",
-    lede:"Roster relationships, inbound requests, imports, and their read-only history in one client system.",
+    lede:"Your roster, new requests and invites.",
     actions:[ui.Button({label:"Add client",size:"lg",variant:"primary",attrs:'data-addathlete="1"'})],
     tabs:tabs,active:active,stateKey:"clientsPageTab",tabLabel:"Client sections",body:body,
   });
@@ -12685,7 +12665,7 @@ function coachSchedulePage(){
        to a real org (doc 28 law 1). */
     body=queueIsLive()?schedBodyHTML():ui.Block({
       title:"Upcoming sessions",
-      subtitle:"Bookable and booked sessions loaded across your active listings, ordered by date and time.",
+      subtitle:"Sessions across your listings, soonest first.",
       body:ui.DataTable({
         columns:[{key:"date",label:"Date",mono:true},{key:"time",label:"Time",mono:true},{key:"listing",label:"Listing"},{key:"location",label:"Location"},{key:"capacity",label:"Capacity",mono:true}],
         rows:sessions.map(s=>({date:fmtDate(s.date),time:s.startTime,listing:ui.html(`<b>${esc(s.p.title)}</b><small>${esc(s.p.sport)}</small>`),location:s.address||s.p.address||"—",capacity:`${s.p.enrolled}/${s.p.cap}`})),
@@ -12716,7 +12696,7 @@ function coachSchedulePage(){
   }
   return ui.Page({
     page:"schedule",eyebrow:"Clients",h1:"Schedule",
-    lede:live?"Your organization's events, the conflicts the server found on them, attendance from the field, and cancellations that reach families only after you approve the notice.":"Sessions families can attend, the availability that creates them, and exceptions that keep the calendar honest.",
+    lede:live?"Events, conflicts and attendance. Families only hear about a change after you approve the notice.":"Sessions families can book, and the availability behind them.",
     actions:live?[]:[ui.Button({label:"Add session",size:"lg",variant:"primary",attrs:'data-addsession="1"'})],
     tabs:tabs,active:active,stateKey:"schedulePageTab",tabLabel:"Schedule sections",body:body,
   });
@@ -12751,7 +12731,7 @@ function coachListingsPage(){
   const body=ui.Callout({body:"A listing takes bookings only after the background check clears."})+
     ui.Block({
       title:active==="active"?"Taking bookings":active==="drafts"?"Not published":"No longer public",
-      subtitle:active==="active"?"Published listings in the loaded catalogue, including their real capacity and next session.":active==="drafts"?"Listings saved without publication remain invisible to families.":"Archived listings preserve their record without accepting new bookings.",
+      subtitle:active==="active"?"Your published listings, with capacity and next session.":active==="drafts"?"Listings saved without publication remain invisible to families.":"Archived listings preserve their record without accepting new bookings.",
       body:table,
     });
   return ui.Page({
@@ -12849,7 +12829,7 @@ function moneyPageHTML(){
     }
   }
   return ui.Page({page:"money",eyebrow:"Business",h1:"Money",
-    lede:"Outstanding balances by family and in aggregate, aged from the due date; every obligation traceable to what created it; failed payments with their retry state; what was collected.",
+    lede:"Who owes what, how late it is, failed payments, and what has been collected.",
     tabs:tabs,active:active,stateKey:"moneyPageTab",tabLabel:"Money sections",body:body});
 }
 function coachEarningsPage(){
@@ -12872,9 +12852,9 @@ function coachEarningsPage(){
   if(active==="summary"){
     body=ui.Block({
       title:"Booking totals",
-      subtitle:"Amounts are calculated from loaded booking records; Sporv does not invent missing payout data.",
+      subtitle:"Calculated from your bookings.",
       body:ui.StatGrid([
-        {label:"Gross",value:money(gross),context:"All loaded booking payments"},
+        {label:"Gross",value:money(gross),context:"All booking payments"},
         {label:"Platform fee",value:money(fee),context:"Recorded per booking"},
         {label:"Net",value:money(net),context:"Gross less recorded fees"},
       ]),
@@ -12883,7 +12863,7 @@ function coachEarningsPage(){
     const st=coachState();
     body=ui.Block({
       title:"Payout state",
-      subtitle:"Read-only account state loaded from the provider record; Stripe remains the source of settlement details.",
+      subtitle:"Your Stripe payout account. Full details live in Stripe.",
       body:ui.ListCard([
         {label:ui.html("<b>Connection</b><small>Whether the provider row reports payouts enabled.</small>"),value:st.payouts?"Enabled":"Not enabled",mono:false},
         {label:ui.html("<b>Net recorded</b><small>Net across the booking rows currently loaded.</small>"),value:money(net)},
@@ -12893,7 +12873,7 @@ function coachEarningsPage(){
   } else if(active==="transactions"){
     body=ui.Block({
       title:"Transactions",
-      subtitle:"Read-only booking-level movements loaded for this provider, with the recorded fee itemized.",
+      subtitle:"Every booking payment, with any fee shown.",
       body:ui.DataTable({
         columns:[{key:"date",label:"Date",mono:true},{key:"listing",label:"Listing"},{key:"client",label:"Client"},{key:"gross",label:"Gross",mono:true},{key:"fee",label:"Fee",mono:true},{key:"net",label:"Net",mono:true},{key:"status",label:"Status"}],
         rows:tx.map(row=>{
@@ -12960,7 +12940,7 @@ function coachApprovalsPage(){
   }));
   blocks.push(ui.Block({
     title:"Approval queue",
-    subtitle:"Every row requires an explicit decision; no draft is sent merely because it appears here.",
+    subtitle:"Approve or dismiss each one.",
     body:queue,
   }));
   blocks.push(ui.Block({
@@ -12975,7 +12955,7 @@ function coachApprovalsPage(){
   }));
   return ui.Page({
     page:"approvals",eyebrow:"Business",h1:"Approvals",
-    lede:"One queue for generated messages that remain under the coach's control from draft to delivery.",
+    lede:"Messages Sporv drafted for you. Nothing sends until you approve it.",
     body:blocks.join(""),
   });
 }
@@ -12999,9 +12979,9 @@ function coachOperationsPage(){
       ? window.MOD_INSIGHTS.availabilityWarnings() : [];
     body=ui.Block({
       title:"Operating signals",
-      subtitle:"Signals are derived from loaded listings, sessions, capacity, and booking cadence rather than asserted totals.",
+      subtitle:"Based on your listings, sessions, capacity and bookings.",
       body:isCoachGuest()?ui.EmptyState("Sign in to see insights","Operating signals can identify private clients and remain hidden in preview mode.")
-        :ui.ListCard(warnings.map(row=>({label:ui.html(`<b>${esc(row.text)}</b><small>${esc(row.action||"")}</small>`),value:row.level==="good"?"Clear":"Review",mono:false})),{emptyTitle:"No operating signals",emptyBody:"Nothing in the loaded state currently needs attention."}),
+        :ui.ListCard(warnings.map(row=>({label:ui.html(`<b>${esc(row.text)}</b><small>${esc(row.action||"")}</small>`),value:row.level==="good"?"Clear":"Review",mono:false})),{emptyTitle:"No operating signals",emptyBody:"Nothing needs your attention right now."}),
     });
   } else if(active==="reviews"){
     body=ui.Block({
@@ -13019,13 +12999,13 @@ function coachOperationsPage(){
   } else if(active==="policies"){
     body=ui.Block({
       title:"Booking policies",
-      subtitle:"These loaded terms attach to published listings and are shown before a family pays.",
+      subtitle:"Shown to families before they pay.",
       action:ui.Button({label:"Edit policies",size:"sm",variant:"secondary",attrs:'data-modal="editpolicy"'}),
       body:ui.ListCard([
         {label:ui.html("<b>Cancellation</b><small>The policy snapshotted onto a booking.</small>"),value:policies.cancellation||"Not loaded",mono:false},
         {label:ui.html("<b>Late-arrival grace</b><small>Minutes before the session may proceed without the athlete.</small>"),value:policies.graceMinutes==null?"Not loaded":String(policies.graceMinutes)+" min"},
-        {label:ui.html("<b>No-show fee</b><small>Applied only under the loaded no-show policy.</small>"),value:policies.noShowFee==null?"Not loaded":money(policies.noShowFee)},
-        {label:ui.html("<b>Weather</b><small>The currently loaded make-up or refund rule.</small>"),value:policies.weather||"Not loaded",mono:false},
+        {label:ui.html("<b>No-show fee</b><small>Charged only under your no-show policy.</small>"),value:policies.noShowFee==null?"Not set":money(policies.noShowFee)},
+        {label:ui.html("<b>Weather</b><small>Your make-up or refund rule.</small>"),value:policies.weather||"Not set",mono:false},
       ]),
     });
   } else {
@@ -13046,7 +13026,7 @@ function coachOperationsPage(){
   }
   return ui.Page({
     page:"operations",eyebrow:"Business",h1:"Operations",
-    lede:"The signals, feedback, policies, and message rules used to run the practice after publication.",
+    lede:"Insights, reviews, policies and message templates.",
     tabs:tabs,active:active,stateKey:"operationsPageTab",tabLabel:"Operations sections",body:body,
   });
 }
@@ -13581,16 +13561,16 @@ function parseObligations(text){
    mode is Off/Observe/Draft, per-draft-type is Off/On, and there is no Auto. */
 const SET_JOBS=[
   ["logistics","Logistics","Low risk — a wrong message is an inconvenience.",[
-    ["agent_c1","Practice & game reminders","C1 · to families",true],
-    ["agent_c2","Schedule change notices","C2 · to families",true],
-    ["agent_b2","Thursday eligibility report","B2 · to you, not to families",true]]],
+    ["agent_c1","Practice & game reminders","To families",true],
+    ["agent_c2","Schedule change notices","To families",true],
+    ["agent_b2","Thursday eligibility report","To you, not to families",true]]],
   ["documents","Documents","Medium risk — goes to families.",[
-    ["agent_b1","Unsigned waiver follow-ups","B1",true]]],
+    ["agent_b1","Unsigned waiver follow-ups","To families",true]]],
   ["money","Money","Highest risk — a wrong message damages the relationship.",[
-    ["agent_a1","Overdue dues follow-ups","A1 · escalation cap applies",true],
-    ["agent_a2","Failed payment recovery","A2 · sends the recovery message only",true]]],
+    ["agent_a1","Overdue dues follow-ups","To families · tone stays capped",true],
+    ["agent_a2","Failed payment recovery","To families · the card-fix message only",true]]],
   ["clients","Clients","Medium risk — outbound to people who may not expect it.",[
-    ["agent_d1","Reactivation of lapsed members","D1",true]]]];
+    ["agent_d1","Reactivation of lapsed members","To lapsed families",true]]]];
 /* Ask the SERVER which connectors this deployment can actually offer, and
    which this org has connected. Without this the tiles are a hardcoded list,
    and a hardcoded list is wrong in both directions: it offers Connect when no
@@ -14089,7 +14069,7 @@ function coachSettingsPage(){
   <div class="stshell">
     <nav class="strail">${rail.map(([g,items])=>`<div class="stsec">${g}</div>`+
       items.map(([k,l])=>`<button class="${tab===k?"on":""}" data-sttab="${k}">${l}</button>`).join("")).join("")}
-      <div class="stfoot">Every change writes to your club's record — there is no local-only setting on this page.</div>
+      <div class="stfoot">Changes save to your club's account.</div>
     </nav>
     <div class="stmain">${body}</div>
   </div>`;
@@ -14179,11 +14159,11 @@ function coachQueuePage(){
           <div class="obacts"><button class="btn ghost sm" data-find-dismiss="${esc(f.id)}">Dismiss</button></div>
         </div>`).join("")}
       </div></div>`:(S.findLoaded?`<div class="panel" style="margin-top:14px"><h3>What the agent noticed</h3>
-      <p style="color:var(--muted);font-size:var(--text-sm);margin-top:4px">Nothing flagged — dues, documents, credentials and rosters are all current.</p></div>`:"")}
+      <p style="color:var(--muted);font-size:var(--text-sm);margin-top:4px">Nothing flagged right now. The agent checks the dues, documents and rosters it can see.</p></div>`:"")}
     ${queueState}
     ${liveQ?"":`<div class="panel">
       <h3>Forward something to turn it into work</h3>
-      <p style="color:var(--muted);font-size:var(--text-sm);margin-top:4px">Paste a tournament email, a gym's schedule text, a registration deadline — Sporv drafts the fee, deadline, waiver check or message. (Demo parse; the real per-file read runs on the ingest backend.)</p>
+      <p style="color:var(--muted);font-size:var(--text-sm);margin-top:4px">Paste a tournament email, a gym's schedule text, a registration deadline — Sporv drafts the fee, deadline, waiver check or message.</p>
       <textarea id="obligIn" rows="3" style="width:100%;margin-top:10px;resize:vertical" placeholder="Fwd: Fall Classic — $150 entry per player, deadline Sept 12, waivers required at check-in..."></textarea>
       <div class="imp-addrow" style="margin-top:8px"><button class="btn sm" data-oblig-parse="1">Turn into drafts</button></div>
     </div>`}
@@ -14432,7 +14412,7 @@ function coachBody(t){
     const directs=convs.filter(c=>kindOf(c)==="direct");
     const groups=convs.filter(c=>kindOf(c)==="group");
     const shown=tab==="group"?groups:directs;
-    const head=`<div class="sec-head" style="margin-top:18px"><h1>Inbox</h1>
+    const head=`<div class="sec-head" style="margin-top:18px"><h1>Messages</h1>
         <button class="btn" data-newgroup="1">+ New group</button></div>
       <div class="segwrap" style="justify-content:flex-start;margin:0">
         <div class="seg2" role="tablist" aria-label="Conversation type">
@@ -14446,7 +14426,7 @@ function coachBody(t){
         <h3>${tab==="group"?"No group messages yet":"No messages yet"}</h3>
         <p style="margin-top:6px">${tab==="group"
           ? "A group reaches a whole roster at once — the parents on one team, or the trainers on your staff."
-          : (queueIsLive()?"Sporv cannot receive replies yet — families answer at your reply-to address. Inbound threads arrive here once the inbox connector is live.":"When a family messages you about a listing, the thread opens here.")}</p>
+          : (queueIsLive()?"Sporv cannot receive replies yet, so family replies go to your own email for now. Once your inbox is connected, conversations show up here.":"When a family messages you about a listing, the thread opens here.")}</p>
         ${tab==="group"?`<button class="btn" data-newgroup="1" style="margin-top:18px">Create a group</button>`:""}</div>`;
     const active=shown.find(x=>x.id===S.activeConv)||shown[0];
     const isGroup=kindOf(active)==="group";
@@ -20953,14 +20933,23 @@ function askCoach(q){
          sees there's something waiting; cleared when they reopen. */
       if(S.aiOpen===false) S.aiUnread=(S.aiUnread||0)+1;
       render();
-    }).catch(()=>{
+    }).catch((e)=>{
       if(epoch!==chatEpoch) return;
       /* LOUD FAILURE — design-doc law. A signed-in coach never gets the
          keyword matcher pretending to be the assistant; they get the truth
-         and a retry that resends this exact message. */
+         and a retry that resends this exact message.
+         (2026-10-21) Say WHICH failure it was. Production logs showed every
+         failure was a 429 from ai-gateway ("AI request limit reached"), which
+         the generic line hid — the coach could not tell a limit from an outage. */
       S.chatThinking=false;
+      const st=e&&e.status;
+      const why=st===429||st===402
+        ? "You've reached the AI limit for now. Try again shortly, or check your plan under Billing."
+        : st===401
+          ? "Your session expired. Sign in again and resend."
+          : "Sporv couldn't reach the assistant just now.";
       S.chat=[...S.chat,{role:"coach",err:true,retry:text,
-        text:"I couldn't process that — the assistant call failed. Nothing was changed or sent."}];
+        text:why+" Nothing was changed or sent."}];
       render();
     });
     return;

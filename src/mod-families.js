@@ -168,8 +168,8 @@ const CSS = `
 /* ═══════════════════ VIEW: ENTERPRISE TEASER ═══════════════════ */
 function teaserView(ui){
   return ui.Page({
-    page: "families", eyebrow: "ENTERPRISE", h1: "Families is an Enterprise feature",
-    lede: "Guardian records linked to the athletes they cover — who pays, who to contact — built for clubs running full rosters.",
+    page: "families", eyebrow: "ENTERPRISE", h1: "Families",
+    lede: "Guardians linked to their athletes: who pays and who to contact. Available on Enterprise.",
     actions: [ui.Button({
       label: "Join the early-access list", size: "lg", variant: "primary",
       attrs: 'data-fam-pricing="1"',
@@ -178,8 +178,8 @@ function teaserView(ui){
        (purchasable=false). No numeric quotas, no "Unlimited" — the vague
        plan prose lives on the billing page, which is where the button goes. */
     body: ui.Callout({
-      title: "How Enterprise works. ",
-      body: "Enterprise is invite-only while it is in development. The plan list shows what is coming; joining the early-access list puts your club in line and we reach out when your workspace is ready.",
+      title: "Early access.",
+      body: "Enterprise is set up with each club on a call. Join the early-access list and we will reach out when your workspace is ready.",
     }),
   });
 }

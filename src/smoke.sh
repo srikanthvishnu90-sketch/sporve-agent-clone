@@ -654,6 +654,10 @@ $B goto "file://$(pwd)/index.html" >/dev/null 2>&1
     var lum=function(c){var m=c.match(/rgba?\(([^)]+)\)/);if(!m)return null;
       var p=m[1].split(',').map(parseFloat);var a=p.length>3?p[3]:1;
       if(a<0.15)return null;return (0.2126*p[0]+0.7152*p[1]+0.0722*p[2])/255;};
+    /* 2026-10-21 (Harvey redesign): the panel is now a WHITE column. R6 is
+       about light strokes on a DARK ground, so a light panel is exempt. */
+    var pbg=lum(getComputedStyle(panel).backgroundColor);
+    if(pbg!==null&&pbg>0.6) return 'OK';
     var nodes=[panel].concat([].slice.call(panel.children));
     var W=['borderTopWidth','borderRightWidth','borderBottomWidth','borderLeftWidth'];
     var C=['borderTopColor','borderRightColor','borderBottomColor','borderLeftColor'];
@@ -1222,12 +1226,12 @@ return bad.size?[...bad].join(','):'CLEAN'})()" 2>/dev/null)
 $B viewport 1440x900 >/dev/null 2>&1
 comp=$($B js "
 (async()=>{S.portal='coach';S.route={name:'dashboard',arg:null};S.aiOpen=true;S.aiMax=false;S.aiCollapsed=false;render();
- /* COMPOSER: grey slate bubble, white type, one row. */
+ /* COMPOSER (Harvey redesign 2026-10-21): white field, near-black type, one row. */
  const f=document.querySelector('.aidock-compose'),i=document.querySelector('.aidock-input');
  if(!f||!i) return 'NO_COMPOSER';
- if(getComputedStyle(i).color!=='rgb(255, 255, 255)') return 'TYPE_NOT_WHITE';
+ if(getComputedStyle(i).color!=='rgb(22, 22, 22)') return 'TYPE_NOT_INK_'+getComputedStyle(i).color;
  const bg=getComputedStyle(f).backgroundColor;
- if(bg!=='rgb(62, 76, 90)') return 'BUBBLE_NOT_SLATE_'+bg;
+ if(bg!=='rgb(255, 255, 255)') return 'FIELD_NOT_WHITE_'+bg;
  if(!document.querySelector('.aidock-row')) return 'NOT_ONE_ROW';
  if(f.getBoundingClientRect().height>130) return 'BUBBLE_TOO_TALL_'+Math.round(f.getBoundingClientRect().height);
  /* DOCK GEOMETRY (desktop): right-side panel, ~400px wide, full height. */
@@ -1762,7 +1766,7 @@ cob=$($B js "
  const nx=cw.querySelector('.cw-next');
  if(nx&&!nx.disabled&&getComputedStyle(nx).backgroundColor!=='rgb(62, 86, 110)')bad.push('NEXT_NOT_SLATE');
  if(getComputedStyle(cw.querySelector('.cw-seg i')).backgroundColor!=='rgb(62, 86, 110)')bad.push('SEG_NOT_SLATE');
- if(!/Archivo/.test(getComputedStyle(cw.querySelector('.cw-h1')).fontFamily))bad.push('H1_NOT_DISPLAY');
+ if(!/Archivo|Newsreader/.test(getComputedStyle(cw.querySelector('.cw-h1')).fontFamily))bad.push('H1_NOT_DISPLAY');
  const h=cw.querySelector('.cw-help'); if(!h||!/^mailto:/.test(h.getAttribute('href')||''))bad.push('NO_QUESTIONS');
  S.onboard.sports=[];S.route={name:'home',arg:null};S.portal='family';render();document.body.classList.remove('reg-coach');
  return bad.length?bad.join(','):'OK'})()" 2>/dev/null)

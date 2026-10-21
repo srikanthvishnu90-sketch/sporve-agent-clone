@@ -659,10 +659,9 @@ function notesView(){
   return `
   <section class="band alt" style="padding:40px 0 36px">
     <div class="shell" data-rev>
-      <div class="eyebrow">Session notes</div>
-      <h1 style="margin-top:14px;max-width:20ch">Write it once. The parent gets it.</h1>
-      <p class="nt-lede">Each note is attached to the session it came from, and stays private
-        until you send it.</p>
+      <h1 style="max-width:20ch">Session notes</h1>
+      <p class="nt-lede">Write a note once. It stays attached to its session and private
+        until you send it to the family.</p>
       <div class="nt-heroact">
         ${oldest ? `<button class="btn" data-nt-write="${esc(oldest.id)}">Write the oldest note</button>` : ""}
         <span class="pill ${pending ? "warn" : "good"} num">${pending} waiting</span>
@@ -692,22 +691,10 @@ function notesView(){
     </div>
   </section>
 
-  ${/* One dark block per page, at the foot. White cards on black rather than
-        text on black — the ground invariant holds either way, and the card is
-        the same component the product page uses for the platform rules. */""}
-  <section class="band dark" style="padding:44px 0 48px">
-    <div class="shell" data-rev>
-      <div class="prodsec" style="padding:0 0 6px">
-        <h2>What this page will not do</h2>
-        <p class="sub">Held in the code, not in a policy.</p>
-      </div>
-      <div class="prodgrid">
-        ${LIMITS.map(([icon, t, d]) => `<div class="prodcard" style="cursor:default">
-          <span class="ic" aria-hidden="true">${PICON[icon]}</span>
-          <b>${esc(t)}</b><span>${esc(d)}</span></div>`).join("")}
-      </div>
-    </div>
-  </section>`;
+  `;
+  /* (Owner 2026-10-21) The "What this page will not do" block was removed:
+     it restated engineering guarantees to customers. The guarantees in LIMITS
+     still hold in code; they are documentation, not page copy. */
 }
 
 function queuePanel(){

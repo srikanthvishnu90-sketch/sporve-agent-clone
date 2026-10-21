@@ -278,6 +278,18 @@ This means **Organization is a labor-replacement sale, not a software sale.** Th
 
 Binding. Do not introduce a font, a color, or a glyph that is not on this page.
 
+> **Owner decision 2026-10-21 — supersedes the typography and colour tables below
+> for the coach app, the landing and the pricing page.** "Harvey's design ... is
+> genuinely brilliant ... make the website look like harveys", then "rebuild it".
+> The register is now: warm off-white canvas `#F7F6F2`, white cards with `#E6E3DD`
+> hairlines, near-black ink `#161616`, muted `#66655F`; a near-black `#111111`
+> left rail and top bar in the app; **Newsreader** (serif, 400) for page titles,
+> big numbers and landing headlines; **Archivo** at normal width for everything
+> else; JetBrains Mono for money; **sentence case everywhere** (no uppercase
+> headings or buttons); one black primary button per view. Implemented as one
+> layer, `src/mod-harvey.js`. The hard rules (no emoji, no decorative icons,
+> trust surfaces never animate, 390px behaviour) and §8 voice are unchanged.
+
 ### Typography
 | Role | Face | Treatment |
 |---|---|---|
