@@ -289,6 +289,13 @@ Binding. Do not introduce a font, a color, or a glyph that is not on this page.
 > headings or buttons); one black primary button per view. Implemented as one
 > layer, `src/mod-harvey.js`. The hard rules (no emoji, no decorative icons,
 > trust surfaces never animate, 390px behaviour) and §8 voice are unchanged.
+>
+> **Corrected the same day by the owner:** "copy harvey's dashboard color but
+> have the slate coloring and keep sporve's athletic main font." So: Harvey's
+> light layout and dark rail stay, but every accent and action is SLATE
+> (`#3E566E` buttons, `#6B7F9E` active states, `#9DB0CB` on the rail), the canvas
+> is cool `#F5F7F9`, headlines are **Archivo expanded uppercase**, numbers are
+> JetBrains Mono. The Newsreader serif is not used.
 
 ### Typography
 | Role | Face | Treatment |

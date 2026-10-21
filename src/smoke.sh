@@ -1229,7 +1229,7 @@ comp=$($B js "
  /* COMPOSER (Harvey redesign 2026-10-21): white field, near-black type, one row. */
  const f=document.querySelector('.aidock-compose'),i=document.querySelector('.aidock-input');
  if(!f||!i) return 'NO_COMPOSER';
- if(getComputedStyle(i).color!=='rgb(22, 22, 22)') return 'TYPE_NOT_INK_'+getComputedStyle(i).color;
+ if(getComputedStyle(i).color!=='rgb(11, 13, 15)') return 'TYPE_NOT_INK_'+getComputedStyle(i).color;
  const bg=getComputedStyle(f).backgroundColor;
  if(bg!=='rgb(255, 255, 255)') return 'FIELD_NOT_WHITE_'+bg;
  if(!document.querySelector('.aidock-row')) return 'NOT_ONE_ROW';

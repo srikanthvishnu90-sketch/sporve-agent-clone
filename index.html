@@ -29,7 +29,7 @@
 <link rel="manifest" href="/site.webmanifest">
 <script type="application/ld+json">{"@context":"https://schema.org","@type":"SoftwareApplication","name":"Sporv","url":"https://sporv.ai/","applicationCategory":"BusinessApplication","operatingSystem":"Web","description":"Sporv runs the club for you — roster, scheduling, waivers, dues and payouts, with an agent that drafts the busywork and a human who approves it.","publisher":{"@type":"Organization","name":"Sporv","url":"https://sporv.ai/","logo":"https://sporv.ai/icon-512.png"}}</script>
 <script type="application/ld+json">{"@context":"https://schema.org","@type":"WebSite","name":"Sporv AI","url":"https://sporv.ai/"}</script>
-<meta name="sporve-build" content="4615a7ce844de28b">
+<meta name="sporve-build" content="953f3484cfa5731b">
 </head>
 <body>
 <script>
@@ -34660,6 +34660,85 @@ html #app .hvl .close-zone{background:transparent!important;padding:0 40px!impor
 html #app .hvl .hvl-foot{background:transparent!important;color:var(--muted)!important;display:flex!important;flex-direction:column;align-items:center}
 html #app .hvl .hvl-foot .foot-brand{margin:0}
 html #app .hvl .hvl-win-row .st{white-space:nowrap}
+
+/* ═══ OWNER CORRECTION 2026-10-21 (same day) ═══════════════════════════════
+   "your job wasnt to change sporve's color, copy harvey's dashboard color but
+   have the slate coloring and keep sporve's athletic main font."
+   Kept from Harvey: the light working area, white cards, hairlines, dark left
+   rail, calm spacing. Restored from Sporv: the SLATE palette for every accent
+   and action (no black buttons), and ARCHIVO EXPANDED UPPERCASE as the
+   headline voice (no serif). Numbers return to JetBrains Mono. */
+html #app.coachdark,html body.reg-coach,html #app .hvl{
+  --hv-slate:#6B7F9E;--hv-slate-l:#9DB0CB;--hv-slate-deep:#3E566E;--hv-slate-hover:#47617C;
+  --hv-slate-tint:#EEF2F6;--hv-rail:#0B0D0F;--hv-rail-2:#151A21;--hv-rail-3:#1A212B;
+  --hv-canvas:#F5F7F9;--hv-sunk:#EDF1F5;--hv-rule:#E1E6EC;--hv-rule-2:#CFD7E0;
+  --hv-muted:#5B6878;--hv-ink-2:#334155;--hv-ink:#0B0D0F;
+  --hv-attn:#3E566E;--hv-attn-tint:#EEF2F6;
+}
+/* Headline voice: Archivo expanded, uppercase */
+html #app.coachdark .dash>:not(.rail) h1,
+html #app.coachdark .cui-page .cui-h1,
+html #app.coachdark>.sec-head h1{
+  font-family:"Archivo",system-ui,sans-serif!important;font-stretch:125%!important;font-weight:800!important;
+  text-transform:uppercase!important;letter-spacing:.005em!important;font-size:clamp(24px,2.2vw,32px)!important;line-height:1.1!important}
+html #app.coachdark .dash>.rail .railmark{font-family:"Archivo",system-ui,sans-serif!important;font-stretch:125%;font-weight:800;
+  text-transform:uppercase;letter-spacing:.02em;font-size:20px}
+html body.reg-coach .aidock-head-t,html body.reg-coach .aidock-head b,html body.reg-coach .aidock-empty h3{
+  font-family:"Archivo",system-ui,sans-serif!important;font-stretch:125%!important;font-weight:800!important;
+  text-transform:uppercase!important;letter-spacing:.02em!important}
+html body.reg-coach .aidock-head-t,html body.reg-coach .aidock-head b{font-size:15px!important}
+/* Coach register caps weight at 600 (smoke 'coach UI register') */
+html body.reg-coach :is(.aidock-head-t,.aidock-head b,.aidock-empty h3){font-weight:600!important}
+html body.reg-coach .aidock-empty h3{font-size:22px!important}
+/* Numbers: JetBrains Mono, as the Sporv system specifies */
+html #app.coachdark .cui-stat__value,html #app.coachdark .dash .nt-stat b{
+  font-family:"JetBrains Mono",ui-monospace,monospace!important;font-weight:500!important;font-size:28px!important;letter-spacing:-.01em!important}
+
+/* Actions in slate, not black */
+html #app.coachdark .dash .btn:not(.ghost),
+html #app.coachdark .dash .cui-button--primary,
+html #app.coachdark>.empty .btn{background:var(--hv-slate-deep)!important;border-color:var(--hv-slate-deep)!important;color:#FFFFFF!important}
+html #app.coachdark .dash .btn:not(.ghost):hover,
+html #app.coachdark .dash .cui-button--primary:hover{background:var(--hv-slate-hover)!important}
+html #app.coachdark .dash :is(input,select,textarea):focus{outline-color:var(--hv-slate)!important;border-color:var(--hv-slate)!important}
+html #app.coachdark .cui-tab.on{border-color:var(--hv-slate)!important;color:var(--hv-ink)!important}
+html #app.coachdark .dash :is(.stseg,.stdays) button:is(.on,[aria-pressed=true],[aria-checked=true]){background:var(--hv-slate-deep)!important}
+html #app.coachdark .dash .bub.me{background:var(--hv-slate-deep)!important}
+html #app.coachdark .cui-callout{border-left-color:var(--hv-slate)!important}
+html body.reg-coach .aidock-fab{background:var(--hv-slate-deep)!important}
+html #app.coachdark header.topbar .btn:not(.ghost),html body.reg-coach header.topbar .btn:not(.ghost){background:var(--hv-slate)!important;color:#0B0D0F!important}
+
+/* Rail: Sporv near-black with slate highlights */
+html #app.coachdark .dash>.rail{background:var(--hv-rail)!important}
+html body.reg-coach header.topbar{background:var(--hv-rail)!important;border-bottom-color:var(--hv-rail-2)!important}
+html #app.coachdark .dash>.rail button:hover{background:var(--hv-rail-2)!important}
+html #app.coachdark .dash>.rail button.on{background:var(--hv-rail-3)!important;color:#FFFFFF!important;box-shadow:inset 2px 0 0 var(--hv-slate)!important}
+html #app.coachdark .dash>.rail button.on svg{color:var(--hv-slate-l)!important}
+html #app.coachdark .dash>.rail .railgroup{color:var(--hv-slate-l)!important;text-transform:uppercase!important;letter-spacing:.08em!important;font-size:13.5px!important;font-weight:600!important}
+html #app.coachdark .dash>.rail .gsbar i{background:var(--hv-slate-l)!important}
+html #app.coachdark .dash .avatar{background:var(--hv-slate-deep)!important}
+
+/* Public site: same correction */
+html #app .hvl{--serif:"Archivo",system-ui,sans-serif;--ink:#0B0D0F;--ink-2:#334155;--muted:#5B6878;--rule:#E1E6EC;--rule-2:#CFD7E0;--canvas:#F5F7F9;--sunk:#EDF1F5}
+html #app:has(.hvl){background:#F5F7F9!important}
+html #app .hvl .hvl-h1,html #app .hvl .hvl-h2,html body:not(.reg-coach) #app .pr-h1c{
+  font-family:"Archivo",system-ui,sans-serif!important;font-stretch:125%!important;font-weight:800!important;text-transform:uppercase!important;letter-spacing:0!important}
+html #app .hvl .hvl-h1{font-size:clamp(38px,5vw,64px)!important;line-height:1!important}
+html #app .hvl .hvl-h2{font-size:clamp(24px,2.6vw,36px)!important;line-height:1.08!important}
+html body:not(.reg-coach) #app .pr-h1c{font-size:clamp(32px,3.8vw,52px)!important}
+html #app .hvl .hvl-steps li>span{font-family:"JetBrains Mono",ui-monospace,monospace!important;font-size:18px!important;color:#3E566E!important}
+html #app .hvl .hvl-win-rail b{font-family:"Archivo",system-ui,sans-serif;font-stretch:125%;font-weight:800;text-transform:uppercase;font-size:16px}
+html #app .hvl .hvl-win-title{font-family:"Archivo",system-ui,sans-serif;font-stretch:125%;font-weight:800;text-transform:uppercase;font-size:20px}
+html #app .hvl .hvl-win-stats b{font-family:"JetBrains Mono",ui-monospace,monospace;font-weight:500;font-size:22px}
+html #app .hvl .hvl-win-rail{background:#0B0D0F}
+html #app .hvl .hvl-win-rail span.on{background:#1A212B;box-shadow:inset 2px 0 0 #6B7F9E}
+html #app .hvl .hvl-win-ask{background:#3E566E}
+html #app .hvl .hvl-btn-pri{background:#3E566E;border-color:#3E566E}
+html #app .hvl .hvl-btn-pri:hover{background:#47617C}
+html body:not(.reg-coach) header.topbar{background:rgba(245,247,249,.94)!important;border-bottom-color:#E1E6EC!important}
+html body:not(.reg-coach) header.topbar .cta.start{background:#3E566E!important;border-color:#3E566E!important}
+html body:not(.reg-coach) #app:has(.pr-h1c){background:#F5F7F9!important}
+html body:not(.reg-coach) #app:has(.pr-h1c) .btn:not(.ghost),html body:not(.reg-coach) #app .pp-cta:not(.pp-cta-alt),html body:not(.reg-coach) #app .pp-badge{background:#3E566E!important}
 `;
 
 const ID = "harvey-layer";
