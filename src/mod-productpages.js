@@ -309,7 +309,7 @@
       ["Safety", "Accounts belong to adults. A parent's consent gates a minor's data, youth details stay compartmented, and inbound email is treated as untrusted input. The safety page lists the full protocols."]
     ];
     var questions = [
-      ["Who is Sporv for?", "Youth-sports organizations — clubs, academies, leagues — and the independent coaches and trainers who run sessions. One account holds the staff, the athletes, the money, and the compliance."],
+      ["Who is Sporv for?", "Sports organizations — schools and athletic departments, clubs, academies, AAU and travel teams, leagues — and the independent coaches and trainers who run sessions. One account holds the staff, the athletes, the money, and the compliance."],
       ["What does it cost?", "The organization pays a flat subscription for the software and the agent: free to start, Pro at thirty-four ninety-nine a month, custom for larger organizations. Sporv takes zero percent of parent dues at launch."],
       ["What does the agent never do?", "Send anything on its own. Every message, charge, and record change waits for a human approval in the review queue. The agent proposes; the organization decides."]
     ];
@@ -317,7 +317,7 @@
       return "<article><h2>" + cell[0] + "</h2><p data-prose>" + cell[1] + "</p></article>";
     };
     return wrap("what-is", "B01", "manifesto-split-grid-claim-questions", "D-L-L-D-L", hero(meta,
-      "The agent for <em>youth-sports organizations.</em>",
+      "The agent for <em>sports organizations.</em>",
       "Sporv reads your operation — email, calendar, dues, roster, files — and drafts the work: the follow-ups, the waiver chases, the schedule notices, the session notes. Every draft waits in one review queue, and nothing sends until a person approves it.",
       { tone: "dark", layout: "manifesto", eyebrow: "WHAT IS SPORV" }) +
       "<section class='pgband white pg-capability-section' data-section='capability-grid' data-layout='six-cell-border-grid'><div class='shell pg-capability-grid'>" +

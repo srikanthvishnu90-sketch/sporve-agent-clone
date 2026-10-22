@@ -53,7 +53,7 @@ assert.match(onboarding, /providerId/, "owned-listing completion must bind to th
 
 assert.match(guide, /const availabilityDone = futureSessions\.length > 0/, "no coach may complete availability from local recurring-demo state");
 assert.doesNotMatch(onboarding, /data-gs-(?:done|complete)|step\.done\s*=/, "the guide must not expose a client-side mark-done path");
-assert.match(onboarding, /Sample mode never counts as a real background-check result/, "sample screening must be disclosed");
+assert.match(onboarding, /sample workspace never counts as a real background check/i, "sample screening must be disclosed");
 assert.match(onboarding, /an account id by itself is not enough/, "Stripe redirect/account creation must not count as payout readiness");
 assert.match(onboarding, /does not prove a named screening vendor/, "screening details must not be invented");
 assert.match(onboarding, /does not promise a two-day payout/, "payout timing must remain Stripe-controlled");

@@ -815,17 +815,24 @@
       var qfmt = function (n) { n = Number(n); return isFinite(n) ? n.toLocaleString("en-US") : "a set number of"; };
       body = ui.Block({
         title:"Current plan",
-        subtitle:"Plan state comes from the loaded provider record; a checkout redirect never changes it by itself.",
+        subtitle:"Updates within a minute of any change in Stripe.",
         body:ui.ListCard([
           { label:ui.html("<b>" + esc(st.label) + "</b><small>" + esc(st.entitled ? st.plan.adds : free.adds) + "</small>"), value:st.entitled ? esc(st.plan.price + st.plan.per) : esc(free.price), mono:true },
-          { label:ui.html("<b>" + esc(free.name) + "</b><small>" + esc(free.adds) + "</small>"), value:esc(free.price), mono:true },
-          { label:ui.html("<b>" + esc(pro.name) + "</b><small>" + esc(pro.adds) + "</small>"), value:esc(pro.price + pro.per), mono:true },
-          { label:ui.html("<b>" + esc(ent.name) + "</b><small>Multi-player workspace is not self-serve.</small>"), value:esc(ent.price + ent.per), mono:true },
+        ]),
+      }) + ui.Block({
+        title:"Plans",
+        subtitle:"What each plan includes.",
+        /* One row per plan. The old list repeated the current plan above Free,
+           so a free workspace saw "Free plan" and "Free" as two rows. */
+        body:ui.ListCard([
+          { label:ui.html("<b>" + esc(free.name) + (!st.entitled ? " · current" : "") + "</b><small>" + esc(free.adds) + "</small>"), value:esc(free.price), mono:true },
+          { label:ui.html("<b>" + esc(pro.name) + (st.entitled && st.id === "pro" ? " · current" : "") + "</b><small>" + esc(pro.adds) + "</small>"), value:esc(pro.price + pro.per), mono:true },
+          { label:ui.html("<b>" + esc(ent.name) + (st.entitled && st.id === "enterprise" ? " · current" : "") + "</b><small>For multi-team clubs. Set up with us on a call.</small>"), value:esc(ent.price + ent.per), mono:true },
         ]) +
         /* Quiet honesty: the cards stay vague by design, but the actual caps
            live here in the fine print so nobody's first encounter with a
            limit is the rejection message. */
-        '<p style="margin:14px 2px 0;color:#8a8a8a;font-size:12px;line-height:1.6;">Fair-use AI limits, resetting monthly: ' +
+        '<p style="margin:14px 2px 0;color:#66655F;font-size:14px;line-height:1.6;">Fair-use AI limits, resetting monthly: ' +
         'Free includes ' + esc(qfmt(free.quota)) + ' AI actions, Pro ' + esc(qfmt(pro.quota)) + ', Enterprise ' + esc(qfmt(ent.quota)) + '.</p>',
       });
     } else if (active === "payment-method") {
@@ -875,7 +882,7 @@
     body += '<p class="cui-error hide" data-cb-err role="alert"></p>';
     return ui.Page({
       page:"billing", eyebrow:"Business", h1:"Billing",
-      lede:"Your plan, Stripe-owned payment method, and read-only invoice history; Sporv takes no share of a booking.",
+      lede:"Your plan, payment method and invoices. Sporv takes no share of what families pay you.",
       actions:actions, tabs:tabs, active:active, stateKey:"billingTab", tabLabel:"Billing sections", body:body,
     });
   }
