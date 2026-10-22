@@ -91,7 +91,15 @@
           if (!res.ok) {
             var msg = (data && (data.message || data.error_description || data.error)) ||
                       ("Request failed (" + res.status + ")");
-            throw new ApiError(res.status, data && data.code, msg);
+            var apiErr = new ApiError(res.status, data && data.code, msg);
+            /* Keep the parsed body and the Retry-After hint: the assistant
+               tells "plan allowance used up" (402 + reason) apart from "AI
+               service busy" (503 + retry_after) only by reading them. */
+            apiErr.data = (data && typeof data === "object") ? data : null;
+            var ra = Number(res.headers && res.headers.get && res.headers.get("retry-after"));
+            if (!(ra > 0) && apiErr.data) ra = Number(apiErr.data.retry_after);
+            apiErr.retryAfter = ra > 0 ? ra : null;
+            throw apiErr;
           }
           return data;
         });
@@ -117,8 +125,13 @@
      because GoTrue rotates refresh tokens and the 2nd would be spent. */
   function request(path, opts) {
     return rawRequest(path, opts).catch(function (err) {
+      /* Edge functions answer an expired token with a bare 401
+         ({error:"Not authenticated"}, no PGRST code), so a coach who left the
+         tab open an hour got "the assistant call failed" instead of a silent
+         refresh. Same one-retry rule applies to them. */
       var expired = err instanceof ApiError && err.status === 401 &&
-                    (err.code === "PGRST301" || err.code === "PGRST303");
+                    (err.code === "PGRST301" || err.code === "PGRST303" ||
+                     String(path).indexOf("/functions/v1/") === 0);
       if (!expired || !onUnauthorized) throw err;
       return Promise.resolve()
         .then(function () { return onUnauthorized(); })

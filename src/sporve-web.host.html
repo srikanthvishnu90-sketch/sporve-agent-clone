@@ -7379,6 +7379,7 @@ const S={
   mapPick:null,
   chat:[],
   chatThinking:false,
+  chatRetrying:false,              // one automatic retry in flight after a busy (503) / short-wait 429 answer
   aiOpen:(typeof window!=="undefined"?window.innerWidth:1440)>=768, // coach AI dock: open on arrival (desktop/tablet); closed on phones so the dashboard stays usable. Set once at boot — never clobbered at render time, so an explicit S.aiOpen=true always wins and sessionStorage restore keeps the user's choice.
   aiMax:false,                     // Centered chat panel is the default open state (owner 2026-09-21).
                                    // 2026-08-25: the chatbox is a permanent right column beside the
@@ -11224,8 +11225,7 @@ function aiDockHTML(){
       <div class="aidock-scroll aimax-scroll" id="aidockScroll">
         <div class="aimax-col">
           ${S.chat.length?thread:(harv?aiHarvHeadHTML():coachEmptyHTML())}
-          ${S.chatThinking?`<div class="bub them" style="align-self:flex-start;display:flex;gap:5px;align-items:center">
-            <i class="dotdot"></i><i class="dotdot" style="animation-delay:.16s"></i><i class="dotdot" style="animation-delay:.32s"></i></div>`:""}
+          ${S.chatThinking?aiThinkingHTML():""}
         </div>
       </div>
       ${S.chat.length?aiChipsHTML():""}
@@ -11306,8 +11306,7 @@ function aiDockHTML(){
     </div>`;
   const scrollHTML=`<div class="aidock-scroll" id="aidockScroll">
       ${thread}
-      ${S.chatThinking?`<div class="bub them" style="align-self:flex-start;display:flex;gap:5px;align-items:center">
-        <i class="dotdot"></i><i class="dotdot" style="animation-delay:.16s"></i><i class="dotdot" style="animation-delay:.32s"></i></div>`:""}
+      ${S.chatThinking?aiThinkingHTML():""}
     </div>`;
   /* RIGHT DOCK (owner 2026-09-24; supersedes the 2026-09-21 centered rule): the
      resting chatbox is a right-side panel with a header X — never a
@@ -20897,6 +20896,48 @@ function pickAiFile(){
   }
   aiFileInput.click();
 }
+/* ── Assistant failure handling (incident 2026-10-22) ─────────────────────
+   The thinking bubble, plus one honest caption while an automatic retry
+   waits — the coach sees the assistant is still on it, not a dead end. */
+function aiThinkingHTML(){
+  return `<div class="bub them" style="align-self:flex-start;display:flex;gap:5px;align-items:center"${S.chatRetrying?' data-airetrying="1"':""}>
+    <i class="dotdot"></i><i class="dotdot" style="animation-delay:.16s"></i><i class="dotdot" style="animation-delay:.32s"></i>${S.chatRetrying?`<span class="aidock-toolsline" style="margin-left:6px">Still working, retrying</span>`:""}</div>`;
+}
+/* Milliseconds to wait before the ONE automatic retry, or null for "do not
+   retry". Only answers the server refused before doing anything qualify. */
+function aiAutoRetryDelay(err){
+  const st=err&&err.status, ra=Number(err&&err.retryAfter);
+  const jitter=Math.floor(Math.random()*400);
+  if(st===503) return (ra>0?Math.min(ra,8)*1000:800+Math.floor(Math.random()*1600))+jitter;
+  if(st===429&&ra>0&&ra<=8) return ra*1000+jitter;
+  return null;
+}
+/* The words the coach reads when a turn fails: what failed, what to do,
+   and whether "Try again" can work. Calm register, no exclamation marks. */
+function aiFailureCopy(err){
+  const st=err&&err.status, d=(err&&err.data)||{}, ra=Number(err&&err.retryAfter);
+  const nothing=" Nothing was changed or sent.";
+  if(st===402){
+    const plan=String(d.current_plan||"");
+    const label=plan?plan.charAt(0).toUpperCase()+plan.slice(1):"";
+    const counts=d.unit!=="usd_cents"&&Number.isFinite(+d.limit)&&Number.isFinite(+d.current)&&+d.limit>0
+      ?` You have used ${+d.current} of ${+d.limit}${label?` on the ${label} plan`:""}.`:(label?` You are on the ${label} plan.`:"");
+    const next=d.upgrade_to?` ${String(d.upgrade_to).charAt(0).toUpperCase()+String(d.upgrade_to).slice(1)} raises the limit. It also resets on the 1st of next month.`:" It resets on the 1st of next month.";
+    return {retry:false,nav:{tab:"billing",label:"See plans"},
+      text:"This month's assistant allowance is used up."+counts+next+nothing};
+  }
+  if(st===503) return {retry:true,
+    text:"The AI service is busy right now. I tried twice and it did not answer. Try again in a minute."+nothing};
+  if(st===429) return {retry:true,
+    text:`Too many questions in a short time. Try again in ${ra>0?Math.ceil(ra)+" seconds":"a minute"}.`+nothing};
+  if(st===401) return {retry:true,
+    text:"Your session has ended. Sign in again, then press Try again."+nothing};
+  if(st===0) return {retry:true,
+    text:"I could not reach Sporv. Check your connection, then press Try again."+nothing};
+  if(err&&err.message==="timeout") return {retry:true,
+    text:"The assistant did not answer within 45 seconds. Nothing was sent. Check Approvals before asking again, in case a draft was already queued."};
+  return {retry:true,text:"I couldn't process that — the assistant call failed."+nothing};
+}
 function askCoach(q){
   const text=(q||"").trim();
   /* A file with no question has nothing to answer — keep the file staged
@@ -20983,8 +21024,29 @@ function askCoach(q){
        turn, then the race rejects into the same loud-failure path — the
        request itself isn't aborted (API.fn has no cancellation), but the UI
        recovers and offers retry. */
-    const timeout=new Promise((_,rej)=>setTimeout(()=>rej(new Error("timeout")),45000));
-    Promise.race([API.fn("coach-command",{text:text+aiFileBlock(file),history}),timeout]).then(r=>{
+    /* RELIABILITY (incident 2026-10-22, docs/incidents/2026-10-22-assistant-429.md).
+       ONE automatic retry, and only when the server PROVES nothing ran: a 503
+       (AI provider busy — the gateway already retried it with backoff) or a
+       429 whose retry_after is short. Both are refused before any draft is
+       queued, so resending cannot double anything. A 402 (plan allowance
+       used up), a 401, a network drop or a timeout is never auto-retried:
+       the first cannot succeed, and the last two may have reached the server.
+       While the retry waits, the thinking bubble says so instead of failing. */
+    const attempt=()=>{
+      const timeout=new Promise((_,rej)=>setTimeout(()=>rej(new Error("timeout")),45000));
+      return Promise.race([API.fn("coach-command",{text:text+aiFileBlock(file),history}),timeout]);
+    };
+    const runTurn=()=>attempt().catch(err=>{
+      const wait=aiAutoRetryDelay(err);
+      if(wait==null||epoch!==chatEpoch) throw err;
+      S.chatRetrying=true; render();
+      return new Promise(res=>setTimeout(res,wait)).then(()=>{
+        if(epoch!==chatEpoch) throw err;
+        return attempt();
+      });
+    });
+    runTurn().then(r=>{
+      S.chatRetrying=false;
       /* The coach switched threads while this turn was in flight — its reply
          belongs to a conversation that is no longer on screen. Drop it. */
       if(epoch!==chatEpoch) return;
@@ -21047,23 +21109,16 @@ function askCoach(q){
          sees there's something waiting; cleared when they reopen. */
       if(S.aiOpen===false) S.aiUnread=(S.aiUnread||0)+1;
       render();
-    }).catch((e)=>{
+    }).catch(err=>{
+      S.chatRetrying=false;
       if(epoch!==chatEpoch) return;
       /* LOUD FAILURE — design-doc law. A signed-in coach never gets the
          keyword matcher pretending to be the assistant; they get the truth
-         and a retry that resends this exact message.
-         (2026-10-21) Say WHICH failure it was. Production logs showed every
-         failure was a 429 from ai-gateway ("AI request limit reached"), which
-         the generic line hid — the coach could not tell a limit from an outage. */
+         (which of busy / plan limit / signed out / offline it was) and a
+         retry that resends this exact message whenever a retry can work. */
+      const f=aiFailureCopy(err);
       S.chatThinking=false;
-      const st=e&&e.status;
-      const why=st===429||st===402
-        ? "You've reached the AI limit for now. Try again shortly, or check your plan under Billing."
-        : st===401
-          ? "Your session expired. Sign in again and resend."
-          : "Sporv couldn't reach the assistant just now.";
-      S.chat=[...S.chat,{role:"coach",err:true,retry:text,
-        text:why+" Nothing was changed or sent."}];
+      S.chat=[...S.chat,{role:"coach",err:true,retry:f.retry?text:null,text:f.text,nav:f.nav||null}];
       render();
     });
     return;
@@ -21528,7 +21583,7 @@ const EPHEMERAL = new Set([
   "slotPick", "slotPickFor", "msgUndelivered", "railMenu", "coachQueue",
   "fdraft", "fdOpen",
   "cmdDraft", "cmdSending", "cmdError", "cmdPending", "cmdAction", "cmdModelOpen",
-  "chatThinking", "sportOpen", "sportAnchor", "faqOpen", "forgotSent", "mapPick",
+  "chatThinking", "chatRetrying", "sportOpen", "sportAnchor", "faqOpen", "forgotSent", "mapPick",
   /* An open dropdown is a gesture, not work — restoring it on reload steals
      the first click. aiMax itself persists, same reasoning as aiOpen. */
   "aiHistOpen", "aiFull",
