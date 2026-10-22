@@ -10990,7 +10990,9 @@ function propCardHTML(p,i){
   const isMsgFamily=["draft_message","draft_bulk_message","draft_recap","camp_broadcast","draft_waitlist_offer"].includes(p.tool);
   const draft=propDraft(p);
   const disp=PROP_DISPATCH[p.tool];
-  const canSend=!!(disp&&disp.canSend(p));
+  /* G4: Approve renders only when the rail exists AND the action registry's
+     precondition passes, so the button and the dispatcher cannot disagree. */
+  const canSend=!!(disp&&disp.canSend(p)&&window.SporvActions&&window.SporvActions.check(p.tool,{proposal:p,text:draft}).ok);
   if(p.state==="done") return `<div class="propcard done">
     <div class="propcard-head">✓ Done</div>
     <p class="propcard-sub">${esc(meta.label)} — approved and dispatched.</p></div>`;
@@ -13585,12 +13587,13 @@ function decideIntakeProposal(id,decision){
   S.intakeDeciding=S.intakeDeciding||{};
   if(S.intakeDeciding[id]) return;
   S.intakeDeciding[id]=true;render();
-  window.SporveAPI.rpc("decide_intake_proposal",{p_proposal:id,p_decision:decision})
-    .then(function(res){
-      /* The RPC stamps applied/void server-side — reflect the honest state. */
+  /* G4: through the action registry. The old client assumed applied/void
+     when the RPC returned no status; now no status means no receipt, which
+     is a failure, and the row is read back before the toast. */
+  Promise.resolve().then(function(){return window.SporvActions.execute("intake_decide",{id:id,decision:decision});})
+    .then(function(out){
       const row=(S.intakeProposals||[]).find(function(p){return p.id===id;});
-      const stamped=(res&&res.status)||(decision==="approve"?"applied":"void");
-      if(row) row.status=stamped;
+      if(row) row.status=out.receipt.status;
       delete S.intakeDeciding[id];render();
       toast(decision==="approve"?"Change applied.":"Proposal voided — nothing changed.");
     })
@@ -19075,11 +19078,11 @@ document.querySelectorAll('.sig-ai-coach').forEach(sigAiCoachWire);
   const obligPatch=(o,status)=>{
     if(!o.live) return Promise.resolve(true);
     if(!window.SporveAPI) return Promise.reject(new Error("Not connected."));
-    return window.SporveAPI.from("obligations","id=eq."+o.id+"&select=id,status",
-      {method:"PATCH",headers:{Prefer:"return=representation"},body:{status:status}})
-      .then(rows=>{
-        if(!(Array.isArray(rows)&&rows[0]&&rows[0].status===status)) throw new Error("The server did not record that change.");
-        return true;});
+    /* G4: the PATCH and its receipt check (the row must come back carrying
+       the new status) live in the action registry's obligation_set_status
+       (src/mod-actions.js); no receipt means failure, never success. */
+    return Promise.resolve().then(()=>window.SporvActions.execute("obligation_set_status",{obligation:o,status}))
+      .then(()=>true);
   };
   const obligSet=(o,status,okMsg)=>{
     if(o.busy) return;
@@ -19097,16 +19100,18 @@ document.querySelectorAll('.sig-ai-coach').forEach(sigAiCoachWire);
     if(o.live&&(o.guardianId||o.sourceKind==="agent")&&window.SporveAPI){
       if(o.busy) return;
       o.busy=true;render();
-      window.SporveAPI.rpc("approve_obligation_and_queue",{p_obligation_id:o.id})
-        .then(msgId=>{
+      /* G4: both steps run through the action registry — the approval is read
+         back from obligations, the send from outbound_messages. */
+      Promise.resolve().then(()=>window.SporvActions.execute("obligation_approve",{obligation:o}))
+        .then(out=>{const msgId=out.receipt.queuedMessageId;
           o.status="approved";o.busy=false;render();
           if(!msgId){toast(/^eligibility:/.test(o.sourceRef)
             ?"Approved — this report is for you; nothing goes to families."
             :"Approved — no recipient on this one, nothing to send.");return;}
-          return window.SporveAPI.fn("lifecycle-approve",{id:msgId})
-            .then(r=>toast(r&&r.queuedEmail
+          return Promise.resolve().then(()=>window.SporvActions.execute("queue_approve",{id:msgId}))
+            .then(sent=>{const r=sent.result;toast(r&&r.queuedEmail
               ?(r.kick==="done"&&Number(r.delivered)>0?"Approved and emailed to the family.":"Approved — emailing this family within the minute.")
-              :"Approved and sent to the family."))
+              :"Approved and sent to the family.");})
             .catch(e=>toast(/bounced/.test(e&&e.message||"")
               ?"Approved, but this guardian's email bounced — fix the address on their record."
               :"Approved, but sending failed: "+((e&&e.message)||"try again from Approvals.")));
@@ -19132,10 +19137,10 @@ document.querySelectorAll('.sig-ai-coach').forEach(sigAiCoachWire);
       let sent=0,held=0,failed=0;
       for(const o of goRows){
         try{
-          const msgId=await window.SporveAPI.rpc("approve_obligation_and_queue",{p_obligation_id:o.id});
+          const msgId=(await window.SporvActions.execute("obligation_approve",{obligation:o})).receipt.queuedMessageId;
           o.status="approved";render();
           if(msgId){
-            try{const r=await window.SporveAPI.fn("lifecycle-approve",{id:msgId});
+            try{const r=(await window.SporvActions.execute("queue_approve",{id:msgId})).result;
                 if(r&&r.queuedEmail)held++;else sent++;}
             catch(e){failed++;}
           }
@@ -19159,10 +19164,10 @@ document.querySelectorAll('.sig-ai-coach').forEach(sigAiCoachWire);
     let sent=0,held=0,failed=0;
     for(const o of rows){
       try{
-        const msgId=await window.SporveAPI.rpc("approve_obligation_and_queue",{p_obligation_id:o.id});
+        const msgId=(await window.SporvActions.execute("obligation_approve",{obligation:o})).receipt.queuedMessageId;
         o.status="approved";
         if(msgId){
-          try{const r=await window.SporveAPI.fn("lifecycle-approve",{id:msgId});
+          try{const r=(await window.SporvActions.execute("queue_approve",{id:msgId})).result;
               if(r&&r.queuedEmail)held++;else sent++;}
           catch(e){failed++;}
         }
@@ -19175,9 +19180,17 @@ document.querySelectorAll('.sig-ai-coach').forEach(sigAiCoachWire);
      nightly cron for THIS org only (the generators check it per row). */
   $("[data-find-dismiss]").forEach(b=>b.onclick=()=>{
     const id=b.dataset.findDismiss;
-    S.findings=(S.findings||[]).filter(f=>f.id!==id);render();
-    if(window.SporveAPI) window.SporveAPI.from("agent_findings","id=eq."+id,{method:"PATCH",body:{status:"dismissed"}}).catch(()=>{});
-    toast("Dismissed — it'll resurface if the underlying issue is still true tomorrow.");
+    /* G4: this used to remove the card first and swallow the PATCH error — a
+       dismissal that never reached the server still said "Dismissed". The
+       card now leaves only after the registry's receipt (the row came back
+       with status 'dismissed'). Guest/demo findings have no server row. */
+    if(!(window.SporveAPI&&window.SporveAPI.isSignedIn&&window.SporveAPI.isSignedIn())){
+      S.findings=(S.findings||[]).filter(f=>f.id!==id);render();
+      toast("Dismissed — it'll resurface if the underlying issue is still true tomorrow.");return;}
+    Promise.resolve().then(()=>window.SporvActions.execute("finding_dismiss",{id}))
+      .then(()=>{S.findings=(S.findings||[]).filter(f=>f.id!==id);render();
+        toast("Dismissed — it'll resurface if the underlying issue is still true tomorrow.");})
+      .catch(e=>toast("Could not dismiss: "+((e&&e.message)||"try again.")));
   });
   $("[data-agent-read]").forEach(b=>b.onclick=()=>{
     const pv=S.coachProvider;if(!pv||!window.SporveAPI||S.readRunning)return;
@@ -19696,9 +19709,11 @@ document.querySelectorAll('.sig-ai-coach').forEach(sigAiCoachWire);
     const i=+b.dataset.qapprove; const drafts=approvalDrafts(); const d=drafts[i]; if(!d) return;
     const box=document.getElementById("apvBody"+i);
     const text=(box?box.textContent:d.body).trim();
-    S.approvalSent=[{kind:d.kind,to:d.to,preview:text.slice(0,68)},...(S.approvalSent||[])];
-    drafts.splice(i,1); render();
-    toast(/Wed 6:00 PM/.test(d.to)?"Approved — queued for Wed 6:00 PM per quiet hours; push with email fallback.":"Approved & sent — delivery receipts will show who has seen it.");
+    /* G4: guest-demo approve still runs through the action registry. */
+    Promise.resolve().then(()=>window.SporvActions.execute("demo_queue_approve",{index:i,text}))
+      .then(()=>{render();
+        toast(/Wed 6:00 PM/.test(d.to)?"Approved — queued for Wed 6:00 PM per quiet hours; push with email fallback.":"Approved & sent — delivery receipts will show who has seen it.");})
+      .catch(e=>{render();toast((e&&e.message)||"Could not approve that draft.");});
   });
   $("[data-qdismiss]").forEach(b=>b.onclick=()=>{
     const i=+b.dataset.qdismiss; approvalDrafts().splice(i,1); render();
@@ -19720,7 +19735,11 @@ document.querySelectorAll('.sig-ai-coach').forEach(sigAiCoachWire);
     if(S.qDeciding[id]) return;
     S.qDeciding[id]=true;
     const clear=()=>{ if(S.qDeciding) delete S.qDeciding[id]; };
-    window.SporveCoach.decide(id,decision)
+    /* G4: every queue decision runs through the action registry, which
+       rejects a response that carries no receipt (e.g. a 200 with no status)
+       and reads the row back before "Sent" is ever shown. */
+    const act={approve:"queue_approve",reject:"queue_reject",redraft:"queue_redraft"}[decision];
+    Promise.resolve().then(()=>window.SporvActions.execute(act||("queue_"+decision),{id}))
       /* Hold the lock THROUGH hydration: clearing before the re-read leaves a
          window where a stray render() draws a live button for a row the server
          has already acted on. hydrateQueue() re-renders with the lock still set
@@ -20717,14 +20736,16 @@ function applyAction(a,original){
 
 function confirmPending(){
   const p=S.cmdPending; if(!p) return;
-  const id=p.convId;
-  (S.messages[id]=S.messages[id]||[]).push(
-    {id:"msg_"+((S.messages[id]||[]).length+1),me:false,text:p.body,at:TODAY});
-  const c=S.conversations.find(x=>x.id===id); if(c) c.last=p.body;
-  if(S.unread) S.unread[id]=0;
-  S.cmdPending=null;S.cmdDraft="";
-  S.cmdLog=[{text:p.restated,at:"just now"},...(S.cmdLog||[])].slice(0,8);
-  render();toast("Sent");
+  /* G4: the write runs through the action registry (precondition, receipt,
+     read-back). A refusal keeps the pending card and says why. */
+  return Promise.resolve().then(()=>{
+    if(!window.SporvActions) throw new Error("The action registry didn't load, so nothing was sent.");
+    return window.SporvActions.execute("send_group_message",{pending:p});
+  }).then(out=>{
+    S.cmdPending=null;S.cmdDraft="";
+    S.cmdLog=[{text:p.restated,at:"just now"},...(S.cmdLog||[])].slice(0,8);
+    render();toast("Sent. "+window.SporvActions.receiptLine(out));
+  }).catch(e=>{render();toast("That didn't send — "+((e&&e.message)||"the request was refused."));});
 }
 function runCommand(text){
   const t=text.toLowerCase();
@@ -20832,9 +20853,11 @@ function sendRecapToParentDemo(athleteName, body){
   let conv=S.conversations.find(c=>c.with===parent);
   if(!conv){ conv={id:"conv_"+Date.now(),with:parent,programId:a.programId,last:"",at:nowISO};
     S.conversations=[conv,...S.conversations]; S.messages[conv.id]=[]; }
-  (S.messages[conv.id]=S.messages[conv.id]||[]).push({id:"m_"+Date.now(),me:true,text:text,at:nowISO});
+  const msgId="m_"+Date.now();
+  (S.messages[conv.id]=S.messages[conv.id]||[]).push({id:msgId,me:true,text:text,at:nowISO});
   conv.last=text.slice(0,60); conv.at=nowISO; S.activeConv=conv.id;
-  return {parent:parent, athlete:a.name};
+  /* G4: the message id + thread are the receipt the registry reads back. */
+  return {parent:parent, athlete:a.name, conversationId:conv.id, messageId:msgId};
 }
 
 /* ── B1/B2: file attachments for the coach dock ──────────────────────────
@@ -21352,13 +21375,21 @@ function approveProposal(i){
   /* Promise.resolve() first, so a SYNCHRONOUS throw (module not loaded,
      unexpected state) lands in the same .catch as a network failure instead
      of leaving the card stuck on the busy state. */
-  Promise.resolve().then(()=>disp.run(p,text)).then(res=>{
+  /* G4: the rail runs ONLY through the action registry, which refuses an
+     unknown tool loudly, re-checks the precondition, and rejects a run that
+     returns no receipt or whose read-back finds nothing written — so a silent
+     no-op can never reach the "done" bubble below. */
+  Promise.resolve().then(()=>{
+    if(!window.SporvActions) throw new Error("The action registry didn't load, so nothing was run.");
+    return window.SporvActions.execute(p.tool,{proposal:p,text});
+  }).then(out=>{
+    const res=out.result;
     /* The card's own state updates wherever its thread now lives (archived or
        on screen); the CONFIRMATION bubble only joins the thread the coach is
        still looking at. */
-    p.state="done";
+    p.state="done"; p.receipt=out.receipt;
     if(epoch===chatEpoch){
-      S.chat=[...S.chat,{role:"coach",text:disp.done(res),nav:disp.nav?disp.nav(res):null}];
+      S.chat=[...S.chat,{role:"coach",text:disp.done(res)+" "+window.SporvActions.receiptLine(out),nav:disp.nav?disp.nav(res):null}];
     }
     render();
   }).catch(e=>{

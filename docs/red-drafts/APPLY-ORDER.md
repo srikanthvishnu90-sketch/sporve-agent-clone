@@ -160,3 +160,22 @@ outstanding.
 **The repo is not the state.** Three migrations in `supabase/migrations/` are
 not in production, and one applied change (`ai_quota_burst`) has a different
 name there. Before applying anything, probe for the object, not the filename.
+
+## G4 receipts
+
+Added 2026-10-22 (GATES.md G4). Independent of every wave above — it creates
+one new table and touches nothing that exists.
+
+21. `2026-10-22-g4-action-receipts.sql` — the durable home for the receipts
+    `src/mod-actions.js` (window.SporvActions) produces after it reads each
+    AI/approval write back. Append-only (no UPDATE/DELETE grant), RLS on,
+    actor and org stamped by a trigger. **Optional for safety, required for
+    G4 to read TRUE:** without it the client still refuses no-op writes, but
+    the receipt lives only in the session and the chat bubble
+    (`SporvActions.durableState()` reports `absent`). Verify with the five
+    queries at the bottom of the file; rollback is one `drop table`.
+
+    Steps: open https://supabase.com/dashboard/project/tseszaprvtvqrkfpditu/sql/new,
+    paste the whole file, click **Run**, then run verification queries 1–4
+    and confirm the results match the comments. Query 5 needs one approved
+    chat proposal on a signed-in coach account.

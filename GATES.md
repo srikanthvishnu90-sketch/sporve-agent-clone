@@ -66,7 +66,32 @@ and every sample-data disclaimer has been deleted rather than reworded.
 
 ## G4 — GUARDS: every write has a precondition, an inverse, and a receipt
 
-**Status: FALSE.** No inverse or receipt exists in the AI surface.
+**Status: FALSE.** PARTIAL mechanism (2026-10-22, branch `feat/g4-guards`):
+client registry + tests landed; receipts table drafted, not applied;
+`lifecycle-approve` changed in source, not deployed; server generators not
+covered. Evidence:
+- Mechanism: `src/mod-actions.js` (`window.SporvActions`). 17 client write
+  actions declare precondition, inverse (function or `{irreversible, why}`),
+  receipt store and a read-back; 14 proposable-but-non-executable names are
+  classified link/nav. Every AI/approval write in the web client dispatches
+  only through `execute()`.
+- Inventory: `docs/g4/write-path-inventory.md` — 10 client paths (+1 partial)
+  could report success on a no-op before; 0 can after.
+- Loud-failure tests: `tests/e2e/g4-action-registry.spec.mjs` (no-receipt run
+  fails, read-back miss fails, unknown action throws visibly, failed
+  precondition blocks run, static check that every proposed action name is
+  registered) and `tests/e2e/g4-approve-receipt.spec.mjs` (built page: a
+  silently no-op create_note shows an error bubble, not "Note created").
+- Server: `lifecycle-approve` `APPROVE_GUARD` + `insertDeliveryReceipt`
+  (source only); `coach-command` `WRITE_GUARDS` (earlier).
+- Remaining for TRUE: apply `docs/red-drafts/2026-10-22-g4-action-receipts.sql`;
+  deploy `lifecycle-approve`; guard the server generators (`lifecycle-process`,
+  `agent-intake`, `gmail-scan`, `generate-proposals`, `camp-recap`, the
+  coach-command why-line backstop); decide `send_group_message` (session-only
+  write that toasts "Sent"); an inverse for `decide_intake_proposal`.
+
+Previous status (kept for lineage): FALSE — no inverse or receipt existed in
+the AI surface.
 
 `api/ai.js` is a single-turn intent classifier: seven actions, Haiku 4.5, no
 tool loop, and its own header states the model never executes anything. That is
