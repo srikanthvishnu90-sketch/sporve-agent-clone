@@ -8969,6 +8969,13 @@ function primaryNavHTML(){
   return `<nav class="tnav-row" aria-label="Primary">
     <button class="tnav prodpill ${S.prodMenu?"open":""}" data-prodtoggle="1"
       aria-expanded="${!!S.prodMenu}" aria-haspopup="menu">Product <span class="caret">⌄</span></button>
+    <div class="tnav-dd"><button class="tnav" aria-haspopup="menu">Solutions <span class="caret">⌄</span></button>
+      <div class="tnav-menu" role="menu"><button role="menuitem" data-solution="1"><b>Schools and athletic departments</b><small>Every team in the department, one account</small></button><button role="menuitem" data-solution="1"><b>Clubs, AAU and travel teams</b><small>Season fees, rosters and tournaments</small></button><button role="menuitem" data-solution="1"><b>Camps and private trainers</b><small>Sessions, packages and one-time charges</small></button></div></div>
+    <button class="tnav" data-foot="nav:trust">Security</button>
+    <div class="tnav-dd"><button class="tnav" aria-haspopup="menu">Resources <span class="caret">⌄</span></button>
+      <div class="tnav-menu" role="menu"><button role="menuitem" data-foot="page:what-is"><b>What is Sporv?</b><small>How the agent works</small></button><button role="menuitem" data-foot="nav:product"><b>Product guide</b><small>Every page, explained</small></button><button role="menuitem" data-foot="info:help"><b>Help center</b><small>Answers and contact</small></button></div></div>
+    <div class="tnav-dd"><button class="tnav" aria-haspopup="menu">Company <span class="caret">⌄</span></button>
+      <div class="tnav-menu" role="menu"><button role="menuitem" data-foot="nav:about"><b>About</b><small>Who builds Sporv</small></button><button role="menuitem" data-foot="info:help"><b>Contact</b><small>support@sporv.ai</small></button><button role="menuitem" data-foot="info:legal"><b>Legal</b><small>Terms, privacy and refunds</small></button></div></div>
     ${/* Right cluster (owner spec 2026-09-04, prototype .cta): signed out =
          Log in + Get started pair; signed in = Coach dashboard, and "Log in"
          must not render. State reads the REAL session (SporveAuth), never a
@@ -9576,7 +9583,7 @@ function landingHTML(){
        existing data-rev observer. */""}
   <div class="lp26">
 
-  <section class="dark band">
+  <section class="light band">
     <div class="wrap">
       <div class="head"><p class="k" data-rev>What it does</p><h2 data-rev data-rev-d="1">Three things, done properly.</h2></div>
       <div class="lines rule">
@@ -9587,7 +9594,7 @@ function landingHTML(){
     </div>
   </section>
 
-  <section class="dark band shot26-band">
+  <section class="light band shot26-band">
     <div class="wrap">
       <div class="head"><p class="k" data-rev>Your roster</p><h2 data-rev data-rev-d="1">Every family, and whether they've paid.</h2></div>
       <figure class="shot26" data-rev data-rev-d="2" style="--shot-bg:url('${HERO_IMGS[0]||""}')">
@@ -9597,7 +9604,7 @@ function landingHTML(){
     </div>
   </section>
 
-  <section class="dark band">
+  <section class="dark band" id="who">
     <div class="wrap">
       <div class="head"><p class="k" data-rev>Who it's for</p><h2 data-rev data-rev-d="1">Schools. Clubs and AAU teams. Camps and trainers.</h2></div>
       <div class="who rule">
@@ -9622,7 +9629,7 @@ function landingHTML(){
     </div>
   </section>
 
-  <section class="dark band">
+  <section class="light band">
     <div class="wrap switch">
       <div data-rev>
         <p class="k">Switching</p>
@@ -19303,6 +19310,8 @@ document.querySelectorAll('.sig-ai-coach').forEach(sigAiCoachWire);
     S.obligations=[...drafts,...obligationQueue()];render();
     toast(drafts.length+" draft"+(drafts.length===1?"":"s")+" added to your queue — review before anything happens.");});
 
+  $("[data-solution]").forEach(b=>b.onclick=()=>{S.portal="family";go("home");
+    setTimeout(()=>{const el=document.getElementById("who");if(el)el.scrollIntoView({behavior:"smooth",block:"start"});},60);});
   $("[data-foot]").forEach(b=>b.onclick=()=>{
     const [kind,val]=b.dataset.foot.split(":");
     S.sportOpen=false;

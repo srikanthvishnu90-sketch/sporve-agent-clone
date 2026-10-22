@@ -547,7 +547,6 @@ html body:not(.reg-coach) header.topbar .cta.start{background:#6B7F9E!important;
 html body:not(.reg-coach) header.topbar .burger,html body:not(.reg-coach) header.topbar .burger *{color:#FFFFFF!important}
 html .hvl-ann{background:#1A212B;border-bottom:1px solid #26303D}
 /* Ticker: white and slate instead of a rainbow of sport colours */
-html #app .herofull .hero-mq *{color:#9DB0CB!important;-webkit-text-fill-color:#9DB0CB!important;background:none!important}
 html #app .hero-sub26{margin:22px auto 0;max-width:56ch;color:#C3CBD4;font-size:18px;line-height:1.55;text-align:center}
 html #app .hero-ctas26{display:flex;gap:12px;justify-content:center;flex-wrap:wrap;margin-top:28px}
 html #app .hero-ctas26 .btn,html #app .lp26 .close .btn.pri{border-radius:8px!important;text-transform:none!important;letter-spacing:0!important;font-weight:600!important}
@@ -642,6 +641,36 @@ html #app .lp26 h2{font-size:clamp(24px,2.3vw,34px)!important;line-height:1.08!i
 html #app .start-line,html body:not(.reg-coach) #app .pr-h1c{font-size:clamp(28px,3vw,42px)!important}
 html #app .lp26 h3{font-size:17px!important}
 html #app.coachdark .dash>:not(.rail) h1,html #app.coachdark .cui-page .cui-h1,html #app.coachdark>.sec-head h1{font-size:clamp(22px,1.8vw,26px)!important;line-height:1.1!important}
+
+/* ═══ Owner 2026-10-22: some sections white, some black; sport colours back ═══ */
+html #app .lp26 .light{background:#FFFFFF!important;color:#0B0D0F!important;
+  --w-1:rgba(11,13,15,.78);--w-2:rgba(11,13,15,.6);--w-line:rgba(11,13,15,.12)}
+html #app .lp26 .light :is(p,li,.sub){color:#4A5664!important}
+html #app .lp26 .light :is(h2,h3){color:#0B0D0F!important}
+html #app .lp26 .light :is(.k,.eyebrow){color:#3E566E!important}
+html #app .lp26 .light :is(.n,.m){color:#5B6878!important}
+html #app .lp26 .light .rule{border-color:rgba(11,13,15,.12)!important}
+html #app .lp26 .light .files{background:#F5F7F9!important;border-color:#E1E6EC!important}
+html #app .lp26 .light .files div{border-color:#E1E6EC!important;color:#0B0D0F!important}
+html #app .lp26 .light .files .s{color:#5B6878!important}
+html #app .lp26 .light+.light{border-top:1px solid #E6EAF0}
+html #app .lp26 .shot26-band.light .shot26{box-shadow:0 30px 60px -30px rgba(11,13,15,.35)}
+/* Sport identity colours: a dot per sport in the ticker, as before */
+html #app .herofull .hero-mq{opacity:1}
+
+/* ═══ Public nav: Harvey's menu set (Solutions / Security / Resources / Company) ═══ */
+html body:not(.reg-coach) header.topbar .tnav-row{display:flex;align-items:center;gap:4px}
+html .tnav-dd{position:relative;display:inline-flex}
+html .tnav-dd .tnav-menu{position:absolute;top:calc(100% + 8px);left:-8px;min-width:280px;padding:8px;display:none;flex-direction:column;
+  background:#11161C;border:1px solid #1F2833;border-radius:12px;box-shadow:0 24px 48px -16px rgba(0,0,0,.6);z-index:80}
+html .tnav-dd:hover .tnav-menu,html .tnav-dd:focus-within .tnav-menu{display:flex}
+html .tnav-dd .tnav-menu::before{content:"";position:absolute;left:0;right:0;top:-10px;height:10px}
+html .tnav-dd .tnav-menu button{display:flex;flex-direction:column;align-items:flex-start;gap:2px;text-align:left;padding:10px 12px;border-radius:8px;
+  background:none;border:0;cursor:pointer;font-family:"Archivo",system-ui,sans-serif}
+html .tnav-dd .tnav-menu button:hover{background:#1A212B}
+html .tnav-dd .tnav-menu b{color:#FFFFFF;font-weight:600;font-size:14.5px}
+html .tnav-dd .tnav-menu small{color:#9DB0CB;font-size:13.5px}
+@media (max-width:900px){html .tnav-dd{display:none}}
 `;
 
 const ID = "harvey-layer";
