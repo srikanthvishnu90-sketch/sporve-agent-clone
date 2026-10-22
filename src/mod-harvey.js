@@ -751,7 +751,7 @@ html #app .lp26 .pillar-ph::after{z-index:0}
 html #app .lp26 .dark :is(.lines,.lines .row,.who,.who>div,.who .m,.rule){border-color:rgba(255,255,255,.1)!important}
 html #app .lp26 .who>div{align-self:start}
 html #app .lp26 .shot26-band.light{padding-top:88px!important}
-html #app .lp26 .who-ph{aspect-ratio:16/9;border-radius:10px;background:#0B0D0F center/cover no-repeat;margin-bottom:20px}
+html #app .lp26 .who-ph{aspect-ratio:auto;height:184px;border-radius:10px;background:#0B0D0F center/cover no-repeat;margin-bottom:20px}
 `;
 
 const ID = "harvey-layer";
