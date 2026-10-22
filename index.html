@@ -29,7 +29,7 @@
 <link rel="manifest" href="/site.webmanifest">
 <script type="application/ld+json">{"@context":"https://schema.org","@type":"SoftwareApplication","name":"Sporv","url":"https://sporv.ai/","applicationCategory":"BusinessApplication","operatingSystem":"Web","description":"Sporv runs the club for you — roster, scheduling, waivers, dues and payouts, with an agent that drafts the busywork and a human who approves it.","publisher":{"@type":"Organization","name":"Sporv","url":"https://sporv.ai/","logo":"https://sporv.ai/icon-512.png"}}</script>
 <script type="application/ld+json">{"@context":"https://schema.org","@type":"WebSite","name":"Sporv AI","url":"https://sporv.ai/"}</script>
-<meta name="sporve-build" content="5ac341370a954048">
+<meta name="sporve-build" content="69e4ed64601059f6">
 </head>
 <body>
 <script>
@@ -34920,6 +34920,15 @@ html #app.coachdark .dash>:not(.rail) h1,html #app.coachdark .cui-page .cui-h1,h
 html #app.coachdark .dash>.rail .railmark{font-stretch:88%!important;font-size:24px!important}
 html body.reg-coach :is(.aidock-head-t,.aidock-head b,.aidock-empty h3){font-stretch:88%!important}
 html #app.coachdark .cui-lede,html #app.coachdark .dash .sec-head p{font-size:15.5px!important;line-height:1.6!important}
+
+/* Headline size, owner 2026-10-22: "the large text is way too big ... make it
+   way smaller ... should look professional". Same athletic cut, roughly half
+   the size, normal tracking. */
+html #app .hero-ai{font-size:clamp(32px,3.6vw,52px)!important;line-height:1.02!important}
+html #app .lp26 h2{font-size:clamp(24px,2.3vw,34px)!important;line-height:1.08!important;max-width:22ch}
+html #app .start-line,html body:not(.reg-coach) #app .pr-h1c{font-size:clamp(28px,3vw,42px)!important}
+html #app .lp26 h3{font-size:17px!important}
+html #app.coachdark .dash>:not(.rail) h1,html #app.coachdark .cui-page .cui-h1,html #app.coachdark>.sec-head h1{font-size:clamp(22px,1.8vw,26px)!important;line-height:1.1!important}
 `;
 
 const ID = "harvey-layer";
