@@ -29,7 +29,7 @@
 <link rel="manifest" href="/site.webmanifest">
 <script type="application/ld+json">{"@context":"https://schema.org","@type":"SoftwareApplication","name":"Sporv","url":"https://sporv.ai/","applicationCategory":"BusinessApplication","operatingSystem":"Web","description":"Sporv runs the club for you — roster, scheduling, waivers, dues and payouts, with an agent that drafts the busywork and a human who approves it.","publisher":{"@type":"Organization","name":"Sporv","url":"https://sporv.ai/","logo":"https://sporv.ai/icon-512.png"}}</script>
 <script type="application/ld+json">{"@context":"https://schema.org","@type":"WebSite","name":"Sporv AI","url":"https://sporv.ai/"}</script>
-<meta name="sporve-build" content="9b384c00d6e6ff59">
+<meta name="sporve-build" content="400053e9fdcfed3c">
 </head>
 <body>
 <script>
@@ -50,6 +50,7 @@ window.__phReset=function(){try{if(window.posthog&&typeof window.posthog.reset==
 <style>
 @font-face{font-family:"Archivo";font-weight:100 900;font-stretch:62% 125%;font-style:italic;font-display:swap;src:url("/assets/fonts/Archivo-Italic-Variable.woff2") format("woff2")}
 @font-face{font-family:"Archivo";font-weight:100 900;font-stretch:62% 125%;font-style:normal;font-display:swap;src:url("/assets/fonts/Archivo-Variable.woff2") format("woff2")}
+@font-face{font-family:"Inter Tight";font-weight:100 900;font-style:normal;font-display:swap;src:url("/assets/fonts/InterTight-Variable.woff2") format("woff2")}
 @font-face{font-family:"JetBrains Mono";font-weight:400 700;font-style:normal;font-display:swap;src:url("/assets/fonts/JetBrainsMono-Variable.woff2") format("woff2")}
 @font-face{font-family:"Newsreader";font-weight:200 800;font-style:normal;font-display:swap;src:url("/assets/fonts/Newsreader-Variable.woff2") format("woff2")}
 /* ═══════════════════════════════════════════════════════════════════
@@ -35088,7 +35089,7 @@ html body .aiharv-send{margin-left:auto;height:36px;padding:0 16px;border-radius
   font:600 14px/1 "Archivo",system-ui,sans-serif;cursor:pointer}
 html body .aiharv-send,html body .aidock-panel.aimax .aiharv-send{color:#FFFFFF!important;background:#3E566E!important}
 html body .aiharv-send:hover{background:#2F4458!important}
-html body .aidock-panel.aimax.aifull :is(.aimax-head,.aimax-rail){border-color:#E6EAF0!important}
+html body .aidock-panel.aimax.aifull :is(.aimax-head,.aimax-rail){border-color:#1C222B!important}
 html body .aiharv-scopes{display:flex;flex-wrap:wrap;justify-content:center;gap:8px;max-width:760px;margin:16px auto 0}
 html body .aiharv-chip{display:inline-flex;align-items:center;gap:8px;height:32px;padding:0 12px;border-radius:8px;border:1px solid #E1E6EC;background:#FFFFFF;
   font:500 14px/1 "Archivo",system-ui,sans-serif;color:#334155;cursor:pointer}
@@ -35118,6 +35119,58 @@ html #app .lp26 .dark :is(.lines,.lines .row,.who,.who>div,.who .m,.rule){border
 html #app .lp26 .who>div{align-self:start}
 html #app .lp26 .shot26-band.light{padding-top:88px!important}
 html #app .lp26 .who-ph{aspect-ratio:auto;height:184px;border-radius:10px;background:#0B0D0F center/cover no-repeat;margin-bottom:20px}
+
+/* ═══ Large headers in the TWK Everett register (owner 2026-10-22, supersedes
+   the Druk block above): "TWK Everett but thin, but also sporty". Everett is a
+   licensed Weltkern face and is not in the repo; the embedded Archivo variable
+   font at normal width and an extra-light weight is the closest legal match,
+   and uppercase with tight tracking keeps it athletic. Swap the family here if
+   an Everett web licence is bought. */
+html #app :is(.hero-ai,.lp26 h2,.start-line,.pr-h1c,.pillar-h),html body .aiharv-mark,
+html #app.coachdark .dash>:not(.rail) h1,html #app.coachdark .cui-page .cui-h1,html #app.coachdark>.sec-head h1{
+  font-family:"Inter Tight","Archivo",system-ui,sans-serif!important;font-stretch:100%!important;font-weight:200!important;
+  text-transform:uppercase!important;letter-spacing:-.02em!important;line-height:1!important}
+html #app .hero-ai{font-size:clamp(38px,4.2vw,60px)!important}
+html #app .lp26 h2{font-size:clamp(28px,2.7vw,40px)!important;max-width:22ch}
+html #app .lp26 .pillar-h{font-weight:300!important}
+html #app.coachdark .dash>:not(.rail) h1,html #app.coachdark .cui-page .cui-h1,html #app.coachdark>.sec-head h1{font-size:clamp(26px,2.2vw,32px)!important;font-weight:300!important}
+html body .aiharv-mark{font-size:48px!important}
+
+/* ═══ Assistant, colours swapped (owner 2026-10-22): "swap the colors black and
+   white" in the full-screen chatbox — black surface, white type, slate accents. */
+html body .aidock-panel.aimax{background:#0B0D0F!important;color:#E6EBF1!important;border-color:#1C222B!important}
+html body .aidock-panel.aimax :is(.aimax-head,.aimax-rail,.aimax-conv,.aimax-body,.aimax-scroll){background:#0B0D0F!important;border-color:#1C222B!important}
+html body .aidock-panel.aimax .aimax-rail{background:#0F1318!important}
+html body .aidock-panel.aimax :is(.aimax-ic,.aimax-ctxact,.aimax-ctxact span){color:#D7DFE8!important;background:transparent!important;border-color:#26303B!important}
+html body .aidock-panel.aimax .aimax-ic:hover{background:#18202A!important}
+html body .aidock-panel.aimax .aimax-newbtn{background:#3E566E!important;color:#FFFFFF!important;border-color:#3E566E!important}
+html body .aidock-panel.aimax .aimax-railnew{background:#11161C!important;color:#FFFFFF!important;border:1px solid #26303B!important}
+html body .aidock-panel.aimax :is(.aimax-histrow,.aimax-histrow b){color:#D7DFE8!important;background:transparent!important}
+html body .aidock-panel.aimax .aimax-histrow.on{background:#18202A!important}
+html body .aidock-panel.aimax :is(.aimax-railg,.aimax-histempty,.aimax-aihint){color:#9DB0CB!important}
+html body .aidock-panel.aimax .aiharv-mark{color:#FFFFFF!important}
+html body .aidock-panel.aimax .aiharv-sub{color:#AEB9C5!important}
+html body .aidock-panel.aimax .aimax-compose,html body .aidock-panel.aimax.aiharv .aimax-compose{background:#151B22!important;border:1px solid #26303B!important;margin-left:auto!important;margin-right:auto!important}
+html body .aidock-panel.aimax .aidock-chips{justify-content:center!important}
+html body .aidock-panel.aimax .aimax-compose .aidock-input{color:#FFFFFF!important;background:transparent!important}
+html body .aidock-panel.aimax .aimax-compose .aidock-input::placeholder{color:#8C99A8!important}
+html body .aidock-panel.aimax .aidock-row .aidock-ic{color:#9DB0CB!important;background:transparent!important}
+html body .aidock-panel.aimax .aidock-row .aidock-ic:hover{background:#1F2833!important;color:#FFFFFF!important}
+html body .aidock-panel.aimax .aiharv-send{background:#9DB0CB!important;color:#0B0D0F!important}
+html body .aidock-panel.aimax .aiharv-send:hover{background:#B9C8DB!important}
+html body .aidock-panel.aimax .aiharv-chip{background:#11161C!important;border-color:#26303B!important;color:#E6EBF1!important}
+html body .aidock-panel.aimax .aiharv-chip span{color:#9DB0CB!important}
+html body .aidock-panel.aimax .aiharv-chip:hover{background:#18202A!important;border-color:#3E566E!important}
+html body .aidock-panel.aimax .aiharv-wfhead{color:#9DB0CB!important}
+html body .aidock-panel.aimax .aiharv-card{background:#11161C!important;border-color:#1F2833!important}
+html body .aidock-panel.aimax .aiharv-card b{color:#FFFFFF!important}
+html body .aidock-panel.aimax .aiharv-card span{color:#9DB0CB!important}
+html body .aidock-panel.aimax .aiharv-card:hover{background:#18202A!important;border-color:#3E566E!important}
+html body .aidock-panel.aimax .bub.me{background:#3E566E!important;color:#FFFFFF!important;border-color:#3E566E!important}
+html body .aidock-panel.aimax .bub.them{background:#151B22!important;color:#E6EBF1!important;border-color:#26303B!important}
+html body .aidock-panel.aimax .bub.them :is(p,li,strong,em,code,h1,h2,h3,h4,a){color:#E6EBF1!important}
+html body .aidock-panel.aimax :is(.aidock-toolsline,.aidock-empty h3){color:#AEB9C5!important}
+html body .aidock-panel.aimax .aidock-chip,html body .aidock-panel.aimax .aidock-chips button{background:#11161C!important;color:#E6EBF1!important;border-color:#26303B!important}
 `;
 
 const ID = "harvey-layer";
