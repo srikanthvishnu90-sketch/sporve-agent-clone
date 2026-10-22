@@ -1133,10 +1133,10 @@ create table public.org_entitlements (         -- per-org override of plan_entit
 
 | Table | Status | Tier |
 |---|---|---|
-| `providers` (+ institution columns) | HAVE table, MISSING columns | RED |
+| `providers` (+ institution columns) | HAVE table, DRAFTED columns (docs/red-drafts/2026-10-22-manage-p1-tenant-roles.sql) | RED |
 | `organization_members` | HAVE (unchanged) | — |
-| `teams` (+ program, gender, level, academic_year) | HAVE table, MISSING columns | RED |
-| `seasons` (+ program, segment) | HAVE table (file), MISSING columns | RED |
+| `teams` (+ program, gender, level, academic_year) | HAVE table, DRAFTED columns (docs/red-drafts/2026-10-22-manage-p1-tenant-roles.sql) | RED |
+| `seasons` (+ program, segment) | HAVE table (file), DRAFTED columns (docs/red-drafts/2026-10-22-manage-p1-tenant-roles.sql) | RED |
 | `event` (+ contest fields) | PARTIAL (file `20260915_001052`; prod state unverified) | RED |
 | `venue`, `blackout_window` | PARTIAL (file `20260915_001050`) | — |
 | `waiver_documents`, `waiver_signatures` | HAVE (file `20260831_001005`) | — |
@@ -1145,7 +1145,8 @@ create table public.org_entitlements (         -- per-org override of plan_entit
 | `prospects` (club intake inquiries) | HAVE (file `20260922_001115`); **not used for recruiting** | — |
 | `guardians`, `guardian_links` | HAVE (file `20260831_001002`); not used for recruits | — |
 | Source (Module E): `recruits`, `recruit_guardians`, `recruit_pipelines`, `recruit_stage_history`, `recruit_sources`, `recruit_import_jobs`, `recruit_import_rows`, `recruit_forms`, `recruiting_targets`, `evaluation_rubrics`, `recruit_evaluations`, `recruiting_periods`, `recruit_contacts`, `recruit_contact_overrides`, `recruit_visits`, `recruit_offers`, `recruit_rankings` | MISSING (E3) | RED |
-| `org_verified_domains`, `sports`, `sport_programs`, `college_roles`, `role_capabilities`, `role_assignments`, `student_athletes`, `athlete_team_memberships`, `academic_terms`, `athlete_term_records`, `compliance_rules`, `eligibility_status`, `eligibility_events`, `seasons_of_competition`, `transfer_records`, `cara_logs`, `game_rosters`, `lineup_entries`, `roster_lock_overrides`, `venue_space`, `venue_booking`, `travel_trips`, `trip_events`, `trip_legs`, `trip_travelers`, `trip_rooms`, `room_assignments`, `per_diem_rates`, `per_diem_lines`, `budget_periods`, `budget_lines`, `budget_actuals`, `approval_requests`, `approval_steps`, `med.*` (7 tables), `stat_imports`, `game_results`, `player_game_stats`, `audit_log`, `data_access_log`, `sso_connections`, `sso_group_role_map`, `sis_import_jobs`, `sis_import_rows`, `document_requirements`, `media_releases`, `feed_tokens`, `org_entitlements` | MISSING | RED |
+| `org_verified_domains`, `sports`, `sport_programs`, `college_roles`, `role_capabilities`, `role_assignments`, `student_athletes`, `athlete_team_memberships`, `audit_log` (also `college_capabilities`, `org_role_capability_overrides`, view `team_staff`) | DRAFTED (docs/red-drafts/2026-10-22-manage-p1-tenant-roles.sql; proof `.test.sql`; inverse `2026-10-22-manage-p1-rollback.sql`) | RED |
+| `academic_terms`, `athlete_term_records`, `compliance_rules`, `eligibility_status`, `eligibility_events`, `seasons_of_competition`, `transfer_records`, `cara_logs`, `game_rosters`, `lineup_entries`, `roster_lock_overrides`, `venue_space`, `venue_booking`, `travel_trips`, `trip_events`, `trip_legs`, `trip_travelers`, `trip_rooms`, `room_assignments`, `per_diem_rates`, `per_diem_lines`, `budget_periods`, `budget_lines`, `budget_actuals`, `approval_requests`, `approval_steps`, `med.*` (7 tables), `stat_imports`, `game_results`, `player_game_stats`, `data_access_log`, `sso_connections`, `sso_group_role_map`, `sis_import_jobs`, `sis_import_rows`, `document_requirements`, `media_releases`, `feed_tokens`, `org_entitlements` | MISSING | RED |
 
 ---
 
