@@ -35,6 +35,13 @@ const json = (body: unknown, status = 200) =>
     status,
     headers: { ...cors, "Content-Type": "application/json" },
   });
+/* Same, plus a Retry-After header so callers (coach-command, the browser)
+   can wait the honest amount before their one retry. */
+const jsonRetry = (body: Record<string, unknown>, status: number, retryAfterSec: number) =>
+  new Response(JSON.stringify({ ...body, retry_after: retryAfterSec }), {
+    status,
+    headers: { ...cors, "Content-Type": "application/json", "Retry-After": String(retryAfterSec) },
+  });
 
 const ANTHROPIC_API_KEY = Deno.env.get("ANTHROPIC_API_KEY");
 // Newer Anthropic API keys (sk-ant-api03-…) are not scoped to a workspace and
@@ -51,6 +58,86 @@ const AI_TIMEOUT_MS = Number(Deno.env.get("AI_TIMEOUT_MS") ?? 30_000);
 const USER_REQUESTS_PER_MINUTE = Number(Deno.env.get("AI_USER_REQUESTS_PER_MINUTE") ?? 20);
 const USER_REQUESTS_PER_DAY = Number(Deno.env.get("AI_USER_REQUESTS_PER_DAY") ?? 300);
 const SERVICE_REQUESTS_PER_MINUTE = Number(Deno.env.get("AI_SERVICE_REQUESTS_PER_MINUTE") ?? 240);
+/* Upstream retry bounds (incident 2026-10-22). The person is watching a
+   spinner, so the whole retry dance is capped well under the client's 45s. */
+const UPSTREAM_MAX_ATTEMPTS = Number(Deno.env.get("AI_UPSTREAM_MAX_ATTEMPTS") ?? 3);
+const UPSTREAM_RETRY_BUDGET_MS = Number(Deno.env.get("AI_UPSTREAM_RETRY_BUDGET_MS") ?? 12_000);
+
+/* Plan ladder for the I3 402 payload's `upgrade_to`. Plan KEYS only — this
+   names the next row of plan_entitlements, it does not gate on a plan name. */
+const NEXT_PLAN: Record<string, string | null> = { free: "pro", pro: "enterprise", enterprise: null };
+
+// ── upstream-retry mirror BEGIN ─────────────────────────────────────────────
+/* Mirror of ../_shared/upstream-retry.mjs, inlined so the deployed artifact is
+   one flat file (same reason coach-command inlines http.ts). The node test
+   tests/ai/gateway-upstream-retry.spec.ts runs BOTH copies through the same
+   cases, so a drift between them fails CI. Only wraps the Anthropic call,
+   which has no side effects: a 429/529/503 or a reset produced no answer and
+   no charge, so sending it again cannot double anything. */
+const TRANSIENT_STATUSES = [408, 429, 500, 502, 503, 504, 529];
+function isTransientStatus(status: unknown): boolean {
+  return TRANSIENT_STATUSES.includes(Number(status));
+}
+function parseRetryAfter(value: unknown, now: number = Date.now()): number | null {
+  if (value == null) return null;
+  const s = String(value).trim();
+  if (!s) return null;
+  if (/^\d+(\.\d+)?$/.test(s)) return Math.max(0, Math.round(Number(s) * 1000));
+  const at = Date.parse(s);
+  if (Number.isFinite(at)) return Math.max(0, at - now);
+  return null;
+}
+function backoffDelay(
+  attempt: number,
+  { baseMs = 500, capMs = 4000, random = Math.random }: { baseMs?: number; capMs?: number; random?: () => number } = {},
+): number {
+  const ceiling = Math.min(capMs, baseMs * 2 ** Math.max(0, attempt));
+  return Math.floor(random() * ceiling);
+}
+async function withUpstreamRetry<T extends { status?: number; retryAfter?: string | null }>(
+  attemptFn: (attempt: number) => Promise<T>,
+  opts: {
+    maxAttempts?: number; budgetMs?: number; baseMs?: number; capMs?: number;
+    random?: () => number; now?: () => number; sleep?: (ms: number) => Promise<unknown>;
+  } = {},
+): Promise<{ outcome: T | null; attempts: number; error: unknown; retryAfterMs: number | null }> {
+  const {
+    maxAttempts = 3,
+    budgetMs = 12_000,
+    baseMs = 500,
+    capMs = 4000,
+    random = Math.random,
+    now = () => Date.now(),
+    sleep = (ms: number) => new Promise((r) => setTimeout(r, ms)),
+  } = opts;
+  const start = now();
+  let outcome: T | null = null;
+  let error: unknown = null;
+  let retryAfterMs: number | null = null;
+  let attempts = 0;
+  for (let i = 0; i < maxAttempts; i++) {
+    attempts = i + 1;
+    let transient = false;
+    retryAfterMs = null;
+    try {
+      outcome = await attemptFn(i);
+      error = null;
+      transient = isTransientStatus(outcome?.status);
+      if (transient) retryAfterMs = parseRetryAfter(outcome?.retryAfter, now());
+    } catch (e) {
+      outcome = null;
+      error = e;
+      transient = true;
+    }
+    if (!transient) return { outcome, attempts, error, retryAfterMs: null };
+    if (i === maxAttempts - 1) break;
+    const delay = retryAfterMs ?? backoffDelay(i, { baseMs, capMs, random });
+    if (now() - start + delay >= budgetMs) { retryAfterMs = delay; break; }
+    await sleep(delay);
+  }
+  return { outcome, attempts, error, retryAfterMs };
+}
+// ── upstream-retry mirror END ───────────────────────────────────────────────
 
 const MODELS = {
   haiku: "claude-haiku-4-5-20251001",
@@ -314,20 +401,44 @@ async function runAI(args: RunAIArgs) {
   let toolCalls: { name: string; input: unknown }[] = [];
   let usage: Record<string, number> = {};
   let stopReason: string | null = null;
+  /* Set when the upstream stayed busy (429/529/503/network) through every
+     bounded retry. The handler turns it into a 503 + retry_after so the
+     client can say "the AI service is busy" instead of a generic failure. */
+  let upstreamBusy = false;
+  let upstreamRetryAfterMs: number | null = null;
+  let upstreamAttempts = 0;
+  let upstreamStatus: number | null = null;
   try {
-    const resp = await fetch("https://api.anthropic.com/v1/messages", {
-      method: "POST",
-      headers: {
-        "x-api-key": ANTHROPIC_API_KEY!,
-        "anthropic-version": "2023-06-01",
-        "content-type": "application/json",
-        ...(ANTHROPIC_WORKSPACE_ID ? { "anthropic-workspace-id": ANTHROPIC_WORKSPACE_ID } : {}),
-      },
-      body: JSON.stringify(reqBody),
-      signal: AbortSignal.timeout(AI_TIMEOUT_MS),
-    });
-    const data = await resp.json();
+    const bodyText = JSON.stringify(reqBody);
+    const r = await withUpstreamRetry(async () => {
+      const resp = await fetch("https://api.anthropic.com/v1/messages", {
+        method: "POST",
+        headers: {
+          "x-api-key": ANTHROPIC_API_KEY!,
+          "anthropic-version": "2023-06-01",
+          "content-type": "application/json",
+          ...(ANTHROPIC_WORKSPACE_ID ? { "anthropic-workspace-id": ANTHROPIC_WORKSPACE_ID } : {}),
+        },
+        body: bodyText,
+        signal: AbortSignal.timeout(AI_TIMEOUT_MS),
+      });
+      const data = await resp.json().catch(() => null);
+      return { status: resp.status, ok: resp.ok, retryAfter: resp.headers.get("retry-after"), data };
+    }, { maxAttempts: UPSTREAM_MAX_ATTEMPTS, budgetMs: UPSTREAM_RETRY_BUDGET_MS });
+    upstreamAttempts = r.attempts;
+    if (!r.outcome) {
+      upstreamBusy = true;
+      upstreamRetryAfterMs = r.retryAfterMs;
+      throw r.error ?? new Error("upstream request failed");
+    }
+    const resp = r.outcome;
+    const data = resp.data;
+    upstreamStatus = resp.status;
     if (!resp.ok) {
+      if (isTransientStatus(resp.status)) {
+        upstreamBusy = true;
+        upstreamRetryAfterMs = r.retryAfterMs;
+      }
       errMsg = data?.error?.message ?? `Anthropic API error ${resp.status}`;
     } else {
       ok = true;
@@ -365,7 +476,7 @@ async function runAI(args: RunAIArgs) {
     input_summary: `task=${args.task}; chars=${inputSerialized.length}; sha256=${inputHash.slice(0, 16)}`,
     output_summary: ok
       ? `chars=${outputSerialized.length}; sha256=${outputHash!.slice(0, 16)}`
-      : `error: ${(errMsg ?? "").slice(0, 400)}`,
+      : `error: ${upstreamStatus ?? "network"} after ${upstreamAttempts} attempt(s): ${(errMsg ?? "").slice(0, 360)}`,
     tokens_in: tokensIn,
     tokens_out: tokensOut,
     est_cost_usd,
@@ -387,7 +498,13 @@ async function runAI(args: RunAIArgs) {
   if (auditErr) console.error("ai_audit_log insert failed:", auditErr.message);
 
   if (!ok) {
-    return { error: errMsg, model, task: args.task, latency_ms, audit: audit ?? null, audit_error: auditErrorMsg };
+    return {
+      error: errMsg, model, task: args.task, latency_ms, audit: audit ?? null, audit_error: auditErrorMsg,
+      upstream_busy: upstreamBusy,
+      // Seconds, rounded up, never below 1 — what the client may wait before one retry.
+      retry_after: upstreamBusy ? Math.max(1, Math.ceil((upstreamRetryAfterMs ?? 2000) / 1000)) : null,
+      attempts: upstreamAttempts,
+    };
   }
   return {
     text,
@@ -526,7 +643,11 @@ Deno.serve(async (req) => {
       return json({ error: "AI quota service is unavailable." }, 503);
     }
     if (!minuteOk) {
-      return json({ error: "AI request limit reached. Please try again later." }, 429);
+      /* Burst limiter, not a plan limit: the fixed window resets at the next
+         minute boundary, so say exactly when. 429 stays — this is abuse
+         protection, distinct from the I3 402 plan wall below. */
+      const resetIn = Math.max(1, 60 - Math.floor((Date.now() / 1000) % 60));
+      return jsonRetry({ error: "Too many assistant requests in the last minute.", reason: "rate_limited", window: "minute" }, 429, resetIn);
     }
     const dayOk = isService ||
       await consumeQuota(admin, quotaActor, "ai:day", USER_REQUESTS_PER_DAY, 86400);
@@ -534,7 +655,8 @@ Deno.serve(async (req) => {
       return json({ error: "AI quota service is unavailable." }, 503);
     }
     if (!dayOk) {
-      return json({ error: "AI request limit reached. Please try again later." }, 429);
+      const resetIn = Math.max(1, 86400 - Math.floor((Date.now() / 1000) % 86400));
+      return jsonRetry({ error: "Daily assistant request limit reached.", reason: "rate_limited", window: "day" }, 429, resetIn);
     }
 
     /* Monthly margin guard: per-provider action quota + AI spend cap from
@@ -545,17 +667,32 @@ Deno.serve(async (req) => {
     if (!isService || typeof body.actorId === "string") {
       const budget = await checkMonthlyBudget(admin, actorId);
       if (!budget.ok) {
+        /* CONTEXT I3: a plan limit is a 402 with
+           { reason, current_plan, upgrade_to, limit, current } — never a 429.
+           Incident 2026-10-22: this used to be 429, coach-command relabelled
+           it "try again shortly", and a Free coach who had used the month's
+           allowance was told to retry something that could not succeed. */
         if (budget.reason === "quota_exhausted") {
           return json({
-            error: "You've used all of this month's AI actions. Upgrade your plan for more.",
-            plan: budget.plan, used: budget.used, quota: budget.quota,
-          }, 429);
+            error: "This month's assistant allowance is used up.",
+            reason: "ai_quota_exhausted",
+            current_plan: budget.plan,
+            upgrade_to: NEXT_PLAN[budget.plan] ?? null,
+            limit: budget.quota ?? 0,
+            current: budget.used ?? 0,
+          }, 402);
         }
         if (budget.reason === "spend_cap_reached") {
           return json({
-            error: "This month's AI budget is exhausted. Upgrade your plan for more.",
-            plan: budget.plan,
-          }, 429);
+            error: "This month's assistant allowance is used up.",
+            reason: "ai_spend_cap_reached",
+            current_plan: budget.plan,
+            upgrade_to: NEXT_PLAN[budget.plan] ?? null,
+            // Whole cents so limit/current stay integers like every other I3 payload.
+            limit: Math.round((budget.cap ?? 0) * 100),
+            current: Math.round((budget.spent ?? 0) * 100),
+            unit: "usd_cents",
+          }, 402);
         }
         return json({ error: "AI quota service is unavailable." }, 503);
       }
@@ -580,7 +717,22 @@ Deno.serve(async (req) => {
       plan,
     });
 
-    return json(result, "error" in result && result.error ? 502 : 200);
+    if ("error" in result && result.error) {
+      /* Upstream stayed busy through every bounded retry: 503 + Retry-After,
+         reason upstream_busy. Anything else (a 400 from the provider, a bad
+         key) is a real failure and stays 502 — retrying it would not help. */
+      if (result.upstream_busy) {
+        return jsonRetry({
+          error: "The AI service is busy right now.",
+          reason: "upstream_busy",
+          attempts: result.attempts,
+          audit: result.audit,
+          audit_error: result.audit_error,
+        }, 503, result.retry_after ?? 2);
+      }
+      return json(result, 502);
+    }
+    return json(result, 200);
   } catch (e) {
     console.error("ai-gateway error:", e);
     return json({ error: "AI gateway request failed." }, 500);
