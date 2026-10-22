@@ -160,3 +160,93 @@ outstanding.
 **The repo is not the state.** Three migrations in `supabase/migrations/` are
 not in production, and one applied change (`ai_quota_burst`) has a different
 name there. Before applying anything, probe for the object, not the filename.
+
+## Manage Phase 1 (tenant + roles)
+
+Added 2026-10-22. Spec: `docs/specs/31-COLLEGE-ATHLETICS.md` §2.3–§2.7, §3,
+§14 Phase 1. Three files, all in `docs/red-drafts/`:
+
+| file | what it is |
+|---|---|
+| `2026-10-22-manage-p1-tenant-roles.sql` | the migration (one transaction) |
+| `2026-10-22-manage-p1-tenant-roles.test.sql` | the proof (one transaction, always rolls back) |
+| `2026-10-22-manage-p1-rollback.sql` | the inverse (copies data to `p1_archive`, then drops) |
+
+**Decide first.** This is new-segment work and moves none of G1–G4. Spec §0.2
+and open question Q10: Phase 1 should not start while G2 (first real payment)
+is open unless you explicitly reorder. Applying it is that decision.
+
+**Which project.** The live app (`src/mod-api.js`, `vercel.json`) talks to
+`aveqjeafghmwafkbbnor`. The top of this file still names
+`tseszaprvtvqrkfpditu` from 09-09, and the spec says college work targets the
+future agent project (decision D5). These steps use `aveqjeafghmwafkbbnor`. If
+the agent project exists by the time you apply, use its ref in the URLs instead.
+
+**What it changes for existing clubs: nothing you can see.** Every new policy
+on `teams` / `seasons` only matches rows with a sport program (club rows have
+none). The only narrowing policies switch on when an org sets
+`providers.team_scoping = true`; it is added as `false` for every org.
+
+### Apply
+
+1. Open **https://supabase.com/dashboard/project/aveqjeafghmwafkbbnor/sql/new**
+   (left sidebar: **SQL Editor** → **+ New query**). Check the address bar says
+   `aveqjeafghmwafkbbnor`.
+2. Probe first. Paste this and click **Run** (bottom right, or Ctrl/Cmd+Enter):
+   ```sql
+   select to_regclass('public.role_assignments')            as already_applied,
+          to_regclass('public.event')                       as event_table,
+          to_regprocedure('public.coaches_team(uuid,uuid)') as coach_helper,
+          (select rolbypassrls from pg_roles where rolname = current_user) as editor_bypasses_rls;
+   ```
+   Expected: `already_applied` = NULL. The other three are informational
+   (`event_table` / `coach_helper` NULL just means the test skips the coach
+   check; note `editor_bypasses_rls` and tell Claude if it is `false`).
+3. **+ New query**. Open `docs/red-drafts/2026-10-22-manage-p1-tenant-roles.sql`
+   on GitHub (branch `feat/manage-phase1-drafts`), click **Raw**, select all,
+   copy, paste into the editor, click **Run**. If Supabase shows "Potential
+   issue detected … destructive operation", that is the `drop policy if exists`
+   / `drop trigger if exists` lines guarding the re-run; click **Run this query**.
+   Success: **"Success. No rows returned"**. Any red ERROR means nothing was
+   applied (it is one transaction); copy the whole error to Claude.
+4. Verify. **+ New query**, paste, **Run**:
+   ```sql
+   select (select count(*) from public.college_roles)        as roles,          -- 12
+          (select count(*) from public.college_capabilities) as capabilities,   -- 30
+          (select count(*) from public.role_capabilities)    as matrix_cells,   -- 96
+          (select count(*) from public.sports)               as sports,         -- 27
+          (select count(*) from public.providers where team_scoping) as scoped_orgs,  -- 0
+          (select count(*) from pg_tables where schemaname = 'public' and not rowsecurity) as tables_without_rls; -- 0
+   ```
+   Expected exactly: `12 | 30 | 96 | 27 | 0 | 0`.
+
+### Prove it
+
+5. **+ New query**. Copy `docs/red-drafts/2026-10-22-manage-p1-tenant-roles.test.sql`
+   the same way (Raw → select all → copy), paste, **Run**.
+   - Success: **"Success. No rows returned"** and no red text. The file seeds
+     three throwaway orgs, a dozen throwaway users and ~30 rows, checks
+     cross-org reads, team scoping, AD visibility, the compliance capability,
+     club owner flows and RLS on every table, then rolls all of it back.
+   - Failure: a red **`ERROR: FAIL <test id>: …`** naming the check. Nothing
+     is saved. Copy the line to Claude.
+   - The dashboard does not show NOTICE lines. In `psql` the same file prints
+     eleven `PASS …` lines, then `ALL MANAGE PHASE 1 TESTS PASSED`.
+   - Re-runnable any time; it always rolls back.
+6. Then, on the deployed app (not the SQL editor): sign in as an ordinary club
+   owner and open Teams, Roster and Schedule. Everything must look exactly as
+   before. That is spec test 1.12; the SQL file cannot check screens.
+
+### Roll back (only if Phase 1 must come out)
+
+7. **+ New query**, paste `docs/red-drafts/2026-10-22-manage-p1-rollback.sql`,
+   **Run** (confirm the destructive-operation prompt with **Run this query**).
+   Success: **"Success. No rows returned"**. Before dropping anything it copies
+   every Phase 1 table that has rows — `audit_log` first — and the college
+   columns of `providers` / `teams` / `seasons` into schema `p1_archive`
+   (timestamped names, not reachable through the API). Check what was kept:
+   ```sql
+   select table_name from information_schema.tables where table_schema = 'p1_archive' order by 1;
+   ```
+   Re-running the rollback is safe (it finds nothing left to drop). The
+   migration can be re-applied afterwards.
