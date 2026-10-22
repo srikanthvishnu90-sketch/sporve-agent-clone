@@ -761,8 +761,8 @@ html #app .lp26 .who-ph{aspect-ratio:auto;height:184px;border-radius:10px;backgr
    an Everett web licence is bought. */
 html #app :is(.hero-ai,.lp26 h2,.start-line,.pr-h1c,.pillar-h),html body .aiharv-mark,
 html #app.coachdark .dash>:not(.rail) h1,html #app.coachdark .cui-page .cui-h1,html #app.coachdark>.sec-head h1{
-  font-family:"Inter Tight","Archivo",system-ui,sans-serif!important;font-stretch:100%!important;font-weight:200!important;
-  text-transform:uppercase!important;letter-spacing:-.02em!important;line-height:1!important}
+  font-family:"Saira","Archivo",system-ui,sans-serif!important;font-stretch:100%!important;font-weight:200!important;
+  text-transform:uppercase!important;letter-spacing:0!important;line-height:1!important}
 html #app .hero-ai{font-size:clamp(38px,4.2vw,60px)!important}
 html #app .lp26 h2{font-size:clamp(28px,2.7vw,40px)!important;max-width:22ch}
 html #app .lp26 .pillar-h{font-weight:300!important}

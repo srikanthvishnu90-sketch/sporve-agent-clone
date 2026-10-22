@@ -106,9 +106,9 @@ FAMILY_BY_PREFIX = {
     # (wght 200-800 + opsz 6-72 axes, latin subset).
     "newsreader": "Newsreader",
     # Large headers (owner 2026-10-22: "TWK Everett but thin, but also
-    # sporty"). Everett is licensed; Inter Tight is the closest OFL match.
-    # From @fontsource-variable/inter-tight (wght 100-900, latin subset).
-    "intertight": "Inter Tight",
+    # sporty" -> picked Saira 200 from the comparison). OFL, from
+    # @fontsource-variable/saira (wght 100-900, latin subset).
+    "saira": "Saira",
 }
 # Google serves ONE variable woff2 per family — every weight URL in a css2
 # response for Syne or Plus Jakarta Sans returns a byte-identical file. Seven
@@ -124,7 +124,7 @@ VARIABLE_RANGE = {"Syne": "600 800", "Plus Jakarta Sans": "400 700",
                   # Archivo does display AND body, so it needs the full axis —
                   # 400 body, 700 UI labels, 800-900 headlines.
                   "Archivo": "100 900", "Inter": "400 700",
-                  "Newsreader": "200 800", "Inter Tight": "100 900",
+                  "Newsreader": "200 800", "Saira": "100 900",
                   # JetBrains Mono: tabular numerals only (prices, ratings,
                   # counts, distances). Instrument Serif ships as static
                   # Regular/Italic faces, so it needs no variable range here.
