@@ -11611,6 +11611,7 @@ function coachHTML(){
     organization:'<rect x="3" y="4" width="18" height="16" rx="2"/><path d="M9 20v-5h6v5"/><path d="M12 4v3M8.5 5.5h7"/>',
     teams:'<circle cx="8" cy="8" r="3"/><circle cx="16" cy="8" r="3"/><path d="M2.5 20c0-3 2.5-5 5.5-5s5.5 2 5.5 5"/><path d="M13.5 20c0-3 2.5-5 5.5-5s5.5 2 5.5 5" transform="translate(-3 0)"/>',
     assistant:'<path d="M12 3l1.9 4.6L18.5 9.5l-4.6 1.9L12 16l-1.9-4.6L5.5 9.5l4.6-1.9z"/><path d="M18.5 15.5l.8 1.9 1.9.8-1.9.8-.8 1.9-.8-1.9-1.9-.8 1.9-.8z"/>',
+    recruiting:'<circle cx="10" cy="7.5" r="3"/><path d="M4 19.5c0-3.3 2.7-5.5 6-5.5"/><circle cx="16.5" cy="16" r="3"/><path d="M18.7 18.2l2.3 2.3"/>',
     families:'<circle cx="8.5" cy="9" r="2.6"/><circle cx="15.5" cy="9" r="2.6"/><path d="M3.5 19.5c0-2.8 2.2-4.6 5-4.6s5 1.8 5 4.6"/><path d="M10.5 19.5c0-2.8 2.2-4.6 5-4.6s5 1.8 5 4.6"/>',
   };
   const rIcon=k=>`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"
@@ -11622,6 +11623,8 @@ function coachHTML(){
     [rosterLabel(), [["roster",rosterLabel()],["inbox","Messages"],["schedule","Schedule"]]],
     ["Business",[["finances",financesLabel()],["approvals","Approvals"],["operations","Operations"],["billing","Billing"]]],
     ["Organization",[["organization","Organization"],["teams","Teams"],["families","Families"]]],
+    /* SOURCE pillar (spec 31 Part II): the recruit board, MOD_RECRUITING. */
+    ["Source",[["recruiting","Recruiting"]]],
   ];
   const core=[["dashboard","Home"],["schedule","Schedule"],
               ["roster",rosterLabel()],["inbox","Messages"],
