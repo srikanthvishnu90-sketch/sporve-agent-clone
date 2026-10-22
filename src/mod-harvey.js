@@ -558,6 +558,46 @@ html #app .band.dark .cxgrid,html #app .lp26~.band .shell{max-width:none}
 /* The closing CTA's divider ran through the button */
 html #app .lp26 .close .close-zone{margin-top:56px}
 html #app :is(.lp26,.hero-ctas26) .btn{text-decoration:none!important}
+
+/* Old-style pages (.sec-head) get the same header inset as MOD_COACHUI pages,
+   and the sticky tab strip matches the cool canvas. */
+html #app.coachdark .cui-tabs{background:rgba(245,247,249,.96)!important}
+
+/* ═══ Product screenshots, framed like Harvey's (owner 2026-10-22) ═══ */
+html #app .shot26{position:relative;margin:40px 0 0;border-radius:16px;overflow:hidden;padding:56px 64px 0;
+  background:#0B0D0F;isolation:isolate}
+html #app .shot26::before{content:"";position:absolute;inset:0;z-index:-2;background-image:var(--shot-bg);background-size:cover;background-position:center 40%}
+html #app .shot26::after{content:"";position:absolute;inset:0;z-index:-1;background:rgba(11,13,15,.62)}
+html #app .shot26-win{aspect-ratio:2880/1520;background-size:100% auto;background-position:top center;background-repeat:no-repeat;
+  border-radius:12px 12px 0 0;box-shadow:0 30px 80px -24px rgba(0,0,0,.7),0 0 0 1px rgba(255,255,255,.06);background-color:#F5F7F9}
+html #app .shot26-band{padding-top:24px}
+@media (max-width:760px){html #app .shot26{padding:20px 12px 0;border-radius:12px}}
+
+/* ═══ Pricing page on the landing's black ground (owner 2026-10-22) ═══ */
+html body:not(.reg-coach) #app:has(.pr-h1c){background:#0B0D0F!important;color:#E6EBF1}
+html body:not(.reg-coach) #app:has(.pr-h1c) :is(section,.band,.pr-head,.cmp-wrap,.pr-faq){background:transparent!important}
+html body:not(.reg-coach) #app .pr-h1c{color:#FFFFFF!important}
+html body:not(.reg-coach) #app:has(.pr-h1c) :is(.lede,.pp-desc,.cmp-fine,.pp-addon,p){color:#B4C0CC!important}
+html body:not(.reg-coach) #app:has(.pr-h1c) :is(h2,h3,b,strong,.pp-name,.pp-price,.mono,td,th){color:#FFFFFF!important}
+html body:not(.reg-coach) #app .pp-card{background:#11161C!important;border:1px solid #1F2833!important;box-shadow:none!important;color:#E6EBF1!important}
+html body:not(.reg-coach) #app .pp-card:has(.pp-badge){border-color:#6B7F9E!important;box-shadow:0 0 0 1px #6B7F9E!important}
+html body:not(.reg-coach) #app .pp-feats li,html body:not(.reg-coach) #app .pp-feats *{color:#C3CBD4!important}
+html body:not(.reg-coach) #app .pp-price small,html body:not(.reg-coach) #app .pp-price span{color:#9DB0CB!important}
+html body:not(.reg-coach) #app .pr-cycle{background:#11161C!important;border:1px solid #1F2833!important}
+html body:not(.reg-coach) #app .pr-cyc{color:#B4C0CC!important;background:transparent!important}
+html body:not(.reg-coach) #app .pr-cyc.on{background:#6B7F9E!important;color:#0B0D0F!important}
+html body:not(.reg-coach) #app .pp-cta:not(.pp-cta-alt),html body:not(.reg-coach) #app .pp-badge,
+html body:not(.reg-coach) #app:has(.pr-h1c) .btn:not(.ghost){background:#6B7F9E!important;color:#0B0D0F!important;border-color:#6B7F9E!important}
+html body:not(.reg-coach) #app .pp-cta-alt{color:#FFFFFF!important;background:transparent!important}
+html body:not(.reg-coach) #app:has(.pr-h1c) .btn.ghost{color:#FFFFFF!important;border-color:rgba(255,255,255,.4)!important}
+html body:not(.reg-coach) #app .cmp,html body:not(.reg-coach) #app .cmp *{border-color:#1F2833!important}
+html body:not(.reg-coach) #app .cmp-y{color:#9DB0CB!important}
+html body:not(.reg-coach) #app .cmp-n{color:#5B6878!important}
+html body:not(.reg-coach) #app .pr-stats,html body:not(.reg-coach) #app .pr-stats *{border-color:#1F2833!important}
+html body:not(.reg-coach) #app:has(.pr-h1c) :is(summary,.prq summary,.prq *){color:#FFFFFF!important}
+html body:not(.reg-coach) #app:has(.pr-h1c) .prq{border-color:#1F2833!important}
+html body:not(.reg-coach) #app .pr-stats span{color:#B4C0CC!important}
+html body:not(.reg-coach) #app .pp-addon a{color:#9DB0CB!important}
 `;
 
 const ID = "harvey-layer";

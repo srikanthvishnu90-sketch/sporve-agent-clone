@@ -9549,20 +9549,15 @@ function landingHTML(){
         <h2 data-rev data-rev-d="1">You billed the season. You didn't collect all of it.</h2>
         <p data-rev data-rev-d="2" style="margin-top:14px">Rosters, dues, and waivers for travel teams, camps, and private trainers. The follow-ups write themselves — you press send.</p></div>
 
-      <div class="queue" data-rev data-rev-d="2">
-        <div class="qh">
-          <span class="t">Review queue</span><span class="c">12 drafted · $4,290</span>
-          <span class="b"><span class="p">Approve all</span><span>Review each</span></span>
-        </div>
-      <div class="r"><span class="nm">Dana Reyes<small>Flight 14U</small></span><span class="msg">Hi Dana — installment 3 for Ava's season fee was due Sept 1…</span><span class="amt">$390</span><span class="st">Ready</span></div>
-      <div class="r"><span class="nm">Priya Thomas<small>Flight 14U</small></span><span class="msg">Hi Priya — quick note that installment 3 hasn't come through…</span><span class="amt">$390</span><span class="st">Ready</span></div>
-      <div class="r"><span class="nm">Sam Kowalski<small>Flight 16U</small></span><span class="msg">Hi Sam — Liam's third installment is outstanding as of today…</span><span class="amt">$425</span><span class="st">Ready</span></div>
-      <div class="r"><span class="nm">Ruth Delgado<small>Flight 12U</small></span><span class="msg">Hi Ruth — following up on the September installment…</span><span class="amt">$340</span><span class="st">Ready</span></div>
-      <div class="r"><span class="nm">Marcus Bell<small>Summer camp</small></span><span class="msg">Held — guardian disputed this charge on Aug 14</span><span class="amt">$260</span><span class="st hold">Needs you</span></div>
-      <div class="r"><span class="nm">Elena Novak<small>Flight 16U</small></span><span class="msg">Hi Elena — installment 3 for Mia's season is outstanding…</span><span class="amt">$425</span><span class="st">Ready</span></div>
-        <div class="qf">6 of 12 shown. Nothing here sends until someone approves it.</div>
-      </div>
-      <p data-rev data-rev-d="2" style="margin-top:14px;font-size:14px;color:var(--w-2)">Product preview. Names and amounts are illustrative.</p>
+      ${/* Real product, framed the way Harvey frames its UI (owner 2026-10-22):
+           a screenshot of the actual Sporv queue, captured from the app with
+           its sample workspace, inset over the darkened stadium still. A CSS
+           background, not an <img>: it is a UI capture, not a photograph. */""}
+      <figure class="shot26" data-rev data-rev-d="2" style="--shot-bg:url('${HERO_IMGS[0]||""}')">
+        <div class="shot26-win" role="img" aria-label="The Sporv review queue: drafted follow-ups waiting for approval"
+             style="background-image:url('/assets/landing/app-queue.webp?v=1')"></div>
+      </figure>
+      <p data-rev data-rev-d="2" style="margin-top:14px;font-size:14px;color:var(--w-2)">Screens from the Sporv app with its sample workspace. Names and amounts are illustrative.</p>
     </div>
   </section>
   </div>
@@ -9590,6 +9585,16 @@ function landingHTML(){
         <div class="row rule" data-rev data-rev-d="1"><span class="n">02</span><div><h3>Bill the season as installments, by card or bank</h3><p style="margin-top:8px">One charge for a camp, a payment plan for a season, per session for a trainer. Same ledger underneath.</p></div></div>
         <div class="row rule" data-rev data-rev-d="2"><span class="n">03</span><div><h3>Chase what's late, with your approval on every message</h3><p style="margin-top:8px">The follow-ups are drafted before you log in, addressed to the right guardian with the right amount. You read the batch and send once.</p></div></div>
       </div>
+    </div>
+  </section>
+
+  <section class="dark band shot26-band">
+    <div class="wrap">
+      <div class="head"><p class="k" data-rev>Your roster</p><h2 data-rev data-rev-d="1">Every family, and whether they've paid.</h2></div>
+      <figure class="shot26" data-rev data-rev-d="2" style="--shot-bg:url('${HERO_IMGS[0]||""}')">
+        <div class="shot26-win" role="img" aria-label="The Sporv clients page: a team roster with payment status for each player"
+             style="background-image:url('/assets/landing/app-clients.webp?v=1')"></div>
+      </figure>
     </div>
   </section>
 

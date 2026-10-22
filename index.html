@@ -29,7 +29,7 @@
 <link rel="manifest" href="/site.webmanifest">
 <script type="application/ld+json">{"@context":"https://schema.org","@type":"SoftwareApplication","name":"Sporv","url":"https://sporv.ai/","applicationCategory":"BusinessApplication","operatingSystem":"Web","description":"Sporv runs the club for you — roster, scheduling, waivers, dues and payouts, with an agent that drafts the busywork and a human who approves it.","publisher":{"@type":"Organization","name":"Sporv","url":"https://sporv.ai/","logo":"https://sporv.ai/icon-512.png"}}</script>
 <script type="application/ld+json">{"@context":"https://schema.org","@type":"WebSite","name":"Sporv AI","url":"https://sporv.ai/"}</script>
-<meta name="sporve-build" content="9157dbbec211ff8e">
+<meta name="sporve-build" content="865cb3c6b5796202">
 </head>
 <body>
 <script>
@@ -9602,20 +9602,15 @@ function landingHTML(){
         <h2 data-rev data-rev-d="1">You billed the season. You didn't collect all of it.</h2>
         <p data-rev data-rev-d="2" style="margin-top:14px">Rosters, dues, and waivers for travel teams, camps, and private trainers. The follow-ups write themselves — you press send.</p></div>
 
-      <div class="queue" data-rev data-rev-d="2">
-        <div class="qh">
-          <span class="t">Review queue</span><span class="c">12 drafted · $4,290</span>
-          <span class="b"><span class="p">Approve all</span><span>Review each</span></span>
-        </div>
-      <div class="r"><span class="nm">Dana Reyes<small>Flight 14U</small></span><span class="msg">Hi Dana — installment 3 for Ava's season fee was due Sept 1…</span><span class="amt">$390</span><span class="st">Ready</span></div>
-      <div class="r"><span class="nm">Priya Thomas<small>Flight 14U</small></span><span class="msg">Hi Priya — quick note that installment 3 hasn't come through…</span><span class="amt">$390</span><span class="st">Ready</span></div>
-      <div class="r"><span class="nm">Sam Kowalski<small>Flight 16U</small></span><span class="msg">Hi Sam — Liam's third installment is outstanding as of today…</span><span class="amt">$425</span><span class="st">Ready</span></div>
-      <div class="r"><span class="nm">Ruth Delgado<small>Flight 12U</small></span><span class="msg">Hi Ruth — following up on the September installment…</span><span class="amt">$340</span><span class="st">Ready</span></div>
-      <div class="r"><span class="nm">Marcus Bell<small>Summer camp</small></span><span class="msg">Held — guardian disputed this charge on Aug 14</span><span class="amt">$260</span><span class="st hold">Needs you</span></div>
-      <div class="r"><span class="nm">Elena Novak<small>Flight 16U</small></span><span class="msg">Hi Elena — installment 3 for Mia's season is outstanding…</span><span class="amt">$425</span><span class="st">Ready</span></div>
-        <div class="qf">6 of 12 shown. Nothing here sends until someone approves it.</div>
-      </div>
-      <p data-rev data-rev-d="2" style="margin-top:14px;font-size:14px;color:var(--w-2)">Product preview. Names and amounts are illustrative.</p>
+      ${/* Real product, framed the way Harvey frames its UI (owner 2026-10-22):
+           a screenshot of the actual Sporv queue, captured from the app with
+           its sample workspace, inset over the darkened stadium still. A CSS
+           background, not an <img>: it is a UI capture, not a photograph. */""}
+      <figure class="shot26" data-rev data-rev-d="2" style="--shot-bg:url('${HERO_IMGS[0]||""}')">
+        <div class="shot26-win" role="img" aria-label="The Sporv review queue: drafted follow-ups waiting for approval"
+             style="background-image:url('/assets/landing/app-queue.webp?v=1')"></div>
+      </figure>
+      <p data-rev data-rev-d="2" style="margin-top:14px;font-size:14px;color:var(--w-2)">Screens from the Sporv app with its sample workspace. Names and amounts are illustrative.</p>
     </div>
   </section>
   </div>
@@ -9643,6 +9638,16 @@ function landingHTML(){
         <div class="row rule" data-rev data-rev-d="1"><span class="n">02</span><div><h3>Bill the season as installments, by card or bank</h3><p style="margin-top:8px">One charge for a camp, a payment plan for a season, per session for a trainer. Same ledger underneath.</p></div></div>
         <div class="row rule" data-rev data-rev-d="2"><span class="n">03</span><div><h3>Chase what's late, with your approval on every message</h3><p style="margin-top:8px">The follow-ups are drafted before you log in, addressed to the right guardian with the right amount. You read the batch and send once.</p></div></div>
       </div>
+    </div>
+  </section>
+
+  <section class="dark band shot26-band">
+    <div class="wrap">
+      <div class="head"><p class="k" data-rev>Your roster</p><h2 data-rev data-rev-d="1">Every family, and whether they've paid.</h2></div>
+      <figure class="shot26" data-rev data-rev-d="2" style="--shot-bg:url('${HERO_IMGS[0]||""}')">
+        <div class="shot26-win" role="img" aria-label="The Sporv clients page: a team roster with payment status for each player"
+             style="background-image:url('/assets/landing/app-clients.webp?v=1')"></div>
+      </figure>
     </div>
   </section>
 
@@ -34840,6 +34845,46 @@ html #app .band.dark .cxgrid,html #app .lp26~.band .shell{max-width:none}
 /* The closing CTA's divider ran through the button */
 html #app .lp26 .close .close-zone{margin-top:56px}
 html #app :is(.lp26,.hero-ctas26) .btn{text-decoration:none!important}
+
+/* Old-style pages (.sec-head) get the same header inset as MOD_COACHUI pages,
+   and the sticky tab strip matches the cool canvas. */
+html #app.coachdark .cui-tabs{background:rgba(245,247,249,.96)!important}
+
+/* ═══ Product screenshots, framed like Harvey's (owner 2026-10-22) ═══ */
+html #app .shot26{position:relative;margin:40px 0 0;border-radius:16px;overflow:hidden;padding:56px 64px 0;
+  background:#0B0D0F;isolation:isolate}
+html #app .shot26::before{content:"";position:absolute;inset:0;z-index:-2;background-image:var(--shot-bg);background-size:cover;background-position:center 40%}
+html #app .shot26::after{content:"";position:absolute;inset:0;z-index:-1;background:rgba(11,13,15,.62)}
+html #app .shot26-win{aspect-ratio:2880/1520;background-size:100% auto;background-position:top center;background-repeat:no-repeat;
+  border-radius:12px 12px 0 0;box-shadow:0 30px 80px -24px rgba(0,0,0,.7),0 0 0 1px rgba(255,255,255,.06);background-color:#F5F7F9}
+html #app .shot26-band{padding-top:24px}
+@media (max-width:760px){html #app .shot26{padding:20px 12px 0;border-radius:12px}}
+
+/* ═══ Pricing page on the landing's black ground (owner 2026-10-22) ═══ */
+html body:not(.reg-coach) #app:has(.pr-h1c){background:#0B0D0F!important;color:#E6EBF1}
+html body:not(.reg-coach) #app:has(.pr-h1c) :is(section,.band,.pr-head,.cmp-wrap,.pr-faq){background:transparent!important}
+html body:not(.reg-coach) #app .pr-h1c{color:#FFFFFF!important}
+html body:not(.reg-coach) #app:has(.pr-h1c) :is(.lede,.pp-desc,.cmp-fine,.pp-addon,p){color:#B4C0CC!important}
+html body:not(.reg-coach) #app:has(.pr-h1c) :is(h2,h3,b,strong,.pp-name,.pp-price,.mono,td,th){color:#FFFFFF!important}
+html body:not(.reg-coach) #app .pp-card{background:#11161C!important;border:1px solid #1F2833!important;box-shadow:none!important;color:#E6EBF1!important}
+html body:not(.reg-coach) #app .pp-card:has(.pp-badge){border-color:#6B7F9E!important;box-shadow:0 0 0 1px #6B7F9E!important}
+html body:not(.reg-coach) #app .pp-feats li,html body:not(.reg-coach) #app .pp-feats *{color:#C3CBD4!important}
+html body:not(.reg-coach) #app .pp-price small,html body:not(.reg-coach) #app .pp-price span{color:#9DB0CB!important}
+html body:not(.reg-coach) #app .pr-cycle{background:#11161C!important;border:1px solid #1F2833!important}
+html body:not(.reg-coach) #app .pr-cyc{color:#B4C0CC!important;background:transparent!important}
+html body:not(.reg-coach) #app .pr-cyc.on{background:#6B7F9E!important;color:#0B0D0F!important}
+html body:not(.reg-coach) #app .pp-cta:not(.pp-cta-alt),html body:not(.reg-coach) #app .pp-badge,
+html body:not(.reg-coach) #app:has(.pr-h1c) .btn:not(.ghost){background:#6B7F9E!important;color:#0B0D0F!important;border-color:#6B7F9E!important}
+html body:not(.reg-coach) #app .pp-cta-alt{color:#FFFFFF!important;background:transparent!important}
+html body:not(.reg-coach) #app:has(.pr-h1c) .btn.ghost{color:#FFFFFF!important;border-color:rgba(255,255,255,.4)!important}
+html body:not(.reg-coach) #app .cmp,html body:not(.reg-coach) #app .cmp *{border-color:#1F2833!important}
+html body:not(.reg-coach) #app .cmp-y{color:#9DB0CB!important}
+html body:not(.reg-coach) #app .cmp-n{color:#5B6878!important}
+html body:not(.reg-coach) #app .pr-stats,html body:not(.reg-coach) #app .pr-stats *{border-color:#1F2833!important}
+html body:not(.reg-coach) #app:has(.pr-h1c) :is(summary,.prq summary,.prq *){color:#FFFFFF!important}
+html body:not(.reg-coach) #app:has(.pr-h1c) .prq{border-color:#1F2833!important}
+html body:not(.reg-coach) #app .pr-stats span{color:#B4C0CC!important}
+html body:not(.reg-coach) #app .pp-addon a{color:#9DB0CB!important}
 `;
 
 const ID = "harvey-layer";
