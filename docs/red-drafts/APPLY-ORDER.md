@@ -160,3 +160,63 @@ outstanding.
 **The repo is not the state.** Three migrations in `supabase/migrations/` are
 not in production, and one applied change (`ai_quota_burst`) has a different
 name there. Before applying anything, probe for the object, not the filename.
+
+## Source R1 (recruiting)
+
+**Added 2026-10-22.** Independent of waves 1-7: it creates new tables only and
+changes no existing table, function or policy. It is the switch that turns the
+coach dashboard's **Recruiting** tab on; until it is applied, a signed-in coach
+sees "Recruiting isn't switched on for this workspace yet" and nothing is faked.
+
+Files:
+- `2026-10-22-recruiting-r1.sql` — 7 tables (`recruits`, `recruit_pipelines`,
+  `recruit_stage_history`, `recruit_guardians`, `recruit_evaluations`,
+  `recruit_contacts`, `recruiting_targets`) plus a minimal `data_access_log`,
+  RLS on all 8, and two RPCs (`move_recruit_stage`, `get_recruit_sensitive`).
+- `2026-10-22-recruiting-r1.test.sql` — disposable-database proof (6 groups:
+  RLS on, cross-org zero rows, minors compartmented, under-13 blocked, stage
+  receipts, evaluation scoring). Passed 6/6 on a scratch Postgres 16 on
+  2026-10-22, and fails group C when the guardian policy is loosened.
+
+**Owner steps — click by click.**
+
+1. Open https://supabase.com/dashboard/project/aveqjeafghmwafkbbnor (the project
+   `src/mod-api.js` talks to). Left sidebar → **SQL Editor** → **+ New query**.
+2. Probe the two helpers this file needs. Paste and click **Run**:
+   ```sql
+   select to_regprocedure('public.is_org_admin(uuid)')  as admin_helper,
+          to_regprocedure('public.is_org_member(uuid)') as member_helper,
+          to_regclass('public.recruits')               as already_there;
+   ```
+   Expected: `admin_helper` and `member_helper` are filled in, `already_there` is
+   empty (NULL). If `member_helper` is empty, stop: migration
+   `supabase/migrations/20260915_001075_staff_workspace_access.sql` is not live
+   and must go first. If `already_there` is filled in, stop and ask — someone
+   applied this already.
+3. **+ New query** again. Open `docs/red-drafts/2026-10-22-recruiting-r1.sql` on
+   GitHub, click **Raw**, select all, copy, paste into the editor, click **Run**.
+   Expected: "Success. No rows returned." Lines saying "does not exist,
+   skipping" are normal on a first run.
+4. Verify. **+ New query**, paste, **Run**:
+   ```sql
+   select tablename, rowsecurity from pg_tables
+    where schemaname = 'public'
+      and tablename in ('recruits','recruit_pipelines','recruit_stage_history','recruit_guardians',
+                        'recruit_evaluations','recruit_contacts','recruiting_targets','data_access_log')
+    order by 1;
+   ```
+   Expected: 8 rows, every `rowsecurity` = `true`.
+5. Do **not** paste the `.test.sql` file into production: it creates roles and
+   test schools and refuses to run outside a database named
+   `sporv_spec_recruit`. It is run on a throwaway database with
+   `bash tools/run-sql-fixtures.sh 2026-10-22-recruiting-r1` (a developer step;
+   Claude ran it on 2026-10-22).
+6. Open https://sporv.ai, sign in, click **Recruiting** under **Source** in the
+   left rail. Expected: the empty board ("No recruits yet") with **Add recruit**,
+   not the "isn't switched on" message.
+
+Undo (only if step 3 must be reversed and no real recruit has been entered):
+`drop table public.recruit_contacts, public.recruit_evaluations, public.recruit_guardians,
+public.recruit_stage_history, public.recruit_pipelines, public.recruiting_targets,
+public.recruits cascade;` — leave `data_access_log` if any other feature has
+started writing to it.

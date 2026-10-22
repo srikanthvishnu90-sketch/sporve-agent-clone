@@ -49,6 +49,9 @@ ORDER = [
     # Enterprise core tabs (2026-09-22): org profile/locations/staff,
     # teams CRUD, families/guardians. Self-contained MOD_* modules.
     "mod-org.js", "mod-teams.js", "mod-families.js",
+    # SOURCE pillar (spec 31 Part II, R1): the recruit board. Before
+    # mod-harvey.js so the visual layer's cascade still lands last.
+    "mod-recruiting.js",
     # Coach-app visual layer (owner 2026-10-21, Harvey-style redesign). Last,
     # so its <style> lands after every module's own injected CSS.
     "mod-harvey.js",
