@@ -29,7 +29,7 @@
 <link rel="manifest" href="/site.webmanifest">
 <script type="application/ld+json">{"@context":"https://schema.org","@type":"SoftwareApplication","name":"Sporv","url":"https://sporv.ai/","applicationCategory":"BusinessApplication","operatingSystem":"Web","description":"Sporv runs the club for you — roster, scheduling, waivers, dues and payouts, with an agent that drafts the busywork and a human who approves it.","publisher":{"@type":"Organization","name":"Sporv","url":"https://sporv.ai/","logo":"https://sporv.ai/icon-512.png"}}</script>
 <script type="application/ld+json">{"@context":"https://schema.org","@type":"WebSite","name":"Sporv AI","url":"https://sporv.ai/"}</script>
-<meta name="sporve-build" content="2db92e4bf206ef1f">
+<meta name="sporve-build" content="7a02b6e9096acc73">
 </head>
 <body>
 <script>
@@ -20801,8 +20801,8 @@ function confirmPending(){
   }).then(out=>{
     S.cmdPending=null;S.cmdDraft="";
     S.cmdLog=[{text:p.restated,at:"just now"},...(S.cmdLog||[])].slice(0,8);
-    render();toast("Sent. "+window.SporvActions.receiptLine(out));
-  }).catch(e=>{render();toast("That didn't send — "+((e&&e.message)||"the request was refused."));});
+    render();toast("Added to the group thread on this device. Families have not been emailed or texted. "+window.SporvActions.receiptLine(out));
+  }).catch(e=>{render();toast("That wasn't added — "+((e&&e.message)||"the request was refused."));});
 }
 function runCommand(text){
   const t=text.toLowerCase();
