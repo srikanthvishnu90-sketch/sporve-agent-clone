@@ -489,6 +489,49 @@ html body:not(.reg-coach) header.topbar{background:rgba(245,247,249,.94)!importa
 html body:not(.reg-coach) header.topbar .cta.start{background:#3E566E!important;border-color:#3E566E!important}
 html body:not(.reg-coach) #app:has(.pr-h1c){background:#F5F7F9!important}
 html body:not(.reg-coach) #app:has(.pr-h1c) .btn:not(.ghost),html body:not(.reg-coach) #app .pp-cta:not(.pp-cta-alt),html body:not(.reg-coach) #app .pp-badge{background:#3E566E!important}
+
+/* ═══ Landing blend (owner 2026-10-22): stadium hero on top ═══ */
+html #app .hvl .hvl-stadium{padding:0;margin:0}
+html #app .hvl .hvl-stadium .hero-panel{position:relative;min-height:min(86vh,780px);display:flex;align-items:center;justify-content:center;overflow:hidden;background:#0B0D0F}
+html #app .hvl .hvl-stadium .hero-media{position:absolute;inset:0}
+html #app .hvl .hvl-stadium .hero-still{position:absolute;inset:0;background-size:cover;background-position:center 40%}
+html #app .hvl .hvl-stadium .hero-media::after{content:"";position:absolute;inset:0;background:rgba(11,13,15,.55)}
+html #app .hvl .hvl-stadium-in{position:relative;z-index:1;text-align:center;max-width:980px;padding:96px 24px}
+html #app .hvl .hvl-h1-on-dark{color:#FFFFFF!important;font-size:clamp(40px,6vw,84px)!important}
+html #app .hvl .hvl-lede-on-dark{color:#D5DDE6!important;max-width:58ch;margin:24px auto 0!important}
+html #app .hvl .hvl-btn-ghost-dark{background:transparent;color:#FFFFFF;border-color:rgba(255,255,255,.45)}
+html #app .hvl .hvl-btn-ghost-dark:hover{background:rgba(255,255,255,.08)}
+html #app .hvl .hvl-sec-shot{padding-top:96px}
+html #app .hvl .hvl-frame{margin-top:40px;background:#0B0D0F;border-radius:16px;padding:56px 56px 0;overflow:hidden}
+@media (max-width:760px){html #app .hvl .hvl-frame{padding:20px 12px 0;border-radius:12px}html #app .hvl .hvl-stadium-in{padding:72px 16px}}
+
+/* ═══ Public top nav, Harvey's anatomy (owner 2026-10-22) ═══
+   Thin dark announcement strip, then a light 72px bar: logo and nav items as
+   one left group, Log in (outlined) and Get started (solid slate) on the
+   right, square-cornered buttons, ink text, no underline on "Book a call". */
+html .hvl-ann{display:flex;align-items:center;justify-content:center;gap:10px;min-height:36px;padding:6px 48px;
+  background:#0B0D0F;color:#E6EBF1;font-family:"Archivo",system-ui,sans-serif;font-size:14px;position:relative;text-align:center}
+html .hvl-ann a{color:#FFFFFF;font-weight:600;text-decoration:underline;text-underline-offset:3px}
+html .hvl-ann-x{position:absolute;right:16px;top:50%;transform:translateY(-50%);background:none;border:0;color:#9DB0CB;font-size:18px;cursor:pointer;line-height:1}
+html body:not(.reg-coach) header.topbar .topbar-in{min-height:72px}
+html body:not(.reg-coach) header.topbar .nav-left{gap:36px}
+html body:not(.reg-coach) header.topbar :is(.tnav,.navlink){color:#0B0D0F!important;font-size:15px!important;font-weight:500!important;
+  text-decoration:none!important;padding:8px 10px!important}
+html body:not(.reg-coach) header.topbar .tnav:hover{color:#3E566E!important}
+html body:not(.reg-coach) header.topbar .cta{border-radius:6px!important;min-height:38px;padding:0 16px!important;font-size:14.5px!important}
+html body:not(.reg-coach) header.topbar .cta.login{border-color:#0B0D0F!important;color:#0B0D0F!important}
+html body:not(.reg-coach) header.topbar .cta-pair{gap:10px}
+@media (max-width:760px){html .hvl-ann{font-size:13.5px;padding:6px 40px 6px 16px;justify-content:flex-start;text-align:left}}
+
+html body:not(.reg-coach) header.topbar.has-ann{display:block!important;height:auto!important;padding-top:0!important}
+html body:not(.reg-coach) header.topbar .hvl-ann{margin:0;width:100%}
+html body:not(.reg-coach) header.topbar .tnav.on{font-style:normal!important;color:#3E566E!important}
+html body:not(.reg-coach) #app .pr-cyc.on{background:#3E566E!important;color:#FFFFFF!important}
+
+html #app .hvl .hvl-stadium-in{padding-top:128px!important;padding-bottom:112px!important}
+html .hvl-ann a{white-space:nowrap}
+@media (max-width:760px){html #app .hvl .hvl-stadium-in{padding-top:88px!important;padding-bottom:72px!important}
+  html #app .hvl .hvl-h1-on-dark{font-size:40px!important}}
 `;
 
 const ID = "harvey-layer";

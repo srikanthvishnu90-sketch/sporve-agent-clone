@@ -8894,7 +8894,11 @@ function topbarHTML(){
   const u=S.auth.user;
   const guestFam=S.portal==="family"&&!u;
   const firstName=u?String(u.first_name||u.firstName||(initials(u)||"")).split(" ")[0].slice(0,14):"";
-  return `<header class="topbar${guestFam?" guest":""}"><div class="shell topbar-in"><div class="nav-left">
+  /* Harvey-style announcement strip above the public nav (owner 2026-10-22,
+     "harveys top nav bar aswell"). Family/public portal only, never the app. */
+  const annBar=S.portal==="family"&&!S.annClosed
+    ?`<div class="hvl-ann"><span>Switching from TeamSnap or SportsEngine? We import your roster on a setup call.</span> <a href="${CALENDLY_URL}" target="_blank" rel="noopener">Book a call</a><button class="hvl-ann-x" data-annclose="1" aria-label="Dismiss">×</button></div>`:"";
+  return `<header class="topbar${guestFam?" guest":""}${annBar?" has-ann":""}">${annBar}<div class="shell topbar-in"><div class="nav-left">
     <button class="brand" data-nav="explore" aria-label="Sporv home"><span class="navlogo-crop"><img class="navlogo" src="${LOGO_SRC}" alt="Sporv" width="99" height="24"></span></button>
     ${/* EASED LAYOUT (owner, 2026-08-19): logo + tabs are a LEFT group; the
           right cluster sits opposite via flex space-between. Tabs, names and
@@ -9536,21 +9540,29 @@ function landingHTML(){
      ["quickbooks","QuickBooks","Reconciliation, read-only. Your books stay the source of truth."]];
   return `
   <div class="hvl">
-  <section class="hvl-hero">
-    <div class="hvl-wrap hvl-hero-grid">
-      <h1 class="hvl-h1">Every season, accounted for.</h1>
-      <div class="hvl-hero-side">
-        <p class="hvl-lede">Sporv reads your roster, dues and schedule, then drafts every follow-up a club director would write. You review the batch and press send.</p>
-        <div class="hvl-ctas">
+  ${/* Blend (owner 2026-10-22, "blend the two"): the full-screen stadium
+       hero is back as the first screen, now carrying the headline, lede and
+       both calls to action; the product window moves to its own light
+       section directly beneath it. */""}
+  <section class="hero herofull hvl-stadium">
+    <div class="hero-panel">
+      ${heroMediaHTML()}
+      <div class="hero-in herofull-in hvl-stadium-in">
+        <h1 class="hvl-h1 hvl-h1-on-dark">Every season, accounted for.</h1>
+        <p class="hvl-lede hvl-lede-on-dark">Sporv reads your roster, dues and schedule, then drafts every follow-up a club director would write. You review the batch and press send.</p>
+        <div class="hvl-ctas hvl-center-row">
           <a class="hvl-btn hvl-btn-pri" href="${CALENDLY_URL}" target="_blank" rel="noopener">Book a setup call</a>
-          <button class="hvl-btn hvl-btn-sec" data-nav="pricing">See pricing</button>
+          <button class="hvl-btn hvl-btn-ghost-dark" data-nav="pricing">See pricing</button>
         </div>
       </div>
     </div>
+  </section>
+
+  <section class="hvl-sec hvl-sec-shot">
     <div class="hvl-wrap">
-      <div class="hero-panel hvl-shot">
-        ${heroMediaHTML()}
-        <div class="hero-in hvl-shot-in">
+      <h2 class="hvl-h2">Your morning, already drafted.</h2>
+      <p class="hvl-p" style="max-width:60ch">Open Sporv and the follow-ups are waiting, each addressed to the right family with the right amount.</p>
+      <div class="hvl-frame">
           <div class="hvl-win" role="img" aria-label="Product preview: the Sporv review queue">
             <div class="hvl-win-rail">
               <b>Sporv</b>
@@ -9570,7 +9582,6 @@ function landingHTML(){
             </div>
           </div>
         </div>
-      </div>
       <p class="hvl-note">Product preview. Names and amounts are illustrative.</p>
     </div>
   </section>
@@ -17702,6 +17713,7 @@ function wire(){
   const $=s=>document.querySelectorAll(s);
   const on=(sel,ev,fn)=>$(sel).forEach(el=>el.addEventListener(ev,fn));
 
+  $("[data-annclose]").forEach(b=>b.onclick=()=>{S.annClosed=true;render();});
   $("[data-nav]").forEach(b=>b.onclick=()=>{S.modal=null;
     const v=b.dataset.nav;const c=v.indexOf(":");
     if(c>0) go(v.slice(0,c),v.slice(c+1)); else go(v);});
