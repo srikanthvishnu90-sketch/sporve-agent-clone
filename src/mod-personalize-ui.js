@@ -291,25 +291,34 @@ function persPropCardHTML(prop, i){
 
 /* Apply / Tweak / Cancel actions. Apply uses compare-and-swap: a stale
    preview shows the diff instead of overwriting. */
+/* G4: Apply runs through the action registry (pers_apply): precondition,
+   version receipt, and a read-back that the current version IS the receipt. */
 function persApply(id){
   const p = P();
-  if (!p) return;
-  const r = p.applyProposal(id, { role:role(), author:author() });
-  if (r.conflict){
-    toast("The workspace changed since this preview.");
-    S.chat = [...S.chat, { role:"coach",
-      text:"This preview is stale — the workspace changed underneath it. " + r.message + " " + (r.diff || ""),
-      persProposal:null }];
-    render();
-    return;
+  if (!p) return Promise.resolve();
+  const A = (typeof window !== "undefined" && window.SporvActions) || globalThis.SporvActions;
+  if (!A){
+    toast("Could not apply: the action registry didn't load, so nothing changed.");
+    return Promise.resolve();
   }
-  if (!r.ok){
-    toast("Could not apply: " + (r.errors || ["unknown error"]).join(" "));
-    return;
-  }
-  markProposalDone(id, "applied");
-  toast("Change applied. Undo is in Settings, Workspace.");
-  render();
+  return Promise.resolve()
+    .then(() => A.execute("pers_apply", { id, role:role(), author:author() }))
+    .then(() => {
+      markProposalDone(id, "applied");
+      toast("Change applied. Undo is in Settings, Workspace.");
+      render();
+    }, e => {
+      const r = (e && e.detail && e.detail.cause) || {};
+      if (r.conflict){
+        toast("The workspace changed since this preview.");
+        S.chat = [...S.chat, { role:"coach",
+          text:"This preview is stale — the workspace changed underneath it. " + r.message + " " + (r.diff || ""),
+          persProposal:null }];
+        render();
+        return;
+      }
+      toast((e && e.message) || "Could not apply: unknown error");
+    });
 }
 function persCancel(id){
   markProposalDone(id, "cancelled");

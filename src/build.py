@@ -33,6 +33,10 @@ ORDER = [
     "mod-api.js",
     # mod-auth.js second: it registers its refresh hook on window.SporveAPI.
     "mod-auth.js",
+    # mod-actions.js: the G4 guard registry (window.SporvActions). Every
+    # AI/approval write dispatches through it; it reads SporveAPI and the host
+    # rails lazily at click time, so it only needs to load before any click.
+    "mod-actions.js",
     # mod-catalog.js third: it reads window.SporveAPI and mutates the host's
     # PROGRAMS array, so it must load after the API and before any module that
     # would otherwise capture a stale catalogue.
