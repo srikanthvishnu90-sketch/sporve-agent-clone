@@ -669,8 +669,89 @@ html .tnav-dd .tnav-menu button{display:flex;flex-direction:column;align-items:f
   background:none;border:0;cursor:pointer;font-family:"Archivo",system-ui,sans-serif}
 html .tnav-dd .tnav-menu button:hover{background:#1A212B}
 html .tnav-dd .tnav-menu b{color:#FFFFFF;font-weight:600;font-size:14.5px}
-html .tnav-dd .tnav-menu small{color:#9DB0CB;font-size:13.5px}
+html .tnav-dd .tnav-menu small{color:#9DB0CB;font-size:14px}
 @media (max-width:900px){html .tnav-dd{display:none}}
+
+/* ═══ Main headers in the Druk register (owner 2026-10-22) ═══════════════════
+   Druk itself is a licensed Commercial Type face and is not in the repo; the
+   embedded Archivo variable font has a width axis down to 62%, which at 900
+   gives the same tall, narrow, heavy uppercase cut. Swap the family here if a
+   Druk web licence is bought. Sizes stay modest: a 62% cut reads about a third
+   narrower than the old 88% at the same size. */
+html #app :is(.hero-ai,.lp26 h2,.start-line,.pr-h1c,.pillar-h){
+  font-family:"Archivo",system-ui,sans-serif!important;font-stretch:62%!important;font-weight:900!important;
+  text-transform:uppercase!important;letter-spacing:.004em!important;line-height:.94!important}
+html #app .hero-ai{font-size:clamp(40px,4.4vw,62px)!important}
+html #app .lp26 h2{font-size:clamp(30px,2.9vw,42px)!important;max-width:20ch}
+html #app.coachdark .dash>:not(.rail) h1,html #app.coachdark .cui-page .cui-h1,html #app.coachdark>.sec-head h1{
+  font-stretch:62%!important;font-weight:900!important;font-size:clamp(26px,2.1vw,32px)!important;line-height:1!important;letter-spacing:.004em!important}
+html #app.coachdark .dash>.rail .railmark{font-stretch:62%!important;font-weight:900!important}
+
+/* ═══ Two pillars: Manage / Source (owner 2026-10-22) — Rogo-style photo cards ═══ */
+html #app .lp26 .pillars{display:grid;grid-template-columns:1fr 1fr;gap:24px;margin-top:40px}
+html #app .lp26 .pillar{display:flex;flex-direction:column;gap:20px;scroll-margin-top:96px}
+html #app .lp26 .pillar-ph{position:relative;aspect-ratio:16/10;border-radius:12px;overflow:hidden;
+  background:#0B0D0F var(--ph) center/cover no-repeat;display:flex;align-items:flex-end;padding:24px}
+html #app .lp26 .pillar-ph::after{content:"";position:absolute;inset:0;background:linear-gradient(180deg,rgba(11,13,15,0) 40%,rgba(11,13,15,.78) 100%)}
+html #app .lp26 .pillar-ph>*{position:relative;z-index:1}
+html #app .lp26 .pillar-k{font-family:"Archivo",system-ui,sans-serif;font-size:14px;font-weight:600;color:#D7DFE8;margin:0 0 6px;letter-spacing:.04em;text-transform:uppercase}
+html #app .lp26 .pillar-h{color:#FFFFFF!important;font-size:clamp(28px,2.6vw,38px)!important;margin:0}
+html #app .lp26 .pillar ul{list-style:none;margin:0;padding:0;display:grid;gap:0;border-top:1px solid #E6EAF0}
+html #app .lp26 .pillar li{padding:12px 0;border-bottom:1px solid #E6EAF0;font-size:15.5px!important;color:#334155!important;line-height:1.5!important}
+html #app .lp26 .pillar .tag{display:inline-block;font-size:14px;font-weight:600;color:#3E566E;background:#EEF2F6;border-radius:999px;padding:4px 12px}
+@media (max-width:820px){html #app .lp26 .pillars{grid-template-columns:1fr}}
+
+/* ═══ Assistant home, Harvey layout (owner 2026-10-22, app.harvey.ai reference) ═══ */
+html body .aidock-panel.aimax.aiharv .aimax-conv{display:flex!important;flex-direction:column!important;justify-content:center!important;align-items:center!important;
+  padding:24px 32px 16px!important;overflow-y:auto!important}
+html body .aidock-panel.aimax.aiharv .aimax-scroll{flex:0 0 auto!important;overflow:visible!important;width:100%;max-width:760px;padding:0!important}
+html body .aidock-panel.aimax.aiharv .aimax-col{max-width:none!important;padding:0!important}
+html body .aiharv-head{text-align:center;margin:0 0 32px}
+html body .aiharv-mark{font-family:"Archivo",system-ui,sans-serif!important;font-stretch:62%!important;font-weight:900!important;text-transform:uppercase;
+  font-size:44px!important;line-height:1!important;letter-spacing:.01em;color:#0B0D0F!important;margin:0 0 12px!important}
+html body .aiharv-sub{font-size:15.5px!important;line-height:1.55!important;color:#5B6878!important;max-width:52ch;margin:0 auto!important}
+html body .aidock-panel.aimax.aiharv .aimax-compose{width:100%!important;max-width:760px!important;margin:0 auto!important;
+  background:#F5F7F9!important;border:1px solid #E1E6EC!important;border-radius:12px!important;padding:16px 16px 12px!important;box-shadow:none!important}
+html body .aidock-panel.aimax.aiharv .aimax-compose .aidock-input{min-height:72px!important;font-size:16px!important;background:transparent!important;border:0!important;
+  color:#0B0D0F!important;padding:2px 2px 16px!important;width:100%}
+html body .aidock-panel.aimax.aiharv .aidock-row{display:flex!important;align-items:center!important;gap:4px!important;width:100%}
+html body .aidock-panel.aimax.aiharv .aidock-row .aidock-ic[type=submit]{display:none!important}
+html body .aidock-panel.aimax.aiharv .aidock-row .aidock-ic{color:#3E566E!important;background:transparent!important;border-radius:8px!important}
+html body .aidock-panel.aimax.aiharv .aidock-row .aidock-ic:hover{background:#E8EDF2!important}
+html body .aiharv-send{margin-left:auto;height:36px;padding:0 16px;border-radius:8px;border:0;background:#3E566E;color:#FFFFFF;
+  font:600 14px/1 "Archivo",system-ui,sans-serif;cursor:pointer}
+html body .aiharv-send,html body .aidock-panel.aimax .aiharv-send{color:#FFFFFF!important;background:#3E566E!important}
+html body .aiharv-send:hover{background:#2F4458!important}
+html body .aidock-panel.aimax.aifull :is(.aimax-head,.aimax-rail){border-color:#E6EAF0!important}
+html body .aiharv-scopes{display:flex;flex-wrap:wrap;justify-content:center;gap:8px;max-width:760px;margin:16px auto 0}
+html body .aiharv-chip{display:inline-flex;align-items:center;gap:8px;height:32px;padding:0 12px;border-radius:8px;border:1px solid #E1E6EC;background:#FFFFFF;
+  font:500 14px/1 "Archivo",system-ui,sans-serif;color:#334155;cursor:pointer}
+html body .aiharv-chip span{color:#6B7F9E}
+html body .aiharv-chip:hover{border-color:#9DB0CB;background:#F5F7F9}
+html body .aiharv-wf{width:100%;max-width:1040px;margin:64px auto 0}
+html body .aiharv-wfhead{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;font:500 14px/1.2 "Archivo",system-ui,sans-serif;color:#5B6878}
+html body .aiharv-wfgrid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px}
+html body .aiharv-card{display:flex;flex-direction:column;justify-content:space-between;gap:24px;min-height:104px;text-align:left;padding:16px;border-radius:10px;
+  border:1px solid #E1E6EC;background:#F5F7F9;cursor:pointer;font-family:"Archivo",system-ui,sans-serif}
+html body .aiharv-card b{font-weight:600;font-size:15px;color:#0B0D0F;line-height:1.35}
+html body .aiharv-card span{font-size:14px;color:#5B6878}
+html body .aiharv-card:hover{border-color:#9DB0CB;background:#EEF2F6}
+html body .aidock-panel.aimax.aiharv .aimax-aihint{text-align:center;margin-top:24px!important;color:#5B6878!important;font-size:14px!important}
+@media (max-width:900px){html body .aiharv-wfgrid{grid-template-columns:1fr 1fr}}
+@media (max-width:560px){html body .aiharv-wfgrid{grid-template-columns:1fr}html body .aiharv-mark{font-size:36px!important}
+  html body .aidock-panel.aimax.aiharv .aimax-conv{padding:16px!important;justify-content:flex-start!important}}
+/* Sidebar entry */
+html #app.coachdark .dash>.rail .railai{margin-bottom:4px}
+
+/* Who-it's-for cards get a photo header (people-free venue shots) */
+html #app .lp26 .light .pillar-ph .pillar-h{color:#FFFFFF!important}
+html #app .lp26 .light .pillar-ph .pillar-k{color:#D7DFE8!important;font-size:14px!important;line-height:1.3!important}
+html #app .lp26 .pillar-ph::after{z-index:0}
+/* Dividers on dark grounds: a quiet hairline, never a white stroke (design-rules 6) */
+html #app .lp26 .dark :is(.lines,.lines .row,.who,.who>div,.who .m,.rule){border-color:rgba(255,255,255,.1)!important}
+html #app .lp26 .who>div{align-self:start}
+html #app .lp26 .shot26-band.light{padding-top:88px!important}
+html #app .lp26 .who-ph{aspect-ratio:16/9;border-radius:10px;background:#0B0D0F center/cover no-repeat;margin-bottom:20px}
 `;
 
 const ID = "harvey-layer";

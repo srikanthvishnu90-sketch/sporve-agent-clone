@@ -8969,6 +8969,8 @@ function primaryNavHTML(){
   return `<nav class="tnav-row" aria-label="Primary">
     <button class="tnav prodpill ${S.prodMenu?"open":""}" data-prodtoggle="1"
       aria-expanded="${!!S.prodMenu}" aria-haspopup="menu">Product <span class="caret">⌄</span></button>
+    <div class="tnav-dd"><button class="tnav" aria-haspopup="menu">Platform <span class="caret">⌄</span></button>
+      <div class="tnav-menu" role="menu"><button role="menuitem" data-solution="manage"><b>Manage</b><small>Run the whole program, one team or every sport</small></button><button role="menuitem" data-solution="source"><b>Source</b><small>Find and manage recruits</small></button><button role="menuitem" data-foot="page:what-is"><b>Assistant</b><small>Your own AI for the program</small></button></div></div>
     <div class="tnav-dd"><button class="tnav" aria-haspopup="menu">Solutions <span class="caret">⌄</span></button>
       <div class="tnav-menu" role="menu"><button role="menuitem" data-solution="1"><b>Schools and athletic departments</b><small>Every team in the department, one account</small></button><button role="menuitem" data-solution="1"><b>Clubs, AAU and travel teams</b><small>Season fees, rosters and tournaments</small></button><button role="menuitem" data-solution="1"><b>Camps and private trainers</b><small>Sessions, packages and one-time charges</small></button></div></div>
     <button class="tnav" data-foot="nav:trust">Security</button>
@@ -9539,7 +9541,7 @@ function landingHTML(){
         ${heroSportCycleHTML()}
         ${/* (owner 2026-10-22, small adjustment) one line of what it does and the
              two actions, so the first screen is not a photo with no next step. */""}
-        <p class="hero-sub26">Schools, clubs, AAU teams, camps and trainers. Sporv runs the rosters, dues, schedules and waivers, drafts every follow-up, and you press send.</p>
+        <p class="hero-sub26">For schools, clubs, AAU teams, camps and trainers. Sporv manages the program and sources your next recruits. Every message is drafted for you, and nothing sends until you approve it.</p>
         <div class="hero-ctas26"><a class="btn pri" href="${CALENDLY_URL}" target="_blank" rel="noopener">Book a call</a><button class="btn ghost" data-foot="nav:product">See the product</button></div>
       </div>
     </div>
@@ -9583,7 +9585,29 @@ function landingHTML(){
        existing data-rev observer. */""}
   <div class="lp26">
 
-  <section class="light band">
+  ${/* TWO PILLARS (owner 2026-10-22: "sporv should be able to do 2 things,
+       sourcing and managing"). Photos are people-free venue shots (owner: the
+       images with people looked generated). Source is not shipped yet, so its
+       card says so plainly — no claim the product cannot back. */""}
+  <section class="light band" id="platform">
+    <div class="wrap">
+      <div class="head"><p class="k" data-rev>The platform</p><h2 data-rev data-rev-d="1">Two jobs. One system.</h2>
+        <p data-rev data-rev-d="2" style="margin-top:14px;max-width:62ch">Sporv manages the program you have and sources the athletes you want next. A recruit you sign becomes a roster athlete in the same record, so nothing is typed twice.</p></div>
+      <div class="pillars">
+        <article class="pillar" id="manage" data-rev>
+          <div class="pillar-ph" style="--ph:url('/assets/landing/photo-pool.webp')" role="img" aria-label="An empty competition pool, early morning"><div><p class="pillar-k">Manage</p><h3 class="pillar-h">Run the whole program.</h3></div></div>
+          <ul><li>Rosters, guardians and eligibility for one team or every sport in the department</li><li>Schedules, facilities and conflicts across teams</li><li>Dues, installments and waivers on one ledger</li><li>Every follow-up drafted, sent only when you approve</li></ul>
+        </article>
+        <article class="pillar" id="source" data-rev data-rev-d="1">
+          <div class="pillar-ph" style="--ph:url('/assets/landing/photo-pressbox.webp')" role="img" aria-label="A press box looking out over a lit football field at night"><div><p class="pillar-k">Source</p><h3 class="pillar-h">Find and manage recruits.</h3></div></div>
+          <ul><li>A recruit board from first look to signed</li><li>Evaluations from every coach, ranked against your roster gaps</li><li>A contact log that respects the recruiting calendar</li><li>Messages to recruits and families drafted for your approval</li></ul>
+          <p><span class="tag">In development. Book a call to be one of the first programs.</span></p>
+        </article>
+      </div>
+    </div>
+  </section>
+
+  <section class="dark band">
     <div class="wrap">
       <div class="head"><p class="k" data-rev>What it does</p><h2 data-rev data-rev-d="1">Three things, done properly.</h2></div>
       <div class="lines rule">
@@ -9597,7 +9621,7 @@ function landingHTML(){
   <section class="light band shot26-band">
     <div class="wrap">
       <div class="head"><p class="k" data-rev>Your roster</p><h2 data-rev data-rev-d="1">Every family, and whether they've paid.</h2></div>
-      <figure class="shot26" data-rev data-rev-d="2" style="--shot-bg:url('${HERO_IMGS[0]||""}')">
+      <figure class="shot26" data-rev data-rev-d="2" style="--shot-bg:url('/assets/landing/photo-backdrop.webp')">
         <div class="shot26-win" role="img" aria-label="The Sporv clients page: a team roster with payment status for each player"
              style="background-image:url('/assets/landing/app-clients.webp?v=3')"></div>
       </figure>
@@ -9608,9 +9632,9 @@ function landingHTML(){
     <div class="wrap">
       <div class="head"><p class="k" data-rev>Who it's for</p><h2 data-rev data-rev-d="1">Schools. Clubs and AAU teams. Camps and trainers.</h2></div>
       <div class="who rule">
-        <div data-rev><h3>Schools and athletic departments</h3><p>Many teams, one department: rosters, schedules, eligibility and family communication across every sport.</p><p class="m rule">Many teams · one account</p></div>
-        <div class="rule" data-rev data-rev-d="1"><h3>Clubs, AAU and travel teams</h3><p>A season fee split across installments, with families at different points in the plan.</p><p class="m rule">Billing · N installments</p></div>
-        <div class="rule" data-rev data-rev-d="2"><h3>Camps and private trainers</h3><p>One charge up front for a camp, or sessions billed as they happen with a running balance per family.</p><p class="m rule">Billing · one charge or per session</p></div>
+        <div data-rev><div class="who-ph" style="background-image:url('/assets/landing/photo-stadium.webp')" role="img" aria-label="A college stadium at dusk under the lights"></div><h3>Schools and athletic departments</h3><p>Many teams, one department: rosters, schedules, eligibility and family communication across every sport.</p><p class="m rule">Many teams · one account</p></div>
+        <div class="rule" data-rev data-rev-d="1"><div class="who-ph" style="background-image:url('/assets/landing/photo-gym.webp')" role="img" aria-label="An empty basketball gym with the court lights on"></div><h3>Clubs, AAU and travel teams</h3><p>A season fee split across installments, with families at different points in the plan.</p><p class="m rule">Billing · N installments</p></div>
+        <div class="rule" data-rev data-rev-d="2"><div class="who-ph" style="background-image:url('/assets/landing/photo-track.webp')" role="img" aria-label="An empty running track at dawn with starting blocks"></div><h3>Camps and private trainers</h3><p>One charge up front for a camp, or sessions billed as they happen with a running balance per family.</p><p class="m rule">Billing · one charge or per session</p></div>
       </div>
     </div>
   </section>
@@ -11059,6 +11083,35 @@ function coachEmptyHTML(){
   return `<div class="aidock-empty aidock-empty-coach"><h3>How can we help you?</h3></div>`;
 }
 
+/* HARVEY-STYLE ASSISTANT HOME (owner 2026-10-22, app.harvey.ai reference):
+   the maximized assistant at rest is the product's own GPT — a centred
+   wordmark, a large composer, source chips that scope the question, and
+   recommended workflows underneath. Every workflow is a real prompt sent
+   through askCoach (data-ask); every chip only edits the draft. Nothing here
+   sends or changes anything on its own. */
+const AI_SCOPES=["Roster","Schedule","Dues","Waivers","Messages","Teams"];
+const AI_WORKFLOWS=[
+  ["Draft dues follow-ups","Draft","Draft a follow-up to every family with an overdue balance, with the amount and due date."],
+  ["Summarize the week","Summary","Summarize this week's schedule across all teams and flag any conflicts."],
+  ["Find missing waivers","Review","Which athletes are missing a signed waiver before their next event?"],
+  ["Write a family update","Draft","Draft a short update to all families about what is coming up this week."],
+];
+function aiHarvHeadHTML(){
+  return `<div class="aiharv-head"><h2 class="aiharv-mark">Sporv</h2>
+    <p class="aiharv-sub">Your program's assistant. It reads your roster, schedule and ledger, and drafts. You approve before anything sends.</p></div>`;
+}
+function aiHarvBelowHTML(){
+  return `<div class="aiharv-scopes" role="group" aria-label="Ask about">
+      ${AI_SCOPES.map(s=>`<button type="button" class="aiharv-chip" data-aiscope="${esc(s)}">${esc(s)} <span aria-hidden="true">+</span></button>`).join("")}
+    </div>
+    <section class="aiharv-wf" aria-label="Recommended workflows">
+      <div class="aiharv-wfhead"><span>Recommended workflows</span></div>
+      <div class="aiharv-wfgrid">
+        ${AI_WORKFLOWS.map(([t,k,q])=>`<button type="button" class="aiharv-card" data-ask="${esc(q)}"><b>${esc(t)}</b><span>${esc(k)}</span></button>`).join("")}
+      </div>
+    </section>`;
+}
+
 function aiDockHTML(){
   /* COACH SIDE ONLY (owner, 2026-08-12). Families get Support, not an AI
      assistant — a parent choosing a coach for their child is not a person who
@@ -11129,7 +11182,8 @@ function aiDockHTML(){
      askCoach() — this is a bigger window onto the same conversation, never a
      second chat implementation. */
   if(open&&S.aiMax){
-    return `<div class="aimax-wrap"><section class="aidock-panel talking aimax${S.aiFull?" aifull":""}" role="dialog" aria-label="Sporv AI">
+    const harv=!(S.chat.length||S.chatThinking);
+    return `<div class="aimax-wrap"><section class="aidock-panel talking aimax${S.aiFull?" aifull":""}${harv?" aiharv":""}" role="dialog" aria-label="Sporv AI">
       <div class="aimax-head">
         <div class="aimax-histwrap">
           <button type="button" class="aimax-ic" data-aihist="1"
@@ -11169,7 +11223,7 @@ function aiDockHTML(){
       <div class="aimax-conv">
       <div class="aidock-scroll aimax-scroll" id="aidockScroll">
         <div class="aimax-col">
-          ${S.chat.length?thread:coachEmptyHTML()}
+          ${S.chat.length?thread:(harv?aiHarvHeadHTML():coachEmptyHTML())}
           ${S.chatThinking?`<div class="bub them" style="align-self:flex-start;display:flex;gap:5px;align-items:center">
             <i class="dotdot"></i><i class="dotdot" style="animation-delay:.16s"></i><i class="dotdot" style="animation-delay:.32s"></i></div>`:""}
         </div>
@@ -11177,7 +11231,7 @@ function aiDockHTML(){
       ${S.chat.length?aiChipsHTML():""}
       <form class="aidock-compose aimax-compose" id="aiDockForm">
         ${aiFileBarHTML()}
-        <input id="aiDockInput" class="aidock-input" placeholder="${S.chat.length?"Continue chat":"Ask Sporv"}"
+        <input id="aiDockInput" class="aidock-input" placeholder="${S.chat.length?"Continue chat":"Ask Sporv anything about your program"}"
                value="${esc(S.aiDraft||"")}" aria-label="Message Sporv AI" autocomplete="off">
         <div class="aidock-row">
           <button type="button" class="aidock-ic" data-aiattach="1" aria-label="Add an attachment">
@@ -11197,8 +11251,10 @@ function aiDockHTML(){
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor"
                  stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
               <path d="M22 2 11 13"/><path d="M22 2 15 22l-4-9-9-4z"/></svg></button>
+          ${harv?`<button type="submit" class="aiharv-send">Ask Sporv</button>`:""}
         </div>
       </form>
+      ${harv?aiHarvBelowHTML():""}
       ${/* Persistent AI-disclosure (Claude Usage Policy): always on screen in
            the maximized session, so a mid-conversation reload still discloses
            it, not only the fresh-chat empty state. */""}
@@ -11553,6 +11609,7 @@ function coachHTML(){
     link:'<path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/>',
     organization:'<rect x="3" y="4" width="18" height="16" rx="2"/><path d="M9 20v-5h6v5"/><path d="M12 4v3M8.5 5.5h7"/>',
     teams:'<circle cx="8" cy="8" r="3"/><circle cx="16" cy="8" r="3"/><path d="M2.5 20c0-3 2.5-5 5.5-5s5.5 2 5.5 5"/><path d="M13.5 20c0-3 2.5-5 5.5-5s5.5 2 5.5 5" transform="translate(-3 0)"/>',
+    assistant:'<path d="M12 3l1.9 4.6L18.5 9.5l-4.6 1.9L12 16l-1.9-4.6L5.5 9.5l4.6-1.9z"/><path d="M18.5 15.5l.8 1.9 1.9.8-1.9.8-.8 1.9-.8-1.9-1.9-.8 1.9-.8z"/>',
     families:'<circle cx="8.5" cy="9" r="2.6"/><circle cx="15.5" cy="9" r="2.6"/><path d="M3.5 19.5c0-2.8 2.2-4.6 5-4.6s5 1.8 5 4.6"/><path d="M10.5 19.5c0-2.8 2.2-4.6 5-4.6s5 1.8 5 4.6"/>',
   };
   const rIcon=k=>`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"
@@ -11607,6 +11664,11 @@ function coachHTML(){
         <button role="menuitem" data-signout="1">Sign out</button>
       </div>`:""}
       <div class="raildiv"></div>
+      ${/* ASSISTANT (owner 2026-10-22, Harvey reference): the program's own AI
+           gets a first-class place in the sidebar. It opens the full-screen
+           surface of the SAME conversation (S.chat / askCoach) — not a second
+           chat implementation. */""}
+      <button class="railai ${S.aiOpen!==false&&S.aiMax&&S.aiFull?"on":""}" data-aiassistant="1">${rIcon("assistant")}<span>Assistant</span></button>
       ${GROUPS.map(([g,items])=>`
         ${g?`<div class="railgroup">${esc(g)}</div>`:""}
         ${items.map(([k,l])=>`<button class="${t===k?"on":""}" data-ctab="${k}"
@@ -19311,7 +19373,8 @@ document.querySelectorAll('.sig-ai-coach').forEach(sigAiCoachWire);
     toast(drafts.length+" draft"+(drafts.length===1?"":"s")+" added to your queue — review before anything happens.");});
 
   $("[data-solution]").forEach(b=>b.onclick=()=>{S.portal="family";go("home");
-    setTimeout(()=>{const el=document.getElementById("who");if(el)el.scrollIntoView({behavior:"smooth",block:"start"});},60);});
+    const tgt=b.dataset.solution==="1"?"who":b.dataset.solution;
+    setTimeout(()=>{const el=document.getElementById(tgt);if(el)el.scrollIntoView({behavior:"smooth",block:"start"});},60);});
   $("[data-foot]").forEach(b=>b.onclick=()=>{
     const [kind,val]=b.dataset.foot.split(":");
     S.sportOpen=false;
@@ -19688,6 +19751,13 @@ document.querySelectorAll('.sig-ai-coach').forEach(sigAiCoachWire);
      the bar — "minimizing would be the initial thing" (owner). */
   /* Docked-header Expand (reference): straight to the fullscreen surface with
      the history rail — the reference's expand hides the sidebar and main. */
+  $("[data-aiassistant]").forEach(b=>b.onclick=()=>{S.aiOpen=true;S.aiCollapsed=false;S.aiMax=true;S.aiFull=true;S.aiHistOpen=false;render();
+    const inp=document.getElementById("aiDockInput"); if(inp) inp.focus();});
+  /* Harvey-style source chips: scope the next question to one part of the
+     program by prefixing the draft; nothing is sent until the coach sends. */
+  $("[data-aiscope]").forEach(b=>b.onclick=()=>{const inp=document.getElementById("aiDockInput");
+    const pre=b.dataset.aiscope+": ";S.aiDraft=pre+((S.aiDraft||"").replace(/^[A-Z][a-z]+: /,""));
+    if(inp){inp.value=S.aiDraft;inp.focus();inp.setSelectionRange(inp.value.length,inp.value.length);}});
   $("[data-aigofull]").forEach(b=>b.onclick=()=>{S.aiMax=true;S.aiFull=true;S.aiHistOpen=false;render();
     const inp=document.getElementById("aiDockInput"); if(inp) inp.focus();});
   $("[data-aimaximize]").forEach(b=>b.onclick=()=>{S.aiMax=true;S.aiFull=false;S.aiHistOpen=false;render();
@@ -21364,7 +21434,7 @@ document.addEventListener("click",e=>{
   /* data-aigofull is exempt too: the docked header's Expand OPENS fullscreen,
      and its click bubbles here after render() detached the button — closest()
      then misses the panel and this guard would instantly undo the expand. */
-  if(e.target.closest(".aidock-panel.aimax")||e.target.closest("[data-aifull]")||e.target.closest("[data-aigofull]")) return;
+  if(e.target.closest(".aidock-panel.aimax")||e.target.closest("[data-aifull]")||e.target.closest("[data-aigofull]")||e.target.closest("[data-aiassistant]")) return;
   S.aiFull=false;render();
 });
 /* Click anywhere outside the sport chooser closes it. Clicks INSIDE it are
