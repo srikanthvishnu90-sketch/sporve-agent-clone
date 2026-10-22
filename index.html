@@ -4,22 +4,22 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <link rel="canonical" href="https://sporv.ai/">
-<title>Sporv — The operating system for youth sports</title>
-<meta name="description" content="Sporv is the operating system for youth sports. AI agent for clubs, trainers, and parents: scheduling, payments, client management, and parent communication.">
+<title>Sporv — The operating system for sports organizations</title>
+<meta name="description" content="Sporv is the operating system for sports organizations: schools and athletic departments, clubs, AAU and travel teams, camps and trainers. An AI agent that drafts the scheduling, dues and family follow-ups.">
 <meta name="theme-color" content="#09090B">
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="Sporv AI">
-<meta property="og:title" content="Sporv — The operating system for youth sports">
-<meta property="og:description" content="Sporv is the operating system for youth sports. AI agent for clubs, trainers, and parents: scheduling, payments, client management, and parent communication.">
+<meta property="og:title" content="Sporv — The operating system for sports organizations">
+<meta property="og:description" content="Sporv is the operating system for sports organizations: schools and athletic departments, clubs, AAU and travel teams, camps and trainers. An AI agent that drafts the scheduling, dues and family follow-ups.">
 <meta property="og:url" content="https://sporv.ai/">
 <meta property="og:image" content="https://sporv.ai/og.png?v=2">
 <meta property="og:image:width" content="1200">
 <meta property="og:image:height" content="630">
 <meta property="og:image:type" content="image/png">
-<meta property="og:image:alt" content="Sporv — The operating system for youth sports">
+<meta property="og:image:alt" content="Sporv — The operating system for sports organizations">
 <meta name="twitter:card" content="summary_large_image">
-<meta name="twitter:title" content="Sporv — The operating system for youth sports">
-<meta name="twitter:description" content="Sporv is the operating system for youth sports. AI agent for clubs, trainers, and parents: scheduling, payments, client management, and parent communication.">
+<meta name="twitter:title" content="Sporv — The operating system for sports organizations">
+<meta name="twitter:description" content="Sporv is the operating system for sports organizations: schools and athletic departments, clubs, AAU and travel teams, camps and trainers. An AI agent that drafts the scheduling, dues and family follow-ups.">
 <meta name="twitter:image" content="https://sporv.ai/og.png?v=2">
 <link rel="icon" href="/favicon.ico?v=2" sizes="any">
 <link rel="icon" type="image/png" sizes="192x192" href="/icon-192.png?v=2">
@@ -29,7 +29,7 @@
 <link rel="manifest" href="/site.webmanifest">
 <script type="application/ld+json">{"@context":"https://schema.org","@type":"SoftwareApplication","name":"Sporv","url":"https://sporv.ai/","applicationCategory":"BusinessApplication","operatingSystem":"Web","description":"Sporv runs the club for you — roster, scheduling, waivers, dues and payouts, with an agent that drafts the busywork and a human who approves it.","publisher":{"@type":"Organization","name":"Sporv","url":"https://sporv.ai/","logo":"https://sporv.ai/icon-512.png"}}</script>
 <script type="application/ld+json">{"@context":"https://schema.org","@type":"WebSite","name":"Sporv AI","url":"https://sporv.ai/"}</script>
-<meta name="sporve-build" content="aa6784f5b816d973">
+<meta name="sporve-build" content="5ac341370a954048">
 </head>
 <body>
 <script>
@@ -9022,8 +9022,6 @@ function primaryNavHTML(){
   return `<nav class="tnav-row" aria-label="Primary">
     <button class="tnav prodpill ${S.prodMenu?"open":""}" data-prodtoggle="1"
       aria-expanded="${!!S.prodMenu}" aria-haspopup="menu">Product <span class="caret">⌄</span></button>
-    <button class="tnav ${S.route.name==="pricing"?"on":""}" data-nav="pricing">Pricing</button>
-    <a class="tnav" href="${CALENDLY_URL}" target="_blank" rel="noopener">Book a call</a>
     ${/* Right cluster (owner spec 2026-09-04, prototype .cta): signed out =
          Log in + Get started pair; signed in = Coach dashboard, and "Log in"
          must not render. State reads the REAL session (SporveAuth), never a
@@ -9036,8 +9034,10 @@ function primaryNavHTML(){
          still-hydrating role) must get the intentional Get-started door,
          never an accidental provider-creation click. */
       if(signed&&role==="provider") return `<span class="cta-pair"><button class="cta start" data-dashbtn="1">Coach dashboard</button></span>`;
-      if(signed) return `<span class="cta-pair"><button class="cta start" data-becomecoach="1">Get started</button></span>`;
-      return `<span class="cta-pair"><button class="cta login" data-loginbtn="1">Log in</button><button class="cta start" data-becomecoach="1">Get started</button></span>`;})()}
+      /* Owner 2026-10-22 (Harvey's "Request a Demo"): the public CTA is
+         "Book a call", not "Get started". Sign-up stays reachable via Log in. */
+      if(signed) return `<span class="cta-pair"><a class="cta start" href="${CALENDLY_URL}" target="_blank" rel="noopener">Book a call</a></span>`;
+      return `<span class="cta-pair"><button class="cta login" data-loginbtn="1">Log in</button><a class="cta start" href="${CALENDLY_URL}" target="_blank" rel="noopener">Book a call</a></span>`;})()}
   </nav>`;
 }
 
@@ -9280,7 +9280,6 @@ function docsShellHTML(id, body){
       <label class="docs-search"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg><input type="search" placeholder="Search" data-docsearch="1" autocomplete="off"><kbd>⌘K</kbd></label>
       <nav class="docs-tree">${DOC_GROUPS.map(([g,ids])=>group(g,ids)).join("")}</nav>
       <div class="docs-foot">
-        <button class="docs-flink" data-nav="pricing">Pricing</button>
         <a class="docs-flink" href="${CALENDLY_URL}" target="_blank" rel="noopener">Book a call</a>
         <a class="docs-flink" href="mailto:support@sporv.ai">Contact support</a>
       </div>
@@ -9522,7 +9521,7 @@ function startHTML(){
   return `<main class="startpage" role="main">
     <div class="start-inner">
       <div class="start-mark">Sporv</div>
-      <h1 class="start-line">The operating system for youth sports.</h1>
+      <h1 class="start-line">The operating system for sports organizations.</h1>
       <p class="start-sub">Bring your club onto one record — roster, schedule, dues and payouts — and let the work be done before you open it.</p>
       <div class="start-cta">
         <button class="start-btn" data-becomecoach="1">Get started</button>
@@ -9582,12 +9581,12 @@ function landingHTML(){
         ${/* The EXPLORE hero's exact look (owner screenshot 2026-08-30):
              centred "Sporv, the AI for youth sports." + the sports ticker on
              the stadium — WITHOUT the search bar (no marketplace). */""}
-        <h1 class="hero-ai">Sporv, the AI <span>for youth sports.</span></h1>
+        <h1 class="hero-ai">Sporv, the AI <span>for sports organizations.</span></h1>
         ${heroSportCycleHTML()}
         ${/* (owner 2026-10-22, small adjustment) one line of what it does and the
              two actions, so the first screen is not a photo with no next step. */""}
-        <p class="hero-sub26">Rosters, dues and waivers for travel teams, camps and private trainers. Sporv drafts the follow-ups. You press send.</p>
-        <div class="hero-ctas26"><a class="btn pri" href="${CALENDLY_URL}" target="_blank" rel="noopener">Book a setup call</a><button class="btn ghost" data-nav="pricing">See pricing</button></div>
+        <p class="hero-sub26">Schools, clubs, AAU teams, camps and trainers. Sporv runs the rosters, dues, schedules and waivers, drafts every follow-up, and you press send.</p>
+        <div class="hero-ctas26"><a class="btn pri" href="${CALENDLY_URL}" target="_blank" rel="noopener">Book a call</a><button class="btn ghost" data-foot="nav:product">See the product</button></div>
       </div>
     </div>
   </section>
@@ -9600,15 +9599,15 @@ function landingHTML(){
     <div class="wrap">
       <div class="head"><p class="k" data-rev>The review queue</p>
         <h2 data-rev data-rev-d="1">You billed the season. You didn't collect all of it.</h2>
-        <p data-rev data-rev-d="2" style="margin-top:14px">Rosters, dues, and waivers for travel teams, camps, and private trainers. The follow-ups write themselves — you press send.</p></div>
+        <p data-rev data-rev-d="2" style="margin-top:14px">Rosters, dues and waivers for schools, clubs, AAU teams, camps and trainers. The follow-ups write themselves. You press send.</p></div>
 
       ${/* Real product, framed the way Harvey frames its UI (owner 2026-10-22):
            a screenshot of the actual Sporv queue, captured from the app with
            its sample workspace, inset over the darkened stadium still. A CSS
            background, not an <img>: it is a UI capture, not a photograph. */""}
       <figure class="shot26" data-rev data-rev-d="2" style="--shot-bg:url('${HERO_IMGS[0]||""}')">
-        <div class="shot26-win" role="img" aria-label="The Sporv review queue: drafted follow-ups waiting for approval"
-             style="background-image:url('/assets/landing/app-queue.webp?v=1')"></div>
+        <div class="shot26-win" role="img" aria-label="The Sporv home dashboard: drafts waiting for approval, overdue dues and today's schedule"
+             style="background-image:url('/assets/landing/app-home.webp?v=2')"></div>
       </figure>
       <p data-rev data-rev-d="2" style="margin-top:14px;font-size:14px;color:var(--w-2)">Screens from the Sporv app with its sample workspace. Names and amounts are illustrative.</p>
     </div>
@@ -9646,18 +9645,18 @@ function landingHTML(){
       <div class="head"><p class="k" data-rev>Your roster</p><h2 data-rev data-rev-d="1">Every family, and whether they've paid.</h2></div>
       <figure class="shot26" data-rev data-rev-d="2" style="--shot-bg:url('${HERO_IMGS[0]||""}')">
         <div class="shot26-win" role="img" aria-label="The Sporv clients page: a team roster with payment status for each player"
-             style="background-image:url('/assets/landing/app-clients.webp?v=1')"></div>
+             style="background-image:url('/assets/landing/app-clients.webp?v=3')"></div>
       </figure>
     </div>
   </section>
 
   <section class="dark band">
     <div class="wrap">
-      <div class="head"><p class="k" data-rev>Who it's for</p><h2 data-rev data-rev-d="1">Travel and AAU teams. Camps. Private trainers.</h2></div>
+      <div class="head"><p class="k" data-rev>Who it's for</p><h2 data-rev data-rev-d="1">Schools. Clubs and AAU teams. Camps and trainers.</h2></div>
       <div class="who rule">
-        <div data-rev><h3>Travel and AAU teams</h3><p>A season fee split across installments, with families at different points in the plan.</p><p class="m rule">Billing · N installments</p></div>
-        <div class="rule" data-rev data-rev-d="1"><h3>Camps</h3><p>A block of days with a roster cap and one charge up front.</p><p class="m rule">Billing · one charge</p></div>
-        <div class="rule" data-rev data-rev-d="2"><h3>Private trainers</h3><p>Individual sessions billed as they happen, with a running balance per family.</p><p class="m rule">Billing · per session</p></div>
+        <div data-rev><h3>Schools and athletic departments</h3><p>Many teams, one department: rosters, schedules, eligibility and family communication across every sport.</p><p class="m rule">Many teams · one account</p></div>
+        <div class="rule" data-rev data-rev-d="1"><h3>Clubs, AAU and travel teams</h3><p>A season fee split across installments, with families at different points in the plan.</p><p class="m rule">Billing · N installments</p></div>
+        <div class="rule" data-rev data-rev-d="2"><h3>Camps and private trainers</h3><p>One charge up front for a camp, or sessions billed as they happen with a running balance per family.</p><p class="m rule">Billing · one charge or per session</p></div>
       </div>
     </div>
   </section>
@@ -9728,14 +9727,14 @@ function landingHTML(){
     <div class="wrap close-zone"><div class="foot foot-grid" style="margin-top:72px">
       <span class="foot-brand"><span class="navlogo-crop"><img class="navlogo" src="${LOGO_SRC}" alt="Sporv" width="99" height="24"></span></span>
       <nav class="foot-links" aria-label="Footer">
-        ${[["nav:product","Product"],["nav:pricing","Pricing"],["nav:trust","Trust & safety"],
+        ${[["nav:product","Product"],["nav:trust","Trust & safety"],
            ["nav:about","About"],["info:help","Support"],["page:what-is","What is Sporv?"],
            ["page:background-checks","Background checks"],["info:privacy","Privacy"],
            ["info:terms","Terms"],["info:refund","Refunds"],["info:legal","Legal"]]
           .map(function(p){return '<button class="foot-link" data-foot="'+p[0]+'">'+p[1]+'</button>'}).join("")}
       </nav>
       <p class="foot-line"><a class="foot-mail" href="mailto:support@sporv.ai">support@sporv.ai</a> · Chicagoland ·
-        Sporv is software for youth-sports organizations — not a marketplace, not a booking site.</p>
+        Sporv is software for sports organizations — not a marketplace, not a booking site.</p>
     </div></div>
   </section>
 
@@ -10060,7 +10059,7 @@ function heroHTML(){
              product, rather than an inventory state that does not exist yet.
              Owner instruction, 2026-08-13: "don't include the portion that
              talks about 'book a background checked coach'". */""}
-        <h1 class="hero-ai">Sporv, the AI <span>for youth sports.</span></h1>
+        <h1 class="hero-ai">Sporv, the AI <span>for sports organizations.</span></h1>
         ${searchPillHTML()}
         ${heroSportCycleHTML()}
       </div>
@@ -10219,7 +10218,7 @@ function productHTML(){
       <div class="eyebrow" data-rev>The product</div>
       <h1 style="margin-top:16px;max-width:16ch" data-rev>Everything Sporv does.</h1>
       <p class="lede" style="margin:16px 0 0;max-width:58ch;text-align:left" data-rev>Sporv is the agent
-        for youth-sports organizations. It reads your operation, drafts the work, and waits for your
+        for sports organizations. It reads your operation, drafts the work, and waits for your
         call — and the rules below hold everywhere.</p>
       <div class="ctarow" style="margin-top:26px;justify-content:flex-start" data-rev>
         <button class="btn" data-becomecoach="1">Set up your club</button>
@@ -15886,7 +15885,6 @@ function modalHTML(){
            page:roster is the first page of "Run your club", mirroring the
            desktop Product menu's first row. */"Go to",[
         ["page:roster","Product","Everything Sporv runs for a club"],
-        ["pricing","Pricing","Plans and what each includes"],
       ]],
     ];
     const row=(k,label,sub,status)=>`<button class="acr" data-nav="${k}">
@@ -16053,7 +16051,7 @@ function bootModules(){
    code was changed to match rather than the other way round. */
 const INFO={
   privacy:{title:"Privacy & Security",sections:[
-    {h:"1. What we collect",b:"Sporv is operations software for youth-sports organizations. What we collect depends on how you use it: • Account information: name, email address, account role, and optional phone number; password credentials are handled by our authentication provider. • Organization information: teams, members, guardians, programs, schedules, and the records your organization keeps in Sporv. • Youth records: a child's name, date of birth, sports interests, medical notes, and emergency contacts — provided only by a parent or guardian after verifiable parental consent, and visible only to guardians and organization admins. • Connected data: email, calendar, payments, and files, read through the connectors you connect. Connected email is read-only. • Payment records: Stripe handles card and bank details. Sporv sees transaction identifiers, payment status, and payout status — never full card numbers. • Technical information: IP address, browser or device type, approximate location derived from IP, diagnostic logs, and local browser storage used to keep a session working."},
+    {h:"1. What we collect",b:"Sporv is operations software for sports organizations. What we collect depends on how you use it: • Account information: name, email address, account role, and optional phone number; password credentials are handled by our authentication provider. • Organization information: teams, members, guardians, programs, schedules, and the records your organization keeps in Sporv. • Youth records: a child's name, date of birth, sports interests, medical notes, and emergency contacts — provided only by a parent or guardian after verifiable parental consent, and visible only to guardians and organization admins. • Connected data: email, calendar, payments, and files, read through the connectors you connect. Connected email is read-only. • Payment records: Stripe handles card and bank details. Sporv sees transaction identifiers, payment status, and payout status — never full card numbers. • Technical information: IP address, browser or device type, approximate location derived from IP, diagnostic logs, and local browser storage used to keep a session working."},
     {h:"2. How we use information",b:"We use information to provide the software; run the agent's reads — overdue dues, expiring cards, unsigned waivers, schedule conflicts, missing records; produce drafts for your review queue; keep records; prevent fraud and abuse; and comply with legal obligations. AI output can be inaccurate. Review every draft before you approve it."},
     {h:"3. AI features and automated processing",b:"Sporv uses Anthropic's API for language tasks such as drafting follow-ups, replies, and summaries, and OpenAI's API to create numerical embeddings that help compare text. The agent drafts; it never sends, charges, schedules, or refunds without a human approval in your review queue. There is no auto state. Do not enter medical details, government identifiers, emergency information, or other sensitive information into an AI prompt. Do not use Sporv AI for medical advice or emergency help."},
     {h:"4. How we share information",b:"We share information only as needed for the service: • Service providers for hosting, authentication and database (including Supabase), email delivery, analytics, payment processing (Stripe), and AI features (Anthropic and OpenAI). • Professional advisers or authorities when reasonably necessary to protect safety, enforce our terms, comply with law, or respond to a valid legal request. • A successor organization as part of a merger, financing, acquisition, or sale, subject to confidentiality protections. We do not sell personal information or share it for cross-context behavioral advertising. We do not use information about children for targeted advertising."},
@@ -16073,7 +16071,7 @@ const INFO={
      which is true, verifiable, and not pretending to be counsel's work. */
   terms:{title:"Terms of Service",sections:[
     {h:"These terms are being finalized",b:"Sporv's full Terms of Service are being completed with counsel. Until they are published, the statements below describe how the service actually operates today, and they are the terms we hold ourselves to. Questions: support@sporv.ai."},
-    {h:"What Sporv is",b:"Sporv is operations software for youth-sports organizations, with an agent that reads your operation and drafts the work. It is not a marketplace or a booking site. Sporv does not employ coaches or run programs."},
+    {h:"What Sporv is",b:"Sporv is operations software for sports organizations, with an agent that reads your operation and drafts the work. It is not a marketplace or a booking site. Sporv does not employ coaches or run programs."},
     {h:"What Sporv charges",b:"We charge a subscription for the software and the agent: Free, Pro at $34.99 a month, and Enterprise on custom terms. We take zero percent of parent dues at launch, and there is no parent-facing platform fee. Parent dues run on your organization's own Stripe connected account, not through Sporv."},
     {h:"The agent drafts, you decide",b:"Messages, calendar changes, charges, and refunds wait in your review queue for a human decision. Nothing sends or writes automatically. Settings are Off, Observe, or Draft — there is no auto state."},
     {h:"Background checks",b:"Sporv keeps a check record per person: status and dates, never report contents. Your organization runs its own checks and owns screening and compliance. No check vendor is connected to Sporv today, and Sporv does not order checks."},
@@ -16091,14 +16089,14 @@ const INFO={
     {h:"Disputes and mistakes",b:"If a payment did not happen the way it should have, email support@sporv.ai with the payment reference. A person reviews it. During beta that mailbox is the record — keep your copy."},
   ]},
   help:{title:"Help & Support",sections:[
-    {h:"What is Sporv?",b:"Operations software for youth-sports organizations. The agent reads your email, calendar, payments, roster, and files, then drafts the work into your review queue."},
+    {h:"What is Sporv?",b:"Operations software for sports organizations. The agent reads your email, calendar, payments, roster, and files, then drafts the work into your review queue."},
     {h:"How do I connect my tools?",b:"Open the Connect page and choose a tile: Gmail, Google Calendar, Outlook, Google Sheets, Google Drive, Stripe, SMS, QuickBooks. Connected email is read-only. Nothing sends or changes without your approval."},
     {h:"How does the review queue work?",b:"Every draft shows who it is for, what it says, and why — with one button per draft. You can approve in bulk. Every approval records the human who made it."},
     {h:"How do I cancel my subscription?",b:"Open Billing, then the Subscription tab, and choose Cancel my subscription. The page walks through what cancellation does before you confirm.",link:{t:"Open the cancellation page",href:"?coachtab=billing&tab=subscription"}},
     {h:"Contact us",b:"Email support@sporv.ai. Response times are not guaranteed."},
   ]},
   legal:{title:"Legal",sections:[
-    {h:"Terms of Service",b:"By using Sporv you agree to use it lawfully and as described in our Terms. Sporv is operations software for youth-sports organizations, not a marketplace."},
+    {h:"Terms of Service",b:"By using Sporv you agree to use it lawfully and as described in our Terms. Sporv is operations software for sports organizations, not a marketplace."},
     {h:"Privacy Policy",b:"We process personal data to provide the service and protect athletes. You may request deletion of your account at any time."},
     {h:"Licenses",b:"Sporv is built with open-source software. Component licenses are available on request."},
   ]},
@@ -16117,7 +16115,7 @@ const INFO={
    deletion had left with no entry point anywhere, are reachable again.
    Product is open by default: it's the group a visitor is most likely after. */
 const ABOUT_GROUPS=[
-  ["Product",[["Product","nav:product"],["Pricing","nav:pricing"],
+  ["Product",[["Product","nav:product"],
               ["Become a coach","coach"],["Coach dashboard","tab:dashboard"]]],
   ["Company",[["About","nav:about"],["Contact us","info:help"],["Legal","info:legal"]]],
   ["Trust",[["Background checks","nav:trust"],["Privacy & Security","info:privacy"],
@@ -16244,7 +16242,6 @@ const FOOT_COLS=[
   ["Sporv",[
     ["What is Sporv?","page:what-is"],
     ["Become a coach","nav:coachinfo"],
-    ["Pricing","nav:pricing"],
     ["Privacy & security","info:privacy"],
     ["Terms of Service","info:terms"],
     ["Cancellations & refunds","info:refund"],
@@ -16264,7 +16261,7 @@ function closeZoneHTML(){
       <div class="foot-grid">${cols}
         <div class="foot-col foot-brand">
           <span class="navlogo-crop"><img class="navlogo" src="data:image/png;base64,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" alt="Sporv"></span>
-          <p class="foot-blurb">The agent for youth-sports organizations. It reads
+          <p class="foot-blurb">The agent for sports organizations. It reads
             your email, payments and roster, then drafts the work — and nothing
             reaches a family until you approve it.</p>
           <a class="foot-mail" href="mailto:support@sporv.ai">support@sporv.ai</a>
@@ -16274,7 +16271,7 @@ function closeZoneHTML(){
         <span>© 2026 Sporv Inc. · Chicago, IL</span>
         ${/* Plain-language position statement. Sporv is B2B operations software;
              the old marketplace disclosure described a product we do not run. */""}
-        <span>Sporv is operations software for youth-sports organizations. It is
+        <span>Sporv is operations software for sports organizations. It is
           not a marketplace, and Sporv does not employ coaches or run programs.</span>
       </div>
     </div></footer>`;
@@ -16289,7 +16286,7 @@ function closeZoneHTML(){
    scaffold hero + cross-links so every route resolves and the link graph has
    no orphan while the pages fan out. */
 const PAGE_META={
-  "what-is":{t:"What is Sporv?",d:"The agent for youth-sports organizations. It reads your email, calendar, and payments, then drafts the work.",sport:"Soccer",cta:"pricing",ctaL:"See plans"},
+  "what-is":{t:"What is Sporv?",d:"The agent for sports organizations. It reads your email, calendar, and payments, then drafts the work.",sport:"Soccer",cta:"pricing",ctaL:"See plans"},
   "background-checks":{t:"How background checks work",d:"Per-person check records with dates — what Sporv enforces and what your organization owns.",sport:"Swimming",cta:"trust",ctaL:"See the trust center"},
   "search":{t:"Search by sport & age",d:"Filter by sport, age, level, and budget — results only from the real catalogue.",sport:"Basketball",cta:"explore",ctaL:"Start searching"},
   "map-search":{t:"Map search",d:"See coaches as places — distance is part of every family's decision.",sport:"Cycling",cta:"map",ctaL:"Open the map"},
@@ -17475,7 +17472,7 @@ function publicOrgHTML(id){
   const bg=org.background_check_status==="verified";
   return `${head(org.business_name)}
   <section class="band"><div class="in" style="max-width:900px;padding:40px 0 64px">
-    <p class="eyebrow">${esc((Array.isArray(org.sports)&&org.sports[0])||"Youth sports")}${org.location?` · ${esc(org.location)}`:""}</p>
+    <p class="eyebrow">${esc((Array.isArray(org.sports)&&org.sports[0])||"Sports")}${org.location?` · ${esc(org.location)}`:""}</p>
     <h1 style="margin:4px 0 8px">${esc(org.business_name)}</h1>
     ${org.bio?`<p style="color:var(--muted);max-width:62ch;line-height:1.6">${esc(org.bio)}</p>`:""}
     <div style="display:flex;gap:10px;margin-top:18px;flex-wrap:wrap">
@@ -17591,7 +17588,8 @@ function render(){
      A restored/legacy start route now renders the landing. */
   else if(r.name==="start"||r.name==="home") body=landingHTML();
   /* PART 1/3 — the two new nav destinations */
-  else if(r.name==="pricing") body=pricingHTML();
+  /* Pricing page removed (owner 2026-10-22). pricingHTML() is kept, unrouted. */
+  else if(r.name==="pricing") body=landingHTML();
   else if(r.name==="product") body=productHTML();
   else if(r.name==="messages") body=messagesHTML();
   else if(r.name==="profile") body=profileHTML();
@@ -26564,7 +26562,7 @@ G.SporvPersonalizeUI = {
       <div class="shell" data-rev>
         <p class="eyebrow">Trust &amp; safety</p>
         <h1>Safety is how the product works.</h1>
-        <p class="lede">Sporv is software for youth-sports organizations. These are the protocols it runs on — what the product enforces, and what your organization owns.</p>
+        <p class="lede">Sporv is software for sports organizations. These are the protocols it runs on — what the product enforces, and what your organization owns.</p>
 
         <div class="sf-actions">
           <button class="btn" data-sf-open="report">Report a safety concern</button>
@@ -32885,7 +32883,7 @@ function lockedBody(){
         `<div class="org-hint" style="margin-top:8px">Requires the Enterprise plan.</div>`
       ) +
       `<div class="org-blockfoot">` +
-      u.Button({ label: "Join the early-access list", size: "lg", variant: "primary", attrs: 'data-ctab="billing"' }) +
+      u.Button({ label: "Book a call", size: "lg", variant: "primary", href: (typeof CALENDLY_URL !== "undefined" ? CALENDLY_URL : "mailto:support@sporv.ai"), attrs: 'target="_blank" rel="noopener"' }) +
       `</div>`,
   });
 }
@@ -33573,12 +33571,13 @@ function deniedPage(ui){
     h1: "Teams",
     lede: "Every team, roster and season in one place, with many coaches. Available on Enterprise.",
     actions: [ui.Button({
-      label: "Join the early-access list", size: "lg", variant: "primary",
-      attrs: 'data-nav="pricing"',
+      label: "Book a call", size: "lg", variant: "primary",
+      href: (typeof CALENDLY_URL !== "undefined" ? CALENDLY_URL : "mailto:support@sporv.ai"),
+      attrs: 'target="_blank" rel="noopener"',
     })],
     body: ui.Callout({
       title: "Early access.",
-      body: "Enterprise is set up with each club on a call. Join the early-access list and we will reach out when your workspace is ready.",
+      body: "Enterprise is set up with each organization on a call. Book one and we will walk through it with you.",
     }),
   });
 }
@@ -33980,15 +33979,16 @@ function teaserView(ui){
     page: "families", eyebrow: "ENTERPRISE", h1: "Families",
     lede: "Guardians linked to their athletes: who pays and who to contact. Available on Enterprise.",
     actions: [ui.Button({
-      label: "Join the early-access list", size: "lg", variant: "primary",
-      attrs: 'data-fam-pricing="1"',
+      label: "Book a call", size: "lg", variant: "primary",
+      href: (typeof CALENDLY_URL !== "undefined" ? CALENDLY_URL : "mailto:support@sporv.ai"),
+      attrs: 'target="_blank" rel="noopener"',
     })],
     /* No checkout button on purpose: enterprise is not self-serve
        (purchasable=false). No numeric quotas, no "Unlimited" — the vague
        plan prose lives on the billing page, which is where the button goes. */
     body: ui.Callout({
       title: "Early access.",
-      body: "Enterprise is set up with each club on a call. Join the early-access list and we will reach out when your workspace is ready.",
+      body: "Enterprise is set up with each organization on a call. Book one and we will walk through it with you.",
     }),
   });
 }
@@ -34887,6 +34887,39 @@ html body:not(.reg-coach) #app .pr-stats span{color:#B4C0CC!important}
 html body:not(.reg-coach) #app .pp-addon a{color:#9DB0CB!important}
 html body:not(.reg-coach) header.topbar .burger{background:transparent!important}
 html body:not(.reg-coach) header.topbar .burger span{background:#FFFFFF!important}
+html body:not(.reg-coach) header.topbar a.cta{text-decoration:none!important;display:inline-flex;align-items:center}
+
+/* ═══ Type pairing (owner 2026-10-22): "small text similar to harveys, but
+   the headers are a mix of professional and athletic text, like nike" ═══
+   Headlines: Archivo semi-condensed, heavy, uppercase, tight leading — the
+   Nike register. Everything else: Archivo at normal width, sentence case,
+   regular weight, generous line height, muted — Harvey's body register. */
+html #app :is(.hero-ai,.lp26 h2,.start-line,.pr-h1c){
+  font-family:"Archivo",system-ui,sans-serif!important;font-stretch:88%!important;font-weight:800!important;
+  text-transform:uppercase!important;letter-spacing:-.005em!important;line-height:.96!important}
+html #app .hero-ai{font-size:clamp(44px,6.6vw,96px)!important}
+html #app .hero-ai span{color:#9DB0CB!important}
+html #app .lp26 h2{font-size:clamp(34px,4.4vw,64px)!important;max-width:16ch}
+html #app .lp26 .close h2{max-width:none}
+/* Small text: Harvey's */
+html #app .lp26 :is(p,li,.sub),html #app .hero-sub26{font-family:"Archivo",system-ui,sans-serif!important;font-stretch:100%!important;
+  font-weight:400!important;text-transform:none!important;letter-spacing:0!important;font-size:17px!important;line-height:1.6!important;color:#AEB9C5!important}
+html #app :is(.lp26 .k,.lp26 .eyebrow,.band .eyebrow){font-family:"Archivo",system-ui,sans-serif!important;font-stretch:100%!important;
+  text-transform:none!important;letter-spacing:0!important;font-size:15px!important;font-weight:500!important;color:#9DB0CB!important}
+html #app .lp26 h3{font-family:"Archivo",system-ui,sans-serif!important;font-stretch:100%!important;text-transform:none!important;
+  letter-spacing:-.005em!important;font-weight:600!important;font-size:19px!important;color:#FFFFFF!important}
+html #app .lp26 .who .m,html #app .lp26 .files .s,html #app .lp26 .row .n{font-family:"Archivo",system-ui,sans-serif!important;font-size:14px!important;
+  letter-spacing:0!important;color:#8C99A8!important}
+html #app .lp26 .price .no{text-transform:none!important;letter-spacing:0!important;font-size:15px!important;font-weight:500!important;color:#9DB0CB!important}
+html #app .hero-mq *{font-family:"Archivo",system-ui,sans-serif!important;font-stretch:88%!important;letter-spacing:.12em!important;font-weight:700!important}
+html #app .hvl-ann,html body:not(.reg-coach) header.topbar :is(.tnav,.navlink,.cta){font-family:"Archivo",system-ui,sans-serif!important;font-stretch:100%!important}
+
+/* App: same pairing — athletic page titles, Harvey body */
+html #app.coachdark .dash>:not(.rail) h1,html #app.coachdark .cui-page .cui-h1,html #app.coachdark>.sec-head h1{
+  font-stretch:88%!important;font-weight:800!important;letter-spacing:-.005em!important;font-size:clamp(28px,2.6vw,36px)!important;line-height:1!important}
+html #app.coachdark .dash>.rail .railmark{font-stretch:88%!important;font-size:24px!important}
+html body.reg-coach :is(.aidock-head-t,.aidock-head b,.aidock-empty h3){font-stretch:88%!important}
+html #app.coachdark .cui-lede,html #app.coachdark .dash .sec-head p{font-size:15.5px!important;line-height:1.6!important}
 `;
 
 const ID = "harvey-layer";
@@ -35316,7 +35349,7 @@ window.MOD_HARVEY = { css: CSS, ensureLast };
       ["Safety", "Accounts belong to adults. A parent's consent gates a minor's data, youth details stay compartmented, and inbound email is treated as untrusted input. The safety page lists the full protocols."]
     ];
     var questions = [
-      ["Who is Sporv for?", "Youth-sports organizations — clubs, academies, leagues — and the independent coaches and trainers who run sessions. One account holds the staff, the athletes, the money, and the compliance."],
+      ["Who is Sporv for?", "Sports organizations — schools and athletic departments, clubs, academies, AAU and travel teams, leagues — and the independent coaches and trainers who run sessions. One account holds the staff, the athletes, the money, and the compliance."],
       ["What does it cost?", "The organization pays a flat subscription for the software and the agent: free to start, Pro at thirty-four ninety-nine a month, custom for larger organizations. Sporv takes zero percent of parent dues at launch."],
       ["What does the agent never do?", "Send anything on its own. Every message, charge, and record change waits for a human approval in the review queue. The agent proposes; the organization decides."]
     ];
@@ -35324,7 +35357,7 @@ window.MOD_HARVEY = { css: CSS, ensureLast };
       return "<article><h2>" + cell[0] + "</h2><p data-prose>" + cell[1] + "</p></article>";
     };
     return wrap("what-is", "B01", "manifesto-split-grid-claim-questions", "D-L-L-D-L", hero(meta,
-      "The agent for <em>youth-sports organizations.</em>",
+      "The agent for <em>sports organizations.</em>",
       "Sporv reads your operation — email, calendar, dues, roster, files — and drafts the work: the follow-ups, the waiver chases, the schedule notices, the session notes. Every draft waits in one review queue, and nothing sends until a person approves it.",
       { tone: "dark", layout: "manifesto", eyebrow: "WHAT IS SPORV" }) +
       "<section class='pgband white pg-capability-section' data-section='capability-grid' data-layout='six-cell-border-grid'><div class='shell pg-capability-grid'>" +

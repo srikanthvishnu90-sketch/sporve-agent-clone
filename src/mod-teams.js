@@ -296,12 +296,13 @@ function deniedPage(ui){
     h1: "Teams",
     lede: "Every team, roster and season in one place, with many coaches. Available on Enterprise.",
     actions: [ui.Button({
-      label: "Join the early-access list", size: "lg", variant: "primary",
-      attrs: 'data-nav="pricing"',
+      label: "Book a call", size: "lg", variant: "primary",
+      href: (typeof CALENDLY_URL !== "undefined" ? CALENDLY_URL : "mailto:support@sporv.ai"),
+      attrs: 'target="_blank" rel="noopener"',
     })],
     body: ui.Callout({
       title: "Early access.",
-      body: "Enterprise is set up with each club on a call. Join the early-access list and we will reach out when your workspace is ready.",
+      body: "Enterprise is set up with each organization on a call. Book one and we will walk through it with you.",
     }),
   });
 }

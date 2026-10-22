@@ -302,10 +302,10 @@ else:
 # repo root (owner artwork, 2026-09-04 — replaces the placeholder circle).
 # og/twitter URLs point at sporv.ai; the old sporv.vercel.app host 404s.
 _OG = "https://sporv.ai/og.png?v=2"
-_TITLE = "Sporv — The operating system for youth sports"
-_DESC = ("Sporv is the operating system for youth sports. AI agent for clubs, "
-         "trainers, and parents: scheduling, payments, client management, and "
-         "parent communication.")
+_TITLE = "Sporv — The operating system for sports organizations"
+_DESC = ("Sporv is the operating system for sports organizations: schools and "
+         "athletic departments, clubs, AAU and travel teams, camps and trainers. "
+         "An AI agent that drafts the scheduling, dues and family follow-ups.")
 STANDALONE = (
     '<!doctype html>\n<html lang="en">\n<head>\n'
     '<meta charset="utf-8">\n'

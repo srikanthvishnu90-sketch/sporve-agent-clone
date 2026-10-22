@@ -421,7 +421,7 @@
       <div class="shell" data-rev>
         <p class="eyebrow">Trust &amp; safety</p>
         <h1>Safety is how the product works.</h1>
-        <p class="lede">Sporv is software for youth-sports organizations. These are the protocols it runs on — what the product enforces, and what your organization owns.</p>
+        <p class="lede">Sporv is software for sports organizations. These are the protocols it runs on — what the product enforces, and what your organization owns.</p>
 
         <div class="sf-actions">
           <button class="btn" data-sf-open="report">Report a safety concern</button>

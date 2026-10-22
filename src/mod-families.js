@@ -171,15 +171,16 @@ function teaserView(ui){
     page: "families", eyebrow: "ENTERPRISE", h1: "Families",
     lede: "Guardians linked to their athletes: who pays and who to contact. Available on Enterprise.",
     actions: [ui.Button({
-      label: "Join the early-access list", size: "lg", variant: "primary",
-      attrs: 'data-fam-pricing="1"',
+      label: "Book a call", size: "lg", variant: "primary",
+      href: (typeof CALENDLY_URL !== "undefined" ? CALENDLY_URL : "mailto:support@sporv.ai"),
+      attrs: 'target="_blank" rel="noopener"',
     })],
     /* No checkout button on purpose: enterprise is not self-serve
        (purchasable=false). No numeric quotas, no "Unlimited" — the vague
        plan prose lives on the billing page, which is where the button goes. */
     body: ui.Callout({
       title: "Early access.",
-      body: "Enterprise is set up with each club on a call. Join the early-access list and we will reach out when your workspace is ready.",
+      body: "Enterprise is set up with each organization on a call. Book one and we will walk through it with you.",
     }),
   });
 }

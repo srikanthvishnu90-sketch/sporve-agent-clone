@@ -600,6 +600,39 @@ html body:not(.reg-coach) #app .pr-stats span{color:#B4C0CC!important}
 html body:not(.reg-coach) #app .pp-addon a{color:#9DB0CB!important}
 html body:not(.reg-coach) header.topbar .burger{background:transparent!important}
 html body:not(.reg-coach) header.topbar .burger span{background:#FFFFFF!important}
+html body:not(.reg-coach) header.topbar a.cta{text-decoration:none!important;display:inline-flex;align-items:center}
+
+/* ═══ Type pairing (owner 2026-10-22): "small text similar to harveys, but
+   the headers are a mix of professional and athletic text, like nike" ═══
+   Headlines: Archivo semi-condensed, heavy, uppercase, tight leading — the
+   Nike register. Everything else: Archivo at normal width, sentence case,
+   regular weight, generous line height, muted — Harvey's body register. */
+html #app :is(.hero-ai,.lp26 h2,.start-line,.pr-h1c){
+  font-family:"Archivo",system-ui,sans-serif!important;font-stretch:88%!important;font-weight:800!important;
+  text-transform:uppercase!important;letter-spacing:-.005em!important;line-height:.96!important}
+html #app .hero-ai{font-size:clamp(44px,6.6vw,96px)!important}
+html #app .hero-ai span{color:#9DB0CB!important}
+html #app .lp26 h2{font-size:clamp(34px,4.4vw,64px)!important;max-width:16ch}
+html #app .lp26 .close h2{max-width:none}
+/* Small text: Harvey's */
+html #app .lp26 :is(p,li,.sub),html #app .hero-sub26{font-family:"Archivo",system-ui,sans-serif!important;font-stretch:100%!important;
+  font-weight:400!important;text-transform:none!important;letter-spacing:0!important;font-size:17px!important;line-height:1.6!important;color:#AEB9C5!important}
+html #app :is(.lp26 .k,.lp26 .eyebrow,.band .eyebrow){font-family:"Archivo",system-ui,sans-serif!important;font-stretch:100%!important;
+  text-transform:none!important;letter-spacing:0!important;font-size:15px!important;font-weight:500!important;color:#9DB0CB!important}
+html #app .lp26 h3{font-family:"Archivo",system-ui,sans-serif!important;font-stretch:100%!important;text-transform:none!important;
+  letter-spacing:-.005em!important;font-weight:600!important;font-size:19px!important;color:#FFFFFF!important}
+html #app .lp26 .who .m,html #app .lp26 .files .s,html #app .lp26 .row .n{font-family:"Archivo",system-ui,sans-serif!important;font-size:14px!important;
+  letter-spacing:0!important;color:#8C99A8!important}
+html #app .lp26 .price .no{text-transform:none!important;letter-spacing:0!important;font-size:15px!important;font-weight:500!important;color:#9DB0CB!important}
+html #app .hero-mq *{font-family:"Archivo",system-ui,sans-serif!important;font-stretch:88%!important;letter-spacing:.12em!important;font-weight:700!important}
+html #app .hvl-ann,html body:not(.reg-coach) header.topbar :is(.tnav,.navlink,.cta){font-family:"Archivo",system-ui,sans-serif!important;font-stretch:100%!important}
+
+/* App: same pairing — athletic page titles, Harvey body */
+html #app.coachdark .dash>:not(.rail) h1,html #app.coachdark .cui-page .cui-h1,html #app.coachdark>.sec-head h1{
+  font-stretch:88%!important;font-weight:800!important;letter-spacing:-.005em!important;font-size:clamp(28px,2.6vw,36px)!important;line-height:1!important}
+html #app.coachdark .dash>.rail .railmark{font-stretch:88%!important;font-size:24px!important}
+html body.reg-coach :is(.aidock-head-t,.aidock-head b,.aidock-empty h3){font-stretch:88%!important}
+html #app.coachdark .cui-lede,html #app.coachdark .dash .sec-head p{font-size:15.5px!important;line-height:1.6!important}
 `;
 
 const ID = "harvey-layer";
