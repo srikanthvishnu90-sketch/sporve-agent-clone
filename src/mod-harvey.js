@@ -532,6 +532,32 @@ html #app .hvl .hvl-stadium-in{padding-top:128px!important;padding-bottom:112px!
 html .hvl-ann a{white-space:nowrap}
 @media (max-width:760px){html #app .hvl .hvl-stadium-in{padding-top:88px!important;padding-bottom:72px!important}
   html #app .hvl .hvl-h1-on-dark{font-size:40px!important}}
+
+/* ═══ Landing back to the original dark stadium page (owner 2026-10-22) ═══
+   "keep the stadium image landing page feeling with more of the black
+   background, just adjust it a little". Small adjustments only: the public
+   nav goes dark to sit on the black page (Harvey's anatomy kept), the sports
+   ticker loses its rainbow, buttons are slate, the hero gains a line and two
+   actions, connectors align to the page column. */
+html body:not(.reg-coach) header.topbar{background:rgba(11,13,15,.96)!important;border-bottom:1px solid #1A212B!important}
+html body:not(.reg-coach) header.topbar :is(.tnav,.navlink,.topnav button){color:#E6EBF1!important}
+html body:not(.reg-coach) header.topbar :is(.tnav,.navlink,.topnav button):is(:hover,.on){color:#9DB0CB!important}
+html body:not(.reg-coach) header.topbar .cta.login{color:#FFFFFF!important;border-color:rgba(255,255,255,.4)!important}
+html body:not(.reg-coach) header.topbar .cta.start{background:#6B7F9E!important;border-color:#6B7F9E!important;color:#0B0D0F!important}
+html body:not(.reg-coach) header.topbar .burger,html body:not(.reg-coach) header.topbar .burger *{color:#FFFFFF!important}
+html .hvl-ann{background:#1A212B;border-bottom:1px solid #26303D}
+/* Ticker: white and slate instead of a rainbow of sport colours */
+html #app .herofull .hero-mq *{color:#9DB0CB!important;-webkit-text-fill-color:#9DB0CB!important;background:none!important}
+html #app .hero-sub26{margin:22px auto 0;max-width:56ch;color:#C3CBD4;font-size:18px;line-height:1.55;text-align:center}
+html #app .hero-ctas26{display:flex;gap:12px;justify-content:center;flex-wrap:wrap;margin-top:28px}
+html #app .hero-ctas26 .btn,html #app .lp26 .close .btn.pri{border-radius:8px!important;text-transform:none!important;letter-spacing:0!important;font-weight:600!important}
+html #app .hero-ctas26 .btn.pri,html #app .lp26 .btn.pri{background:#6B7F9E!important;color:#0B0D0F!important;border:1px solid #6B7F9E!important}
+html #app .hero-ctas26 .btn.ghost{background:transparent!important;color:#FFFFFF!important;border:1px solid rgba(255,255,255,.45)!important}
+/* Connectors band used a different left edge than every other section */
+html #app .band.dark .cxgrid,html #app .lp26~.band .shell{max-width:none}
+/* The closing CTA's divider ran through the button */
+html #app .lp26 .close .close-zone{margin-top:56px}
+html #app :is(.lp26,.hero-ctas26) .btn{text-decoration:none!important}
 `;
 
 const ID = "harvey-layer";
