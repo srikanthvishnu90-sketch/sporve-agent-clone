@@ -598,6 +598,8 @@ html body:not(.reg-coach) #app:has(.pr-h1c) :is(summary,.prq summary,.prq *){col
 html body:not(.reg-coach) #app:has(.pr-h1c) .prq{border-color:#1F2833!important}
 html body:not(.reg-coach) #app .pr-stats span{color:#B4C0CC!important}
 html body:not(.reg-coach) #app .pp-addon a{color:#9DB0CB!important}
+html body:not(.reg-coach) header.topbar .burger{background:transparent!important}
+html body:not(.reg-coach) header.topbar .burger span{background:#FFFFFF!important}
 `;
 
 const ID = "harvey-layer";
