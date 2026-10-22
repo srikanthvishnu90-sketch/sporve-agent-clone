@@ -804,6 +804,28 @@ html body .aidock-panel.aimax .bub.them{background:#151B22!important;color:#E6EB
 html body .aidock-panel.aimax .bub.them :is(p,li,strong,em,code,h1,h2,h3,h4,a){color:#E6EBF1!important}
 html body .aidock-panel.aimax :is(.aidock-toolsline,.aidock-empty h3){color:#AEB9C5!important}
 html body .aidock-panel.aimax .aidock-chip,html body .aidock-panel.aimax .aidock-chips button{background:#11161C!important;color:#E6EBF1!important;border-color:#26303B!important}
+
+/* ═══ Conversation placement, ChatGPT / Harvey pattern (owner 2026-10-22) ═══
+   One centred reading column (768px) that the composer shares exactly, so the
+   right edge of a user message lines up with the right edge of the composer.
+   User turns: right-aligned slate bubbles, max 75% of the column. Assistant
+   turns: no bubble — plain text across the full column, the way both
+   references render answers. Composer pinned to the bottom of the column. */
+html body .aidock-panel.aimax .aimax-scroll{padding:32px 0 16px!important}
+html body .aidock-panel.aimax .aimax-col{max-width:768px!important;width:100%!important;margin:0 auto!important;padding:0 24px!important;gap:28px!important;box-sizing:border-box}
+html body .aidock-panel.aimax .aimax-compose{width:min(720px,calc(100% - 48px))!important;max-width:720px!important;box-sizing:border-box}
+html body .aidock-panel.aimax:not(.aiharv) .aimax-compose{margin-bottom:8px!important}
+html body .aidock-panel.aimax .aimax-col>.bub.me{align-self:flex-end!important;max-width:75%!important;border-radius:20px!important;padding:10px 16px!important;
+  font-size:15.5px!important;line-height:1.5!important}
+html body .aidock-panel.aimax .aimax-col>div:not(.bub){max-width:100%!important;align-self:stretch!important}
+html body .aidock-panel.aimax .aimax-col>div:not(.bub)>.bub.them{background:transparent!important;border:0!important;padding:0!important;max-width:100%!important;
+  border-radius:0!important;font-size:15.5px!important;line-height:1.65!important;color:#E6EBF1!important}
+html body .aidock-panel.aimax .aimax-col>div:not(.bub)>.bub.them :is(ul,ol){padding-left:20px;margin:8px 0}
+html body .aidock-panel.aimax .aimax-col>div:not(.bub)>.bub.them li{margin:4px 0}
+html body .aidock-panel.aimax .aimax-col>div:not(.bub)>.bub.them.bub-err{color:#F2B8B5!important}
+html body .aidock-panel.aimax .aidock-chips{width:min(720px,calc(100% - 48px));margin:0 auto 10px!important;justify-content:flex-start!important}
+html body .aidock-panel.aimax.aifull{width:100vw!important;height:100vh!important;max-width:none!important;max-height:none!important;border-radius:0!important;border:0!important}
+html body .aidock-panel.aimax.aifull{position:fixed!important;inset:0!important;margin:0!important;transform:none!important;left:0!important;top:0!important}
 `;
 
 const ID = "harvey-layer";
