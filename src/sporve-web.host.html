@@ -7379,6 +7379,7 @@ const S={
   mapPick:null,
   chat:[],
   chatThinking:false,
+  chatRetrying:false,              // one automatic retry in flight after a busy (503) / short-wait 429 answer
   aiOpen:(typeof window!=="undefined"?window.innerWidth:1440)>=768, // coach AI dock: open on arrival (desktop/tablet); closed on phones so the dashboard stays usable. Set once at boot — never clobbered at render time, so an explicit S.aiOpen=true always wins and sessionStorage restore keeps the user's choice.
   aiMax:false,                     // Centered chat panel is the default open state (owner 2026-09-21).
                                    // 2026-08-25: the chatbox is a permanent right column beside the
@@ -10989,7 +10990,9 @@ function propCardHTML(p,i){
   const isMsgFamily=["draft_message","draft_bulk_message","draft_recap","camp_broadcast","draft_waitlist_offer"].includes(p.tool);
   const draft=propDraft(p);
   const disp=PROP_DISPATCH[p.tool];
-  const canSend=!!(disp&&disp.canSend(p));
+  /* G4: Approve renders only when the rail exists AND the action registry's
+     precondition passes, so the button and the dispatcher cannot disagree. */
+  const canSend=!!(disp&&disp.canSend(p)&&window.SporvActions&&window.SporvActions.check(p.tool,{proposal:p,text:draft}).ok);
   if(p.state==="done") return `<div class="propcard done">
     <div class="propcard-head">✓ Done</div>
     <p class="propcard-sub">${esc(meta.label)} — approved and dispatched.</p></div>`;
@@ -11224,8 +11227,7 @@ function aiDockHTML(){
       <div class="aidock-scroll aimax-scroll" id="aidockScroll">
         <div class="aimax-col">
           ${S.chat.length?thread:(harv?aiHarvHeadHTML():coachEmptyHTML())}
-          ${S.chatThinking?`<div class="bub them" style="align-self:flex-start;display:flex;gap:5px;align-items:center">
-            <i class="dotdot"></i><i class="dotdot" style="animation-delay:.16s"></i><i class="dotdot" style="animation-delay:.32s"></i></div>`:""}
+          ${S.chatThinking?aiThinkingHTML():""}
         </div>
       </div>
       ${S.chat.length?aiChipsHTML():""}
@@ -11306,8 +11308,7 @@ function aiDockHTML(){
     </div>`;
   const scrollHTML=`<div class="aidock-scroll" id="aidockScroll">
       ${thread}
-      ${S.chatThinking?`<div class="bub them" style="align-self:flex-start;display:flex;gap:5px;align-items:center">
-        <i class="dotdot"></i><i class="dotdot" style="animation-delay:.16s"></i><i class="dotdot" style="animation-delay:.32s"></i></div>`:""}
+      ${S.chatThinking?aiThinkingHTML():""}
     </div>`;
   /* RIGHT DOCK (owner 2026-09-24; supersedes the 2026-09-21 centered rule): the
      resting chatbox is a right-side panel with a header X — never a
@@ -11610,6 +11611,7 @@ function coachHTML(){
     organization:'<rect x="3" y="4" width="18" height="16" rx="2"/><path d="M9 20v-5h6v5"/><path d="M12 4v3M8.5 5.5h7"/>',
     teams:'<circle cx="8" cy="8" r="3"/><circle cx="16" cy="8" r="3"/><path d="M2.5 20c0-3 2.5-5 5.5-5s5.5 2 5.5 5"/><path d="M13.5 20c0-3 2.5-5 5.5-5s5.5 2 5.5 5" transform="translate(-3 0)"/>',
     assistant:'<path d="M12 3l1.9 4.6L18.5 9.5l-4.6 1.9L12 16l-1.9-4.6L5.5 9.5l4.6-1.9z"/><path d="M18.5 15.5l.8 1.9 1.9.8-1.9.8-.8 1.9-.8-1.9-1.9-.8 1.9-.8z"/>',
+    recruiting:'<circle cx="10" cy="7.5" r="3"/><path d="M4 19.5c0-3.3 2.7-5.5 6-5.5"/><circle cx="16.5" cy="16" r="3"/><path d="M18.7 18.2l2.3 2.3"/>',
     families:'<circle cx="8.5" cy="9" r="2.6"/><circle cx="15.5" cy="9" r="2.6"/><path d="M3.5 19.5c0-2.8 2.2-4.6 5-4.6s5 1.8 5 4.6"/><path d="M10.5 19.5c0-2.8 2.2-4.6 5-4.6s5 1.8 5 4.6"/>',
   };
   const rIcon=k=>`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"
@@ -11621,6 +11623,8 @@ function coachHTML(){
     [rosterLabel(), [["roster",rosterLabel()],["inbox","Messages"],["schedule","Schedule"]]],
     ["Business",[["finances",financesLabel()],["approvals","Approvals"],["operations","Operations"],["billing","Billing"]]],
     ["Organization",[["organization","Organization"],["teams","Teams"],["families","Families"]]],
+    /* SOURCE pillar (spec 31 Part II): the recruit board, MOD_RECRUITING. */
+    ["Source",[["recruiting","Recruiting"]]],
   ];
   const core=[["dashboard","Home"],["schedule","Schedule"],
               ["roster",rosterLabel()],["inbox","Messages"],
@@ -13586,12 +13590,13 @@ function decideIntakeProposal(id,decision){
   S.intakeDeciding=S.intakeDeciding||{};
   if(S.intakeDeciding[id]) return;
   S.intakeDeciding[id]=true;render();
-  window.SporveAPI.rpc("decide_intake_proposal",{p_proposal:id,p_decision:decision})
-    .then(function(res){
-      /* The RPC stamps applied/void server-side — reflect the honest state. */
+  /* G4: through the action registry. The old client assumed applied/void
+     when the RPC returned no status; now no status means no receipt, which
+     is a failure, and the row is read back before the toast. */
+  Promise.resolve().then(function(){return window.SporvActions.execute("intake_decide",{id:id,decision:decision});})
+    .then(function(out){
       const row=(S.intakeProposals||[]).find(function(p){return p.id===id;});
-      const stamped=(res&&res.status)||(decision==="approve"?"applied":"void");
-      if(row) row.status=stamped;
+      if(row) row.status=out.receipt.status;
       delete S.intakeDeciding[id];render();
       toast(decision==="approve"?"Change applied.":"Proposal voided — nothing changed.");
     })
@@ -19076,11 +19081,11 @@ document.querySelectorAll('.sig-ai-coach').forEach(sigAiCoachWire);
   const obligPatch=(o,status)=>{
     if(!o.live) return Promise.resolve(true);
     if(!window.SporveAPI) return Promise.reject(new Error("Not connected."));
-    return window.SporveAPI.from("obligations","id=eq."+o.id+"&select=id,status",
-      {method:"PATCH",headers:{Prefer:"return=representation"},body:{status:status}})
-      .then(rows=>{
-        if(!(Array.isArray(rows)&&rows[0]&&rows[0].status===status)) throw new Error("The server did not record that change.");
-        return true;});
+    /* G4: the PATCH and its receipt check (the row must come back carrying
+       the new status) live in the action registry's obligation_set_status
+       (src/mod-actions.js); no receipt means failure, never success. */
+    return Promise.resolve().then(()=>window.SporvActions.execute("obligation_set_status",{obligation:o,status}))
+      .then(()=>true);
   };
   const obligSet=(o,status,okMsg)=>{
     if(o.busy) return;
@@ -19098,16 +19103,18 @@ document.querySelectorAll('.sig-ai-coach').forEach(sigAiCoachWire);
     if(o.live&&(o.guardianId||o.sourceKind==="agent")&&window.SporveAPI){
       if(o.busy) return;
       o.busy=true;render();
-      window.SporveAPI.rpc("approve_obligation_and_queue",{p_obligation_id:o.id})
-        .then(msgId=>{
+      /* G4: both steps run through the action registry — the approval is read
+         back from obligations, the send from outbound_messages. */
+      Promise.resolve().then(()=>window.SporvActions.execute("obligation_approve",{obligation:o}))
+        .then(out=>{const msgId=out.receipt.queuedMessageId;
           o.status="approved";o.busy=false;render();
           if(!msgId){toast(/^eligibility:/.test(o.sourceRef)
             ?"Approved — this report is for you; nothing goes to families."
             :"Approved — no recipient on this one, nothing to send.");return;}
-          return window.SporveAPI.fn("lifecycle-approve",{id:msgId})
-            .then(r=>toast(r&&r.queuedEmail
+          return Promise.resolve().then(()=>window.SporvActions.execute("queue_approve",{id:msgId}))
+            .then(sent=>{const r=sent.result;toast(r&&r.queuedEmail
               ?(r.kick==="done"&&Number(r.delivered)>0?"Approved and emailed to the family.":"Approved — emailing this family within the minute.")
-              :"Approved and sent to the family."))
+              :"Approved and sent to the family.");})
             .catch(e=>toast(/bounced/.test(e&&e.message||"")
               ?"Approved, but this guardian's email bounced — fix the address on their record."
               :"Approved, but sending failed: "+((e&&e.message)||"try again from Approvals.")));
@@ -19133,10 +19140,10 @@ document.querySelectorAll('.sig-ai-coach').forEach(sigAiCoachWire);
       let sent=0,held=0,failed=0;
       for(const o of goRows){
         try{
-          const msgId=await window.SporveAPI.rpc("approve_obligation_and_queue",{p_obligation_id:o.id});
+          const msgId=(await window.SporvActions.execute("obligation_approve",{obligation:o})).receipt.queuedMessageId;
           o.status="approved";render();
           if(msgId){
-            try{const r=await window.SporveAPI.fn("lifecycle-approve",{id:msgId});
+            try{const r=(await window.SporvActions.execute("queue_approve",{id:msgId})).result;
                 if(r&&r.queuedEmail)held++;else sent++;}
             catch(e){failed++;}
           }
@@ -19160,10 +19167,10 @@ document.querySelectorAll('.sig-ai-coach').forEach(sigAiCoachWire);
     let sent=0,held=0,failed=0;
     for(const o of rows){
       try{
-        const msgId=await window.SporveAPI.rpc("approve_obligation_and_queue",{p_obligation_id:o.id});
+        const msgId=(await window.SporvActions.execute("obligation_approve",{obligation:o})).receipt.queuedMessageId;
         o.status="approved";
         if(msgId){
-          try{const r=await window.SporveAPI.fn("lifecycle-approve",{id:msgId});
+          try{const r=(await window.SporvActions.execute("queue_approve",{id:msgId})).result;
               if(r&&r.queuedEmail)held++;else sent++;}
           catch(e){failed++;}
         }
@@ -19176,9 +19183,17 @@ document.querySelectorAll('.sig-ai-coach').forEach(sigAiCoachWire);
      nightly cron for THIS org only (the generators check it per row). */
   $("[data-find-dismiss]").forEach(b=>b.onclick=()=>{
     const id=b.dataset.findDismiss;
-    S.findings=(S.findings||[]).filter(f=>f.id!==id);render();
-    if(window.SporveAPI) window.SporveAPI.from("agent_findings","id=eq."+id,{method:"PATCH",body:{status:"dismissed"}}).catch(()=>{});
-    toast("Dismissed — it'll resurface if the underlying issue is still true tomorrow.");
+    /* G4: this used to remove the card first and swallow the PATCH error — a
+       dismissal that never reached the server still said "Dismissed". The
+       card now leaves only after the registry's receipt (the row came back
+       with status 'dismissed'). Guest/demo findings have no server row. */
+    if(!(window.SporveAPI&&window.SporveAPI.isSignedIn&&window.SporveAPI.isSignedIn())){
+      S.findings=(S.findings||[]).filter(f=>f.id!==id);render();
+      toast("Dismissed — it'll resurface if the underlying issue is still true tomorrow.");return;}
+    Promise.resolve().then(()=>window.SporvActions.execute("finding_dismiss",{id}))
+      .then(()=>{S.findings=(S.findings||[]).filter(f=>f.id!==id);render();
+        toast("Dismissed — it'll resurface if the underlying issue is still true tomorrow.");})
+      .catch(e=>toast("Could not dismiss: "+((e&&e.message)||"try again.")));
   });
   $("[data-agent-read]").forEach(b=>b.onclick=()=>{
     const pv=S.coachProvider;if(!pv||!window.SporveAPI||S.readRunning)return;
@@ -19697,9 +19712,11 @@ document.querySelectorAll('.sig-ai-coach').forEach(sigAiCoachWire);
     const i=+b.dataset.qapprove; const drafts=approvalDrafts(); const d=drafts[i]; if(!d) return;
     const box=document.getElementById("apvBody"+i);
     const text=(box?box.textContent:d.body).trim();
-    S.approvalSent=[{kind:d.kind,to:d.to,preview:text.slice(0,68)},...(S.approvalSent||[])];
-    drafts.splice(i,1); render();
-    toast(/Wed 6:00 PM/.test(d.to)?"Approved — queued for Wed 6:00 PM per quiet hours; push with email fallback.":"Approved & sent — delivery receipts will show who has seen it.");
+    /* G4: guest-demo approve still runs through the action registry. */
+    Promise.resolve().then(()=>window.SporvActions.execute("demo_queue_approve",{index:i,text}))
+      .then(()=>{render();
+        toast(/Wed 6:00 PM/.test(d.to)?"Approved — queued for Wed 6:00 PM per quiet hours; push with email fallback.":"Approved & sent — delivery receipts will show who has seen it.");})
+      .catch(e=>{render();toast((e&&e.message)||"Could not approve that draft.");});
   });
   $("[data-qdismiss]").forEach(b=>b.onclick=()=>{
     const i=+b.dataset.qdismiss; approvalDrafts().splice(i,1); render();
@@ -19721,7 +19738,11 @@ document.querySelectorAll('.sig-ai-coach').forEach(sigAiCoachWire);
     if(S.qDeciding[id]) return;
     S.qDeciding[id]=true;
     const clear=()=>{ if(S.qDeciding) delete S.qDeciding[id]; };
-    window.SporveCoach.decide(id,decision)
+    /* G4: every queue decision runs through the action registry, which
+       rejects a response that carries no receipt (e.g. a 200 with no status)
+       and reads the row back before "Sent" is ever shown. */
+    const act={approve:"queue_approve",reject:"queue_reject",redraft:"queue_redraft"}[decision];
+    Promise.resolve().then(()=>window.SporvActions.execute(act||("queue_"+decision),{id}))
       /* Hold the lock THROUGH hydration: clearing before the re-read leaves a
          window where a stray render() draws a live button for a row the server
          has already acted on. hydrateQueue() re-renders with the lock still set
@@ -20718,14 +20739,16 @@ function applyAction(a,original){
 
 function confirmPending(){
   const p=S.cmdPending; if(!p) return;
-  const id=p.convId;
-  (S.messages[id]=S.messages[id]||[]).push(
-    {id:"msg_"+((S.messages[id]||[]).length+1),me:false,text:p.body,at:TODAY});
-  const c=S.conversations.find(x=>x.id===id); if(c) c.last=p.body;
-  if(S.unread) S.unread[id]=0;
-  S.cmdPending=null;S.cmdDraft="";
-  S.cmdLog=[{text:p.restated,at:"just now"},...(S.cmdLog||[])].slice(0,8);
-  render();toast("Sent");
+  /* G4: the write runs through the action registry (precondition, receipt,
+     read-back). A refusal keeps the pending card and says why. */
+  return Promise.resolve().then(()=>{
+    if(!window.SporvActions) throw new Error("The action registry didn't load, so nothing was sent.");
+    return window.SporvActions.execute("send_group_message",{pending:p});
+  }).then(out=>{
+    S.cmdPending=null;S.cmdDraft="";
+    S.cmdLog=[{text:p.restated,at:"just now"},...(S.cmdLog||[])].slice(0,8);
+    render();toast("Added to the group thread on this device. Families have not been emailed or texted. "+window.SporvActions.receiptLine(out));
+  }).catch(e=>{render();toast("That wasn't added — "+((e&&e.message)||"the request was refused."));});
 }
 function runCommand(text){
   const t=text.toLowerCase();
@@ -20833,9 +20856,11 @@ function sendRecapToParentDemo(athleteName, body){
   let conv=S.conversations.find(c=>c.with===parent);
   if(!conv){ conv={id:"conv_"+Date.now(),with:parent,programId:a.programId,last:"",at:nowISO};
     S.conversations=[conv,...S.conversations]; S.messages[conv.id]=[]; }
-  (S.messages[conv.id]=S.messages[conv.id]||[]).push({id:"m_"+Date.now(),me:true,text:text,at:nowISO});
+  const msgId="m_"+Date.now();
+  (S.messages[conv.id]=S.messages[conv.id]||[]).push({id:msgId,me:true,text:text,at:nowISO});
   conv.last=text.slice(0,60); conv.at=nowISO; S.activeConv=conv.id;
-  return {parent:parent, athlete:a.name};
+  /* G4: the message id + thread are the receipt the registry reads back. */
+  return {parent:parent, athlete:a.name, conversationId:conv.id, messageId:msgId};
 }
 
 /* ── B1/B2: file attachments for the coach dock ──────────────────────────
@@ -20896,6 +20921,48 @@ function pickAiFile(){
     document.body.appendChild(aiFileInput);
   }
   aiFileInput.click();
+}
+/* ── Assistant failure handling (incident 2026-10-22) ─────────────────────
+   The thinking bubble, plus one honest caption while an automatic retry
+   waits — the coach sees the assistant is still on it, not a dead end. */
+function aiThinkingHTML(){
+  return `<div class="bub them" style="align-self:flex-start;display:flex;gap:5px;align-items:center"${S.chatRetrying?' data-airetrying="1"':""}>
+    <i class="dotdot"></i><i class="dotdot" style="animation-delay:.16s"></i><i class="dotdot" style="animation-delay:.32s"></i>${S.chatRetrying?`<span class="aidock-toolsline" style="margin-left:6px">Still working, retrying</span>`:""}</div>`;
+}
+/* Milliseconds to wait before the ONE automatic retry, or null for "do not
+   retry". Only answers the server refused before doing anything qualify. */
+function aiAutoRetryDelay(err){
+  const st=err&&err.status, ra=Number(err&&err.retryAfter);
+  const jitter=Math.floor(Math.random()*400);
+  if(st===503) return (ra>0?Math.min(ra,8)*1000:800+Math.floor(Math.random()*1600))+jitter;
+  if(st===429&&ra>0&&ra<=8) return ra*1000+jitter;
+  return null;
+}
+/* The words the coach reads when a turn fails: what failed, what to do,
+   and whether "Try again" can work. Calm register, no exclamation marks. */
+function aiFailureCopy(err){
+  const st=err&&err.status, d=(err&&err.data)||{}, ra=Number(err&&err.retryAfter);
+  const nothing=" Nothing was changed or sent.";
+  if(st===402){
+    const plan=String(d.current_plan||"");
+    const label=plan?plan.charAt(0).toUpperCase()+plan.slice(1):"";
+    const counts=d.unit!=="usd_cents"&&Number.isFinite(+d.limit)&&Number.isFinite(+d.current)&&+d.limit>0
+      ?` You have used ${+d.current} of ${+d.limit}${label?` on the ${label} plan`:""}.`:(label?` You are on the ${label} plan.`:"");
+    const next=d.upgrade_to?` ${String(d.upgrade_to).charAt(0).toUpperCase()+String(d.upgrade_to).slice(1)} raises the limit. It also resets on the 1st of next month.`:" It resets on the 1st of next month.";
+    return {retry:false,nav:{tab:"billing",label:"See plans"},
+      text:"This month's assistant allowance is used up."+counts+next+nothing};
+  }
+  if(st===503) return {retry:true,
+    text:"The AI service is busy right now. I tried twice and it did not answer. Try again in a minute."+nothing};
+  if(st===429) return {retry:true,
+    text:`Too many questions in a short time. Try again in ${ra>0?Math.ceil(ra)+" seconds":"a minute"}.`+nothing};
+  if(st===401) return {retry:true,
+    text:"Your session has ended. Sign in again, then press Try again."+nothing};
+  if(st===0) return {retry:true,
+    text:"I could not reach Sporv. Check your connection, then press Try again."+nothing};
+  if(err&&err.message==="timeout") return {retry:true,
+    text:"The assistant did not answer within 45 seconds. Nothing was sent. Check Approvals before asking again, in case a draft was already queued."};
+  return {retry:true,text:"I couldn't process that — the assistant call failed."+nothing};
 }
 function askCoach(q){
   const text=(q||"").trim();
@@ -20983,8 +21050,29 @@ function askCoach(q){
        turn, then the race rejects into the same loud-failure path — the
        request itself isn't aborted (API.fn has no cancellation), but the UI
        recovers and offers retry. */
-    const timeout=new Promise((_,rej)=>setTimeout(()=>rej(new Error("timeout")),45000));
-    Promise.race([API.fn("coach-command",{text:text+aiFileBlock(file),history}),timeout]).then(r=>{
+    /* RELIABILITY (incident 2026-10-22, docs/incidents/2026-10-22-assistant-429.md).
+       ONE automatic retry, and only when the server PROVES nothing ran: a 503
+       (AI provider busy — the gateway already retried it with backoff) or a
+       429 whose retry_after is short. Both are refused before any draft is
+       queued, so resending cannot double anything. A 402 (plan allowance
+       used up), a 401, a network drop or a timeout is never auto-retried:
+       the first cannot succeed, and the last two may have reached the server.
+       While the retry waits, the thinking bubble says so instead of failing. */
+    const attempt=()=>{
+      const timeout=new Promise((_,rej)=>setTimeout(()=>rej(new Error("timeout")),45000));
+      return Promise.race([API.fn("coach-command",{text:text+aiFileBlock(file),history}),timeout]);
+    };
+    const runTurn=()=>attempt().catch(err=>{
+      const wait=aiAutoRetryDelay(err);
+      if(wait==null||epoch!==chatEpoch) throw err;
+      S.chatRetrying=true; render();
+      return new Promise(res=>setTimeout(res,wait)).then(()=>{
+        if(epoch!==chatEpoch) throw err;
+        return attempt();
+      });
+    });
+    runTurn().then(r=>{
+      S.chatRetrying=false;
       /* The coach switched threads while this turn was in flight — its reply
          belongs to a conversation that is no longer on screen. Drop it. */
       if(epoch!==chatEpoch) return;
@@ -21047,23 +21135,16 @@ function askCoach(q){
          sees there's something waiting; cleared when they reopen. */
       if(S.aiOpen===false) S.aiUnread=(S.aiUnread||0)+1;
       render();
-    }).catch((e)=>{
+    }).catch(err=>{
+      S.chatRetrying=false;
       if(epoch!==chatEpoch) return;
       /* LOUD FAILURE — design-doc law. A signed-in coach never gets the
          keyword matcher pretending to be the assistant; they get the truth
-         and a retry that resends this exact message.
-         (2026-10-21) Say WHICH failure it was. Production logs showed every
-         failure was a 429 from ai-gateway ("AI request limit reached"), which
-         the generic line hid — the coach could not tell a limit from an outage. */
+         (which of busy / plan limit / signed out / offline it was) and a
+         retry that resends this exact message whenever a retry can work. */
+      const f=aiFailureCopy(err);
       S.chatThinking=false;
-      const st=e&&e.status;
-      const why=st===429||st===402
-        ? "You've reached the AI limit for now. Try again shortly, or check your plan under Billing."
-        : st===401
-          ? "Your session expired. Sign in again and resend."
-          : "Sporv couldn't reach the assistant just now.";
-      S.chat=[...S.chat,{role:"coach",err:true,retry:text,
-        text:why+" Nothing was changed or sent."}];
+      S.chat=[...S.chat,{role:"coach",err:true,retry:f.retry?text:null,text:f.text,nav:f.nav||null}];
       render();
     });
     return;
@@ -21297,13 +21378,21 @@ function approveProposal(i){
   /* Promise.resolve() first, so a SYNCHRONOUS throw (module not loaded,
      unexpected state) lands in the same .catch as a network failure instead
      of leaving the card stuck on the busy state. */
-  Promise.resolve().then(()=>disp.run(p,text)).then(res=>{
+  /* G4: the rail runs ONLY through the action registry, which refuses an
+     unknown tool loudly, re-checks the precondition, and rejects a run that
+     returns no receipt or whose read-back finds nothing written — so a silent
+     no-op can never reach the "done" bubble below. */
+  Promise.resolve().then(()=>{
+    if(!window.SporvActions) throw new Error("The action registry didn't load, so nothing was run.");
+    return window.SporvActions.execute(p.tool,{proposal:p,text});
+  }).then(out=>{
+    const res=out.result;
     /* The card's own state updates wherever its thread now lives (archived or
        on screen); the CONFIRMATION bubble only joins the thread the coach is
        still looking at. */
-    p.state="done";
+    p.state="done"; p.receipt=out.receipt;
     if(epoch===chatEpoch){
-      S.chat=[...S.chat,{role:"coach",text:disp.done(res),nav:disp.nav?disp.nav(res):null}];
+      S.chat=[...S.chat,{role:"coach",text:disp.done(res)+" "+window.SporvActions.receiptLine(out),nav:disp.nav?disp.nav(res):null}];
     }
     render();
   }).catch(e=>{
@@ -21528,7 +21617,7 @@ const EPHEMERAL = new Set([
   "slotPick", "slotPickFor", "msgUndelivered", "railMenu", "coachQueue",
   "fdraft", "fdOpen",
   "cmdDraft", "cmdSending", "cmdError", "cmdPending", "cmdAction", "cmdModelOpen",
-  "chatThinking", "sportOpen", "sportAnchor", "faqOpen", "forgotSent", "mapPick",
+  "chatThinking", "chatRetrying", "sportOpen", "sportAnchor", "faqOpen", "forgotSent", "mapPick",
   /* An open dropdown is a gesture, not work — restoring it on reload steals
      the first click. aiMax itself persists, same reasoning as aiOpen. */
   "aiHistOpen", "aiFull",

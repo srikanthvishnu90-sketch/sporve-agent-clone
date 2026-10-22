@@ -45,6 +45,37 @@ async function kickDelivery(): Promise<{ delivered?: number; deliveryFailed?: nu
   } finally { clearTimeout(t); }
 }
 
+/* ── G4 guard declaration (GATES.md G4, 2026-10-22) ──────────────────────────
+   This function is the ONLY sender of a drafted outbound message, and it runs
+   only on a human click (I1: the agent never sends — nothing here is callable
+   by a cron, generator or Ask tool, and approved_by is always the caller).
+   The client registry (src/mod-actions.js queue_approve) reads the receipt
+   below back from outbound_messages before it shows "Sent". */
+export const APPROVE_GUARD = {
+  action: "lifecycle-approve",
+  writes: "outbound_messages (status drafted -> sent | approved, approved_by, approved_at, sent_at) + notifications (one row per in-app delivery)",
+  precondition: "authenticated caller; within rate limit; row exists; caller owns the row's provider; status is 'drafted' (atomic claim .eq('status','drafted')); body non-empty after the claim guardrail; a claimed guardian (in-app) or a non-bounced email (email pass)",
+  inverse: "none — a delivered message cannot be recalled. An 'approved' row still waiting for the email pass can be returned to draft from Approvals.",
+  receipt: "response.receipt { message_id, status, notification_id | null } — message_id is the claimed outbound_messages row; notification_id is the inserted notifications row; a delivery insert that returns no row is a 500, never ok:true",
+} as const;
+
+/* Delivery with a receipt: the notifications insert must return its row id.
+   A write that returns no row (RLS, constraint, outage) is reported as an
+   error — never as a delivery. Exported for tests/e2e/g4-action-registry. */
+// deno-lint-ignore no-explicit-any
+export async function insertDeliveryReceipt(admin: any, row: { user_id: string; title: string; message: string }) {
+  try {
+    const { data, error } = await admin.from("notifications").insert([row]).select("id").single();
+    if (error) return { notification_id: null, error: error.message || "delivery insert failed" };
+    // deno-lint-ignore no-explicit-any
+    const id = (data as any)?.id ?? null;
+    if (!id) return { notification_id: null, error: "delivery insert returned no row" };
+    return { notification_id: String(id), error: null };
+  } catch (e) {
+    return { notification_id: null, error: (e as Error)?.message || "delivery insert failed" };
+  }
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: cors });
   if (req.method !== "POST") return json({ error: "Method not allowed." }, 405);
@@ -83,7 +114,10 @@ Deno.serve(async (req) => {
       .select("id").eq("id", row.provider_id).eq("owner_id", uid).maybeSingle();
     if (!prov) return json({ error: "Not authorized to approve this message." }, 403);
 
-    if (row.status === "sent") return json({ ok: true, alreadySent: true, status: "sent" });
+    if (row.status === "sent") {
+      return json({ ok: true, alreadySent: true, status: "sent", message_id: id,
+        receipt: { message_id: id, status: "sent", notification_id: null } });
+    }
     if (row.status !== "drafted") {
       return json({ error: `Only a drafted message can be approved (status='${row.status}').` }, 409);
     }
@@ -139,14 +173,15 @@ Deno.serve(async (req) => {
             })
             .eq("id", id).eq("status", "drafted")
             .select("id").maybeSingle();
-          if (!q) return json({ error: "Only a drafted message can be approved." }, 409);
+          if (!q?.id) return json({ error: "Only a drafted message can be approved." }, 409);
           /* AUDIT 2026-09-17 P2-6: delivery waited for the next minute's cron
              tick (15–62s). Kick the delivery pass now for this approval and
              report what it did; the cron stays as the safety net, and the
              pass itself is idempotent (it claims each row once). A kick that
              fails or times out leaves the row approved for the tick. */
           const kicked = await kickDelivery();
-          return json({ ok: true, status: "approved", queuedEmail: true, ...kicked });
+          return json({ ok: true, status: "approved", queuedEmail: true, ...kicked, message_id: q.id,
+            receipt: { message_id: q.id, status: "approved", notification_id: null } });
         }
       }
     }
@@ -184,7 +219,8 @@ Deno.serve(async (req) => {
       const { data: cur } = await admin.from("outbound_messages")
         .select("status").eq("id", id).maybeSingle();
       return (cur as { status?: string } | null)?.status === "sent"
-        ? json({ ok: true, alreadySent: true, status: "sent" })
+        ? json({ ok: true, alreadySent: true, status: "sent", message_id: id,
+            receipt: { message_id: id, status: "sent", notification_id: null } })
         : json({ error: `Only a drafted message can be approved (status='${(cur as { status?: string } | null)?.status ?? "unknown"}').` }, 409);
     }
 
@@ -192,13 +228,17 @@ Deno.serve(async (req) => {
     // Residual (accepted): if this insert fails after the claim, the row is
     // 'sent' but undelivered — the rarer, safer inverse of a double-send; a
     // retry early-returns alreadySent rather than delivering twice.
-    const { error: notifErr } = await admin.from("notifications")
-      .insert([{ user_id: guardianId, title, message: cleanBody.slice(0, 280) }]);
-    if (notifErr) return json({ error: `Marked sent but delivery failed: ${notifErr.message}` }, 500);
+    // G4: the delivery must hand back its row id. No row = no delivery = loud 500.
+    const delivered = await insertDeliveryReceipt(admin, { user_id: guardianId, title, message: cleanBody.slice(0, 280) });
+    if (!delivered.notification_id) {
+      return json({ error: `Marked sent but delivery failed: ${delivered.error}`, message_id: claimed.id }, 500);
+    }
 
     await deliverPush(admin, guardianId, title, cleanBody.slice(0, 280));
 
-    return json({ ok: true, status: "sent", sent_at: sentAt, removed });
+    return json({ ok: true, status: "sent", sent_at: sentAt, removed, message_id: claimed.id,
+      notification_id: delivered.notification_id,
+      receipt: { message_id: claimed.id, status: "sent", notification_id: delivered.notification_id } });
   } catch (e) {
     console.error("lifecycle-approve error:", e);
     return json({ error: "Message approval could not be completed." }, 500);

@@ -826,6 +826,14 @@ html body .aidock-panel.aimax .aimax-col>div:not(.bub)>.bub.them.bub-err{color:#
 html body .aidock-panel.aimax .aidock-chips{width:min(720px,calc(100% - 48px));margin:0 auto 10px!important;justify-content:flex-start!important}
 html body .aidock-panel.aimax.aifull{width:100vw!important;height:100vh!important;max-width:none!important;max-height:none!important;border-radius:0!important;border:0!important}
 html body .aidock-panel.aimax.aifull{position:fixed!important;inset:0!important;margin:0!important;transform:none!important;left:0!important;top:0!important}
+
+/* Owner 2026-10-22: "even for the bold text that says sporv, use the new header
+   font" — the rail wordmark, the side assistant's title and its empty-state
+   heading move to the Saira 200 header register. */
+html #app.coachdark .dash>.rail .railmark,html body .railmark{font-family:"Saira","Archivo",system-ui,sans-serif!important;font-weight:300!important;
+  font-stretch:100%!important;text-transform:uppercase!important;letter-spacing:.04em!important;font-size:24px!important}
+html body.reg-coach .aidock-panel :is(.aidock-head-t,.aidock-head b,.aidock-empty h3,.aidock-empty-coach h3),html body .aidock-panel :is(.aidock-head-t,.aidock-empty h3){font-family:"Saira","Archivo",system-ui,sans-serif!important;
+  font-weight:300!important;font-stretch:100%!important;text-transform:uppercase!important;letter-spacing:.03em!important}
 `;
 
 const ID = "harvey-layer";

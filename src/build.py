@@ -33,6 +33,10 @@ ORDER = [
     "mod-api.js",
     # mod-auth.js second: it registers its refresh hook on window.SporveAPI.
     "mod-auth.js",
+    # mod-actions.js: the G4 guard registry (window.SporvActions). Every
+    # AI/approval write dispatches through it; it reads SporveAPI and the host
+    # rails lazily at click time, so it only needs to load before any click.
+    "mod-actions.js",
     # mod-catalog.js third: it reads window.SporveAPI and mutates the host's
     # PROGRAMS array, so it must load after the API and before any module that
     # would otherwise capture a stale catalogue.
@@ -49,6 +53,9 @@ ORDER = [
     # Enterprise core tabs (2026-09-22): org profile/locations/staff,
     # teams CRUD, families/guardians. Self-contained MOD_* modules.
     "mod-org.js", "mod-teams.js", "mod-families.js",
+    # SOURCE pillar (spec 31 Part II, R1): the recruit board. Before
+    # mod-harvey.js so the visual layer's cascade still lands last.
+    "mod-recruiting.js",
     # Coach-app visual layer (owner 2026-10-21, Harvey-style redesign). Last,
     # so its <style> lands after every module's own injected CSS.
     "mod-harvey.js",

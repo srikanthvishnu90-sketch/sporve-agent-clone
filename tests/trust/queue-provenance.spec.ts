@@ -61,8 +61,13 @@ test('a failed obligations read is rendered as a failure, not swallowed', () => 
 });
 test('Approve, Mark done and Dismiss flip a live row only after the server confirms the new status', () => {
   const patch = host.slice(host.indexOf('const obligPatch='), host.indexOf('const obligSet='));
-  assert.match(patch, /Prefer:"return=representation"/);
-  assert.match(patch, /rows\[0\]\.status===status/);
+  // G4 (2026-10-22): the live PATCH moved into the action registry; obligPatch
+  // dispatches through it, and the registry entry carries the same guarantees.
+  assert.match(patch, /SporvActions\.execute\("obligation_set_status"/);
+  const reg = readFileSync(new URL('../../src/mod-actions.js', import.meta.url), 'utf8');
+  const spec = reg.slice(reg.indexOf('define("obligation_set_status"'), reg.indexOf('define("intake_decide"'));
+  assert.match(spec, /Prefer: "return=representation"/);
+  assert.match(spec, /rc\.status === ctx\.status/);
   // no handler sets status before the approve RPC resolves
   assert.ok(!/o\.status="approved";render\(\);\s*window\.SporveAPI\.rpc\("approve_obligation_and_queue"/.test(host), 'single Approve flips before the RPC');
   assert.ok(!/o\.status="approved";(render\(\);)?\s*const msgId=await window\.SporveAPI\.rpc/.test(host), 'bulk Approve flips before the RPC');

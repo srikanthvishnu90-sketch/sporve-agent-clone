@@ -15,7 +15,7 @@ const fixturePath = 'docs/red-drafts/2026-09-18-delivery-conflicts.test.sql';
 test('P2-6: approval kicks the delivery pass now, bounded, with the cron as the net; the client words the receipt from what happened', () => {
   assert.match(approve, /async function kickDelivery\(\)/); assert.match(approve, /setTimeout\(\(\) => ctl\.abort\(\), 12000\)/);
   assert.match(approve, /fetch\(`\$\{SUPABASE_URL\}\/functions\/v1\/lifecycle-process`/); assert.match(approve, /Authorization: `Bearer \$\{SERVICE_ROLE_KEY\}`/);
-  assert.match(approve, /const kicked = await kickDelivery\(\);\s*return json\(\{ ok: true, status: "approved", queuedEmail: true, \.\.\.kicked \}\);/);
+  assert.match(approve, /const kicked = await kickDelivery\(\);\s*return json\(\{ ok: true, status: "approved", queuedEmail: true, \.\.\.kicked(?:, message_id: q\.id,\s*receipt: \{[^}]*\})? \}\);/);
   assert.match(host, /r\.kick==="done"&&Number\(r\.delivered\)>0\?"Approved and emailed to the family\.":"Approved — emailing this family within the minute\."/);
 });
 test('P2-7: the issuance ceiling is PT429 (HTTP 429) with an actionable message; the approve RPC degrades the link under either code', () => {

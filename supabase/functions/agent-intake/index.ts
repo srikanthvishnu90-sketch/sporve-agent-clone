@@ -779,7 +779,8 @@ async function callExtract(args: {
         maxTokens: 600,
       }),
     });
-    if (gResp.status === 429) return { status: "rate_limited" };
+    // 402 = the plan's monthly AI allowance (CONTEXT I3, since 2026-10-22): same stop.
+    if (gResp.status === 429 || gResp.status === 402) return { status: "rate_limited" };
     const g = await gResp.json().catch(() => ({}));
     if (!gResp.ok) return { status: "error" };
     const call = Array.isArray(g?.toolCalls) ? g.toolCalls[0] : null;
