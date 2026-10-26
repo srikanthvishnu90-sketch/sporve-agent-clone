@@ -1386,7 +1386,7 @@ function guideSnapshot(){
       requirements:["A signed-in provider identity","The screening provider's separate disclosure and authorization","Any identity information requested on that provider's hosted flow"],
       process:["Ask Sporv to initiate screening for the individual coach.","Review the screening provider's own disclosure, scope, and consent form before submitting anything.","Complete the provider-hosted identity steps; sensitive screening details do not belong in this checklist.","Sporv records the returned status. The page becomes Done only when status is verified and a completion timestamp exists."],
       completeWhen:"The screening provider returns a cleared result.",
-      evidence:backgroundDone ? "Cleared." : backgroundReview ? `In progress (${bg}). This updates on its own when the result comes back.` : real ? (bg ? `Status: ${bg}.` : "Not started.") : "A sample workspace never counts as a real background check.",
+      evidence:backgroundDone ? "Cleared." : backgroundReview ? `In progress (${bg}). The check is run outside Sporv; Sporv records the result once it is reported back, and this step updates then.` : real ? (bg ? `Status: ${bg}.` : "Not started.") : "A sample workspace never counts as a real background check.",
       limit:"This repository does not prove a named screening vendor, a fixed screening scope, a self-service launch URL, or a turnaround SLA. The guide therefore does not invent Checkr, record types, or a 1–3 day promise.",
       href:"mailto:support@sporv.ai?subject=Start%20my%20background%20check", actionLabel:"Contact Sporv",
     },
@@ -1490,7 +1490,7 @@ function guideView(){
     ? ui.html(`Next: <b>${esc(next.title)}</b> — ${esc(next.time)}. `)
     : ui.html("Setup is complete. Check your public listing once before inviting families.");
   const content = ui.ProgressCard({label:"Setup progress",count:`${snapshot.done} of ${snapshot.total} complete`,value:snapshot.pct,context:progressContext}) +
-    ui.Callout({title:'Before families can book.',body:`You need a published profile, an upcoming session with open spots, a completed background check, and Stripe set up to pay you. ${snapshot.real ? "Every status below is from your account." : "This is a sample workspace, so none of these statuses are real."}`}) +
+    ui.Callout({title:'Before families can book.',body:`You need a published profile, an upcoming session with open spots, a completed background check, and Stripe set up to accept payments. ${snapshot.real ? "Every status below is from your account." : "This is a sample workspace, so none of these statuses are real."}`}) +
     ui.ProcessPhases(phases);
   const page = ui.Page({
     page:"getting-started",eyebrow:"Coach dashboard",h1:"Getting started",

@@ -305,7 +305,7 @@
 
   define("mark_attendance", {
     surface: "chat-proposal",
-    receiptStore: "S.attendance (session demo store; production attendance is session_attendance via the Flutter client)",
+    receiptStore: "S.attendance (session demo store only; production attendance is the Schedule screen's mark_attendance RPC into attendance_record, which this chat action does not call)",
     precondition: function (ctx) {
       var M = root.MOD_NOTES;
       if (!M || !M.markAttendanceFromAI) return no("The attendance module didn't load.");
@@ -317,15 +317,18 @@
     },
     run: function (ctx) {
       var M = root.MOD_NOTES, a = resolveAthleteFor(ctx).athlete;
-      /* Snapshot this athlete's rows first so the inverse can restore them. */
+      /* Snapshot this athlete's rows first: the write upserts one row per
+         athlete+day, so the row it touched either existed (prior status) or
+         is new (prior_status null). The receipt carries that, so the inverse
+         depends on the receipt alone, not on session-only ctx state. */
       var prev = (M.attendance ? M.attendance() : []).filter(function (r) { return r.athleteId === a.id; })
         .map(function (r) { return { id: r.id, status: r.status }; });
       return Promise.resolve(rail("mark_attendance").run(ctx.proposal, ctx.text)).then(function (res) {
         var row = res && (M.attendance ? M.attendance() : []).find(function (r) {
           return r.athleteId === a.id && r.day === res.day && r.status === res.status;
         });
-        ctx._prev = prev;
-        return { result: res, receipt: row ? { id: row.id, day: row.day, status: row.status } : null };
+        var was = row ? prev.find(function (p) { return p.id === row.id; }) : null;
+        return { result: res, receipt: row ? { id: row.id, day: row.day, status: row.status, prior_status: was ? was.status : null } : null };
       });
     },
     verify: function (ctx, rc) {
@@ -335,11 +338,11 @@
     inverse: function (ctx, rc) {
       var M = root.MOD_NOTES, rows = (M && M.attendance) ? M.attendance() : null;
       if (!rows) throw new Error("Attendance store unavailable.");
-      var was = (ctx._prev || []).find(function (p) { return p.id === rc.id; });
       var i = rows.findIndex(function (r) { return r.id === rc.id; });
       if (i < 0) throw new Error("That attendance row is already gone.");
-      if (was) rows[i].status = was.status; else rows.splice(i, 1);
-      return { restored: rc.id };
+      if (rc.prior_status != null) rows[i].status = rc.prior_status;   // existed before: restore its status
+      else rows.splice(i, 1);                                           // created by the write: remove it
+      return { restored: rc.id, status: rc.prior_status == null ? null : rc.prior_status };
     },
   });
 

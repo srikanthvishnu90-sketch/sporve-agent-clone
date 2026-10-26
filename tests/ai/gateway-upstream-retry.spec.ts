@@ -84,6 +84,37 @@ for (const [name, m] of [['shared module', shared], ['ai-gateway inlined copy', 
     assert.deepEqual(c.sleeps, [2000]);
   });
 
+  test(`${name}: Retry-After: 0 (or a past date) falls back to the jittered backoff`, async () => {
+    const c = clock(); let calls = 0;
+    await m.withUpstreamRetry(async () => (++calls === 1 ? { status: 429, retryAfter: '0' } : { status: 200 }),
+      { now: c.now, sleep: c.sleep, random: () => 0.5 });
+    assert.deepEqual(c.sleeps, [250], 'zero is not an instruction to hammer the upstream');
+    const c2 = clock(); let n2 = 0;
+    await m.withUpstreamRetry(async () => (++n2 === 1 ? { status: 503, retryAfter: 'Thu, 01 Jan 1970 00:00:00 GMT' } : { status: 200 }),
+      { now: c2.now, sleep: c2.sleep, random: () => 0.5 });
+    assert.deepEqual(c2.sleeps, [250]);
+  });
+
+  test(`${name}: retries get min(attempt timeout, remaining budget); the first attempt keeps the full timeout`, async () => {
+    const c = clock(); const seen: Array<{ remainingMs: number; timeoutMs: number }> = [];
+    await m.withUpstreamRetry(async (_i: number, ctx: { remainingMs: number; timeoutMs: number }) => {
+      seen.push(ctx); c.advance(4_000); return { status: 529, retryAfter: '1' };
+    }, { now: c.now, sleep: c.sleep, budgetMs: 12_000, attemptTimeoutMs: 30_000 });
+    assert.equal(seen[0].timeoutMs, 30_000, 'first attempt: full AI timeout');
+    assert.equal(seen[1].remainingMs, 7_000); assert.equal(seen[1].timeoutMs, 7_000, 'retry: capped to what is left');
+    assert.ok(seen.every((s) => s.timeoutMs > 0));
+    const c2 = clock(); const t2: number[] = [];
+    await m.withUpstreamRetry(async (_i: number, ctx: { timeoutMs: number }) => { t2.push(ctx.timeoutMs); return { status: 503, retryAfter: '1' }; },
+      { now: c2.now, sleep: c2.sleep, budgetMs: 60_000, attemptTimeoutMs: 5_000 });
+    assert.deepEqual(t2, [5_000, 5_000, 5_000], 'never longer than the per-attempt timeout');
+  });
+
+  test(`${name}: a TimeoutError comes back unwrapped`, async () => {
+    const c = clock(); const boom = new DOMException('The operation timed out.', 'TimeoutError');
+    const r = await m.withUpstreamRetry(async () => { c.advance(12_000); throw boom; }, { now: c.now, sleep: c.sleep });
+    assert.equal(r.outcome, null); assert.equal(r.error, boom); assert.equal((r.error as DOMException).name, 'TimeoutError');
+  });
+
   test(`${name}: never more than 3 attempts, and reports the busy verdict`, async () => {
     const c = clock(); let calls = 0;
     const r = await m.withUpstreamRetry(async () => { calls++; return { status: 503, retryAfter: '1' }; },
@@ -126,7 +157,9 @@ test('gateway: an upstream that stays busy is a 503 with retry_after, other fail
   assert.match(gw, /if \(result\.upstream_busy\) \{[\s\S]*?reason: "upstream_busy"[\s\S]*?\}, 503, result\.retry_after \?\? 2\);/);
   assert.match(gw, /return json\(result, 502\);/);
   assert.match(gw, /"Retry-After": String\(retryAfterSec\)/);
-  assert.match(gw, /await withUpstreamRetry\(async \(\) => \{/);
+  assert.match(gw, /await withUpstreamRetry\(async \(_attempt, \{ timeoutMs \}\) => \{/);
+  assert.match(gw, /signal: AbortSignal\.timeout\(timeoutMs\)/, 'each attempt uses the timeout the retry loop hands it');
+  assert.match(gw, /attemptTimeoutMs: AI_TIMEOUT_MS \}\);/);
 });
 
 test('coach-command passes 402 / 429 / 503 through instead of relabelling them', () => {

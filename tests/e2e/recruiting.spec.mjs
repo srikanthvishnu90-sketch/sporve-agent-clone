@@ -131,8 +131,9 @@ test('signed in with real rows: the board shows them, and a stage move goes thro
   assert.match(s.text, /Priya Shah/);
   assert.doesNotMatch(s.text, /Sample workspace|Maya Torres/);
   await page.selectOption('[data-rc-move="p1"]', 'contacted');
-  await page.waitForTimeout(400);
-  const rpc = fake.log.filter((l) => l.kind === 'rpc' && l.fn === 'move_recruit_stage');
+  const isMove = (l) => l.kind === 'rpc' && l.fn === 'move_recruit_stage';
+  for (let i = 0; i < 50 && !fake.log.some(isMove); i++) await page.waitForTimeout(50);   // bounded: at most 2.5s
+  const rpc = fake.log.filter(isMove);
   assert.equal(rpc.length, 1);
   assert.deepEqual(rpc[0].args, { p_pipeline: 'p1', p_to: 'contacted', p_note: null, p_closed_reason: null });
   assert.equal(fake.log.filter((l) => l.kind === 'update' && l.table === 'recruit_pipelines').length, 0, 'stage is never PATCHed directly');

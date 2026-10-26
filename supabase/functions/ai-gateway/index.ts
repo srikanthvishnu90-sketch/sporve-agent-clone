@@ -95,15 +95,16 @@ function backoffDelay(
   return Math.floor(random() * ceiling);
 }
 async function withUpstreamRetry<T extends { status?: number; retryAfter?: string | null }>(
-  attemptFn: (attempt: number) => Promise<T>,
+  attemptFn: (attempt: number, ctx: { remainingMs: number; timeoutMs: number }) => Promise<T>,
   opts: {
-    maxAttempts?: number; budgetMs?: number; baseMs?: number; capMs?: number;
+    maxAttempts?: number; budgetMs?: number; attemptTimeoutMs?: number; baseMs?: number; capMs?: number;
     random?: () => number; now?: () => number; sleep?: (ms: number) => Promise<unknown>;
   } = {},
 ): Promise<{ outcome: T | null; attempts: number; error: unknown; retryAfterMs: number | null }> {
   const {
     maxAttempts = 3,
     budgetMs = 12_000,
+    attemptTimeoutMs = 30_000,
     baseMs = 500,
     capMs = 4000,
     random = Math.random,
@@ -119,8 +120,10 @@ async function withUpstreamRetry<T extends { status?: number; retryAfter?: strin
     attempts = i + 1;
     let transient = false;
     retryAfterMs = null;
+    const remainingMs = Math.max(0, budgetMs - (now() - start));
+    const timeoutMs = i === 0 ? attemptTimeoutMs : Math.max(1, Math.min(attemptTimeoutMs, remainingMs));
     try {
-      outcome = await attemptFn(i);
+      outcome = await attemptFn(i, { remainingMs, timeoutMs });
       error = null;
       transient = isTransientStatus(outcome?.status);
       if (transient) retryAfterMs = parseRetryAfter(outcome?.retryAfter, now());
@@ -131,7 +134,7 @@ async function withUpstreamRetry<T extends { status?: number; retryAfter?: strin
     }
     if (!transient) return { outcome, attempts, error, retryAfterMs: null };
     if (i === maxAttempts - 1) break;
-    const delay = retryAfterMs ?? backoffDelay(i, { baseMs, capMs, random });
+    const delay = retryAfterMs != null && retryAfterMs > 0 ? retryAfterMs : backoffDelay(i, { baseMs, capMs, random });
     if (now() - start + delay >= budgetMs) { retryAfterMs = delay; break; }
     await sleep(delay);
   }
@@ -316,15 +319,20 @@ async function checkMonthlyBudget(
     const monthStart = new Date();
     monthStart.setUTCDate(1); monthStart.setUTCHours(0, 0, 0, 0);
     const { data, error } = await admin.from("ai_audit_log")
-      .select("est_cost_usd")
+      .select("est_cost_usd, output_summary")
       .in("actor_id", actorIds)
       .gte("created_at", monthStart.toISOString());
     if (error) {
       console.error("monthly budget count failed:", error.message);
       return { ok: false, reason: "budget_unavailable", plan };
     }
-    const rows = (data ?? []) as Array<{ est_cost_usd?: unknown }>;
-    const used = rows.length;
+    const rows = (data ?? []) as Array<{ est_cost_usd?: unknown; output_summary?: string | null }>;
+    /* A failed call (upstream busy, network, 5xx) still writes its audit row —
+       that row is the receipt — but it produced no answer, so it must not
+       consume the monthly allowance. Its est_cost_usd still counts toward the
+       spend cap (it is 0 unless tokens were billed). Filtered here, not with a
+       PostgREST `not.like`, so a legacy row with a NULL summary still counts. */
+    const used = rows.filter((r) => !String(r.output_summary ?? "").startsWith("error:")).length;
     const spent = rows.reduce((s, r) => s + (Number(r.est_cost_usd) || 0), 0);
     if (used >= quota) {
       return { ok: false, reason: "quota_exhausted", plan, used, quota, spent, cap };
@@ -410,7 +418,7 @@ async function runAI(args: RunAIArgs) {
   let upstreamStatus: number | null = null;
   try {
     const bodyText = JSON.stringify(reqBody);
-    const r = await withUpstreamRetry(async () => {
+    const r = await withUpstreamRetry(async (_attempt, { timeoutMs }) => {
       const resp = await fetch("https://api.anthropic.com/v1/messages", {
         method: "POST",
         headers: {
@@ -420,11 +428,11 @@ async function runAI(args: RunAIArgs) {
           ...(ANTHROPIC_WORKSPACE_ID ? { "anthropic-workspace-id": ANTHROPIC_WORKSPACE_ID } : {}),
         },
         body: bodyText,
-        signal: AbortSignal.timeout(AI_TIMEOUT_MS),
+        signal: AbortSignal.timeout(timeoutMs),
       });
       const data = await resp.json().catch(() => null);
       return { status: resp.status, ok: resp.ok, retryAfter: resp.headers.get("retry-after"), data };
-    }, { maxAttempts: UPSTREAM_MAX_ATTEMPTS, budgetMs: UPSTREAM_RETRY_BUDGET_MS });
+    }, { maxAttempts: UPSTREAM_MAX_ATTEMPTS, budgetMs: UPSTREAM_RETRY_BUDGET_MS, attemptTimeoutMs: AI_TIMEOUT_MS });
     upstreamAttempts = r.attempts;
     if (!r.outcome) {
       upstreamBusy = true;

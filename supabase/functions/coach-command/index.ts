@@ -1702,7 +1702,10 @@ Deno.serve(async (req) => {
         }, 402);
       }
       if (gResp.status === 429) {
-        return withRetry({ error: String(g?.error ?? "Too many assistant requests."), reason: "rate_limited" }, 429);
+        /* Carry the gateway's window ("minute" | "day") so the client can say
+           "tomorrow" for a daily cap instead of "in a moment". */
+        const win = g?.window === "day" || g?.window === "minute" ? g.window : null;
+        return withRetry({ error: String(g?.error ?? "Too many assistant requests."), reason: "rate_limited", ...(win ? { window: win } : {}) }, 429);
       }
       if (gResp.status === 503) {
         return withRetry({ error: String(g?.error ?? "The AI service is busy right now."), reason: String(g?.reason ?? "upstream_busy") }, 503);

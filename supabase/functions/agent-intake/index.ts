@@ -780,7 +780,9 @@ async function callExtract(args: {
       }),
     });
     // 402 = the plan's monthly AI allowance (CONTEXT I3, since 2026-10-22): same stop.
-    if (gResp.status === 429 || gResp.status === 402) return { status: "rate_limited" };
+    // 503 = the gateway already retried a busy upstream within its budget;
+    // calling again for the next event in this run would only add load.
+    if (gResp.status === 429 || gResp.status === 402 || gResp.status === 503) return { status: "rate_limited" };
     const g = await gResp.json().catch(() => ({}));
     if (!gResp.ok) return { status: "error" };
     const call = Array.isArray(g?.toolCalls) ? g.toolCalls[0] : null;

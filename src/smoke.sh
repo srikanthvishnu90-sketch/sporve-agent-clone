@@ -1753,7 +1753,9 @@ disp=$($B js "
 # ── Coach onboarding wizard palette (owner spec 2026-08-16) ──────────────
 # White/ink/slate + sport tags only — zero new colours. The chrome was built
 # to an earlier spec in Airbnb blue (#2563EB); this asserts it's slate now, the
-# question is Instrument Serif, and the Questions? pill is a real link.
+# question renders in Saira (mod-harvey's large-header rule, 2026-10-22; the
+# retired Newsreader / Instrument Serif / Syne faces fail it), and the
+# Questions? pill is a real link.
 cob=$($B js "
 (()=>{const bad=[];
  S.portal='coach';S.auth={status:'coach'};S.route={name:'onboard',arg:null};S.coachTab='onboard';
@@ -1766,11 +1768,12 @@ cob=$($B js "
  const nx=cw.querySelector('.cw-next');
  if(nx&&!nx.disabled&&getComputedStyle(nx).backgroundColor!=='rgb(62, 86, 110)')bad.push('NEXT_NOT_SLATE');
  if(getComputedStyle(cw.querySelector('.cw-seg i')).backgroundColor!=='rgb(62, 86, 110)')bad.push('SEG_NOT_SLATE');
- if(!/Archivo|Newsreader/.test(getComputedStyle(cw.querySelector('.cw-h1')).fontFamily))bad.push('H1_NOT_DISPLAY');
+ const ff=getComputedStyle(cw.querySelector('.cw-h1')).fontFamily;
+ if(!/^\W*Saira\b/.test(ff)||/Newsreader|Instrument Serif|Syne/.test(ff))bad.push('H1_NOT_DISPLAY');
  const h=cw.querySelector('.cw-help'); if(!h||!/^mailto:/.test(h.getAttribute('href')||''))bad.push('NO_QUESTIONS');
  S.onboard.sports=[];S.route={name:'home',arg:null};S.portal='family';render();document.body.classList.remove('reg-coach');
  return bad.length?bad.join(','):'OK'})()" 2>/dev/null)
-[ "${cob//\"/}" = "OK" ] && pass "coach onboarding wizard: slate accent (no Airbnb blue), display (Archivo) question, Questions pill" \
+[ "${cob//\"/}" = "OK" ] && pass "coach onboarding wizard: slate accent (no Airbnb blue), display (Saira, mod-harvey large headers) question, Questions pill" \
   || fail "onboarding palette regressed: $cob"
 
 # [spec-01 completion · 2026-08-31] coach marketplace profile gate (public profile surface deleted) — the product pages are deleted; these gates measured them.

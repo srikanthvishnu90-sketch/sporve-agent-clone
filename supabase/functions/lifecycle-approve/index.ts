@@ -55,7 +55,7 @@ export const APPROVE_GUARD = {
   action: "lifecycle-approve",
   writes: "outbound_messages (status drafted -> sent | approved, approved_by, approved_at, sent_at) + notifications (one row per in-app delivery)",
   precondition: "authenticated caller; within rate limit; row exists; caller owns the row's provider; status is 'drafted' (atomic claim .eq('status','drafted')); body non-empty after the claim guardrail; a claimed guardian (in-app) or a non-bounced email (email pass)",
-  inverse: "none — a delivered message cannot be recalled. An 'approved' row still waiting for the email pass can be returned to draft from Approvals.",
+  inverse: "none — a delivered message cannot be recalled. An 'approved' row still waiting for the email pass can be returned to draft from Approvals. A claim whose in-app delivery insert fails is released back to 'drafted' before the 500.",
   receipt: "response.receipt { message_id, status, notification_id | null } — message_id is the claimed outbound_messages row; notification_id is the inserted notifications row; a delivery insert that returns no row is a 500, never ok:true",
 } as const;
 
@@ -225,13 +225,26 @@ Deno.serve(async (req) => {
     }
 
     // Only the winner reaches here. Deliver via the notifications channel + push.
-    // Residual (accepted): if this insert fails after the claim, the row is
-    // 'sent' but undelivered — the rarer, safer inverse of a double-send; a
-    // retry early-returns alreadySent rather than delivering twice.
     // G4: the delivery must hand back its row id. No row = no delivery = loud 500.
     const delivered = await insertDeliveryReceipt(admin, { user_id: guardianId, title, message: cleanBody.slice(0, 280) });
     if (!delivered.notification_id) {
-      return json({ error: `Marked sent but delivery failed: ${delivered.error}`, message_id: claimed.id }, 500);
+      /* Release the claim: nothing reached the parent, so the row must not
+         read 'sent' (a retry would hit the alreadySent paths and the message
+         would never go). Back to 'drafted' with the approval/sent stamps
+         cleared, guarded on OUR claim (status sent + this sent_at) so a
+         concurrent winner is never undone. Service role: the baseline
+         outbound_freeze_server_columns trigger returns early for it, and
+         outbound_messages_status_check allows 'drafted'. */
+      const { data: released } = await admin.from("outbound_messages")
+        .update({ status: "drafted", approved_by: null, approved_at: null, sent_at: null })
+        .eq("id", claimed.id).eq("status", "sent").eq("sent_at", sentAt)
+        .select("id").maybeSingle();
+      return json({
+        error: released?.id
+          ? `Delivery failed: ${delivered.error}. The message was returned to drafts; nothing was sent.`
+          : `Marked sent but delivery failed: ${delivered.error}`,
+        message_id: claimed.id, status: released?.id ? "drafted" : "sent", released: !!released?.id,
+      }, 500);
     }
 
     await deliverPush(admin, guardianId, title, cleanBody.slice(0, 280));

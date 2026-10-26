@@ -137,6 +137,19 @@ do $$ declare n int; r record; begin
     raise exception 'FAIL C: coach selected recruits.email';
   exception when insufficient_privilege then null; end;
   begin
+    update public.recruits set date_of_birth = (current_date - interval '20 years')::date
+     where id = '2a000000-0000-4000-8000-000000000001';
+    raise exception 'FAIL C: coach updated recruits.date_of_birth (could flip a minor to adult)';
+  exception when insufficient_privilege then null; end;
+  begin
+    update public.recruits set email = 'coach@example.com', status = 'archived'
+     where id = '2a000000-0000-4000-8000-000000000001';
+    raise exception 'FAIL C: coach updated a protected contact/status column';
+  exception when insufficient_privilege then null; end;
+  update public.recruits set current_school = 'Westfield High School' where id = '2a000000-0000-4000-8000-000000000001';
+  select count(*) into n from public.recruits where id = '2a000000-0000-4000-8000-000000000001' and current_school = 'Westfield High School';
+  if n <> 1 then raise exception 'FAIL C: coach could not update a non-sensitive recruit column'; end if;
+  begin
     perform * from public.get_recruit_sensitive('2a000000-0000-4000-8000-000000000001');
     raise exception 'FAIL C: coach read a minor''s contact details through the RPC';
   exception when insufficient_privilege then null; end;
@@ -153,7 +166,7 @@ do $$ declare n int; r record; begin
   select count(*) into n from public.data_access_log where subject_id = '2a000000-0000-4000-8000-000000000001';
   if n <> 1 then raise exception 'FAIL C: % access receipts for the minor, expected 1', n; end if;
   perform set_config('role', 'postgres', true);
-  raise notice 'PASS C: coach reads 0 guardian rows and no minor DOB/email/phone; admin reads them with one receipt';
+  raise notice 'PASS C: coach reads 0 guardian rows and no minor DOB/email/phone, cannot update DOB/contact/status; admin reads them with one receipt';
 end $$;
 
 -- D · under-13 rejected; unknown DOB is treated as a minor (R1.7, E8.1) ──
@@ -254,4 +267,28 @@ do $$ declare o numeric; s text; lc timestamptz; ws text; begin
   exception when check_violation then null; end;
   perform set_config('role', 'postgres', true);
   raise notice 'PASS F: bad scores rejected; overall 4.20 computed; contacts stamp last contact and stay unchecked; first eval advances to evaluated; https-only film';
+end $$;
+
+-- G · history is append-only but follows its parent: an admin can delete a
+-- pipeline and a recruit (FK cascade removes their history), a direct
+-- history delete is still refused ──
+do $$ declare n int; begin
+  perform set_config('request.jwt.claim.sub', 'a0000000-0000-4000-8000-00000000000a', true); perform set_config('role', 'authenticated', true);
+  delete from public.recruit_pipelines where id = '3a000000-0000-4000-8000-000000000009';
+  select count(*) into n from public.recruit_pipelines where id = '3a000000-0000-4000-8000-000000000009';
+  if n <> 0 then raise exception 'FAIL G: admin could not delete a pipeline'; end if;
+  delete from public.recruits where id = '2a000000-0000-4000-8000-000000000002';
+  select count(*) into n from public.recruits where id = '2a000000-0000-4000-8000-000000000002';
+  if n <> 0 then raise exception 'FAIL G: admin could not delete a recruit'; end if;
+  perform set_config('role', 'postgres', true);
+  select count(*) into n from public.recruit_stage_history
+   where pipeline_id in ('3a000000-0000-4000-8000-000000000009','3a000000-0000-4000-8000-000000000002');
+  if n <> 0 then raise exception 'FAIL G: % orphaned history rows survived the cascade', n; end if;
+  begin
+    delete from public.recruit_stage_history where pipeline_id = '3a000000-0000-4000-8000-000000000001';
+    raise exception 'FAIL G: direct history delete succeeded while its pipeline exists';
+  exception when insufficient_privilege then null; end;
+  select count(*) into n from public.recruit_stage_history where pipeline_id = '3a000000-0000-4000-8000-000000000001';
+  if n = 0 then raise exception 'FAIL G: surviving pipeline lost its history'; end if;
+  raise notice 'PASS G: admin deletes a pipeline and a recruit (history cascades); direct history delete still refused';
 end $$;

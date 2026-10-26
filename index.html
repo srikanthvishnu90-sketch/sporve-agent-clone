@@ -29,7 +29,7 @@
 <link rel="manifest" href="/site.webmanifest">
 <script type="application/ld+json">{"@context":"https://schema.org","@type":"SoftwareApplication","name":"Sporv","url":"https://sporv.ai/","applicationCategory":"BusinessApplication","operatingSystem":"Web","description":"Sporv runs the club for you — roster, scheduling, waivers, dues and payouts, with an agent that drafts the busywork and a human who approves it.","publisher":{"@type":"Organization","name":"Sporv","url":"https://sporv.ai/","logo":"https://sporv.ai/icon-512.png"}}</script>
 <script type="application/ld+json">{"@context":"https://schema.org","@type":"WebSite","name":"Sporv AI","url":"https://sporv.ai/"}</script>
-<meta name="sporve-build" content="1ccef99285f30366">
+<meta name="sporve-build" content="de5e7ed3c1b79a16">
 </head>
 <body>
 <script>
@@ -21008,8 +21008,17 @@ function aiFailureCopy(err){
   }
   if(st===503) return {retry:true,
     text:"The AI service is busy right now. I tried twice and it did not answer. Try again in a minute."+nothing};
-  if(st===429) return {retry:true,
-    text:`Too many questions in a short time. Try again in ${ra>0?Math.ceil(ra)+" seconds":"a minute"}.`+nothing};
+  if(st===429){
+    /* The gateway caps per minute AND per day; coach-command passes the
+       window on. A daily cap that resets in 9 hours must not say "seconds". */
+    const wait=ra>=5400?`about ${Math.round(ra/3600)} hours`:ra>=90?`${Math.ceil(ra/60)} minutes`:ra>0?`${Math.ceil(ra)} seconds`:"a minute";
+    if(d.window==="day"){
+      const at=ra>0?new Date(Date.now()+ra*1000):null;
+      const when=at&&at.toDateString()===new Date().toDateString()?`later today (in ${wait})`:"tomorrow";
+      return {retry:false,text:`You have reached today's assistant request limit. It resets ${when}.`+nothing};
+    }
+    return {retry:true,text:`Too many questions in a short time. Try again in ${wait}.`+nothing};
+  }
   if(st===401) return {retry:true,
     text:"Your session has ended. Sign in again, then press Try again."+nothing};
   if(st===0) return {retry:true,
@@ -24957,7 +24966,7 @@ G.SporvPersonalizeUI = {
 
   define("mark_attendance", {
     surface: "chat-proposal",
-    receiptStore: "S.attendance (session demo store; production attendance is session_attendance via the Flutter client)",
+    receiptStore: "S.attendance (session demo store only; production attendance is the Schedule screen's mark_attendance RPC into attendance_record, which this chat action does not call)",
     precondition: function (ctx) {
       var M = root.MOD_NOTES;
       if (!M || !M.markAttendanceFromAI) return no("The attendance module didn't load.");
@@ -24969,15 +24978,18 @@ G.SporvPersonalizeUI = {
     },
     run: function (ctx) {
       var M = root.MOD_NOTES, a = resolveAthleteFor(ctx).athlete;
-      /* Snapshot this athlete's rows first so the inverse can restore them. */
+      /* Snapshot this athlete's rows first: the write upserts one row per
+         athlete+day, so the row it touched either existed (prior status) or
+         is new (prior_status null). The receipt carries that, so the inverse
+         depends on the receipt alone, not on session-only ctx state. */
       var prev = (M.attendance ? M.attendance() : []).filter(function (r) { return r.athleteId === a.id; })
         .map(function (r) { return { id: r.id, status: r.status }; });
       return Promise.resolve(rail("mark_attendance").run(ctx.proposal, ctx.text)).then(function (res) {
         var row = res && (M.attendance ? M.attendance() : []).find(function (r) {
           return r.athleteId === a.id && r.day === res.day && r.status === res.status;
         });
-        ctx._prev = prev;
-        return { result: res, receipt: row ? { id: row.id, day: row.day, status: row.status } : null };
+        var was = row ? prev.find(function (p) { return p.id === row.id; }) : null;
+        return { result: res, receipt: row ? { id: row.id, day: row.day, status: row.status, prior_status: was ? was.status : null } : null };
       });
     },
     verify: function (ctx, rc) {
@@ -24987,11 +24999,11 @@ G.SporvPersonalizeUI = {
     inverse: function (ctx, rc) {
       var M = root.MOD_NOTES, rows = (M && M.attendance) ? M.attendance() : null;
       if (!rows) throw new Error("Attendance store unavailable.");
-      var was = (ctx._prev || []).find(function (p) { return p.id === rc.id; });
       var i = rows.findIndex(function (r) { return r.id === rc.id; });
       if (i < 0) throw new Error("That attendance row is already gone.");
-      if (was) rows[i].status = was.status; else rows.splice(i, 1);
-      return { restored: rc.id };
+      if (rc.prior_status != null) rows[i].status = rc.prior_status;   // existed before: restore its status
+      else rows.splice(i, 1);                                           // created by the write: remove it
+      return { restored: rc.id, status: rc.prior_status == null ? null : rc.prior_status };
     },
   });
 
@@ -32047,7 +32059,7 @@ function guideSnapshot(){
       requirements:["A signed-in provider identity","The screening provider's separate disclosure and authorization","Any identity information requested on that provider's hosted flow"],
       process:["Ask Sporv to initiate screening for the individual coach.","Review the screening provider's own disclosure, scope, and consent form before submitting anything.","Complete the provider-hosted identity steps; sensitive screening details do not belong in this checklist.","Sporv records the returned status. The page becomes Done only when status is verified and a completion timestamp exists."],
       completeWhen:"The screening provider returns a cleared result.",
-      evidence:backgroundDone ? "Cleared." : backgroundReview ? `In progress (${bg}). This updates on its own when the result comes back.` : real ? (bg ? `Status: ${bg}.` : "Not started.") : "A sample workspace never counts as a real background check.",
+      evidence:backgroundDone ? "Cleared." : backgroundReview ? `In progress (${bg}). The check is run outside Sporv; Sporv records the result once it is reported back, and this step updates then.` : real ? (bg ? `Status: ${bg}.` : "Not started.") : "A sample workspace never counts as a real background check.",
       limit:"This repository does not prove a named screening vendor, a fixed screening scope, a self-service launch URL, or a turnaround SLA. The guide therefore does not invent Checkr, record types, or a 1–3 day promise.",
       href:"mailto:support@sporv.ai?subject=Start%20my%20background%20check", actionLabel:"Contact Sporv",
     },
@@ -32151,7 +32163,7 @@ function guideView(){
     ? ui.html(`Next: <b>${esc(next.title)}</b> — ${esc(next.time)}. `)
     : ui.html("Setup is complete. Check your public listing once before inviting families.");
   const content = ui.ProgressCard({label:"Setup progress",count:`${snapshot.done} of ${snapshot.total} complete`,value:snapshot.pct,context:progressContext}) +
-    ui.Callout({title:'Before families can book.',body:`You need a published profile, an upcoming session with open spots, a completed background check, and Stripe set up to pay you. ${snapshot.real ? "Every status below is from your account." : "This is a sample workspace, so none of these statuses are real."}`}) +
+    ui.Callout({title:'Before families can book.',body:`You need a published profile, an upcoming session with open spots, a completed background check, and Stripe set up to accept payments. ${snapshot.real ? "Every status below is from your account." : "This is a sample workspace, so none of these statuses are real."}`}) +
     ui.ProcessPhases(phases);
   const page = ui.Page({
     page:"getting-started",eyebrow:"Coach dashboard",h1:"Getting started",
@@ -35306,6 +35318,12 @@ function shortDate(iso){
 }
 function fullName(r){ return r ? ((r.preferred_name || r.first_name) + " " + r.last_name) : "Unknown recruit"; }
 function norm(s){ return String(s == null ? "" : s).trim().toLowerCase(); }
+/** Today's date (YYYY-MM-DD) on the coach's own calendar, not UTC: after 7pm
+    in Chicago, toISOString() already reads tomorrow. */
+function localDate(d){
+  d = d || new Date();
+  return d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0");
+}
 function httpsOnly(list){
   return (list || []).filter(function (u){ return /^https:\/\/\S+$/i.test(u) && u.length <= 500; });
 }
@@ -35337,6 +35355,7 @@ var st = {
   key: null,          // identity the data was loaded under
   err: null,
   partial: [],        // secondary reads that failed (named on the page)
+  truncated: [],      // reads that hit their row limit (may be cut off; named on the page)
   recruits: [], pipelines: [], evals: [], contacts: [], targets: [], teams: [], guardians: [],
   targetsSource: "local",   // db | local
   filters: { sport: "", grad: "", pos: "", q: "" },
@@ -35450,7 +35469,7 @@ function kickLoad(){
   st.open = null; st.adding = false; st.section = null; st.sensitive = {};
   if (guest()){
     var d = sampleData();
-    st.mode = "sample"; st.phase = "ready"; st.partial = []; st.targetsSource = "local";
+    st.mode = "sample"; st.phase = "ready"; st.partial = []; st.truncated = []; st.targetsSource = "local";
     for (var k in d) st[k] = d[k];
     return;
   }
@@ -35460,25 +35479,31 @@ function kickLoad(){
     else { st.phase = "error"; st.err = friendly(e); }
   }).then(function (){ if (typeof render === "function") render(); });
 }
+/* Row limits for each live read. A read that returns exactly its limit may
+   have been cut off, so the page names it instead of implying it is complete. */
+var LIMITS = { recruits: 1000, pipelines: 2000, evaluations: 5000, contacts: 5000 };
 var RCOLS = "id,first_name,last_name,preferred_name,prospect_type,grad_year,is_minor,current_school,club_team,city," +
   "state_region,hs_gpa,intended_major,status,created_at";
+/** Read the org's recruiting rows; failed secondary reads land in st.partial, reads at their row limit in st.truncated. */
 function loadLive(){
   var a = api(), pv = providerRow();
   if (!(a && signedIn() && pv && pv.id))
     return Promise.reject(new Error("Finish setting up your workspace first. The recruit board attaches to your organization."));
   var pid = "provider_id=eq." + encodeURIComponent(pv.id);
   return Promise.all([
-    a.from("recruits", "select=" + RCOLS + "&" + pid + "&status=neq.deleted_pending&order=last_name.asc&limit=1000"),
-    a.from("recruit_pipelines", "select=*&" + pid + "&limit=2000"),
+    a.from("recruits", "select=" + RCOLS + "&" + pid + "&status=neq.deleted_pending&order=last_name.asc&limit=" + LIMITS.recruits),
+    a.from("recruit_pipelines", "select=*&" + pid + "&limit=" + LIMITS.pipelines),
   ]).then(function (res){
     st.recruits = res[0] || []; st.pipelines = res[1] || [];
-    st.partial = [];
+    st.partial = []; st.truncated = [];
+    if (st.recruits.length >= LIMITS.recruits) st.truncated.push("recruits (first " + LIMITS.recruits + ")");
+    if (st.pipelines.length >= LIMITS.pipelines) st.truncated.push("board rows (first " + LIMITS.pipelines + ")");
     var soft = function (name, p){
       return p.then(function (rows){ return rows || []; }, function (){ st.partial.push(name); return []; });
     };
     return Promise.all([
-      soft("evaluations", a.from("recruit_evaluations", "select=id,pipeline_id,evaluator_id,context,seen_on,scores,overall,projection,notes,created_at&" + pid + "&order=created_at.desc&limit=5000")),
-      soft("contact log", a.from("recruit_contacts", "select=id,pipeline_id,contact_kind,direction,counterpart,occurred_at,subject,summary,permissible_window_status&" + pid + "&order=occurred_at.desc&limit=5000")),
+      soft("evaluations", a.from("recruit_evaluations", "select=id,pipeline_id,evaluator_id,context,seen_on,scores,overall,projection,notes,created_at&" + pid + "&order=created_at.desc&limit=" + LIMITS.evaluations)),
+      soft("contact log", a.from("recruit_contacts", "select=id,pipeline_id,contact_kind,direction,counterpart,occurred_at,subject,summary,permissible_window_status&" + pid + "&order=occurred_at.desc&limit=" + LIMITS.contacts)),
       soft("recruiting needs", a.from("recruiting_targets", "select=id,sport,team_id,entry_year,position,target_count,priority,note&" + pid + "&limit=500")),
       soft("teams", a.from("teams", "select=id,name,sport&" + pid + "&order=name.asc&limit=200")),
       /* RLS returns guardian rows to org admins only; a coach gets none (I7). */
@@ -35487,6 +35512,8 @@ function loadLive(){
     ]);
   }).then(function (r){
     st.evals = r[0]; st.contacts = r[1]; st.targets = r[2]; st.teams = r[3]; st.guardians = r[4];
+    if (st.evals.length >= LIMITS.evaluations) st.truncated.push("evaluations (latest " + LIMITS.evaluations + ")");
+    if (st.contacts.length >= LIMITS.contacts) st.truncated.push("contact log (latest " + LIMITS.contacts + ")");
     st.targetsSource = st.partial.indexOf("recruiting needs") >= 0 ? "local" : "db";
   });
 }
@@ -35590,6 +35617,7 @@ function moveStage(pipelineId, to, note, reason){
     .then(function (receipt){ return reload().then(function (){ return receipt; }); });
 }
 
+/** Add one recruit (or reuse an identity match) plus its board row; resolves to the new pipeline id. */
 function addRecruit(v){
   var dup = st.recruits.find(function (r){
     return norm(r.first_name) === norm(v.first_name) && norm(r.last_name) === norm(v.last_name) && String(r.grad_year || "") === String(v.grad_year || "");
@@ -35629,7 +35657,14 @@ function addRecruit(v){
   var c = liveCtx();
   recruit.provider_id = c.pid; pipeline.provider_id = c.pid;
   var first = dup ? Promise.resolve() : post("recruits", recruit);
-  return first.then(function (){ return post("recruit_pipelines", pipeline); })
+  return first.then(function (){
+    /* If the board-row write fails after the recruit row landed, reload first so
+       st.recruits holds that recruit and a retry reuses it instead of tripping
+       the identity dedupe on a second insert; then surface the original error. */
+    return post("recruit_pipelines", pipeline).then(null, function (e){
+      return reload().then(function (){ throw e; }, function (){ throw e; });
+    });
+  })
     .then(function (){
       if (!guardian) return null;
       guardian.provider_id = c.pid;
@@ -35779,20 +35814,29 @@ function csvPreview(text){
   });
   return { rows: parsed, unknown: head.filter(function (k){ return k && !CSV_COLUMNS.some(function (c){ return c.key === k; }); }) };
 }
+/** Write the previewed CSV rows: one recruit per identity, one board row per CSV row; resolves to rows written. */
 function runImport(){
   var prev = st.csv.rows;
   if (!prev || !prev.rows) return Promise.reject(new Error("Preview the file first."));
   var ready = prev.rows.filter(function (r){ return r.status === "ready"; });
   if (!ready.length) return Promise.reject(new Error("No rows are ready to import."));
   var recs = [], pipes = [];
+  /* Identity = normalized first + last + grad year. One person on two sport
+     boards in the same file must become ONE recruit with two board rows, so
+     rows queued earlier in this import are matched as well as saved ones. */
+  var queued = {};
   ready.forEach(function (r){
+    var ident = norm(r.o.first_name) + "|" + norm(r.o.last_name) + "|" + String(r.gy);
     var existing = st.recruits.find(function (x){
       return norm(x.first_name) === norm(r.o.first_name) && norm(x.last_name) === norm(r.o.last_name) && String(x.grad_year) === String(r.gy);
     });
-    var rid = existing ? existing.id : uuid();
-    if (!existing) recs.push({ id: rid, first_name: r.o.first_name, last_name: r.o.last_name, grad_year: r.gy,
+    var rid = existing ? existing.id : queued[ident];
+    if (!rid){
+      rid = queued[ident] = uuid();
+      recs.push({ id: rid, first_name: r.o.first_name, last_name: r.o.last_name, grad_year: r.gy,
       current_school: r.o.school || null, club_team: r.o.club_team || null, city: r.o.city || null, state_region: r.o.state || null,
       hs_gpa: r.gpa, email: r.o.email || null, phone: r.o.phone || null });
+    }
     pipes.push({ id: uuid(), recruit_id: rid, sport: r.o.sport, position_primary: r.o.position || null,
       positions: r.o.position ? [r.o.position] : [], film_links: r.links, stage: r.stage, target_entry_year: String(r.gy) });
   });
@@ -35812,7 +35856,13 @@ function runImport(){
   /* Two bulk writes: identities, then board rows. PostgREST runs each in
      one transaction, so a bad row rejects its whole batch, not half. */
   return (recs.length ? post("recruits", recs) : Promise.resolve())
-    .then(function (){ return post("recruit_pipelines", pipes); })
+    .then(function (){
+      /* If the identities landed but the board rows did not, reload before
+         rethrowing so a retry finds those recruits and reuses their ids. */
+      return post("recruit_pipelines", pipes).then(null, function (e){
+        return reload().then(function (){ throw e; }, function (){ throw e; });
+      });
+    })
     .then(reload).then(function (){ return pipes.length; });
 }
 
@@ -35943,6 +35993,10 @@ function banner(ui){
   if (st.partial.length){
     out += '<div class="rc-banner">' + ui.Callout({ title: "Part of the board did not load.",
       body: "Could not read your " + st.partial.join(", ") + ". What is shown may be incomplete. Reload the page to try again." }) + "</div>";
+  }
+  if (st.truncated && st.truncated.length){
+    out += '<div class="rc-banner">' + ui.Callout({ title: "Showing only part of your data.",
+      body: "This page loads a fixed number of rows and reached that limit for: " + st.truncated.join(", ") + ". Anything past the limit is not shown or counted here." }) + "</div>";
   }
   return out;
 }
@@ -36224,7 +36278,7 @@ function evalSection(p){
     }).join("") +
     '<p class="rc-note">1 is well below your program\'s level, 3 is at it, 5 is well above.</p>' +
     '<div class="rc-grid2"><label>Seen on<select name="context">' + options(CONTEXTS, "film") + "</select></label>" +
-    '<label>Date<input type="date" name="seen_on" value="' + new Date().toISOString().slice(0, 10) + '"></label></div>' +
+    '<label>Date<input type="date" name="seen_on" value="' + localDate() + '"></label></div>' +
     '<label>Notes<textarea name="notes" maxlength="4000"></textarea></label>' +
     '<p class="rc-err" id="rcEvalErr" role="alert" hidden></p>' +
     '<div class="rc-actions"><button type="submit" class="cui-button cui-button--lg cui-button--primary">Save evaluation</button>' +
@@ -36311,20 +36365,20 @@ function wire(){
     keyBound = true;
     document.addEventListener("keydown", function (ev){
       if (ev.key === "Escape" && (st.open || st.adding) && typeof S !== "undefined" && S.coachTab === "recruiting"){
-        st.open = null; st.adding = false; st.section = null; render();
+        st.open = null; st.adding = false; st.section = null; st.sensitive = {}; render();
       }
     });
   }
 
   q("[data-rc-retry]").forEach(function (b){ b.onclick = function (){ st.key = null; st.phase = "idle"; render(); }; });
-  q("[data-rc-add]").forEach(function (b){ b.onclick = function (){ st.adding = true; st.open = null; st.focus = "drawer"; render(); }; });
+  q("[data-rc-add]").forEach(function (b){ b.onclick = function (){ st.adding = true; st.open = null; st.sensitive = {}; st.focus = "drawer"; render(); }; });
   q("[data-rc-open]").forEach(function (b){
-    b.onclick = function (){ st.open = b.dataset.rcOpen; st.adding = false; st.section = null; st.focus = "drawer"; render(); };
+    b.onclick = function (){ st.open = b.dataset.rcOpen; st.adding = false; st.section = null; st.sensitive = {}; st.focus = "drawer"; render(); };
   });
   q("[data-cui-drawer-close]").forEach(function (b){
     b.onclick = function (){
       var back = st.open;
-      st.open = null; st.adding = false; st.section = null; render();
+      st.open = null; st.adding = false; st.section = null; st.sensitive = {}; render();
       if (back){ var t = document.querySelector('[data-rc-open="' + back + '"]'); if (t) t.focus(); }
     };
   });
@@ -36355,7 +36409,7 @@ function wire(){
       var id = sel.dataset.rcMove, to = sel.value, p = pipelineById(id);
       if (!to || !p) return;
       var needsMore = to === "closed" || p.stage === "closed" || (STAGE_RANK[to] < STAGE_RANK[p.stage]);
-      if (needsMore){ st.open = id; st.section = "stage"; st.stageTo = to; st.focus = "drawer"; render(); return; }
+      if (needsMore){ if (st.open !== id) st.sensitive = {}; st.open = id; st.section = "stage"; st.stageTo = to; st.focus = "drawer"; render(); return; }
       sel.disabled = true;
       var name = fullName(recruitOf(p));
       moveStage(id, to).then(function (){
@@ -36392,7 +36446,7 @@ function wire(){
     var fd = new FormData(ef), scores = {};
     CRITERIA.forEach(function (c){ var v = Number(fd.get(c[0])); if (v) scores[c[0]] = v; });
     if (overallOf(scores) == null) return showErr("rcEvalErr", "Score every criterion from 1 to 5.");
-    var seen = val(fd, "seen_on") || new Date().toISOString().slice(0, 10);
+    var seen = val(fd, "seen_on") || localDate();
     busy(ef, true);
     addEval(ef.dataset.pl, { scores: scores, context: val(fd, "context") || "film", seen_on: seen, notes: val(fd, "notes") }).then(function (){
       st.section = null; render(); toast("Evaluation saved" + (st.mode === "sample" ? " (sample, not saved)." : "."));
@@ -36443,7 +36497,7 @@ function wire(){
     v.film_links = links;
     busy(af, true);
     addRecruit(v).then(function (plid){
-      st.adding = false; st.open = plid; st.focus = "drawer"; render();
+      st.adding = false; st.open = plid; st.sensitive = {}; st.focus = "drawer"; render();
       toast(v.first_name + " " + v.last_name + " added" + (st.mode === "sample" ? " (sample, not saved)." : "."));
     }, function (e){ busy(af, false); showErr("rcAddErr", friendly(e)); });
     return false;
@@ -36894,8 +36948,8 @@ html #app .hvl-win-row .amt{font-family:"JetBrains Mono",ui-monospace,monospace;
 html #app .hvl-win-row .st{justify-self:end;font-size:13.5px;color:#2F6F47;background:#E8F1EA;border-radius:999px;padding:3px 10px}
 html #app .hvl-win-row .st.hold{color:#2C557E;background:#E9EFF5}
 @media (max-width:900px){html #app .hvl-win{grid-template-columns:1fr}html #app .hvl-win-rail{display:none}
-  .hvl-win-row{grid-template-columns:1fr auto}html #app .hvl-win-row .msg,html #app .hvl-win-row .st{display:none}
-  .hvl-win-stats{grid-template-columns:1fr 1fr}html #app .hvl-win-stats div:last-child{display:none}}
+  html #app .hvl-win-row{grid-template-columns:1fr auto}html #app .hvl-win-row .msg,html #app .hvl-win-row .st{display:none}
+  html #app .hvl-win-stats{grid-template-columns:1fr 1fr}html #app .hvl-win-stats div:last-child{display:none}}
 
 html #app .hvl-sec{padding:112px 0}
 html #app .hvl-sec-alt{background:#FFFFFF;border-top:1px solid var(--rule);border-bottom:1px solid var(--rule)}

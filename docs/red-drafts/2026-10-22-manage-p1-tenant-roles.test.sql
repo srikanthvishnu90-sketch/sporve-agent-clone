@@ -355,6 +355,46 @@ begin
   raise notice 'PASS (d) 1.7 1.8 1.9: compliance capability true only for the compliance officer at their own org; admins excluded from restricted caps';
 end $$;
 
+-- ── (d2) self-assignment of a restricted role is refused ─────────────────────
+-- An admin member (is_org_admin -> admin.users) and the AD (ad role ->
+-- admin.users) try to give THEMSELVES a role whose defaults carry a restricted
+-- capability. Both must fail, and neither may end up holding the capability.
+do $$
+declare v_a uuid := current_setting('p1.org_a')::uuid; n int;
+begin
+  perform public.p1_test_as('a1000000-0000-4000-8000-000000000002');                   -- admin member
+  begin
+    insert into public.role_assignments (provider_id, member_id, role_key)
+      values (v_a, 'a2000000-0000-4000-8000-000000000002', 'compliance_officer');
+    raise exception 'FAIL (d2): admin member self-assigned compliance_officer';
+  exception when insufficient_privilege then
+    if sqlerrm not like 'SELF_ASSIGN_RESTRICTED%' then raise exception 'FAIL (d2): wrong error %', sqlerrm; end if;
+  end;
+  if public.has_org_capability(v_a, 'eligibility.certify') then
+    raise exception 'FAIL (d2): admin member holds eligibility.certify after the refused self-assignment'; end if;
+  perform public.p1_test_as('a1000000-0000-4000-8000-000000000003');                   -- AD
+  begin
+    insert into public.role_assignments (provider_id, member_id, role_key)
+      values (v_a, 'a2000000-0000-4000-8000-000000000003', 'athletic_trainer');
+    raise exception 'FAIL (d2): AD self-assigned athletic_trainer';
+  exception when insufficient_privilege then
+    if sqlerrm not like 'SELF_ASSIGN_RESTRICTED%' then raise exception 'FAIL (d2): wrong error %', sqlerrm; end if;
+  end;
+  if public.has_org_capability(v_a, 'medical.read') then
+    raise exception 'FAIL (d2): AD holds medical.read after the refused self-assignment'; end if;
+  -- a non-restricted role may still be self-assigned, and another admin may
+  -- still assign the restricted role to someone else
+  insert into public.role_assignments (provider_id, member_id, role_key)
+    values (v_a, 'a2000000-0000-4000-8000-000000000003', 'sid');
+  insert into public.role_assignments (provider_id, member_id, role_key)
+    values (v_a, 'a2000000-0000-4000-8000-000000000002', 'compliance_officer');
+  perform public.p1_test_as('a1000000-0000-4000-8000-000000000002');
+  if not public.has_org_capability(v_a, 'eligibility.certify') then
+    raise exception 'FAIL (d2): assignment by another admin did not grant eligibility.certify'; end if;
+  perform public.p1_test_as(null);
+  raise notice 'PASS (d2): restricted roles cannot be self-assigned; non-restricted self-assignment and admin-to-other still work';
+end $$;
+
 -- ── (e) 1.12 (database half) — existing club behaviour unchanged ─────────────
 do $$
 declare v_c uuid := current_setting('p1.org_c')::uuid; v_a uuid := current_setting('p1.org_a')::uuid; n int; v_kind text; v_scope boolean;
@@ -457,7 +497,14 @@ begin
   select count(*) into n from public.audit_log where provider_id = v_a and diff ? 'institution_student_id'
      and diff->>'institution_student_id' <> '[redacted]';
   if n <> 0 then raise exception 'FAIL audit: sensitive column in clear in diff'; end if;
-  raise notice 'PASS audit: update/delete rejected, one chain per org, sensitive values redacted';
+  -- hashes are keyed: a row hash must not equal a plain sha256 of its own image
+  select count(*) into n from public.audit_log a
+   where a.provider_id = v_a and a.table_name = 'student_athletes' and a.after_sha256 is not null
+     and a.after_sha256 = encode(sha256(convert_to((select to_jsonb(s) from public.student_athletes s where s.id::text = a.row_id)::text, 'UTF8')), 'hex');
+  if n <> 0 then raise exception 'FAIL audit: % after-hashes are plain sha256 (unkeyed)', n; end if;
+  select count(*) into n from public.audit_log where provider_id = v_a and length(row_hash) <> 64;
+  if n <> 0 then raise exception 'FAIL audit: % row hashes are not 32-byte HMAC-SHA256', n; end if;
+  raise notice 'PASS audit: update/delete rejected, one chain per org, sensitive values redacted, hashes keyed';
 end $$;
 
 -- ── anon gets nothing ────────────────────────────────────────────────────────
@@ -478,8 +525,16 @@ begin
     perform s.date_of_birth from public.student_athletes s limit 1;
     raise exception 'FAIL I7: authenticated can select student_athletes.date_of_birth';
   exception when insufficient_privilege then null; end;
+  begin
+    perform s.user_id from public.student_athletes s limit 1;
+    raise exception 'FAIL I7: authenticated can select student_athletes.user_id';
+  exception when insufficient_privilege then null; end;
+  begin
+    perform 1 from vault.decrypted_secrets limit 1;
+    raise exception 'FAIL audit key: authenticated can read vault.decrypted_secrets';
+  exception when insufficient_privilege then null; end;
   perform public.p1_test_as(null);
-  raise notice 'PASS anon/I7: anon has no table or helper access; date_of_birth not readable by clients';
+  raise notice 'PASS anon/I7: anon has no table or helper access; date_of_birth, user_id and the audit HMAC key not readable by clients';
 end $$;
 
 -- ── (f) 1.11 — rowsecurity on every new table, and on all of public ──────────

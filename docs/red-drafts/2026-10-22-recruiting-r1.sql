@@ -394,10 +394,19 @@ drop trigger if exists trg_rp_history on public.recruit_pipelines;
 create trigger trg_rp_history after insert or update of stage on public.recruit_pipelines
   for each row execute function public.recruit_pipelines_history();
 
--- history is append-only, even for the table owner
+-- history is append-only, even for the table owner. The one exception is a
+-- foreign-key cascade: when the pipeline (deleted directly, or via its
+-- recruit) or the whole org is gone, its history rows go with it. A direct
+-- DELETE while the parent still exists is still refused. SECURITY DEFINER so
+-- the parent lookup is not filtered by the caller's RLS (FORCE RLS is on).
 create or replace function public.recruit_stage_history_append_only() returns trigger
-language plpgsql set search_path to '' as $$
+language plpgsql security definer set search_path to '' as $$
 begin
+  if tg_op = 'DELETE'
+     and (not exists (select 1 from public.recruit_pipelines p where p.id = old.pipeline_id)
+          or not exists (select 1 from public.providers v where v.id = old.provider_id)) then
+    return old;                                   -- FK cascade from a deleted parent
+  end if;
   raise exception 'recruit_stage_history is append-only' using errcode = '42501';
 end $$;
 drop trigger if exists trg_rsh_append_only on public.recruit_stage_history;
@@ -537,7 +546,16 @@ grant select (id, provider_id, first_name, last_name, preferred_name, prospect_t
               hs_gpa, test_scores, intended_major, eligibility_center_id, eligibility_center_status, transcript_received,
               admissions_status, status, student_athlete_id, retain_until, dedupe_key, created_by, created_at, updated_at)
   on public.recruits to authenticated;
-grant insert, update, delete on public.recruits to authenticated;
+grant insert, delete on public.recruits to authenticated;
+-- UPDATE is column-level: identity keys (id, provider_id, student_athlete_id,
+-- created_by), lifecycle (status, retain_until), the minor's sensitive fields
+-- (date_of_birth, email, phone) and trigger-maintained columns (is_minor,
+-- dedupe_key, created_at, updated_at) are NOT updatable by clients (I7).
+grant update (first_name, last_name, preferred_name, prospect_type, grad_year, expected_entry_term,
+              current_school, current_school_level, club_team, city, state_region, country, social_handles,
+              hs_gpa, test_scores, intended_major, eligibility_center_id, eligibility_center_status,
+              transcript_received, admissions_status)
+  on public.recruits to authenticated;
 drop policy if exists recruits_member_select on public.recruits;
 create policy recruits_member_select on public.recruits for select to authenticated using (public.is_org_member(provider_id));
 drop policy if exists recruits_member_insert on public.recruits;
