@@ -1665,15 +1665,48 @@ Deno.serve(async (req) => {
       const firstTools = Array.isArray(firstOut.tool_calls) ? firstOut.tool_calls : [];
       if (firstIntent === "clarify" && firstTools.length === 0 &&
           isCoachingKnowledgeTurn(text, firstIntent)) {
-        ({ gResp, g } = await gatewayTurn(1600,
+        const retried = await gatewayTurn(1600,
           "RETRY — your previous answer asked a clarifying question instead of delivering the requested coaching content. That was WRONG. " +
           "Deliver the full requested plan/answer NOW in reply_text with intent='read' — setup, steps, coaching points, progressions, and timings as the request needs. " +
           "If the requested age group differs from the roster's, deliver for the REQUESTED age group and note the mismatch in one line. " +
-          "NEVER output intent='clarify' on this retry."));
+          "NEVER output intent='clarify' on this retry.");
+        // A failed improvement call (quota, busy) must not discard the
+        // complete answer already in hand — keep the first turn instead.
+        if (retried.gResp.ok) ({ gResp, g } = retried);
       }
     }
     if (!gResp.ok) {
-      if (gResp.status === 429) return json({ error: "AI request limit reached. Please try again shortly." }, 429);
+      /* Pass the gateway's verdict through UNCHANGED in kind, so the client
+         can tell the coach the truth (incident 2026-10-22: a plan-quota denial
+         was relabelled "try again shortly"):
+           402 plan allowance used up -> 402 with the I3 payload, no retry
+           429 burst limiter          -> 429 + retry_after
+           503 provider busy          -> 503 + retry_after (gateway already
+                                         retried with backoff)
+           anything else              -> 502 */
+      const ra = Number(g?.retry_after);
+      const retryAfter = Number.isFinite(ra) && ra > 0 ? Math.ceil(ra) : null;
+      const withRetry = (body: Record<string, unknown>, status: number) =>
+        new Response(JSON.stringify(retryAfter ? { ...body, retry_after: retryAfter } : body), {
+          status,
+          headers: { ...cors, "Content-Type": "application/json", ...(retryAfter ? { "Retry-After": String(retryAfter) } : {}) },
+        });
+      if (gResp.status === 402) {
+        return json({
+          error: String(g?.error ?? "This month's assistant allowance is used up."),
+          reason: String(g?.reason ?? "ai_quota_exhausted"),
+          current_plan: g?.current_plan ?? null,
+          upgrade_to: g?.upgrade_to ?? null,
+          limit: g?.limit ?? null,
+          current: g?.current ?? null,
+        }, 402);
+      }
+      if (gResp.status === 429) {
+        return withRetry({ error: String(g?.error ?? "Too many assistant requests."), reason: "rate_limited" }, 429);
+      }
+      if (gResp.status === 503) {
+        return withRetry({ error: String(g?.error ?? "The AI service is busy right now."), reason: String(g?.reason ?? "upstream_busy") }, 503);
+      }
       return json({ error: g?.error ?? `ai-gateway error (${gResp.status})`, audit_id: g?.audit?.id ?? null }, 502);
     }
     if (g?.truncated === true) {

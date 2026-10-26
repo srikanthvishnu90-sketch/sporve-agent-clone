@@ -293,15 +293,16 @@ function deniedPage(ui){
   return ui.Page({
     page: "teams",
     eyebrow: "ENTERPRISE",
-    h1: "Teams is an Enterprise feature",
-    lede: "Teams is part of the Sporv Enterprise multi-player workspace \u2014 one organization, many coaches, every squad in one place. It is in early access right now.",
+    h1: "Teams",
+    lede: "Every team, roster and season in one place, with many coaches. Available on Enterprise.",
     actions: [ui.Button({
-      label: "Join the early-access list", size: "lg", variant: "primary",
-      attrs: 'data-nav="pricing"',
+      label: "Request a demo", size: "lg", variant: "primary",
+      href: (typeof CALENDLY_URL !== "undefined" ? CALENDLY_URL : "mailto:support@sporv.ai"),
+      attrs: 'target="_blank" rel="noopener"',
     })],
     body: ui.Callout({
       title: "Early access.",
-      body: "The Teams tab opens automatically for Enterprise organizations once the workspace is enabled for them. Enterprise is not sold as a self-serve checkout, so there is nothing to buy here.",
+      body: "Enterprise is set up with each organization on a call. Book one and we will walk through it with you.",
     }),
   });
 }

@@ -97,7 +97,7 @@ function DataTable(options){
   options = options || {};
   const columns = options.columns || [];
   const rows = options.rows || [];
-  if(!rows.length) return EmptyState(options.emptyTitle || "No records", options.emptyBody || "Nothing has been loaded for this view.");
+  if(!rows.length) return EmptyState(options.emptyTitle || "No records", options.emptyBody || "Nothing here yet.");
   return `<div class="cui-tablewrap"><table class="cui-table">
     <thead><tr>${columns.map(col => `<th scope="col">${esc(col.label || "")}</th>`).join("")}</tr></thead>
     <tbody>${rows.map(row => `<tr>${columns.map(col => `<td data-label="${esc(col.label || "")}"${col.mono ? ` class="cui-mono"` : ""}>${valueHTML(row[col.key])}</td>`).join("")}</tr>`).join("")}</tbody>

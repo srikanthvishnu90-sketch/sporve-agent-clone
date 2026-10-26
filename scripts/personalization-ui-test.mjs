@@ -23,7 +23,7 @@ sandbox.window = sandbox;
 sandbox.globalThis = sandbox;
 vm.createContext(sandbox);
 
-for (const f of ["mod-personalization.js", "mod-personalize-ui.js"]) {
+for (const f of ["mod-personalization.js", "mod-personalize-ui.js", "mod-actions.js"]) {
   vm.runInContext(fs.readFileSync(path.join(SRC, f), "utf8"), sandbox, { filename: f });
 }
 
@@ -58,7 +58,8 @@ ok(card.includes("data-apply") || card.includes("Apply"), "card has apply action
 // 3. apply the proposal through the UI path
 sandbox.S = { pers: null, chat: [{ role: "coach", text: pp.reply, persProposal: pp.persProposal }] };
 sandbox.render = () => {}; sandbox.toast = () => {};
-UI.persApply(pp.persProposal.id);
+// G4: Apply now runs through the action registry (async, receipt-checked).
+await UI.persApply(pp.persProposal.id);
 ok(E.currentConfig().modulesOn.includes("checkin"), "apply enables the module");
 
 // 3b. dependency guard: waitlist needs registration first

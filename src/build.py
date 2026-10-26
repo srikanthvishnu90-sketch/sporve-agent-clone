@@ -33,6 +33,10 @@ ORDER = [
     "mod-api.js",
     # mod-auth.js second: it registers its refresh hook on window.SporveAPI.
     "mod-auth.js",
+    # mod-actions.js: the G4 guard registry (window.SporvActions). Every
+    # AI/approval write dispatches through it; it reads SporveAPI and the host
+    # rails lazily at click time, so it only needs to load before any click.
+    "mod-actions.js",
     # mod-catalog.js third: it reads window.SporveAPI and mutates the host's
     # PROGRAMS array, so it must load after the API and before any module that
     # would otherwise capture a stale catalogue.
@@ -49,6 +53,12 @@ ORDER = [
     # Enterprise core tabs (2026-09-22): org profile/locations/staff,
     # teams CRUD, families/guardians. Self-contained MOD_* modules.
     "mod-org.js", "mod-teams.js", "mod-families.js",
+    # SOURCE pillar (spec 31 Part II, R1): the recruit board. Before
+    # mod-harvey.js so the visual layer's cascade still lands last.
+    "mod-recruiting.js",
+    # Coach-app visual layer (owner 2026-10-21, Harvey-style redesign). Last,
+    # so its <style> lands after every module's own injected CSS.
+    "mod-harvey.js",
 ]
 
 host = open(HOST, encoding="utf-8").read()
@@ -98,6 +108,14 @@ FAMILY_BY_PREFIX = {
     "inter": "Inter",                   # retired 2026-09-21 (Archivo swap)
     "robotocondensed": "Roboto Condensed",  # retired 2026-09-21 (Archivo swap)
     "sentinel": "Sentinel",
+    # Editorial serif for page titles and display headings (owner 2026-10-21,
+    # Harvey-style redesign). OFL, from @fontsource-variable/newsreader
+    # (wght 200-800 + opsz 6-72 axes, latin subset).
+    "newsreader": "Newsreader",
+    # Large headers (owner 2026-10-22: "TWK Everett but thin, but also
+    # sporty" -> picked Saira 200 from the comparison). OFL, from
+    # @fontsource-variable/saira (wght 100-900, latin subset).
+    "saira": "Saira",
 }
 # Google serves ONE variable woff2 per family — every weight URL in a css2
 # response for Syne or Plus Jakarta Sans returns a byte-identical file. Seven
@@ -113,6 +131,7 @@ VARIABLE_RANGE = {"Syne": "600 800", "Plus Jakarta Sans": "400 700",
                   # Archivo does display AND body, so it needs the full axis —
                   # 400 body, 700 UI labels, 800-900 headlines.
                   "Archivo": "100 900", "Inter": "400 700",
+                  "Newsreader": "200 800", "Saira": "100 900",
                   # JetBrains Mono: tabular numerals only (prices, ratings,
                   # counts, distances). Instrument Serif ships as static
                   # Regular/Italic faces, so it needs no variable range here.
@@ -294,10 +313,10 @@ else:
 # repo root (owner artwork, 2026-09-04 — replaces the placeholder circle).
 # og/twitter URLs point at sporv.ai; the old sporv.vercel.app host 404s.
 _OG = "https://sporv.ai/og.png?v=2"
-_TITLE = "Sporv — The operating system for youth sports"
-_DESC = ("Sporv is the operating system for youth sports. AI agent for clubs, "
-         "trainers, and parents: scheduling, payments, client management, and "
-         "parent communication.")
+_TITLE = "Sporv — The operating system for sports organizations"
+_DESC = ("Sporv is the operating system for sports organizations: schools and "
+         "athletic departments, clubs, AAU and travel teams, camps and trainers. "
+         "An AI agent that drafts the scheduling, dues and family follow-ups.")
 STANDALONE = (
     '<!doctype html>\n<html lang="en">\n<head>\n'
     '<meta charset="utf-8">\n'

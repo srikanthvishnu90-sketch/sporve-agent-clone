@@ -7379,6 +7379,7 @@ const S={
   mapPick:null,
   chat:[],
   chatThinking:false,
+  chatRetrying:false,              // one automatic retry in flight after a busy (503) / short-wait 429 answer
   aiOpen:(typeof window!=="undefined"?window.innerWidth:1440)>=768, // coach AI dock: open on arrival (desktop/tablet); closed on phones so the dashboard stays usable. Set once at boot — never clobbered at render time, so an explicit S.aiOpen=true always wins and sessionStorage restore keeps the user's choice.
   aiMax:false,                     // Centered chat panel is the default open state (owner 2026-09-21).
                                    // 2026-08-25: the chatbox is a permanent right column beside the
@@ -8894,7 +8895,11 @@ function topbarHTML(){
   const u=S.auth.user;
   const guestFam=S.portal==="family"&&!u;
   const firstName=u?String(u.first_name||u.firstName||(initials(u)||"")).split(" ")[0].slice(0,14):"";
-  return `<header class="topbar${guestFam?" guest":""}"><div class="shell topbar-in"><div class="nav-left">
+  /* Harvey-style announcement strip above the public nav (owner 2026-10-22,
+     "harveys top nav bar aswell"). Family/public portal only, never the app. */
+  const annBar=S.portal==="family"&&!S.annClosed
+    ?`<div class="hvl-ann"><span>Switching from TeamSnap or SportsEngine? We import your roster during your demo.</span> <a href="${CALENDLY_URL}" target="_blank" rel="noopener">Request a demo</a><button class="hvl-ann-x" data-annclose="1" aria-label="Dismiss">×</button></div>`:"";
+  return `<header class="topbar${guestFam?" guest":""}${annBar?" has-ann":""}">${annBar}<div class="shell topbar-in"><div class="nav-left">
     <button class="brand" data-nav="explore" aria-label="Sporv home"><span class="navlogo-crop"><img class="navlogo" src="${LOGO_SRC}" alt="Sporv" width="99" height="24"></span></button>
     ${/* EASED LAYOUT (owner, 2026-08-19): logo + tabs are a LEFT group; the
           right cluster sits opposite via flex space-between. Tabs, names and
@@ -8964,9 +8969,16 @@ function primaryNavHTML(){
      only CTA. The mega-menu (productMenuHTML) is retired. */
   return `<nav class="tnav-row" aria-label="Primary">
     <button class="tnav prodpill ${S.prodMenu?"open":""}" data-prodtoggle="1"
-      aria-expanded="${!!S.prodMenu}" aria-haspopup="menu">Product <span class="caret">⌄</span></button>
-    <button class="tnav ${S.route.name==="pricing"?"on":""}" data-nav="pricing">Pricing</button>
-    <a class="tnav" href="${CALENDLY_URL}" target="_blank" rel="noopener">Book a call</a>
+      aria-expanded="${!!S.prodMenu}" aria-haspopup="menu">Product <svg class="caret" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg></button>
+    <div class="tnav-dd"><button class="tnav" aria-haspopup="menu">Platform <svg class="caret" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg></button>
+      <div class="tnav-menu" role="menu"><button role="menuitem" data-solution="manage"><b>Manage</b><small>Run the whole program, one team or every sport</small></button><button role="menuitem" data-solution="source"><b>Source</b><small>Find and manage recruits</small></button><button role="menuitem" data-foot="page:what-is"><b>Assistant</b><small>Your own AI for the program</small></button></div></div>
+    <div class="tnav-dd"><button class="tnav" aria-haspopup="menu">Solutions <svg class="caret" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg></button>
+      <div class="tnav-menu" role="menu"><button role="menuitem" data-solution="1"><b>Schools and athletic departments</b><small>Every team in the department, one account</small></button><button role="menuitem" data-solution="1"><b>Clubs, AAU and travel teams</b><small>Season fees, rosters and tournaments</small></button><button role="menuitem" data-solution="1"><b>Camps and private trainers</b><small>Sessions, packages and one-time charges</small></button></div></div>
+    <button class="tnav" data-foot="nav:trust">Security</button>
+    <div class="tnav-dd"><button class="tnav" aria-haspopup="menu">Resources <svg class="caret" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg></button>
+      <div class="tnav-menu" role="menu"><button role="menuitem" data-foot="page:what-is"><b>What is Sporv?</b><small>How the agent works</small></button><button role="menuitem" data-foot="nav:product"><b>Product guide</b><small>Every page, explained</small></button><button role="menuitem" data-foot="info:help"><b>Help center</b><small>Answers and contact</small></button></div></div>
+    <div class="tnav-dd"><button class="tnav" aria-haspopup="menu">Company <svg class="caret" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg></button>
+      <div class="tnav-menu" role="menu"><button role="menuitem" data-foot="nav:about"><b>About</b><small>Who builds Sporv</small></button><button role="menuitem" data-foot="info:help"><b>Contact</b><small>support@sporv.ai</small></button><button role="menuitem" data-foot="info:legal"><b>Legal</b><small>Terms, privacy and refunds</small></button></div></div>
     ${/* Right cluster (owner spec 2026-09-04, prototype .cta): signed out =
          Log in + Get started pair; signed in = Coach dashboard, and "Log in"
          must not render. State reads the REAL session (SporveAuth), never a
@@ -8979,8 +8991,10 @@ function primaryNavHTML(){
          still-hydrating role) must get the intentional Get-started door,
          never an accidental provider-creation click. */
       if(signed&&role==="provider") return `<span class="cta-pair"><button class="cta start" data-dashbtn="1">Coach dashboard</button></span>`;
-      if(signed) return `<span class="cta-pair"><button class="cta start" data-becomecoach="1">Get started</button></span>`;
-      return `<span class="cta-pair"><button class="cta login" data-loginbtn="1">Log in</button><button class="cta start" data-becomecoach="1">Get started</button></span>`;})()}
+      /* Owner 2026-10-22 (Harvey's "Request a Demo"): the public CTA is
+         "Book a call", not "Get started". Sign-up stays reachable via Log in. */
+      if(signed) return `<span class="cta-pair"><a class="cta start" href="${CALENDLY_URL}" target="_blank" rel="noopener">Request a demo</a></span>`;
+      return `<span class="cta-pair"><button class="cta login" data-loginbtn="1">Log in</button><a class="cta start" href="${CALENDLY_URL}" target="_blank" rel="noopener">Request a demo</a></span>`;})()}
   </nav>`;
 }
 
@@ -9057,7 +9071,7 @@ function pricingHTML(){
         {id:"organization",name:"Organization",noprice:true,
          desc:"A multi-team org, AAU program, or academy.",
          feats:["Everything in Club","Unlimited coach and staff seats","Per-staff background-check gating","Compliance dashboard — certs and waivers","Roles and granular permissions","Consolidated org billing · planned"],
-         cta:"Book a call",buy:"call"},
+         cta:"Request a demo",buy:"call"},
       ];
       const feat=f=>{const i=f.indexOf(" · planned");return i<0?esc(f):esc(f.slice(0,i))+`<em class="pt-planned"> · planned</em>`;};
       /* Monthly/yearly figures both derive from CFG (spec §3); the toggle
@@ -9143,7 +9157,7 @@ function pricingHTML(){
       <h2 data-rev>Run the season, not the spreadsheet.</h2>
       <p data-rev data-rev-d="1">Set up in an afternoon. Nothing sends without you.</p>
       <div class="pr-close-btns" data-rev data-rev-d="2">
-        <a class="btn" href="${CALENDLY_URL}" target="_blank" rel="noopener">Book a 15-minute setup call</a>
+        <a class="btn" href="${CALENDLY_URL}" target="_blank" rel="noopener">Request a demo</a>
         <button class="btn ghost" data-becomecoach="1">Get started</button>
       </div>
     </div>
@@ -9223,8 +9237,7 @@ function docsShellHTML(id, body){
       <label class="docs-search"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg><input type="search" placeholder="Search" data-docsearch="1" autocomplete="off"><kbd>⌘K</kbd></label>
       <nav class="docs-tree">${DOC_GROUPS.map(([g,ids])=>group(g,ids)).join("")}</nav>
       <div class="docs-foot">
-        <button class="docs-flink" data-nav="pricing">Pricing</button>
-        <a class="docs-flink" href="${CALENDLY_URL}" target="_blank" rel="noopener">Book a call</a>
+        <a class="docs-flink" href="${CALENDLY_URL}" target="_blank" rel="noopener">Request a demo</a>
         <a class="docs-flink" href="mailto:support@sporv.ai">Contact support</a>
       </div>
     </aside>
@@ -9281,14 +9294,14 @@ function coachesMenuHTML(){
     <div class="pmcol cmtalk">
       <div class="eyebrow">Talk to us</div>
       <h3>See the coach side first</h3>
-      <p>Book a call with the Sporv team — see the coach side end-to-end
+      <p>Request a demo with the Sporv team — see the coach side end-to-end
          before you commit to anything.</p>
       ${/* ghost, not filled. This lives in the Coaches mega-menu, which is in
             the DOM on every route -- so a filled accent here spent the page's
             orange budget before the page had painted anything of its own.
             Measured on /product: 3 painted elements against a cap of 2, and
             the third was menu chrome. */""}
-      <a class="btn ghost" href="${CALENDLY_URL}" target="_blank" rel="noopener" style="margin-top:16px">Book a call</a>
+      <a class="btn ghost" href="${CALENDLY_URL}" target="_blank" rel="noopener" style="margin-top:16px">Request a demo</a>
     </div>
   </div></div>`;
 }
@@ -9465,7 +9478,7 @@ function startHTML(){
   return `<main class="startpage" role="main">
     <div class="start-inner">
       <div class="start-mark">Sporv</div>
-      <h1 class="start-line">The operating system for youth sports.</h1>
+      <h1 class="start-line">The operating system for sports organizations.</h1>
       <p class="start-sub">Bring your club onto one record — roster, schedule, dues and payouts — and let the work be done before you open it.</p>
       <div class="start-cta">
         <button class="start-btn" data-becomecoach="1">Get started</button>
@@ -9525,8 +9538,12 @@ function landingHTML(){
         ${/* The EXPLORE hero's exact look (owner screenshot 2026-08-30):
              centred "Sporv, the AI for youth sports." + the sports ticker on
              the stadium — WITHOUT the search bar (no marketplace). */""}
-        <h1 class="hero-ai">Sporv, the AI <span>for youth sports.</span></h1>
+        <h1 class="hero-ai">Sporv, the AI <span>for sports organizations.</span></h1>
         ${heroSportCycleHTML()}
+        ${/* (owner 2026-10-22, small adjustment) one line of what it does and the
+             two actions, so the first screen is not a photo with no next step. */""}
+        <p class="hero-sub26">For schools, clubs, AAU teams, camps and trainers. Sporv manages the program and sources your next recruits. Every message is drafted for you, and nothing sends until you approve it.</p>
+        <div class="hero-ctas26"><a class="btn pri" href="${CALENDLY_URL}" target="_blank" rel="noopener">Request a demo</a><button class="btn ghost" data-foot="nav:product">See the product</button></div>
       </div>
     </div>
   </section>
@@ -9535,26 +9552,21 @@ function landingHTML(){
        the first image seen"): hero FIRST, and the review-queue chapter
        (owner screenshot #67) is the first section directly after it. */""}
   <div class="lp26">
-  <section class="dark2 band" id="queue">
+  <section class="dark band" id="queue">
     <div class="wrap">
       <div class="head"><p class="k" data-rev>The review queue</p>
         <h2 data-rev data-rev-d="1">You billed the season. You didn't collect all of it.</h2>
-        <p data-rev data-rev-d="2" style="margin-top:14px">Rosters, dues, and waivers for travel teams, camps, and private trainers. The follow-ups write themselves — you press send.</p></div>
+        <p data-rev data-rev-d="2" style="margin-top:14px">Rosters, dues and waivers for schools, clubs, AAU teams, camps and trainers. The follow-ups write themselves. You press send.</p></div>
 
-      <div class="queue" data-rev data-rev-d="2">
-        <div class="qh">
-          <span class="t">Review queue</span><span class="c">12 drafted · $4,290</span>
-          <span class="b"><span class="p">Approve all</span><span>Review each</span></span>
-        </div>
-      <div class="r"><span class="nm">Dana Reyes<small>Flight 14U</small></span><span class="msg">Hi Dana — installment 3 for Ava's season fee was due Sept 1…</span><span class="amt">$390</span><span class="st">Ready</span></div>
-      <div class="r"><span class="nm">Priya Thomas<small>Flight 14U</small></span><span class="msg">Hi Priya — quick note that installment 3 hasn't come through…</span><span class="amt">$390</span><span class="st">Ready</span></div>
-      <div class="r"><span class="nm">Sam Kowalski<small>Flight 16U</small></span><span class="msg">Hi Sam — Liam's third installment is outstanding as of today…</span><span class="amt">$425</span><span class="st">Ready</span></div>
-      <div class="r"><span class="nm">Ruth Delgado<small>Flight 12U</small></span><span class="msg">Hi Ruth — following up on the September installment…</span><span class="amt">$340</span><span class="st">Ready</span></div>
-      <div class="r"><span class="nm">Marcus Bell<small>Summer camp</small></span><span class="msg">Held — guardian disputed this charge on Aug 14</span><span class="amt">$260</span><span class="st hold">Needs you</span></div>
-      <div class="r"><span class="nm">Elena Novak<small>Flight 16U</small></span><span class="msg">Hi Elena — installment 3 for Mia's season is outstanding…</span><span class="amt">$425</span><span class="st">Ready</span></div>
-        <div class="qf">6 of 12 shown. Nothing here sends until someone approves it.</div>
-      </div>
-      <p data-rev data-rev-d="2" style="margin-top:14px;font-size:14px;color:var(--w-2)">Product preview. Names and amounts are illustrative.</p>
+      ${/* Real product, framed the way Harvey frames its UI (owner 2026-10-22):
+           a screenshot of the actual Sporv queue, captured from the app with
+           its sample workspace, inset over the darkened stadium still. A CSS
+           background, not an <img>: it is a UI capture, not a photograph. */""}
+      <figure class="shot26" data-rev data-rev-d="2" style="--shot-bg:url('${HERO_IMGS[0]||""}')">
+        <div class="shot26-win" role="img" aria-label="The Sporv home dashboard: drafts waiting for approval, overdue dues and today's schedule"
+             style="background-image:url('/assets/landing/app-home.webp?v=2')"></div>
+      </figure>
+      <p data-rev data-rev-d="2" style="margin-top:14px;font-size:14px;color:var(--w-2)">Screens from the Sporv app with its sample workspace. Names and amounts are illustrative.</p>
     </div>
   </section>
   </div>
@@ -9574,7 +9586,29 @@ function landingHTML(){
        existing data-rev observer. */""}
   <div class="lp26">
 
-  <section class="off band">
+  ${/* TWO PILLARS (owner 2026-10-22: "sporv should be able to do 2 things,
+       sourcing and managing"). Photos are people-free venue shots (owner: the
+       images with people looked generated). Source is not shipped yet, so its
+       card says so plainly — no claim the product cannot back. */""}
+  <section class="light band" id="platform">
+    <div class="wrap">
+      <div class="head"><p class="k" data-rev>The platform</p><h2 data-rev data-rev-d="1">Two jobs. One system.</h2>
+        <p data-rev data-rev-d="2" style="margin-top:14px;max-width:62ch">Sporv manages the program you have and sources the athletes you want next. A recruit you sign becomes a roster athlete in the same record, so nothing is typed twice.</p></div>
+      <div class="pillars">
+        <article class="pillar" id="manage" data-rev>
+          <div class="pillar-ph" style="--ph:url('/assets/landing/photo-pool.webp')" role="img" aria-label="An empty competition pool, early morning"><div><p class="pillar-k">Manage</p><h3 class="pillar-h">Run the whole program.</h3></div></div>
+          <ul><li>Rosters, guardians and eligibility for one team or every sport in the department</li><li>Schedules, facilities and conflicts across teams</li><li>Dues, installments and waivers on one ledger</li><li>Every follow-up drafted, sent only when you approve</li></ul>
+        </article>
+        <article class="pillar" id="source" data-rev data-rev-d="1">
+          <div class="pillar-ph" style="--ph:url('/assets/landing/photo-pressbox.webp')" role="img" aria-label="A press box looking out over a lit football field at night"><div><p class="pillar-k">Source</p><h3 class="pillar-h">Find and manage recruits.</h3></div></div>
+          <ul><li>A recruit board from first look to signed</li><li>Evaluations from every coach, ranked against your roster gaps</li><li>A contact log that respects the recruiting calendar</li><li>Messages to recruits and families drafted for your approval</li></ul>
+          <p><span class="tag">In development. Request a demo to be one of the first programs.</span></p>
+        </article>
+      </div>
+    </div>
+  </section>
+
+  <section class="dark band">
     <div class="wrap">
       <div class="head"><p class="k" data-rev>What it does</p><h2 data-rev data-rev-d="1">Three things, done properly.</h2></div>
       <div class="lines rule">
@@ -9585,18 +9619,28 @@ function landingHTML(){
     </div>
   </section>
 
-  <section class="light band">
+  <section class="light band shot26-band">
     <div class="wrap">
-      <div class="head"><p class="k" data-rev>Who it's for</p><h2 data-rev data-rev-d="1">Travel and AAU teams. Camps. Private trainers.</h2></div>
+      <div class="head"><p class="k" data-rev>Your roster</p><h2 data-rev data-rev-d="1">Every family, and whether they've paid.</h2></div>
+      <figure class="shot26" data-rev data-rev-d="2" style="--shot-bg:url('/assets/landing/photo-backdrop.webp')">
+        <div class="shot26-win" role="img" aria-label="The Sporv clients page: a team roster with payment status for each player"
+             style="background-image:url('/assets/landing/app-clients.webp?v=3')"></div>
+      </figure>
+    </div>
+  </section>
+
+  <section class="dark band" id="who">
+    <div class="wrap">
+      <div class="head"><p class="k" data-rev>Who it's for</p><h2 data-rev data-rev-d="1">Schools. Clubs and AAU teams. Camps and trainers.</h2></div>
       <div class="who rule">
-        <div data-rev><h3>Travel and AAU teams</h3><p>A season fee split across installments, with families at different points in the plan.</p><p class="m rule">Billing · N installments</p></div>
-        <div class="rule" data-rev data-rev-d="1"><h3>Camps</h3><p>A block of days with a roster cap and one charge up front.</p><p class="m rule">Billing · one charge</p></div>
-        <div class="rule" data-rev data-rev-d="2"><h3>Private trainers</h3><p>Individual sessions billed as they happen, with a running balance per family.</p><p class="m rule">Billing · per session</p></div>
+        <div data-rev><div class="who-ph" style="background-image:url('/assets/landing/photo-stadium.webp')" role="img" aria-label="A college stadium at dusk under the lights"></div><h3>Schools and athletic departments</h3><p>Many teams, one department: rosters, schedules, eligibility and family communication across every sport.</p><p class="m rule">Many teams · one account</p></div>
+        <div class="rule" data-rev data-rev-d="1"><div class="who-ph" style="background-image:url('/assets/landing/photo-gym.webp')" role="img" aria-label="An empty basketball gym with the court lights on"></div><h3>Clubs, AAU and travel teams</h3><p>A season fee split across installments, with families at different points in the plan.</p><p class="m rule">Billing · N installments</p></div>
+        <div class="rule" data-rev data-rev-d="2"><div class="who-ph" style="background-image:url('/assets/landing/photo-track.webp')" role="img" aria-label="An empty running track at dawn with starting blocks"></div><h3>Camps and private trainers</h3><p>One charge up front for a camp, or sessions billed as they happen with a running balance per family.</p><p class="m rule">Billing · one charge or per session</p></div>
       </div>
     </div>
   </section>
 
-  <section class="dark2 band">
+  <section class="dark band">
     <div class="wrap price">
       <div data-rev>
         <p class="k">Pricing</p>
@@ -9610,7 +9654,7 @@ function landingHTML(){
     </div>
   </section>
 
-  <section class="dark band">
+  <section class="light band">
     <div class="wrap switch">
       <div data-rev>
         <p class="k">Switching</p>
@@ -9631,10 +9675,10 @@ function landingHTML(){
        connectors Sporv actually ships. No integration is claimed as connected
        before the visitor connects it themselves. */""}
   <section class="band dark">
-    <div class="shell" data-rev>
+    <div class="wrap" data-rev>
       <div class="eyebrow" data-rev>Connectors</div>
       <h2 data-rev style="margin-top:10px;max-width:22ch">Connects to the tools you already use.</h2>
-      <p class="sub" data-rev style="margin-top:16px;max-width:62ch">Plug in once and the agent works from your real records — inbox, calendar, sheets, and payments. Nothing sends or charges until you approve it.</p>
+      <p class="sub" data-rev style="margin-top:16px;max-width:62ch">Stripe, CSV import and your website work today. Inbox, calendar and the rest are rolling out, and each shows its real status on your Connect page. Nothing sends or charges until you approve it.</p>
       <div class="cxgrid" data-rev style="margin-top:40px">
         ${[["gmail","Gmail","Reads parent email and tournament PDFs. Drafts only, never sends."],
            ["gcal","Google Calendar","Reads practices, games, and conflicts. Changes only with your approval."],
@@ -9654,7 +9698,7 @@ function landingHTML(){
     <div class="wrap">
       <h2 data-rev>Fifteen minutes, your real roster.</h2>
       <p data-rev data-rev-d="1">Bring last season's export. We import it on the call and show you what the queue would have caught. If it isn't obviously better than what you do now, that's the end of it.</p>
-      <div data-rev data-rev-d="2"><a class="btn pri" href="${CALENDLY_URL}" target="_blank" rel="noopener">Book a 15-minute setup call</a></div>
+      <div data-rev data-rev-d="2"><a class="btn pri" href="${CALENDLY_URL}" target="_blank" rel="noopener">Request a demo</a></div>
     </div>
     ${/* Real footer (spec 01 acceptance: legal reachable, distinct links,
          support address, B2B position disclosure). Every destination is a KEPT
@@ -9662,14 +9706,14 @@ function landingHTML(){
     <div class="wrap close-zone"><div class="foot foot-grid" style="margin-top:72px">
       <span class="foot-brand"><span class="navlogo-crop"><img class="navlogo" src="${LOGO_SRC}" alt="Sporv" width="99" height="24"></span></span>
       <nav class="foot-links" aria-label="Footer">
-        ${[["nav:product","Product"],["nav:pricing","Pricing"],["nav:trust","Trust & safety"],
+        ${[["nav:product","Product"],["nav:trust","Trust & safety"],
            ["nav:about","About"],["info:help","Support"],["page:what-is","What is Sporv?"],
            ["page:background-checks","Background checks"],["info:privacy","Privacy"],
            ["info:terms","Terms"],["info:refund","Refunds"],["info:legal","Legal"]]
           .map(function(p){return '<button class="foot-link" data-foot="'+p[0]+'">'+p[1]+'</button>'}).join("")}
       </nav>
       <p class="foot-line"><a class="foot-mail" href="mailto:support@sporv.ai">support@sporv.ai</a> · Chicagoland ·
-        Sporv is software for youth-sports organizations — not a marketplace, not a booking site.</p>
+        Sporv is software for sports organizations — not a marketplace, not a booking site.</p>
     </div></div>
   </section>
 
@@ -9994,7 +10038,7 @@ function heroHTML(){
              product, rather than an inventory state that does not exist yet.
              Owner instruction, 2026-08-13: "don't include the portion that
              talks about 'book a background checked coach'". */""}
-        <h1 class="hero-ai">Sporv, the AI <span>for youth sports.</span></h1>
+        <h1 class="hero-ai">Sporv, the AI <span>for sports organizations.</span></h1>
         ${searchPillHTML()}
         ${heroSportCycleHTML()}
       </div>
@@ -10153,7 +10197,7 @@ function productHTML(){
       <div class="eyebrow" data-rev>The product</div>
       <h1 style="margin-top:16px;max-width:16ch" data-rev>Everything Sporv does.</h1>
       <p class="lede" style="margin:16px 0 0;max-width:58ch;text-align:left" data-rev>Sporv is the agent
-        for youth-sports organizations. It reads your operation, drafts the work, and waits for your
+        for sports organizations. It reads your operation, drafts the work, and waits for your
         call — and the rules below hold everywhere.</p>
       <div class="ctarow" style="margin-top:26px;justify-content:flex-start" data-rev>
         <button class="btn" data-becomecoach="1">Set up your club</button>
@@ -10946,7 +10990,9 @@ function propCardHTML(p,i){
   const isMsgFamily=["draft_message","draft_bulk_message","draft_recap","camp_broadcast","draft_waitlist_offer"].includes(p.tool);
   const draft=propDraft(p);
   const disp=PROP_DISPATCH[p.tool];
-  const canSend=!!(disp&&disp.canSend(p));
+  /* G4: Approve renders only when the rail exists AND the action registry's
+     precondition passes, so the button and the dispatcher cannot disagree. */
+  const canSend=!!(disp&&disp.canSend(p)&&window.SporvActions&&window.SporvActions.check(p.tool,{proposal:p,text:draft}).ok);
   if(p.state==="done") return `<div class="propcard done">
     <div class="propcard-head">✓ Done</div>
     <p class="propcard-sub">${esc(meta.label)} — approved and dispatched.</p></div>`;
@@ -11040,6 +11086,35 @@ function coachEmptyHTML(){
   return `<div class="aidock-empty aidock-empty-coach"><h3>How can we help you?</h3></div>`;
 }
 
+/* HARVEY-STYLE ASSISTANT HOME (owner 2026-10-22, app.harvey.ai reference):
+   the maximized assistant at rest is the product's own GPT — a centred
+   wordmark, a large composer, source chips that scope the question, and
+   recommended workflows underneath. Every workflow is a real prompt sent
+   through askCoach (data-ask); every chip only edits the draft. Nothing here
+   sends or changes anything on its own. */
+const AI_SCOPES=["Roster","Schedule","Dues","Waivers","Messages","Teams"];
+const AI_WORKFLOWS=[
+  ["Draft dues follow-ups","Draft","Draft a follow-up to every family with an overdue balance, with the amount and due date."],
+  ["Summarize the week","Summary","Summarize this week's schedule across all teams and flag any conflicts."],
+  ["Find missing waivers","Review","Which athletes are missing a signed waiver before their next event?"],
+  ["Write a family update","Draft","Draft a short update to all families about what is coming up this week."],
+];
+function aiHarvHeadHTML(){
+  return `<div class="aiharv-head"><h2 class="aiharv-mark">Sporv</h2>
+    <p class="aiharv-sub">Your program's assistant. It reads your roster, schedule and ledger, and drafts. You approve before anything sends.</p></div>`;
+}
+function aiHarvBelowHTML(){
+  return `<div class="aiharv-scopes" role="group" aria-label="Ask about">
+      ${AI_SCOPES.map(s=>`<button type="button" class="aiharv-chip" data-aiscope="${esc(s)}">${esc(s)} <span aria-hidden="true">+</span></button>`).join("")}
+    </div>
+    <section class="aiharv-wf" aria-label="Recommended workflows">
+      <div class="aiharv-wfhead"><span>Recommended workflows</span></div>
+      <div class="aiharv-wfgrid">
+        ${AI_WORKFLOWS.map(([t,k,q])=>`<button type="button" class="aiharv-card" data-ask="${esc(q)}"><b>${esc(t)}</b><span>${esc(k)}</span></button>`).join("")}
+      </div>
+    </section>`;
+}
+
 function aiDockHTML(){
   /* COACH SIDE ONLY (owner, 2026-08-12). Families get Support, not an AI
      assistant — a parent choosing a coach for their child is not a person who
@@ -11110,7 +11185,8 @@ function aiDockHTML(){
      askCoach() — this is a bigger window onto the same conversation, never a
      second chat implementation. */
   if(open&&S.aiMax){
-    return `<div class="aimax-wrap"><section class="aidock-panel talking aimax${S.aiFull?" aifull":""}" role="dialog" aria-label="Sporv AI">
+    const harv=!(S.chat.length||S.chatThinking);
+    return `<div class="aimax-wrap"><section class="aidock-panel talking aimax${S.aiFull?" aifull":""}${harv?" aiharv":""}" role="dialog" aria-label="Sporv AI">
       <div class="aimax-head">
         <div class="aimax-histwrap">
           <button type="button" class="aimax-ic" data-aihist="1"
@@ -11150,15 +11226,14 @@ function aiDockHTML(){
       <div class="aimax-conv">
       <div class="aidock-scroll aimax-scroll" id="aidockScroll">
         <div class="aimax-col">
-          ${S.chat.length?thread:coachEmptyHTML()}
-          ${S.chatThinking?`<div class="bub them" style="align-self:flex-start;display:flex;gap:5px;align-items:center">
-            <i class="dotdot"></i><i class="dotdot" style="animation-delay:.16s"></i><i class="dotdot" style="animation-delay:.32s"></i></div>`:""}
+          ${S.chat.length?thread:(harv?aiHarvHeadHTML():coachEmptyHTML())}
+          ${S.chatThinking?aiThinkingHTML():""}
         </div>
       </div>
       ${S.chat.length?aiChipsHTML():""}
       <form class="aidock-compose aimax-compose" id="aiDockForm">
         ${aiFileBarHTML()}
-        <input id="aiDockInput" class="aidock-input" placeholder="${S.chat.length?"Continue chat":"Ask Sporv"}"
+        <input id="aiDockInput" class="aidock-input" placeholder="${S.chat.length?"Continue chat":"Ask Sporv anything about your program"}"
                value="${esc(S.aiDraft||"")}" aria-label="Message Sporv AI" autocomplete="off">
         <div class="aidock-row">
           <button type="button" class="aidock-ic" data-aiattach="1" aria-label="Add an attachment">
@@ -11178,8 +11253,10 @@ function aiDockHTML(){
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor"
                  stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
               <path d="M22 2 11 13"/><path d="M22 2 15 22l-4-9-9-4z"/></svg></button>
+          ${harv?`<button type="submit" class="aiharv-send">Ask Sporv</button>`:""}
         </div>
       </form>
+      ${harv?aiHarvBelowHTML():""}
       ${/* Persistent AI-disclosure (Claude Usage Policy): always on screen in
            the maximized session, so a mid-conversation reload still discloses
            it, not only the fresh-chat empty state. */""}
@@ -11231,8 +11308,7 @@ function aiDockHTML(){
     </div>`;
   const scrollHTML=`<div class="aidock-scroll" id="aidockScroll">
       ${thread}
-      ${S.chatThinking?`<div class="bub them" style="align-self:flex-start;display:flex;gap:5px;align-items:center">
-        <i class="dotdot"></i><i class="dotdot" style="animation-delay:.16s"></i><i class="dotdot" style="animation-delay:.32s"></i></div>`:""}
+      ${S.chatThinking?aiThinkingHTML():""}
     </div>`;
   /* RIGHT DOCK (owner 2026-09-24; supersedes the 2026-09-21 centered rule): the
      resting chatbox is a right-side panel with a header X — never a
@@ -11534,6 +11610,8 @@ function coachHTML(){
     link:'<path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/>',
     organization:'<rect x="3" y="4" width="18" height="16" rx="2"/><path d="M9 20v-5h6v5"/><path d="M12 4v3M8.5 5.5h7"/>',
     teams:'<circle cx="8" cy="8" r="3"/><circle cx="16" cy="8" r="3"/><path d="M2.5 20c0-3 2.5-5 5.5-5s5.5 2 5.5 5"/><path d="M13.5 20c0-3 2.5-5 5.5-5s5.5 2 5.5 5" transform="translate(-3 0)"/>',
+    assistant:'<path d="M12 3l1.9 4.6L18.5 9.5l-4.6 1.9L12 16l-1.9-4.6L5.5 9.5l4.6-1.9z"/><path d="M18.5 15.5l.8 1.9 1.9.8-1.9.8-.8 1.9-.8-1.9-1.9-.8 1.9-.8z"/>',
+    recruiting:'<circle cx="10" cy="7.5" r="3"/><path d="M4 19.5c0-3.3 2.7-5.5 6-5.5"/><circle cx="16.5" cy="16" r="3"/><path d="M18.7 18.2l2.3 2.3"/>',
     families:'<circle cx="8.5" cy="9" r="2.6"/><circle cx="15.5" cy="9" r="2.6"/><path d="M3.5 19.5c0-2.8 2.2-4.6 5-4.6s5 1.8 5 4.6"/><path d="M10.5 19.5c0-2.8 2.2-4.6 5-4.6s5 1.8 5 4.6"/>',
   };
   const rIcon=k=>`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"
@@ -11545,6 +11623,8 @@ function coachHTML(){
     [rosterLabel(), [["roster",rosterLabel()],["inbox","Messages"],["schedule","Schedule"]]],
     ["Business",[["finances",financesLabel()],["approvals","Approvals"],["operations","Operations"],["billing","Billing"]]],
     ["Organization",[["organization","Organization"],["teams","Teams"],["families","Families"]]],
+    /* SOURCE pillar (spec 31 Part II): the recruit board, MOD_RECRUITING. */
+    ["Source",[["recruiting","Recruiting"]]],
   ];
   const core=[["dashboard","Home"],["schedule","Schedule"],
               ["roster",rosterLabel()],["inbox","Messages"],
@@ -11588,6 +11668,11 @@ function coachHTML(){
         <button role="menuitem" data-signout="1">Sign out</button>
       </div>`:""}
       <div class="raildiv"></div>
+      ${/* ASSISTANT (owner 2026-10-22, Harvey reference): the program's own AI
+           gets a first-class place in the sidebar. It opens the full-screen
+           surface of the SAME conversation (S.chat / askCoach) — not a second
+           chat implementation. */""}
+      <button class="railai ${S.aiOpen!==false&&S.aiMax&&S.aiFull?"on":""}" data-aiassistant="1">${rIcon("assistant")}<span>Assistant</span></button>
       ${GROUPS.map(([g,items])=>`
         ${g?`<div class="railgroup">${esc(g)}</div>`:""}
         ${items.map(([k,l])=>`<button class="${t===k?"on":""}" data-ctab="${k}"
@@ -12232,6 +12317,9 @@ function dashRowsHTML(b){
   else if(b.key==="people.recent") list=rows.map(r=>line(r.name,r.kind||"",String(r.at||"").slice(0,10)));
   else list=rows.map(r=>line(r.title||r.name||b.key,"",""));
   // the declared empty text and nothing else — no generic fallback line (doc 28 law 1)
+  /* An empty block only proves nothing was found in what Sporv holds. When the
+     roster itself is empty, "everyone is current" would be a false all-clear. */
+  if(!list.length&&b.key==="roster.gaps") return `<div class="cui-card cui-empty"><b>${esc(b.empty)}</b><p>This only covers the roster Sporv has. If you have not imported yours yet, do that first.</p></div>`;
   if(!list.length) return `<div class="cui-card cui-empty"><b>${esc(b.empty)}</b></div>`;
   return ui.ListCard(list);
 }
@@ -12275,7 +12363,7 @@ function coachHomePage(){
     const gs=gettingStarted();
     const pv=S.coachProvider||{};
     return ui.Page({page:"home",eyebrow:"Home",h1:pv.business_name||"Home",
-      lede:"What needs you today, resolved for your role from your organization's own records.",
+      lede:"What needs you today.",
       body:setupBanner+(gs&&gs.total&&gs.done<gs.total?ui.Block({title:"Getting started",subtitle:gs.done+" of "+gs.total+" setup steps complete.",
         action:ui.Button({label:"Open guide",size:"sm",variant:"secondary",attrs:'data-ctab="getting-started"'}),body:""}):"")+dashHomeHTML()});
   }
@@ -12301,17 +12389,17 @@ function coachHomePage(){
   const body=[
     ui.Block({
       title:"Stats",
-      subtitle:"Loaded listings, clients, sessions, and paid booking records in this workspace.",
+      subtitle:"This workspace at a glance.",
       body:ui.StatGrid([
-        {label:"Active listings",value:String(mine.length),context:"Published records loaded"},
+        {label:"Active listings",value:String(mine.length),context:"Published"},
         {label:"Clients",value:String(roster.length),context:"Athletes on the current roster"},
-        {label:"Upcoming sessions",value:String(sessions.length),context:"From the loaded schedule"},
-        {label:"Received",value:money(received),context:"Paid booking records only"},
+        {label:"Upcoming sessions",value:String(sessions.length),context:"Scheduled ahead"},
+        {label:"Received",value:money(received),context:"Paid bookings"},
       ]),
     }),
     ui.Block({
       title:"Getting started",
-      subtitle:"Each step is derived from your profile, catalogue, availability, verification, and payout state.",
+      subtitle:"Seven steps to a fully set up workspace.",
       action:ui.Button({label:"Open guide",size:"sm",variant:"secondary",attrs:'data-ctab="getting-started"'}),
       body:ui.ListCard(steps),
     }),
@@ -12362,7 +12450,7 @@ function coachClientsPage(){
   if(active==="roster"){
     body+=ui.Block({
       title:queueIsLive()?((S.coachProvider&&S.coachProvider.business_name)||"Roster"):SEED.teams[0].name,
-      subtitle:queueIsLive()?"Everyone on your organization's roster; payment status comes from each loaded relationship.":"Clients currently attached to this team; payment status comes from each loaded relationship.",
+      subtitle:queueIsLive()?"Everyone on your roster, and whether they have paid.":"Players on this team, and whether they have paid.",
       body:ui.DataTable({
         columns:[{key:"client",label:"Client"},{key:"jersey",label:sportField().label,mono:true},{key:"available",label:"Available"},{key:"payment",label:"Payment"},{key:"actions",label:"Actions"}],
         rows:roster.map((row,index)=>({
@@ -12394,7 +12482,7 @@ function coachClientsPage(){
   } else if(active==="requests"){
     body=ui.Block({
       title:"Client requests",
-      subtitle:"Waitlist and roster requests loaded for your listings; an offer never charges a family.",
+      subtitle:"Waitlist and roster requests. Sending an offer never charges a family.",
       body:ui.DataTable({
         columns:[{key:"athlete",label:"Athlete"},{key:"guardian",label:"Guardian"},{key:"listing",label:"Listing"},{key:"status",label:"Status"},{key:"actions",label:"Actions"}],
         rows:requests.map(row=>{
@@ -12442,7 +12530,7 @@ function coachClientsPage(){
   } else {
     body=ui.Block({
       title:"Client history",
-      subtitle:"Read-only booking history for relationships currently loaded into this workspace.",
+      subtitle:"Past bookings for the families in this workspace.",
       body:ui.DataTable({
         columns:[{key:"date",label:"Date",mono:true},{key:"client",label:"Client"},{key:"listing",label:"Listing"},{key:"status",label:"Status"},{key:"amount",label:"Amount",mono:true}],
         rows:history.map(row=>({
@@ -12455,7 +12543,7 @@ function coachClientsPage(){
   }
   return ui.Page({
     page:"clients",eyebrow:"Clients",h1:"Clients",
-    lede:"Roster relationships, inbound requests, imports, and their read-only history in one client system.",
+    lede:"Your roster, new requests and invites.",
     actions:[ui.Button({label:"Add client",size:"lg",variant:"primary",attrs:'data-addathlete="1"'})],
     tabs:tabs,active:active,stateKey:"clientsPageTab",tabLabel:"Client sections",body:body,
   });
@@ -12685,7 +12773,7 @@ function coachSchedulePage(){
        to a real org (doc 28 law 1). */
     body=queueIsLive()?schedBodyHTML():ui.Block({
       title:"Upcoming sessions",
-      subtitle:"Bookable and booked sessions loaded across your active listings, ordered by date and time.",
+      subtitle:"Sessions across your listings, soonest first.",
       body:ui.DataTable({
         columns:[{key:"date",label:"Date",mono:true},{key:"time",label:"Time",mono:true},{key:"listing",label:"Listing"},{key:"location",label:"Location"},{key:"capacity",label:"Capacity",mono:true}],
         rows:sessions.map(s=>({date:fmtDate(s.date),time:s.startTime,listing:ui.html(`<b>${esc(s.p.title)}</b><small>${esc(s.p.sport)}</small>`),location:s.address||s.p.address||"—",capacity:`${s.p.enrolled}/${s.p.cap}`})),
@@ -12716,7 +12804,7 @@ function coachSchedulePage(){
   }
   return ui.Page({
     page:"schedule",eyebrow:"Clients",h1:"Schedule",
-    lede:live?"Your organization's events, the conflicts the server found on them, attendance from the field, and cancellations that reach families only after you approve the notice.":"Sessions families can attend, the availability that creates them, and exceptions that keep the calendar honest.",
+    lede:live?"Events, conflicts and attendance. Families only hear about a change after you approve the notice.":"Sessions families can book, and the availability behind them.",
     actions:live?[]:[ui.Button({label:"Add session",size:"lg",variant:"primary",attrs:'data-addsession="1"'})],
     tabs:tabs,active:active,stateKey:"schedulePageTab",tabLabel:"Schedule sections",body:body,
   });
@@ -12751,7 +12839,7 @@ function coachListingsPage(){
   const body=ui.Callout({body:"A listing takes bookings only after the background check clears."})+
     ui.Block({
       title:active==="active"?"Taking bookings":active==="drafts"?"Not published":"No longer public",
-      subtitle:active==="active"?"Published listings in the loaded catalogue, including their real capacity and next session.":active==="drafts"?"Listings saved without publication remain invisible to families.":"Archived listings preserve their record without accepting new bookings.",
+      subtitle:active==="active"?"Your published listings, with capacity and next session.":active==="drafts"?"Listings saved without publication remain invisible to families.":"Archived listings preserve their record without accepting new bookings.",
       body:table,
     });
   return ui.Page({
@@ -12849,7 +12937,7 @@ function moneyPageHTML(){
     }
   }
   return ui.Page({page:"money",eyebrow:"Business",h1:"Money",
-    lede:"Outstanding balances by family and in aggregate, aged from the due date; every obligation traceable to what created it; failed payments with their retry state; what was collected.",
+    lede:"Who owes what, how late it is, failed payments, and what has been collected.",
     tabs:tabs,active:active,stateKey:"moneyPageTab",tabLabel:"Money sections",body:body});
 }
 function coachEarningsPage(){
@@ -12872,9 +12960,9 @@ function coachEarningsPage(){
   if(active==="summary"){
     body=ui.Block({
       title:"Booking totals",
-      subtitle:"Amounts are calculated from loaded booking records; Sporv does not invent missing payout data.",
+      subtitle:"Calculated from your bookings.",
       body:ui.StatGrid([
-        {label:"Gross",value:money(gross),context:"All loaded booking payments"},
+        {label:"Gross",value:money(gross),context:"All booking payments"},
         {label:"Platform fee",value:money(fee),context:"Recorded per booking"},
         {label:"Net",value:money(net),context:"Gross less recorded fees"},
       ]),
@@ -12883,7 +12971,7 @@ function coachEarningsPage(){
     const st=coachState();
     body=ui.Block({
       title:"Payout state",
-      subtitle:"Read-only account state loaded from the provider record; Stripe remains the source of settlement details.",
+      subtitle:"Your Stripe payout account. Full details live in Stripe.",
       body:ui.ListCard([
         {label:ui.html("<b>Connection</b><small>Whether the provider row reports payouts enabled.</small>"),value:st.payouts?"Enabled":"Not enabled",mono:false},
         {label:ui.html("<b>Net recorded</b><small>Net across the booking rows currently loaded.</small>"),value:money(net)},
@@ -12893,7 +12981,7 @@ function coachEarningsPage(){
   } else if(active==="transactions"){
     body=ui.Block({
       title:"Transactions",
-      subtitle:"Read-only booking-level movements loaded for this provider, with the recorded fee itemized.",
+      subtitle:"Every booking payment, with any fee shown.",
       body:ui.DataTable({
         columns:[{key:"date",label:"Date",mono:true},{key:"listing",label:"Listing"},{key:"client",label:"Client"},{key:"gross",label:"Gross",mono:true},{key:"fee",label:"Fee",mono:true},{key:"net",label:"Net",mono:true},{key:"status",label:"Status"}],
         rows:tx.map(row=>{
@@ -12960,7 +13048,7 @@ function coachApprovalsPage(){
   }));
   blocks.push(ui.Block({
     title:"Approval queue",
-    subtitle:"Every row requires an explicit decision; no draft is sent merely because it appears here.",
+    subtitle:"Approve or dismiss each one.",
     body:queue,
   }));
   blocks.push(ui.Block({
@@ -12975,7 +13063,7 @@ function coachApprovalsPage(){
   }));
   return ui.Page({
     page:"approvals",eyebrow:"Business",h1:"Approvals",
-    lede:"One queue for generated messages that remain under the coach's control from draft to delivery.",
+    lede:"Messages Sporv drafted for you. Nothing sends until you approve it.",
     body:blocks.join(""),
   });
 }
@@ -12999,9 +13087,9 @@ function coachOperationsPage(){
       ? window.MOD_INSIGHTS.availabilityWarnings() : [];
     body=ui.Block({
       title:"Operating signals",
-      subtitle:"Signals are derived from loaded listings, sessions, capacity, and booking cadence rather than asserted totals.",
+      subtitle:"Based on your listings, sessions, capacity and bookings.",
       body:isCoachGuest()?ui.EmptyState("Sign in to see insights","Operating signals can identify private clients and remain hidden in preview mode.")
-        :ui.ListCard(warnings.map(row=>({label:ui.html(`<b>${esc(row.text)}</b><small>${esc(row.action||"")}</small>`),value:row.level==="good"?"Clear":"Review",mono:false})),{emptyTitle:"No operating signals",emptyBody:"Nothing in the loaded state currently needs attention."}),
+        :ui.ListCard(warnings.map(row=>({label:ui.html(`<b>${esc(row.text)}</b><small>${esc(row.action||"")}</small>`),value:row.level==="good"?"Clear":"Review",mono:false})),{emptyTitle:"No operating signals",emptyBody:"Nothing needs your attention right now."}),
     });
   } else if(active==="reviews"){
     body=ui.Block({
@@ -13019,13 +13107,13 @@ function coachOperationsPage(){
   } else if(active==="policies"){
     body=ui.Block({
       title:"Booking policies",
-      subtitle:"These loaded terms attach to published listings and are shown before a family pays.",
+      subtitle:"Shown to families before they pay.",
       action:ui.Button({label:"Edit policies",size:"sm",variant:"secondary",attrs:'data-modal="editpolicy"'}),
       body:ui.ListCard([
         {label:ui.html("<b>Cancellation</b><small>The policy snapshotted onto a booking.</small>"),value:policies.cancellation||"Not loaded",mono:false},
         {label:ui.html("<b>Late-arrival grace</b><small>Minutes before the session may proceed without the athlete.</small>"),value:policies.graceMinutes==null?"Not loaded":String(policies.graceMinutes)+" min"},
-        {label:ui.html("<b>No-show fee</b><small>Applied only under the loaded no-show policy.</small>"),value:policies.noShowFee==null?"Not loaded":money(policies.noShowFee)},
-        {label:ui.html("<b>Weather</b><small>The currently loaded make-up or refund rule.</small>"),value:policies.weather||"Not loaded",mono:false},
+        {label:ui.html("<b>No-show fee</b><small>Charged only under your no-show policy.</small>"),value:policies.noShowFee==null?"Not set":money(policies.noShowFee)},
+        {label:ui.html("<b>Weather</b><small>Your make-up or refund rule.</small>"),value:policies.weather||"Not set",mono:false},
       ]),
     });
   } else {
@@ -13046,7 +13134,7 @@ function coachOperationsPage(){
   }
   return ui.Page({
     page:"operations",eyebrow:"Business",h1:"Operations",
-    lede:"The signals, feedback, policies, and message rules used to run the practice after publication.",
+    lede:"Insights, reviews, policies and message templates.",
     tabs:tabs,active:active,stateKey:"operationsPageTab",tabLabel:"Operations sections",body:body,
   });
 }
@@ -13502,12 +13590,13 @@ function decideIntakeProposal(id,decision){
   S.intakeDeciding=S.intakeDeciding||{};
   if(S.intakeDeciding[id]) return;
   S.intakeDeciding[id]=true;render();
-  window.SporveAPI.rpc("decide_intake_proposal",{p_proposal:id,p_decision:decision})
-    .then(function(res){
-      /* The RPC stamps applied/void server-side — reflect the honest state. */
+  /* G4: through the action registry. The old client assumed applied/void
+     when the RPC returned no status; now no status means no receipt, which
+     is a failure, and the row is read back before the toast. */
+  Promise.resolve().then(function(){return window.SporvActions.execute("intake_decide",{id:id,decision:decision});})
+    .then(function(out){
       const row=(S.intakeProposals||[]).find(function(p){return p.id===id;});
-      const stamped=(res&&res.status)||(decision==="approve"?"applied":"void");
-      if(row) row.status=stamped;
+      if(row) row.status=out.receipt.status;
       delete S.intakeDeciding[id];render();
       toast(decision==="approve"?"Change applied.":"Proposal voided — nothing changed.");
     })
@@ -13581,16 +13670,16 @@ function parseObligations(text){
    mode is Off/Observe/Draft, per-draft-type is Off/On, and there is no Auto. */
 const SET_JOBS=[
   ["logistics","Logistics","Low risk — a wrong message is an inconvenience.",[
-    ["agent_c1","Practice & game reminders","C1 · to families",true],
-    ["agent_c2","Schedule change notices","C2 · to families",true],
-    ["agent_b2","Thursday eligibility report","B2 · to you, not to families",true]]],
+    ["agent_c1","Practice & game reminders","To families",true],
+    ["agent_c2","Schedule change notices","To families",true],
+    ["agent_b2","Thursday eligibility report","To you, not to families",true]]],
   ["documents","Documents","Medium risk — goes to families.",[
-    ["agent_b1","Unsigned waiver follow-ups","B1",true]]],
+    ["agent_b1","Unsigned waiver follow-ups","To families",true]]],
   ["money","Money","Highest risk — a wrong message damages the relationship.",[
-    ["agent_a1","Overdue dues follow-ups","A1 · escalation cap applies",true],
-    ["agent_a2","Failed payment recovery","A2 · sends the recovery message only",true]]],
+    ["agent_a1","Overdue dues follow-ups","To families · tone stays capped",true],
+    ["agent_a2","Failed payment recovery","To families · the card-fix message only",true]]],
   ["clients","Clients","Medium risk — outbound to people who may not expect it.",[
-    ["agent_d1","Reactivation of lapsed members","D1",true]]]];
+    ["agent_d1","Reactivation of lapsed members","To lapsed families",true]]]];
 /* Ask the SERVER which connectors this deployment can actually offer, and
    which this org has connected. Without this the tiles are a hardcoded list,
    and a hardcoded list is wrong in both directions: it offers Connect when no
@@ -14089,7 +14178,7 @@ function coachSettingsPage(){
   <div class="stshell">
     <nav class="strail">${rail.map(([g,items])=>`<div class="stsec">${g}</div>`+
       items.map(([k,l])=>`<button class="${tab===k?"on":""}" data-sttab="${k}">${l}</button>`).join("")).join("")}
-      <div class="stfoot">Every change writes to your club's record — there is no local-only setting on this page.</div>
+      <div class="stfoot">Changes save to your club's account.</div>
     </nav>
     <div class="stmain">${body}</div>
   </div>`;
@@ -14179,11 +14268,11 @@ function coachQueuePage(){
           <div class="obacts"><button class="btn ghost sm" data-find-dismiss="${esc(f.id)}">Dismiss</button></div>
         </div>`).join("")}
       </div></div>`:(S.findLoaded?`<div class="panel" style="margin-top:14px"><h3>What the agent noticed</h3>
-      <p style="color:var(--muted);font-size:var(--text-sm);margin-top:4px">Nothing flagged — dues, documents, credentials and rosters are all current.</p></div>`:"")}
+      <p style="color:var(--muted);font-size:var(--text-sm);margin-top:4px">Nothing flagged right now. The agent checks the dues, documents and rosters it can see.</p></div>`:"")}
     ${queueState}
     ${liveQ?"":`<div class="panel">
       <h3>Forward something to turn it into work</h3>
-      <p style="color:var(--muted);font-size:var(--text-sm);margin-top:4px">Paste a tournament email, a gym's schedule text, a registration deadline — Sporv drafts the fee, deadline, waiver check or message. (Demo parse; the real per-file read runs on the ingest backend.)</p>
+      <p style="color:var(--muted);font-size:var(--text-sm);margin-top:4px">Paste a tournament email, a gym's schedule text, a registration deadline — Sporv drafts the fee, deadline, waiver check or message.</p>
       <textarea id="obligIn" rows="3" style="width:100%;margin-top:10px;resize:vertical" placeholder="Fwd: Fall Classic — $150 entry per player, deadline Sept 12, waivers required at check-in..."></textarea>
       <div class="imp-addrow" style="margin-top:8px"><button class="btn sm" data-oblig-parse="1">Turn into drafts</button></div>
     </div>`}
@@ -14432,7 +14521,7 @@ function coachBody(t){
     const directs=convs.filter(c=>kindOf(c)==="direct");
     const groups=convs.filter(c=>kindOf(c)==="group");
     const shown=tab==="group"?groups:directs;
-    const head=`<div class="sec-head" style="margin-top:18px"><h1>Inbox</h1>
+    const head=`<div class="sec-head" style="margin-top:18px"><h1>Messages</h1>
         <button class="btn" data-newgroup="1">+ New group</button></div>
       <div class="segwrap" style="justify-content:flex-start;margin:0">
         <div class="seg2" role="tablist" aria-label="Conversation type">
@@ -14446,7 +14535,7 @@ function coachBody(t){
         <h3>${tab==="group"?"No group messages yet":"No messages yet"}</h3>
         <p style="margin-top:6px">${tab==="group"
           ? "A group reaches a whole roster at once — the parents on one team, or the trainers on your staff."
-          : (queueIsLive()?"Sporv cannot receive replies yet — families answer at your reply-to address. Inbound threads arrive here once the inbox connector is live.":"When a family messages you about a listing, the thread opens here.")}</p>
+          : (queueIsLive()?"Sporv cannot receive replies yet, so family replies go to your own email for now. Once your inbox is connected, conversations show up here.":"When a family messages you about a listing, the thread opens here.")}</p>
         ${tab==="group"?`<button class="btn" data-newgroup="1" style="margin-top:18px">Create a group</button>`:""}</div>`;
     const active=shown.find(x=>x.id===S.activeConv)||shown[0];
     const isGroup=kindOf(active)==="group";
@@ -15817,7 +15906,6 @@ function modalHTML(){
            page:roster is the first page of "Run your club", mirroring the
            desktop Product menu's first row. */"Go to",[
         ["page:roster","Product","Everything Sporv runs for a club"],
-        ["pricing","Pricing","Plans and what each includes"],
       ]],
     ];
     const row=(k,label,sub,status)=>`<button class="acr" data-nav="${k}">
@@ -15984,7 +16072,7 @@ function bootModules(){
    code was changed to match rather than the other way round. */
 const INFO={
   privacy:{title:"Privacy & Security",sections:[
-    {h:"1. What we collect",b:"Sporv is operations software for youth-sports organizations. What we collect depends on how you use it: • Account information: name, email address, account role, and optional phone number; password credentials are handled by our authentication provider. • Organization information: teams, members, guardians, programs, schedules, and the records your organization keeps in Sporv. • Youth records: a child's name, date of birth, sports interests, medical notes, and emergency contacts — provided only by a parent or guardian after verifiable parental consent, and visible only to guardians and organization admins. • Connected data: email, calendar, payments, and files, read through the connectors you connect. Connected email is read-only. • Payment records: Stripe handles card and bank details. Sporv sees transaction identifiers, payment status, and payout status — never full card numbers. • Technical information: IP address, browser or device type, approximate location derived from IP, diagnostic logs, and local browser storage used to keep a session working."},
+    {h:"1. What we collect",b:"Sporv is operations software for sports organizations. What we collect depends on how you use it: • Account information: name, email address, account role, and optional phone number; password credentials are handled by our authentication provider. • Organization information: teams, members, guardians, programs, schedules, and the records your organization keeps in Sporv. • Youth records: a child's name, date of birth, sports interests, medical notes, and emergency contacts — provided only by a parent or guardian after verifiable parental consent, and visible only to guardians and organization admins. • Connected data: email, calendar, payments, and files, read through the connectors you connect. Connected email is read-only. • Payment records: Stripe handles card and bank details. Sporv sees transaction identifiers, payment status, and payout status — never full card numbers. • Technical information: IP address, browser or device type, approximate location derived from IP, diagnostic logs, and local browser storage used to keep a session working."},
     {h:"2. How we use information",b:"We use information to provide the software; run the agent's reads — overdue dues, expiring cards, unsigned waivers, schedule conflicts, missing records; produce drafts for your review queue; keep records; prevent fraud and abuse; and comply with legal obligations. AI output can be inaccurate. Review every draft before you approve it."},
     {h:"3. AI features and automated processing",b:"Sporv uses Anthropic's API for language tasks such as drafting follow-ups, replies, and summaries, and OpenAI's API to create numerical embeddings that help compare text. The agent drafts; it never sends, charges, schedules, or refunds without a human approval in your review queue. There is no auto state. Do not enter medical details, government identifiers, emergency information, or other sensitive information into an AI prompt. Do not use Sporv AI for medical advice or emergency help."},
     {h:"4. How we share information",b:"We share information only as needed for the service: • Service providers for hosting, authentication and database (including Supabase), email delivery, analytics, payment processing (Stripe), and AI features (Anthropic and OpenAI). • Professional advisers or authorities when reasonably necessary to protect safety, enforce our terms, comply with law, or respond to a valid legal request. • A successor organization as part of a merger, financing, acquisition, or sale, subject to confidentiality protections. We do not sell personal information or share it for cross-context behavioral advertising. We do not use information about children for targeted advertising."},
@@ -16004,7 +16092,7 @@ const INFO={
      which is true, verifiable, and not pretending to be counsel's work. */
   terms:{title:"Terms of Service",sections:[
     {h:"These terms are being finalized",b:"Sporv's full Terms of Service are being completed with counsel. Until they are published, the statements below describe how the service actually operates today, and they are the terms we hold ourselves to. Questions: support@sporv.ai."},
-    {h:"What Sporv is",b:"Sporv is operations software for youth-sports organizations, with an agent that reads your operation and drafts the work. It is not a marketplace or a booking site. Sporv does not employ coaches or run programs."},
+    {h:"What Sporv is",b:"Sporv is operations software for sports organizations, with an agent that reads your operation and drafts the work. It is not a marketplace or a booking site. Sporv does not employ coaches or run programs."},
     {h:"What Sporv charges",b:"We charge a subscription for the software and the agent: Free, Pro at $34.99 a month, and Enterprise on custom terms. We take zero percent of parent dues at launch, and there is no parent-facing platform fee. Parent dues run on your organization's own Stripe connected account, not through Sporv."},
     {h:"The agent drafts, you decide",b:"Messages, calendar changes, charges, and refunds wait in your review queue for a human decision. Nothing sends or writes automatically. Settings are Off, Observe, or Draft — there is no auto state."},
     {h:"Background checks",b:"Sporv keeps a check record per person: status and dates, never report contents. Your organization runs its own checks and owns screening and compliance. No check vendor is connected to Sporv today, and Sporv does not order checks."},
@@ -16022,14 +16110,14 @@ const INFO={
     {h:"Disputes and mistakes",b:"If a payment did not happen the way it should have, email support@sporv.ai with the payment reference. A person reviews it. During beta that mailbox is the record — keep your copy."},
   ]},
   help:{title:"Help & Support",sections:[
-    {h:"What is Sporv?",b:"Operations software for youth-sports organizations. The agent reads your email, calendar, payments, roster, and files, then drafts the work into your review queue."},
+    {h:"What is Sporv?",b:"Operations software for sports organizations. The agent reads your email, calendar, payments, roster, and files, then drafts the work into your review queue."},
     {h:"How do I connect my tools?",b:"Open the Connect page and choose a tile: Gmail, Google Calendar, Outlook, Google Sheets, Google Drive, Stripe, SMS, QuickBooks. Connected email is read-only. Nothing sends or changes without your approval."},
     {h:"How does the review queue work?",b:"Every draft shows who it is for, what it says, and why — with one button per draft. You can approve in bulk. Every approval records the human who made it."},
     {h:"How do I cancel my subscription?",b:"Open Billing, then the Subscription tab, and choose Cancel my subscription. The page walks through what cancellation does before you confirm.",link:{t:"Open the cancellation page",href:"?coachtab=billing&tab=subscription"}},
     {h:"Contact us",b:"Email support@sporv.ai. Response times are not guaranteed."},
   ]},
   legal:{title:"Legal",sections:[
-    {h:"Terms of Service",b:"By using Sporv you agree to use it lawfully and as described in our Terms. Sporv is operations software for youth-sports organizations, not a marketplace."},
+    {h:"Terms of Service",b:"By using Sporv you agree to use it lawfully and as described in our Terms. Sporv is operations software for sports organizations, not a marketplace."},
     {h:"Privacy Policy",b:"We process personal data to provide the service and protect athletes. You may request deletion of your account at any time."},
     {h:"Licenses",b:"Sporv is built with open-source software. Component licenses are available on request."},
   ]},
@@ -16048,7 +16136,7 @@ const INFO={
    deletion had left with no entry point anywhere, are reachable again.
    Product is open by default: it's the group a visitor is most likely after. */
 const ABOUT_GROUPS=[
-  ["Product",[["Product","nav:product"],["Pricing","nav:pricing"],
+  ["Product",[["Product","nav:product"],
               ["Become a coach","coach"],["Coach dashboard","tab:dashboard"]]],
   ["Company",[["About","nav:about"],["Contact us","info:help"],["Legal","info:legal"]]],
   ["Trust",[["Background checks","nav:trust"],["Privacy & Security","info:privacy"],
@@ -16175,7 +16263,6 @@ const FOOT_COLS=[
   ["Sporv",[
     ["What is Sporv?","page:what-is"],
     ["Become a coach","nav:coachinfo"],
-    ["Pricing","nav:pricing"],
     ["Privacy & security","info:privacy"],
     ["Terms of Service","info:terms"],
     ["Cancellations & refunds","info:refund"],
@@ -16195,7 +16282,7 @@ function closeZoneHTML(){
       <div class="foot-grid">${cols}
         <div class="foot-col foot-brand">
           <span class="navlogo-crop"><img class="navlogo" src="data:image/png;base64,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" alt="Sporv"></span>
-          <p class="foot-blurb">The agent for youth-sports organizations. It reads
+          <p class="foot-blurb">The agent for sports organizations. It reads
             your email, payments and roster, then drafts the work — and nothing
             reaches a family until you approve it.</p>
           <a class="foot-mail" href="mailto:support@sporv.ai">support@sporv.ai</a>
@@ -16205,7 +16292,7 @@ function closeZoneHTML(){
         <span>© 2026 Sporv Inc. · Chicago, IL</span>
         ${/* Plain-language position statement. Sporv is B2B operations software;
              the old marketplace disclosure described a product we do not run. */""}
-        <span>Sporv is operations software for youth-sports organizations. It is
+        <span>Sporv is operations software for sports organizations. It is
           not a marketplace, and Sporv does not employ coaches or run programs.</span>
       </div>
     </div></footer>`;
@@ -16220,7 +16307,7 @@ function closeZoneHTML(){
    scaffold hero + cross-links so every route resolves and the link graph has
    no orphan while the pages fan out. */
 const PAGE_META={
-  "what-is":{t:"What is Sporv?",d:"The agent for youth-sports organizations. It reads your email, calendar, and payments, then drafts the work.",sport:"Soccer",cta:"pricing",ctaL:"See plans"},
+  "what-is":{t:"What is Sporv?",d:"The agent for sports organizations. It reads your email, calendar, and payments, then drafts the work.",sport:"Soccer",cta:"pricing",ctaL:"See plans"},
   "background-checks":{t:"How background checks work",d:"Per-person check records with dates — what Sporv enforces and what your organization owns.",sport:"Swimming",cta:"trust",ctaL:"See the trust center"},
   "search":{t:"Search by sport & age",d:"Filter by sport, age, level, and budget — results only from the real catalogue.",sport:"Basketball",cta:"explore",ctaL:"Start searching"},
   "map-search":{t:"Map search",d:"See coaches as places — distance is part of every family's decision.",sport:"Cycling",cta:"map",ctaL:"Open the map"},
@@ -17406,7 +17493,7 @@ function publicOrgHTML(id){
   const bg=org.background_check_status==="verified";
   return `${head(org.business_name)}
   <section class="band"><div class="in" style="max-width:900px;padding:40px 0 64px">
-    <p class="eyebrow">${esc((Array.isArray(org.sports)&&org.sports[0])||"Youth sports")}${org.location?` · ${esc(org.location)}`:""}</p>
+    <p class="eyebrow">${esc((Array.isArray(org.sports)&&org.sports[0])||"Sports")}${org.location?` · ${esc(org.location)}`:""}</p>
     <h1 style="margin:4px 0 8px">${esc(org.business_name)}</h1>
     ${org.bio?`<p style="color:var(--muted);max-width:62ch;line-height:1.6">${esc(org.bio)}</p>`:""}
     <div style="display:flex;gap:10px;margin-top:18px;flex-wrap:wrap">
@@ -17522,7 +17609,8 @@ function render(){
      A restored/legacy start route now renders the landing. */
   else if(r.name==="start"||r.name==="home") body=landingHTML();
   /* PART 1/3 — the two new nav destinations */
-  else if(r.name==="pricing") body=pricingHTML();
+  /* Pricing page removed (owner 2026-10-22). pricingHTML() is kept, unrouted. */
+  else if(r.name==="pricing") body=landingHTML();
   else if(r.name==="product") body=productHTML();
   else if(r.name==="messages") body=messagesHTML();
   else if(r.name==="profile") body=profileHTML();
@@ -17722,6 +17810,7 @@ function wire(){
   const $=s=>document.querySelectorAll(s);
   const on=(sel,ev,fn)=>$(sel).forEach(el=>el.addEventListener(ev,fn));
 
+  $("[data-annclose]").forEach(b=>b.onclick=()=>{S.annClosed=true;render();});
   $("[data-nav]").forEach(b=>b.onclick=()=>{S.modal=null;
     const v=b.dataset.nav;const c=v.indexOf(":");
     if(c>0) go(v.slice(0,c),v.slice(c+1)); else go(v);});
@@ -18992,11 +19081,11 @@ document.querySelectorAll('.sig-ai-coach').forEach(sigAiCoachWire);
   const obligPatch=(o,status)=>{
     if(!o.live) return Promise.resolve(true);
     if(!window.SporveAPI) return Promise.reject(new Error("Not connected."));
-    return window.SporveAPI.from("obligations","id=eq."+o.id+"&select=id,status",
-      {method:"PATCH",headers:{Prefer:"return=representation"},body:{status:status}})
-      .then(rows=>{
-        if(!(Array.isArray(rows)&&rows[0]&&rows[0].status===status)) throw new Error("The server did not record that change.");
-        return true;});
+    /* G4: the PATCH and its receipt check (the row must come back carrying
+       the new status) live in the action registry's obligation_set_status
+       (src/mod-actions.js); no receipt means failure, never success. */
+    return Promise.resolve().then(()=>window.SporvActions.execute("obligation_set_status",{obligation:o,status}))
+      .then(()=>true);
   };
   const obligSet=(o,status,okMsg)=>{
     if(o.busy) return;
@@ -19014,16 +19103,18 @@ document.querySelectorAll('.sig-ai-coach').forEach(sigAiCoachWire);
     if(o.live&&(o.guardianId||o.sourceKind==="agent")&&window.SporveAPI){
       if(o.busy) return;
       o.busy=true;render();
-      window.SporveAPI.rpc("approve_obligation_and_queue",{p_obligation_id:o.id})
-        .then(msgId=>{
+      /* G4: both steps run through the action registry — the approval is read
+         back from obligations, the send from outbound_messages. */
+      Promise.resolve().then(()=>window.SporvActions.execute("obligation_approve",{obligation:o}))
+        .then(out=>{const msgId=out.receipt.queuedMessageId;
           o.status="approved";o.busy=false;render();
           if(!msgId){toast(/^eligibility:/.test(o.sourceRef)
             ?"Approved — this report is for you; nothing goes to families."
             :"Approved — no recipient on this one, nothing to send.");return;}
-          return window.SporveAPI.fn("lifecycle-approve",{id:msgId})
-            .then(r=>toast(r&&r.queuedEmail
+          return Promise.resolve().then(()=>window.SporvActions.execute("queue_approve",{id:msgId}))
+            .then(sent=>{const r=sent.result;toast(r&&r.queuedEmail
               ?(r.kick==="done"&&Number(r.delivered)>0?"Approved and emailed to the family.":"Approved — emailing this family within the minute.")
-              :"Approved and sent to the family."))
+              :"Approved and sent to the family.");})
             .catch(e=>toast(/bounced/.test(e&&e.message||"")
               ?"Approved, but this guardian's email bounced — fix the address on their record."
               :"Approved, but sending failed: "+((e&&e.message)||"try again from Approvals.")));
@@ -19049,10 +19140,10 @@ document.querySelectorAll('.sig-ai-coach').forEach(sigAiCoachWire);
       let sent=0,held=0,failed=0;
       for(const o of goRows){
         try{
-          const msgId=await window.SporveAPI.rpc("approve_obligation_and_queue",{p_obligation_id:o.id});
+          const msgId=(await window.SporvActions.execute("obligation_approve",{obligation:o})).receipt.queuedMessageId;
           o.status="approved";render();
           if(msgId){
-            try{const r=await window.SporveAPI.fn("lifecycle-approve",{id:msgId});
+            try{const r=(await window.SporvActions.execute("queue_approve",{id:msgId})).result;
                 if(r&&r.queuedEmail)held++;else sent++;}
             catch(e){failed++;}
           }
@@ -19076,10 +19167,10 @@ document.querySelectorAll('.sig-ai-coach').forEach(sigAiCoachWire);
     let sent=0,held=0,failed=0;
     for(const o of rows){
       try{
-        const msgId=await window.SporveAPI.rpc("approve_obligation_and_queue",{p_obligation_id:o.id});
+        const msgId=(await window.SporvActions.execute("obligation_approve",{obligation:o})).receipt.queuedMessageId;
         o.status="approved";
         if(msgId){
-          try{const r=await window.SporveAPI.fn("lifecycle-approve",{id:msgId});
+          try{const r=(await window.SporvActions.execute("queue_approve",{id:msgId})).result;
               if(r&&r.queuedEmail)held++;else sent++;}
           catch(e){failed++;}
         }
@@ -19092,9 +19183,17 @@ document.querySelectorAll('.sig-ai-coach').forEach(sigAiCoachWire);
      nightly cron for THIS org only (the generators check it per row). */
   $("[data-find-dismiss]").forEach(b=>b.onclick=()=>{
     const id=b.dataset.findDismiss;
-    S.findings=(S.findings||[]).filter(f=>f.id!==id);render();
-    if(window.SporveAPI) window.SporveAPI.from("agent_findings","id=eq."+id,{method:"PATCH",body:{status:"dismissed"}}).catch(()=>{});
-    toast("Dismissed — it'll resurface if the underlying issue is still true tomorrow.");
+    /* G4: this used to remove the card first and swallow the PATCH error — a
+       dismissal that never reached the server still said "Dismissed". The
+       card now leaves only after the registry's receipt (the row came back
+       with status 'dismissed'). Guest/demo findings have no server row. */
+    if(!(window.SporveAPI&&window.SporveAPI.isSignedIn&&window.SporveAPI.isSignedIn())){
+      S.findings=(S.findings||[]).filter(f=>f.id!==id);render();
+      toast("Dismissed — it'll resurface if the underlying issue is still true tomorrow.");return;}
+    Promise.resolve().then(()=>window.SporvActions.execute("finding_dismiss",{id}))
+      .then(()=>{S.findings=(S.findings||[]).filter(f=>f.id!==id);render();
+        toast("Dismissed — it'll resurface if the underlying issue is still true tomorrow.");})
+      .catch(e=>toast("Could not dismiss: "+((e&&e.message)||"try again.")));
   });
   $("[data-agent-read]").forEach(b=>b.onclick=()=>{
     const pv=S.coachProvider;if(!pv||!window.SporveAPI||S.readRunning)return;
@@ -19288,6 +19387,9 @@ document.querySelectorAll('.sig-ai-coach').forEach(sigAiCoachWire);
     S.obligations=[...drafts,...obligationQueue()];render();
     toast(drafts.length+" draft"+(drafts.length===1?"":"s")+" added to your queue — review before anything happens.");});
 
+  $("[data-solution]").forEach(b=>b.onclick=()=>{S.portal="family";go("home");
+    const tgt=b.dataset.solution==="1"?"who":b.dataset.solution;
+    setTimeout(()=>{const el=document.getElementById(tgt);if(el)el.scrollIntoView({behavior:"smooth",block:"start"});},60);});
   $("[data-foot]").forEach(b=>b.onclick=()=>{
     const [kind,val]=b.dataset.foot.split(":");
     S.sportOpen=false;
@@ -19610,9 +19712,11 @@ document.querySelectorAll('.sig-ai-coach').forEach(sigAiCoachWire);
     const i=+b.dataset.qapprove; const drafts=approvalDrafts(); const d=drafts[i]; if(!d) return;
     const box=document.getElementById("apvBody"+i);
     const text=(box?box.textContent:d.body).trim();
-    S.approvalSent=[{kind:d.kind,to:d.to,preview:text.slice(0,68)},...(S.approvalSent||[])];
-    drafts.splice(i,1); render();
-    toast(/Wed 6:00 PM/.test(d.to)?"Approved — queued for Wed 6:00 PM per quiet hours; push with email fallback.":"Approved & sent — delivery receipts will show who has seen it.");
+    /* G4: guest-demo approve still runs through the action registry. */
+    Promise.resolve().then(()=>window.SporvActions.execute("demo_queue_approve",{index:i,text}))
+      .then(()=>{render();
+        toast(/Wed 6:00 PM/.test(d.to)?"Approved — queued for Wed 6:00 PM per quiet hours; push with email fallback.":"Approved & sent — delivery receipts will show who has seen it.");})
+      .catch(e=>{render();toast((e&&e.message)||"Could not approve that draft.");});
   });
   $("[data-qdismiss]").forEach(b=>b.onclick=()=>{
     const i=+b.dataset.qdismiss; approvalDrafts().splice(i,1); render();
@@ -19634,7 +19738,11 @@ document.querySelectorAll('.sig-ai-coach').forEach(sigAiCoachWire);
     if(S.qDeciding[id]) return;
     S.qDeciding[id]=true;
     const clear=()=>{ if(S.qDeciding) delete S.qDeciding[id]; };
-    window.SporveCoach.decide(id,decision)
+    /* G4: every queue decision runs through the action registry, which
+       rejects a response that carries no receipt (e.g. a 200 with no status)
+       and reads the row back before "Sent" is ever shown. */
+    const act={approve:"queue_approve",reject:"queue_reject",redraft:"queue_redraft"}[decision];
+    Promise.resolve().then(()=>window.SporvActions.execute(act||("queue_"+decision),{id}))
       /* Hold the lock THROUGH hydration: clearing before the re-read leaves a
          window where a stray render() draws a live button for a row the server
          has already acted on. hydrateQueue() re-renders with the lock still set
@@ -19664,6 +19772,13 @@ document.querySelectorAll('.sig-ai-coach').forEach(sigAiCoachWire);
      the bar — "minimizing would be the initial thing" (owner). */
   /* Docked-header Expand (reference): straight to the fullscreen surface with
      the history rail — the reference's expand hides the sidebar and main. */
+  $("[data-aiassistant]").forEach(b=>b.onclick=()=>{S.aiOpen=true;S.aiCollapsed=false;S.aiMax=true;S.aiFull=true;S.aiHistOpen=false;render();
+    const inp=document.getElementById("aiDockInput"); if(inp) inp.focus();});
+  /* Harvey-style source chips: scope the next question to one part of the
+     program by prefixing the draft; nothing is sent until the coach sends. */
+  $("[data-aiscope]").forEach(b=>b.onclick=()=>{const inp=document.getElementById("aiDockInput");
+    const pre=b.dataset.aiscope+": ";S.aiDraft=pre+((S.aiDraft||"").replace(/^[A-Z][a-z]+: /,""));
+    if(inp){inp.value=S.aiDraft;inp.focus();inp.setSelectionRange(inp.value.length,inp.value.length);}});
   $("[data-aigofull]").forEach(b=>b.onclick=()=>{S.aiMax=true;S.aiFull=true;S.aiHistOpen=false;render();
     const inp=document.getElementById("aiDockInput"); if(inp) inp.focus();});
   $("[data-aimaximize]").forEach(b=>b.onclick=()=>{S.aiMax=true;S.aiFull=false;S.aiHistOpen=false;render();
@@ -20624,14 +20739,16 @@ function applyAction(a,original){
 
 function confirmPending(){
   const p=S.cmdPending; if(!p) return;
-  const id=p.convId;
-  (S.messages[id]=S.messages[id]||[]).push(
-    {id:"msg_"+((S.messages[id]||[]).length+1),me:false,text:p.body,at:TODAY});
-  const c=S.conversations.find(x=>x.id===id); if(c) c.last=p.body;
-  if(S.unread) S.unread[id]=0;
-  S.cmdPending=null;S.cmdDraft="";
-  S.cmdLog=[{text:p.restated,at:"just now"},...(S.cmdLog||[])].slice(0,8);
-  render();toast("Sent");
+  /* G4: the write runs through the action registry (precondition, receipt,
+     read-back). A refusal keeps the pending card and says why. */
+  return Promise.resolve().then(()=>{
+    if(!window.SporvActions) throw new Error("The action registry didn't load, so nothing was sent.");
+    return window.SporvActions.execute("send_group_message",{pending:p});
+  }).then(out=>{
+    S.cmdPending=null;S.cmdDraft="";
+    S.cmdLog=[{text:p.restated,at:"just now"},...(S.cmdLog||[])].slice(0,8);
+    render();toast("Added to the group thread on this device. Families have not been emailed or texted. "+window.SporvActions.receiptLine(out));
+  }).catch(e=>{render();toast("That wasn't added — "+((e&&e.message)||"the request was refused."));});
 }
 function runCommand(text){
   const t=text.toLowerCase();
@@ -20739,9 +20856,11 @@ function sendRecapToParentDemo(athleteName, body){
   let conv=S.conversations.find(c=>c.with===parent);
   if(!conv){ conv={id:"conv_"+Date.now(),with:parent,programId:a.programId,last:"",at:nowISO};
     S.conversations=[conv,...S.conversations]; S.messages[conv.id]=[]; }
-  (S.messages[conv.id]=S.messages[conv.id]||[]).push({id:"m_"+Date.now(),me:true,text:text,at:nowISO});
+  const msgId="m_"+Date.now();
+  (S.messages[conv.id]=S.messages[conv.id]||[]).push({id:msgId,me:true,text:text,at:nowISO});
   conv.last=text.slice(0,60); conv.at=nowISO; S.activeConv=conv.id;
-  return {parent:parent, athlete:a.name};
+  /* G4: the message id + thread are the receipt the registry reads back. */
+  return {parent:parent, athlete:a.name, conversationId:conv.id, messageId:msgId};
 }
 
 /* ── B1/B2: file attachments for the coach dock ──────────────────────────
@@ -20802,6 +20921,48 @@ function pickAiFile(){
     document.body.appendChild(aiFileInput);
   }
   aiFileInput.click();
+}
+/* ── Assistant failure handling (incident 2026-10-22) ─────────────────────
+   The thinking bubble, plus one honest caption while an automatic retry
+   waits — the coach sees the assistant is still on it, not a dead end. */
+function aiThinkingHTML(){
+  return `<div class="bub them" style="align-self:flex-start;display:flex;gap:5px;align-items:center"${S.chatRetrying?' data-airetrying="1"':""}>
+    <i class="dotdot"></i><i class="dotdot" style="animation-delay:.16s"></i><i class="dotdot" style="animation-delay:.32s"></i>${S.chatRetrying?`<span class="aidock-toolsline" style="margin-left:6px">Still working, retrying</span>`:""}</div>`;
+}
+/* Milliseconds to wait before the ONE automatic retry, or null for "do not
+   retry". Only answers the server refused before doing anything qualify. */
+function aiAutoRetryDelay(err){
+  const st=err&&err.status, ra=Number(err&&err.retryAfter);
+  const jitter=Math.floor(Math.random()*400);
+  if(st===503) return (ra>0?Math.min(ra,8)*1000:800+Math.floor(Math.random()*1600))+jitter;
+  if(st===429&&ra>0&&ra<=8) return ra*1000+jitter;
+  return null;
+}
+/* The words the coach reads when a turn fails: what failed, what to do,
+   and whether "Try again" can work. Calm register, no exclamation marks. */
+function aiFailureCopy(err){
+  const st=err&&err.status, d=(err&&err.data)||{}, ra=Number(err&&err.retryAfter);
+  const nothing=" Nothing was changed or sent.";
+  if(st===402){
+    const plan=String(d.current_plan||"");
+    const label=plan?plan.charAt(0).toUpperCase()+plan.slice(1):"";
+    const counts=d.unit!=="usd_cents"&&Number.isFinite(+d.limit)&&Number.isFinite(+d.current)&&+d.limit>0
+      ?` You have used ${+d.current} of ${+d.limit}${label?` on the ${label} plan`:""}.`:(label?` You are on the ${label} plan.`:"");
+    const next=d.upgrade_to?` ${String(d.upgrade_to).charAt(0).toUpperCase()+String(d.upgrade_to).slice(1)} raises the limit. It also resets on the 1st of next month.`:" It resets on the 1st of next month.";
+    return {retry:false,nav:{tab:"billing",label:"See plans"},
+      text:"This month's assistant allowance is used up."+counts+next+nothing};
+  }
+  if(st===503) return {retry:true,
+    text:"The AI service is busy right now. I tried twice and it did not answer. Try again in a minute."+nothing};
+  if(st===429) return {retry:true,
+    text:`Too many questions in a short time. Try again in ${ra>0?Math.ceil(ra)+" seconds":"a minute"}.`+nothing};
+  if(st===401) return {retry:true,
+    text:"Your session has ended. Sign in again, then press Try again."+nothing};
+  if(st===0) return {retry:true,
+    text:"I could not reach Sporv. Check your connection, then press Try again."+nothing};
+  if(err&&err.message==="timeout") return {retry:true,
+    text:"The assistant did not answer within 45 seconds. Nothing was sent. Check Approvals before asking again, in case a draft was already queued."};
+  return {retry:true,text:"I couldn't process that — the assistant call failed."+nothing};
 }
 function askCoach(q){
   const text=(q||"").trim();
@@ -20889,8 +21050,29 @@ function askCoach(q){
        turn, then the race rejects into the same loud-failure path — the
        request itself isn't aborted (API.fn has no cancellation), but the UI
        recovers and offers retry. */
-    const timeout=new Promise((_,rej)=>setTimeout(()=>rej(new Error("timeout")),45000));
-    Promise.race([API.fn("coach-command",{text:text+aiFileBlock(file),history}),timeout]).then(r=>{
+    /* RELIABILITY (incident 2026-10-22, docs/incidents/2026-10-22-assistant-429.md).
+       ONE automatic retry, and only when the server PROVES nothing ran: a 503
+       (AI provider busy — the gateway already retried it with backoff) or a
+       429 whose retry_after is short. Both are refused before any draft is
+       queued, so resending cannot double anything. A 402 (plan allowance
+       used up), a 401, a network drop or a timeout is never auto-retried:
+       the first cannot succeed, and the last two may have reached the server.
+       While the retry waits, the thinking bubble says so instead of failing. */
+    const attempt=()=>{
+      const timeout=new Promise((_,rej)=>setTimeout(()=>rej(new Error("timeout")),45000));
+      return Promise.race([API.fn("coach-command",{text:text+aiFileBlock(file),history}),timeout]);
+    };
+    const runTurn=()=>attempt().catch(err=>{
+      const wait=aiAutoRetryDelay(err);
+      if(wait==null||epoch!==chatEpoch) throw err;
+      S.chatRetrying=true; render();
+      return new Promise(res=>setTimeout(res,wait)).then(()=>{
+        if(epoch!==chatEpoch) throw err;
+        return attempt();
+      });
+    });
+    runTurn().then(r=>{
+      S.chatRetrying=false;
       /* The coach switched threads while this turn was in flight — its reply
          belongs to a conversation that is no longer on screen. Drop it. */
       if(epoch!==chatEpoch) return;
@@ -20953,14 +21135,16 @@ function askCoach(q){
          sees there's something waiting; cleared when they reopen. */
       if(S.aiOpen===false) S.aiUnread=(S.aiUnread||0)+1;
       render();
-    }).catch(()=>{
+    }).catch(err=>{
+      S.chatRetrying=false;
       if(epoch!==chatEpoch) return;
       /* LOUD FAILURE — design-doc law. A signed-in coach never gets the
          keyword matcher pretending to be the assistant; they get the truth
-         and a retry that resends this exact message. */
+         (which of busy / plan limit / signed out / offline it was) and a
+         retry that resends this exact message whenever a retry can work. */
+      const f=aiFailureCopy(err);
       S.chatThinking=false;
-      S.chat=[...S.chat,{role:"coach",err:true,retry:text,
-        text:"I couldn't process that — the assistant call failed. Nothing was changed or sent."}];
+      S.chat=[...S.chat,{role:"coach",err:true,retry:f.retry?text:null,text:f.text,nav:f.nav||null}];
       render();
     });
     return;
@@ -21194,13 +21378,21 @@ function approveProposal(i){
   /* Promise.resolve() first, so a SYNCHRONOUS throw (module not loaded,
      unexpected state) lands in the same .catch as a network failure instead
      of leaving the card stuck on the busy state. */
-  Promise.resolve().then(()=>disp.run(p,text)).then(res=>{
+  /* G4: the rail runs ONLY through the action registry, which refuses an
+     unknown tool loudly, re-checks the precondition, and rejects a run that
+     returns no receipt or whose read-back finds nothing written — so a silent
+     no-op can never reach the "done" bubble below. */
+  Promise.resolve().then(()=>{
+    if(!window.SporvActions) throw new Error("The action registry didn't load, so nothing was run.");
+    return window.SporvActions.execute(p.tool,{proposal:p,text});
+  }).then(out=>{
+    const res=out.result;
     /* The card's own state updates wherever its thread now lives (archived or
        on screen); the CONFIRMATION bubble only joins the thread the coach is
        still looking at. */
-    p.state="done";
+    p.state="done"; p.receipt=out.receipt;
     if(epoch===chatEpoch){
-      S.chat=[...S.chat,{role:"coach",text:disp.done(res),nav:disp.nav?disp.nav(res):null}];
+      S.chat=[...S.chat,{role:"coach",text:disp.done(res)+" "+window.SporvActions.receiptLine(out),nav:disp.nav?disp.nav(res):null}];
     }
     render();
   }).catch(e=>{
@@ -21331,7 +21523,7 @@ document.addEventListener("click",e=>{
   /* data-aigofull is exempt too: the docked header's Expand OPENS fullscreen,
      and its click bubbles here after render() detached the button — closest()
      then misses the panel and this guard would instantly undo the expand. */
-  if(e.target.closest(".aidock-panel.aimax")||e.target.closest("[data-aifull]")||e.target.closest("[data-aigofull]")) return;
+  if(e.target.closest(".aidock-panel.aimax")||e.target.closest("[data-aifull]")||e.target.closest("[data-aigofull]")||e.target.closest("[data-aiassistant]")) return;
   S.aiFull=false;render();
 });
 /* Click anywhere outside the sport chooser closes it. Clicks INSIDE it are
@@ -21425,7 +21617,7 @@ const EPHEMERAL = new Set([
   "slotPick", "slotPickFor", "msgUndelivered", "railMenu", "coachQueue",
   "fdraft", "fdOpen",
   "cmdDraft", "cmdSending", "cmdError", "cmdPending", "cmdAction", "cmdModelOpen",
-  "chatThinking", "sportOpen", "sportAnchor", "faqOpen", "forgotSent", "mapPick",
+  "chatThinking", "chatRetrying", "sportOpen", "sportAnchor", "faqOpen", "forgotSent", "mapPick",
   /* An open dropdown is a gesture, not work — restoring it on reload steals
      the first click. aiMax itself persists, same reasoning as aiOpen. */
   "aiHistOpen", "aiFull",
