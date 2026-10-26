@@ -26,7 +26,9 @@ type Mod = {
   isTransientStatus: (s: unknown) => boolean;
   parseRetryAfter: (v: unknown, now?: number) => number | null;
   backoffDelay: (a: number, o?: { baseMs?: number; capMs?: number; random?: () => number }) => number;
-  withUpstreamRetry: (fn: (i: number) => Promise<any>, o?: Record<string, unknown>) =>
+  withUpstreamRetry: (fn: (i: number, ctx: { remainingMs: number; timeoutMs: number }) => Promise<any>,
+    o?: { maxAttempts?: number; budgetMs?: number; attemptTimeoutMs?: number; baseMs?: number; capMs?: number;
+          random?: () => number; now?: () => number; sleep?: (ms: number) => Promise<unknown> }) =>
     Promise<{ outcome: any; attempts: number; error: unknown; retryAfterMs: number | null }>;
 };
 

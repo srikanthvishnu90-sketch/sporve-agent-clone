@@ -13,9 +13,10 @@ export type RetryOutcome<T> = {
   retryAfterMs: number | null;
 };
 export declare function withUpstreamRetry<T extends { status?: number; retryAfter?: string | null }>(
-  attemptFn: (attempt: number) => Promise<T>,
+  /** timeoutMs = full attemptTimeoutMs on the first attempt, min(attemptTimeoutMs, remainingMs) on retries. */
+  attemptFn: (attempt: number, ctx: { remainingMs: number; timeoutMs: number }) => Promise<T>,
   opts?: {
-    maxAttempts?: number; budgetMs?: number; baseMs?: number; capMs?: number;
+    maxAttempts?: number; budgetMs?: number; attemptTimeoutMs?: number; baseMs?: number; capMs?: number;
     random?: () => number; now?: () => number; sleep?: (ms: number) => Promise<unknown>;
   },
 ): Promise<RetryOutcome<T>>;

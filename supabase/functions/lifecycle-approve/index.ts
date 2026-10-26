@@ -68,7 +68,7 @@ export const APPROVE_GUARD = {
 // with no code, or a "success" with no row is UNCERTAIN — the row may exist.
 const DEFINITE_REFUSAL = /^(23|42|22|P0|PGRST)/;
 // deno-lint-ignore no-explicit-any
-export async function insertDeliveryReceipt(admin: any, row: { user_id: string; title: string; message: string }) {
+export async function insertDeliveryReceipt(admin: any, row: { id: string; user_id: string; title: string; message: string }) {
   try {
     const { data, error } = await admin.from("notifications").insert([row]).select("id").single();
     if (error) {
@@ -84,17 +84,16 @@ export async function insertDeliveryReceipt(admin: any, row: { user_id: string; 
   }
 }
 
-/* After an UNCERTAIN insert: look for the notification it may have written.
-   notifications has no outbound-message column, so match on the exact
-   recipient, title and body written at or after this claim's timestamp.
+/* After an UNCERTAIN insert: look up the notification by the id this
+   request generated BEFORE inserting (notifications.id is a plain uuid
+   default, so a client-supplied id is accepted). Exact, no heuristics.
    Returns the id, null when the read proves there is none, or undefined
    when the read itself failed (still undetermined). */
 // deno-lint-ignore no-explicit-any
-export async function findDeliveredNotification(admin: any, row: { user_id: string; title: string; message: string }, since: string): Promise<string | null | undefined> {
+export async function findDeliveredNotification(admin: any, notificationId: string): Promise<string | null | undefined> {
   try {
     const { data, error } = await admin.from("notifications").select("id")
-      .eq("user_id", row.user_id).eq("title", row.title).eq("message", row.message)
-      .gte("created_at", since).order("created_at", { ascending: true }).limit(1);
+      .eq("id", notificationId).limit(1);
     if (error) return undefined;
     // deno-lint-ignore no-explicit-any
     const id = Array.isArray(data) && data[0] ? (data[0] as any).id : null;
@@ -254,7 +253,9 @@ Deno.serve(async (req) => {
 
     // Only the winner reaches here. Deliver via the notifications channel + push.
     // G4: the delivery must hand back its row id. No row = no delivery = loud 500.
-    const note = { user_id: guardianId, title, message: cleanBody.slice(0, 280) };
+    // The id is chosen here, before the insert, so an uncertain outcome can be
+    // reconciled by exact id and a lost response can never mint a second row.
+    const note = { id: crypto.randomUUID(), user_id: guardianId, title, message: cleanBody.slice(0, 280) };
     const delivered = await insertDeliveryReceipt(admin, note);
     let notificationId: string | null = delivered.notification_id;
     if (!notificationId && !delivered.definite) {
@@ -263,8 +264,7 @@ Deno.serve(async (req) => {
          that receipt. Not found, or the check failed -> keep the claim: a
          late-committing insert plus a released draft would send twice, and a
          message held as 'sent' is the safer, recoverable failure. */
-      // 60s margin: created_at is the database clock, sentAt the function's.
-      const found = await findDeliveredNotification(admin, note, new Date(Date.parse(sentAt) - 60_000).toISOString());
+      const found = await findDeliveredNotification(admin, note.id);
       if (found) {
         notificationId = found;
       } else {
