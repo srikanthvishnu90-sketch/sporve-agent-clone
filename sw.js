@@ -5,7 +5,7 @@
    page says so). Never touches the API: every backend request goes to the
    network, and a failed one fails loudly in the page. Emitted by build.py
    with the build stamp so a new build retires the old cache. */
-const STAMP = "c1cb488521e8b976";
+const STAMP = "1ccef99285f30366";
 const CACHE = "sporv-shell-" + STAMP;
 const SHELL = ["/", "/index.html"];
 self.addEventListener("install", (e) => {

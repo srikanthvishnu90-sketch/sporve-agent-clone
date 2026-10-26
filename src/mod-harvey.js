@@ -867,6 +867,27 @@ html #app.js-rev [data-rev][data-rev-d="1"]{transition-delay:.1s}
 html #app.js-rev [data-rev][data-rev-d="2"]{transition-delay:.2s}
 html #app.js-rev [data-rev][data-rev-d="3"]{transition-delay:.3s}
 @media (prefers-reduced-motion:reduce){html #app.js-rev [data-rev]{opacity:1!important;transform:none!important;transition:none!important}}
+
+/* ═══ "Request a demo" buttons, one look everywhere (owner 2026-10-26) ═══
+   Harvey/Rogo: a solid button with WHITE text in the nav's own face and
+   weight. Slate #475569 (the frozen --accent) carries white at 7.6:1; the
+   lighter #6B7F9E would fail 4.5:1 with white text. */
+html body:not(.reg-coach) header.topbar a.cta.start,
+html #app .hero-ctas26 .btn.pri,html #app .lp26 .btn.pri,html #app .lp26 .close .btn.pri{
+  background:#475569!important;border:1px solid #475569!important;color:#FFFFFF!important;
+  font-family:"Archivo",system-ui,sans-serif!important;font-stretch:100%!important;font-size:15px!important;font-weight:500!important;
+  letter-spacing:0!important;text-transform:none!important;line-height:1!important;border-radius:8px!important;
+  height:44px!important;padding:0 20px!important;display:inline-flex!important;align-items:center!important;justify-content:center!important;
+  text-decoration:none!important;box-shadow:none!important}
+html body:not(.reg-coach) header.topbar a.cta.start:hover,html #app .hero-ctas26 .btn.pri:hover,html #app .lp26 .btn.pri:hover{
+  background:#334155!important;border-color:#334155!important;color:#FFFFFF!important}
+html body:not(.reg-coach) header.topbar a.cta.start:focus-visible,html #app .hero-ctas26 .btn.pri:focus-visible,html #app .lp26 .btn.pri:focus-visible{
+  outline:2px solid #9DB0CB!important;outline-offset:2px}
+/* the paired secondary buttons match height, face and weight */
+html body:not(.reg-coach) header.topbar .cta.login,html body:not(.reg-coach) header.topbar button.cta.login,html #app .hero-ctas26 .btn.ghost{
+  color:#FFFFFF!important;background:transparent!important;border:1px solid rgba(255,255,255,.5)!important;letter-spacing:0!important;text-transform:none!important;
+  font-family:"Archivo",system-ui,sans-serif!important;font-stretch:100%!important;font-size:15px!important;font-weight:500!important;
+  height:44px!important;padding:0 20px!important;border-radius:8px!important;display:inline-flex!important;align-items:center!important;line-height:1!important}
 `;
 
 const ID = "harvey-layer";
