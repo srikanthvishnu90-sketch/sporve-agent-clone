@@ -260,7 +260,7 @@ function lockedBody(){
         `<div class="org-hint" style="margin-top:8px">Requires the Enterprise plan.</div>`
       ) +
       `<div class="org-blockfoot">` +
-      u.Button({ label: "Book a call", size: "lg", variant: "primary", href: (typeof CALENDLY_URL !== "undefined" ? CALENDLY_URL : "mailto:support@sporv.ai"), attrs: 'target="_blank" rel="noopener"' }) +
+      u.Button({ label: "Request a demo", size: "lg", variant: "primary", href: (typeof CALENDLY_URL !== "undefined" ? CALENDLY_URL : "mailto:support@sporv.ai"), attrs: 'target="_blank" rel="noopener"' }) +
       `</div>`,
   });
 }

@@ -301,7 +301,7 @@ html body:not(.reg-coach) #app .pp-badge{background:#161616!important;color:#FFF
 
 /* Scroll-reveal fades are switched off site-wide: content that is invisible
    until it scrolls into view read as a glitch on fast scrolls. */
-.js-rev [data-rev]{opacity:1!important;transform:none!important;transition:none!important}
+/* (2026-10-26: reveals restored below, Harvey/Rogo timing) */
 
 html #app:has(.hvl){background:#F7F6F2!important}
 html #app .hvl{--ink:#161616;--ink-2:#3B3A37;--muted:#66655F;--rule:#E6E3DD;--rule-2:#D6D3CC;--canvas:#F7F6F2;--sunk:#F1EFEA;
@@ -834,6 +834,39 @@ html #app.coachdark .dash>.rail .railmark,html body .railmark{font-family:"Saira
   font-stretch:100%!important;text-transform:uppercase!important;letter-spacing:.04em!important;font-size:24px!important}
 html body.reg-coach .aidock-panel :is(.aidock-head-t,.aidock-head b,.aidock-empty h3,.aidock-empty-coach h3),html body .aidock-panel :is(.aidock-head-t,.aidock-empty h3){font-family:"Saira","Archivo",system-ui,sans-serif!important;
   font-weight:300!important;font-stretch:100%!important;text-transform:uppercase!important;letter-spacing:.03em!important}
+
+/* ═══ Nav chevrons, Harvey / Rogo behaviour (owner 2026-10-26) ═══
+   A thin vector chevron centred on the label (not a baseline text glyph), 6px
+   from the word, that flips when its menu is open. */
+html body:not(.reg-coach) header.topbar .tnav{display:inline-flex!important;align-items:center!important;gap:6px!important}
+html body header.topbar .tnav .caret{display:block;flex:none;width:12px;height:12px;margin:0!important;opacity:.85;transition:transform .18s ease}
+html body header.topbar .tnav-dd:hover .tnav .caret,html body header.topbar .tnav-dd:focus-within .tnav .caret,
+html body header.topbar .tnav.open .caret,html body header.topbar .tnav[aria-expanded="true"] .caret{transform:rotate(180deg)}
+@media (prefers-reduced-motion:reduce){html body header.topbar .tnav .caret{transition:none}}
+
+/* ═══ Product frame sized like Harvey's hero dashboard (owner 2026-10-26) ═══
+   Near full-bleed frame (24px page margin, 16px radius); the app window inset
+   ~8.5% each side and ~5% from the top; breaks out of the 970px text column. */
+html #app .shot26{width:min(1840px,calc(100vw - 48px))!important;max-width:none!important;
+  margin-left:calc(50% - min(920px,(100vw - 48px) / 2))!important;margin-right:0!important;
+  padding:clamp(28px,4.9vw,96px) 8.5% 0!important;border-radius:16px!important}
+@media (max-width:760px){html #app .shot26{width:calc(100vw - 24px)!important;margin-left:calc(50% - (100vw - 24px) / 2)!important;padding:20px 12px 0!important;border-radius:12px!important}}
+
+/* ═══ Scroll animations, Harvey / Rogo behaviour (owner 2026-10-26) ═══
+   Each block rises ~24px and fades in once as it enters the viewport (the
+   existing IntersectionObserver: threshold 0, fires once, never re-hides);
+   product frames and photos settle from a slight zoom. Reduced motion and
+   no-JS keep everything visible (the .js-rev class is never added). */
+html #app.js-rev [data-rev]{opacity:0;transform:translateY(24px);
+  transition:opacity .9s cubic-bezier(.16,1,.3,1),transform .9s cubic-bezier(.16,1,.3,1)}
+html #app.js-rev [data-rev].in{opacity:1;transform:none}
+html #app.js-rev [data-rev].in.now{transition:none}
+html #app.js-rev :is(.shot26,.pillar,.who>div)[data-rev]{transform:translateY(32px) scale(.98)}
+html #app.js-rev :is(.shot26,.pillar,.who>div)[data-rev].in{transform:none}
+html #app.js-rev [data-rev][data-rev-d="1"]{transition-delay:.1s}
+html #app.js-rev [data-rev][data-rev-d="2"]{transition-delay:.2s}
+html #app.js-rev [data-rev][data-rev-d="3"]{transition-delay:.3s}
+@media (prefers-reduced-motion:reduce){html #app.js-rev [data-rev]{opacity:1!important;transform:none!important;transition:none!important}}
 `;
 
 const ID = "harvey-layer";

@@ -8898,7 +8898,7 @@ function topbarHTML(){
   /* Harvey-style announcement strip above the public nav (owner 2026-10-22,
      "harveys top nav bar aswell"). Family/public portal only, never the app. */
   const annBar=S.portal==="family"&&!S.annClosed
-    ?`<div class="hvl-ann"><span>Switching from TeamSnap or SportsEngine? We import your roster on a setup call.</span> <a href="${CALENDLY_URL}" target="_blank" rel="noopener">Book a call</a><button class="hvl-ann-x" data-annclose="1" aria-label="Dismiss">×</button></div>`:"";
+    ?`<div class="hvl-ann"><span>Switching from TeamSnap or SportsEngine? We import your roster during your demo.</span> <a href="${CALENDLY_URL}" target="_blank" rel="noopener">Request a demo</a><button class="hvl-ann-x" data-annclose="1" aria-label="Dismiss">×</button></div>`:"";
   return `<header class="topbar${guestFam?" guest":""}${annBar?" has-ann":""}">${annBar}<div class="shell topbar-in"><div class="nav-left">
     <button class="brand" data-nav="explore" aria-label="Sporv home"><span class="navlogo-crop"><img class="navlogo" src="${LOGO_SRC}" alt="Sporv" width="99" height="24"></span></button>
     ${/* EASED LAYOUT (owner, 2026-08-19): logo + tabs are a LEFT group; the
@@ -8969,15 +8969,15 @@ function primaryNavHTML(){
      only CTA. The mega-menu (productMenuHTML) is retired. */
   return `<nav class="tnav-row" aria-label="Primary">
     <button class="tnav prodpill ${S.prodMenu?"open":""}" data-prodtoggle="1"
-      aria-expanded="${!!S.prodMenu}" aria-haspopup="menu">Product <span class="caret">⌄</span></button>
-    <div class="tnav-dd"><button class="tnav" aria-haspopup="menu">Platform <span class="caret">⌄</span></button>
+      aria-expanded="${!!S.prodMenu}" aria-haspopup="menu">Product <svg class="caret" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg></button>
+    <div class="tnav-dd"><button class="tnav" aria-haspopup="menu">Platform <svg class="caret" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg></button>
       <div class="tnav-menu" role="menu"><button role="menuitem" data-solution="manage"><b>Manage</b><small>Run the whole program, one team or every sport</small></button><button role="menuitem" data-solution="source"><b>Source</b><small>Find and manage recruits</small></button><button role="menuitem" data-foot="page:what-is"><b>Assistant</b><small>Your own AI for the program</small></button></div></div>
-    <div class="tnav-dd"><button class="tnav" aria-haspopup="menu">Solutions <span class="caret">⌄</span></button>
+    <div class="tnav-dd"><button class="tnav" aria-haspopup="menu">Solutions <svg class="caret" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg></button>
       <div class="tnav-menu" role="menu"><button role="menuitem" data-solution="1"><b>Schools and athletic departments</b><small>Every team in the department, one account</small></button><button role="menuitem" data-solution="1"><b>Clubs, AAU and travel teams</b><small>Season fees, rosters and tournaments</small></button><button role="menuitem" data-solution="1"><b>Camps and private trainers</b><small>Sessions, packages and one-time charges</small></button></div></div>
     <button class="tnav" data-foot="nav:trust">Security</button>
-    <div class="tnav-dd"><button class="tnav" aria-haspopup="menu">Resources <span class="caret">⌄</span></button>
+    <div class="tnav-dd"><button class="tnav" aria-haspopup="menu">Resources <svg class="caret" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg></button>
       <div class="tnav-menu" role="menu"><button role="menuitem" data-foot="page:what-is"><b>What is Sporv?</b><small>How the agent works</small></button><button role="menuitem" data-foot="nav:product"><b>Product guide</b><small>Every page, explained</small></button><button role="menuitem" data-foot="info:help"><b>Help center</b><small>Answers and contact</small></button></div></div>
-    <div class="tnav-dd"><button class="tnav" aria-haspopup="menu">Company <span class="caret">⌄</span></button>
+    <div class="tnav-dd"><button class="tnav" aria-haspopup="menu">Company <svg class="caret" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg></button>
       <div class="tnav-menu" role="menu"><button role="menuitem" data-foot="nav:about"><b>About</b><small>Who builds Sporv</small></button><button role="menuitem" data-foot="info:help"><b>Contact</b><small>support@sporv.ai</small></button><button role="menuitem" data-foot="info:legal"><b>Legal</b><small>Terms, privacy and refunds</small></button></div></div>
     ${/* Right cluster (owner spec 2026-09-04, prototype .cta): signed out =
          Log in + Get started pair; signed in = Coach dashboard, and "Log in"
@@ -8993,8 +8993,8 @@ function primaryNavHTML(){
       if(signed&&role==="provider") return `<span class="cta-pair"><button class="cta start" data-dashbtn="1">Coach dashboard</button></span>`;
       /* Owner 2026-10-22 (Harvey's "Request a Demo"): the public CTA is
          "Book a call", not "Get started". Sign-up stays reachable via Log in. */
-      if(signed) return `<span class="cta-pair"><a class="cta start" href="${CALENDLY_URL}" target="_blank" rel="noopener">Book a call</a></span>`;
-      return `<span class="cta-pair"><button class="cta login" data-loginbtn="1">Log in</button><a class="cta start" href="${CALENDLY_URL}" target="_blank" rel="noopener">Book a call</a></span>`;})()}
+      if(signed) return `<span class="cta-pair"><a class="cta start" href="${CALENDLY_URL}" target="_blank" rel="noopener">Request a demo</a></span>`;
+      return `<span class="cta-pair"><button class="cta login" data-loginbtn="1">Log in</button><a class="cta start" href="${CALENDLY_URL}" target="_blank" rel="noopener">Request a demo</a></span>`;})()}
   </nav>`;
 }
 
@@ -9071,7 +9071,7 @@ function pricingHTML(){
         {id:"organization",name:"Organization",noprice:true,
          desc:"A multi-team org, AAU program, or academy.",
          feats:["Everything in Club","Unlimited coach and staff seats","Per-staff background-check gating","Compliance dashboard — certs and waivers","Roles and granular permissions","Consolidated org billing · planned"],
-         cta:"Book a call",buy:"call"},
+         cta:"Request a demo",buy:"call"},
       ];
       const feat=f=>{const i=f.indexOf(" · planned");return i<0?esc(f):esc(f.slice(0,i))+`<em class="pt-planned"> · planned</em>`;};
       /* Monthly/yearly figures both derive from CFG (spec §3); the toggle
@@ -9157,7 +9157,7 @@ function pricingHTML(){
       <h2 data-rev>Run the season, not the spreadsheet.</h2>
       <p data-rev data-rev-d="1">Set up in an afternoon. Nothing sends without you.</p>
       <div class="pr-close-btns" data-rev data-rev-d="2">
-        <a class="btn" href="${CALENDLY_URL}" target="_blank" rel="noopener">Book a 15-minute setup call</a>
+        <a class="btn" href="${CALENDLY_URL}" target="_blank" rel="noopener">Request a demo</a>
         <button class="btn ghost" data-becomecoach="1">Get started</button>
       </div>
     </div>
@@ -9237,7 +9237,7 @@ function docsShellHTML(id, body){
       <label class="docs-search"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg><input type="search" placeholder="Search" data-docsearch="1" autocomplete="off"><kbd>⌘K</kbd></label>
       <nav class="docs-tree">${DOC_GROUPS.map(([g,ids])=>group(g,ids)).join("")}</nav>
       <div class="docs-foot">
-        <a class="docs-flink" href="${CALENDLY_URL}" target="_blank" rel="noopener">Book a call</a>
+        <a class="docs-flink" href="${CALENDLY_URL}" target="_blank" rel="noopener">Request a demo</a>
         <a class="docs-flink" href="mailto:support@sporv.ai">Contact support</a>
       </div>
     </aside>
@@ -9294,14 +9294,14 @@ function coachesMenuHTML(){
     <div class="pmcol cmtalk">
       <div class="eyebrow">Talk to us</div>
       <h3>See the coach side first</h3>
-      <p>Book a call with the Sporv team — see the coach side end-to-end
+      <p>Request a demo with the Sporv team — see the coach side end-to-end
          before you commit to anything.</p>
       ${/* ghost, not filled. This lives in the Coaches mega-menu, which is in
             the DOM on every route -- so a filled accent here spent the page's
             orange budget before the page had painted anything of its own.
             Measured on /product: 3 painted elements against a cap of 2, and
             the third was menu chrome. */""}
-      <a class="btn ghost" href="${CALENDLY_URL}" target="_blank" rel="noopener" style="margin-top:16px">Book a call</a>
+      <a class="btn ghost" href="${CALENDLY_URL}" target="_blank" rel="noopener" style="margin-top:16px">Request a demo</a>
     </div>
   </div></div>`;
 }
@@ -9543,7 +9543,7 @@ function landingHTML(){
         ${/* (owner 2026-10-22, small adjustment) one line of what it does and the
              two actions, so the first screen is not a photo with no next step. */""}
         <p class="hero-sub26">For schools, clubs, AAU teams, camps and trainers. Sporv manages the program and sources your next recruits. Every message is drafted for you, and nothing sends until you approve it.</p>
-        <div class="hero-ctas26"><a class="btn pri" href="${CALENDLY_URL}" target="_blank" rel="noopener">Book a call</a><button class="btn ghost" data-foot="nav:product">See the product</button></div>
+        <div class="hero-ctas26"><a class="btn pri" href="${CALENDLY_URL}" target="_blank" rel="noopener">Request a demo</a><button class="btn ghost" data-foot="nav:product">See the product</button></div>
       </div>
     </div>
   </section>
@@ -9602,7 +9602,7 @@ function landingHTML(){
         <article class="pillar" id="source" data-rev data-rev-d="1">
           <div class="pillar-ph" style="--ph:url('/assets/landing/photo-pressbox.webp')" role="img" aria-label="A press box looking out over a lit football field at night"><div><p class="pillar-k">Source</p><h3 class="pillar-h">Find and manage recruits.</h3></div></div>
           <ul><li>A recruit board from first look to signed</li><li>Evaluations from every coach, ranked against your roster gaps</li><li>A contact log that respects the recruiting calendar</li><li>Messages to recruits and families drafted for your approval</li></ul>
-          <p><span class="tag">In development. Book a call to be one of the first programs.</span></p>
+          <p><span class="tag">In development. Request a demo to be one of the first programs.</span></p>
         </article>
       </div>
     </div>
@@ -9698,7 +9698,7 @@ function landingHTML(){
     <div class="wrap">
       <h2 data-rev>Fifteen minutes, your real roster.</h2>
       <p data-rev data-rev-d="1">Bring last season's export. We import it on the call and show you what the queue would have caught. If it isn't obviously better than what you do now, that's the end of it.</p>
-      <div data-rev data-rev-d="2"><a class="btn pri" href="${CALENDLY_URL}" target="_blank" rel="noopener">Book a 15-minute setup call</a></div>
+      <div data-rev data-rev-d="2"><a class="btn pri" href="${CALENDLY_URL}" target="_blank" rel="noopener">Request a demo</a></div>
     </div>
     ${/* Real footer (spec 01 acceptance: legal reachable, distinct links,
          support address, B2B position disclosure). Every destination is a KEPT

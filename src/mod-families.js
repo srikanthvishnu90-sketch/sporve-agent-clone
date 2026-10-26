@@ -171,7 +171,7 @@ function teaserView(ui){
     page: "families", eyebrow: "ENTERPRISE", h1: "Families",
     lede: "Guardians linked to their athletes: who pays and who to contact. Available on Enterprise.",
     actions: [ui.Button({
-      label: "Book a call", size: "lg", variant: "primary",
+      label: "Request a demo", size: "lg", variant: "primary",
       href: (typeof CALENDLY_URL !== "undefined" ? CALENDLY_URL : "mailto:support@sporv.ai"),
       attrs: 'target="_blank" rel="noopener"',
     })],

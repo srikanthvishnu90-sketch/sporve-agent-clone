@@ -46,7 +46,7 @@ test('no cached profile + dead backend: says it cannot reach the server, claims 
   assert.equal(st.user, null, 'no identity may be invented from a failed profile read');
   const t = await s.text();
   assert.match(t, /Can't reach Sporv's server/i);
-  assert.ok(!/Get started|Book a call|THE AI FOR YOUTH SPORTS/i.test(t), 'a signed-in device must never fall back to the marketing page');
+  assert.ok(!/Get started|Book a call|Request a demo|THE AI FOR YOUTH SPORTS/i.test(t), 'a signed-in device must never fall back to the marketing page');
   await s.ctx.close();
 });
 test('offline shell: after one online open the app opens with no network, from the service worker cache', async () => {
