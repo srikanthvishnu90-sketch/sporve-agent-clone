@@ -1436,6 +1436,9 @@ window.MOD_RECRUITING = {
   views: { recruiting: recruitingView },
   wire: wire,
   state: { recruitTab: "board" },
+  /* the sample board's records, read-only, for the preview assistant's
+     deterministic answers (mod-sample-answers.js) — a fresh copy each call */
+  sampleData: sampleData,
   /* test seam: pure helpers, no side effects */
   _test: { parseCSV: parseCSV, overallOf: overallOf, csvPreview: csvPreview, state: function (){ return st; }, addRecruit: addRecruit, identityKey: identityKey },
 };

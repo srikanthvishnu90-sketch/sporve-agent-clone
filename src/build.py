@@ -57,6 +57,10 @@ ORDER = [
     # Signed-out coach preview: the disclosed sample club behind the Manage
     # tabs (Money, roster, Teams, Families, Messages, Organization).
     "mod-preview.js",
+    # Pure, deterministic helpers for the signed-out sample workspace: the
+    # Queue's forward-to-drafts extractor and the preview assistant's answers.
+    # No API dependency; the host calls them at click time.
+    "mod-intake-extract.js", "mod-sample-answers.js",
     # Coach-app visual layer (owner 2026-10-21, Harvey-style redesign). Last,
     # so its <style> lands after every module's own injected CSS.
     "mod-harvey.js",
