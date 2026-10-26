@@ -341,8 +341,25 @@ function extract(text, ctx) {
   var form = findForm(t);
   var everyAthlete = /\b(every|each|all)\s+(athletes?|players?|kids?|campers?|participants?)\b/i.test(t);
   var hasUrl = /\bhttps?:\/\/|\bwww\.|\b[\w-]+\.(?:org|com|net)\b/i.test(t);
-  var roster = +ctx.rosterCount || 0;
+  /* Which roster? With per-team context, the team(s) the text names; none
+     named → the default team, and the cards say that was assumed. */
+  var roster = +ctx.rosterCount || 0, rosterLabel = "rostered", teamAssumed = null;
+  var gap = ctx.missingWaivers || null;
+  if (ctx.teams && ctx.teams.length) {
+    var named = ctx.teams.filter(function (tm) { return new RegExp("\\b" + tm.short + "\\b", "i").test(t); });
+    if (!named.length) {
+      named = ctx.teams.filter(function (tm) { return tm.short === ctx.defaultTeam; }).slice(0, 1);
+      if (!named.length) named = [ctx.teams[0]];
+      teamAssumed = named[0].short;
+    }
+    roster = named.reduce(function (n, tm) { return n + (+tm.count || 0); }, 0);
+    rosterLabel = "on the " + named.map(function (tm) { return tm.short; }).join(" and ") + " roster" + (named.length > 1 ? "s" : "");
+    var mw = []; named.forEach(function (tm) { mw = mw.concat(tm.missingWaivers || []); });
+    gap = { count: mw.length, names: mw.join(", ").replace(/, ([^,]*)$/, " and $1"), none: !mw.length };
+  }
   var families = +ctx.familyCount || roster;
+  var athletesTxt = function (n) { return rosterLabel === "rostered" ? n + " rostered athletes" : n + " athletes " + rosterLabel; };
+  var teamNote = teamAssumed ? "which team — the text names none, so the " + teamAssumed + " roster is used" : null;
   var evLabel = eventName || "the forwarded event";
   var drafts = [];
 
@@ -365,8 +382,9 @@ function extract(text, ctx) {
     var unitText = collect.unit === "flat" ? "" : collect.unit === "each" ? " each" : " per " + collect.unitWord;
     var lines = [], unknown = [];
     if (collect.unit === "athlete" || collect.unit === "each") {
-      if (roster) lines.push(roster + " rostered athletes x " + moneyLabel(collect.cents) + " = " + moneyLabel(collect.cents * roster) + " if all of them take part.");
-      unknown.push(roster ? "who is attending — the total assumes all " + roster + " rostered athletes" : "how many athletes are attending");
+      if (roster) lines.push(athletesTxt(roster) + " x " + moneyLabel(collect.cents) + " = " + moneyLabel(collect.cents * roster) + " if all of them take part.");
+      unknown.push(roster ? "who is attending — the total assumes all " + athletesTxt(roster) : "how many athletes are attending");
+      if (teamNote) unknown.push(teamNote);
       if (collect.unit === "each") unknown.push("whether \"each\" means each athlete or each family");
     } else if (collect.unit === "family") {
       if (families) lines.push(families + " families x " + moneyLabel(collect.cents) + " = " + moneyLabel(collect.cents * families) + ".");
@@ -412,9 +430,11 @@ function extract(text, ctx) {
   if (form || K.waiver.test(t)) {
     var fname = form || "waiver";
     var lw = [], uw = [];
-    var gap = ctx.missingWaivers;
-    if (gap && gap.count) lw.push("Your roster already has " + gap.count + " athlete" + (gap.count === 1 ? "" : "s") + " with no waiver on file" + (gap.names ? " (" + gap.names + ")" : "") + " — start with them.");
+    var rl = rosterLabel === "rostered" ? "Your roster" : "Your " + rosterLabel.replace(/^on the /, "");
+    if (gap && gap.count) lw.push(rl + " already has " + gap.count + " athlete" + (gap.count === 1 ? "" : "s") + " with no waiver on file" + (gap.names ? " (" + gap.names + ")" : "") + " — start with them.");
+    else if (gap && gap.none) lw.push(rl + " has a signed waiver on file for every athlete; check the form matches this event's.");
     else if (roster) lw.push("Check all " + roster + " rostered athletes; Sporv has no waiver status to cross-check against.");
+    if (teamNote) uw.push(teamNote);
     if (!waiverDue) uw.push("when the " + fname + " is due");
     if (/\bupload/i.test(t) && !hasUrl) uw.push("where to upload it — the text has no link");
     if (!form) uw.push("which form — the text only says waiver");
@@ -466,7 +486,7 @@ function extract(text, ctx) {
     drafts.push({
       kind: "message",
       title: "Tell families: " + (cancelled ? cap(oldTxt) + " is cancelled" : cap(what) + " moves to " + (newD.text || "a new slot")),
-      detail: (families ? "Drafted for the " + families + " rostered families" : "Drafted for the families on this team") + " — nothing sends until you approve.",
+      detail: (families ? "Drafted for the " + families + " families " + (rosterLabel === "rostered" ? "on the roster" : rosterLabel) : "Drafted for the families on this team") + " — nothing sends until you approve.",
       unknown: [],
     });
   }

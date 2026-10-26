@@ -19,7 +19,7 @@
 
    The sample is the same club the Queue and Approvals samples describe:
    Northside Flight Basketball, the 14U roster in SEED.teams, a 16U team with
-   Marcus Bell, the three missing waivers (Nia O., Marcus B., one more), the
+   Marcus Bell, the three missing waivers (Nia O., Marcus B., Owen K.), the
    Fall Classic entry fee, and the Sat 10:00 gym double-booking.
 
    It deliberately exposes `pages`, not `views`: modView() resolves `views`
@@ -364,6 +364,38 @@ function scheduleBlock(){
     }) });
 }
 
+/* ── The ONE sample model ────────────────────────────────────────────
+   Plain data, no HTML. Everything else in the preview that talks about the
+   sample club — the preview assistant (mod-sample-answers.js), the Queue's
+   sample drafts, the forward-to-drafts roster counts — reads this instead of
+   keeping its own copy, so Money, the assistant and the Queue cannot drift. */
+function initial(name){ var p = String(name).split(" "); return p[0] + " " + (p[1] || "").charAt(0) + "."; }
+function model(){
+  var t = totals();
+  var athlete = function (a){
+    var tm = teamOf(a.team);
+    return { name:a.name, initial:initial(a.name), team:tm.short, teamName:tm.name, jersey:a.jersey, guardian:a.guardian,
+      owed:balanceOf(a), daysLate:oldestLate(a), unpaidInstallments:a.unpaid.slice(), paid:!a.unpaid.length, waiver:a.waiver };
+  };
+  var roster = ROSTER.map(athlete);
+  return {
+    org:"Northside Flight Basketball", sport:"Basketball", season:"Fall 2026",
+    dues:DUES, installment:INSTALLMENT, installments:INST.length,
+    teams:TEAMS.map(function (tm){
+      var m = roster.filter(function (a){ return a.team === tm.short; });
+      return { id:tm.id, short:tm.short, name:tm.name, coach:tm.coach, practice:tm.practice, venue:tm.venue,
+        count:m.length, missingWaivers:m.filter(function (a){ return !a.waiver; }) };
+    }),
+    defaultTeam:"14U",
+    roster:roster,
+    totals:{ billed:t.billed, collected:t.collected, overdue:t.overdue, upcoming:t.upcoming, overdueFamilies:t.overdueFamilies },
+    overdue:roster.filter(function (a){ return a.owed; }).sort(function (x, y){ return y.daysLate - x.daysLate; }),
+    missingWaivers:roster.filter(function (a){ return !a.waiver; }),
+    events:upcoming().map(function (e){ return { date:e.date, time:e.time, kind:e.kind, team:e.team, title:e.title, where:e.where, note:e.note || "", conflict:!!e.conflict }; }),
+    nextDue:day(INST[2].due),
+  };
+}
+
 /* ── Wiring: local only, never the network ───────────────────────── */
 function wire(){
   if (!on()) return;
@@ -408,6 +440,7 @@ window.MOD_PREVIEW = {
   pages:{ finances:moneyPage, roster:rosterPage, teams:teamsPage, families:familiesPage, inbox:inboxPage, organization:orgPage },
   homeStats:homeStats, todayRows:todayRows, scheduleBlock:scheduleBlock,
   eventCount:function (){ return upcoming().length; },
+  model:model,
   _test:{ totals:totals, installments:installments, events:events, roster:ROSTER },
 };
 

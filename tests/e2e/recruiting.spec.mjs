@@ -77,10 +77,10 @@ test('guest preview: CSV import previews ready, duplicate and bad rows, then imp
   await page.click('[data-cui-tab="import"]');
   await page.fill('#rcCsvForm textarea', [
     'First Name,Last Name,Grad Year,Sport,Position,Film URL',
-    'Kai,Nguyen,2028,Soccer,CB,https://example.com/film/kai',
-    'Maya,Torres,2027,Soccer,GK,',              // already on the sample board
-    'Bad,Year,27,Soccer,ST,',                    // grad year not four digits
-    '"Lee, Jr.",Park,2028,Soccer,W,http://insecure.example.com', // quoted comma; http film rejected
+    'Kai,Nguyen,2028,Basketball,C,https://example.com/film/kai',
+    'Maya,Torres,2027,Basketball,PG,',              // already on the sample board
+    'Bad,Year,27,Basketball,SF,',                    // grad year not four digits
+    '"Lee, Jr.",Park,2028,Basketball,SG,http://insecure.example.com', // quoted comma; http film rejected
   ].join('\n'));
   await page.click('#rcCsvForm button[type=submit]');
   const text = await page.evaluate(() => document.querySelector('.cui-page').innerText);

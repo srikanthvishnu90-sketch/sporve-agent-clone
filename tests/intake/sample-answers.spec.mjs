@@ -1,62 +1,68 @@
 // tests/intake/sample-answers.spec.mjs — the signed-out preview assistant's
 // deterministic responder (src/mod-sample-answers.js), as a pure function.
-// Every answer carries the sample-workspace label and is built only from the
-// snapshot it is given; an unknown question gets suggestions, not a guess.
+// The snapshot is built from the REAL sample model (src/mod-preview.js
+// MOD_PREVIEW.model()), the same one the Money, Clients, Teams, Home and
+// Schedule pages render — so these numbers are the preview's numbers.
+// Every answer carries the sample-workspace label; an unknown question gets
+// suggestions, not a guess.
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import vm from 'node:vm';
-const src = readFileSync(new URL('../../src/mod-sample-answers.js', import.meta.url), 'utf8');
-const sandbox = {}; vm.createContext(sandbox); vm.runInContext(src, sandbox);
-const { answer, LABEL } = sandbox.SporvSampleAnswers;
-const SNAP = {
-  team: 'Northside Flight 14U', monthlyFee: 295, today: '2026-08-03',
-  roster: [
-    { name: 'Julian Mercer', paid: true, available: true }, { name: 'Aarav Raman', paid: true, available: false },
-    { name: 'Ida Nilsen', paid: false, available: true, guardian: 'Tomas Nilsen' }, { name: 'Eli Carter', paid: false, available: true, guardian: 'Jordan Carter' },
-  ],
+const read = (p) => readFileSync(new URL('../../src/' + p, import.meta.url), 'utf8');
+const TODAY = '2026-08-03';
+const dayAfter = (n) => { const d = new Date(TODAY + 'T12:00:00Z'); d.setUTCDate(d.getUTCDate() + n); return d.toISOString().slice(0, 10); };
+const sb = { dayAfter }; sb.window = sb; vm.createContext(sb);
+vm.runInContext(read('mod-preview.js'), sb); vm.runInContext(read('mod-sample-answers.js'), sb);
+const { answer, LABEL } = sb.SporvSampleAnswers;
+const model = JSON.parse(JSON.stringify(sb.MOD_PREVIEW.model()));
+const SNAP = Object.assign({}, model, {
+  today: TODAY,
   queue: [
     { kind: 'fee', status: 'draft', title: 'Collect $150 Fall Classic entry — 8 families', detail: '' },
-    { kind: 'waiver', status: 'draft', title: '3 athletes missing a signed waiver', detail: 'Nia O., Marcus B. and one more have no waiver on file.' },
+    { kind: 'waiver', status: 'draft', title: '3 athletes missing a signed waiver', detail: '' },
     { kind: 'schedule', status: 'draft', title: 'Schedule conflict — Sat 10:00 gym double-booked', detail: 'Drafted a move to 11:30.' },
     { kind: 'fee', status: 'approved', title: 'Already approved — not waiting', detail: '' },
   ],
-  events: [
-    { date: '2026-08-04', time: '9:00 AM', title: '14U tryout', place: '' },
-    { date: '2026-08-05', time: '6:00 PM–7:30 PM', title: 'Practice', place: 'Northside Community Gym' },
-    { date: '2026-08-20', time: '6:00 PM', title: 'Out of range', place: '' },
-  ],
   recruits: [
-    { name: 'Sam Okafor', stage: 'offer', position: 'ST', gradYear: 2026, overall: 4.6 },
-    { name: 'Maya Torres', stage: 'visit', position: 'GK', gradYear: 2027, overall: 4.4 },
-    { name: 'Noah Patel', stage: 'signed', position: 'W', gradYear: 2026, overall: 5 },
-  ], recruitSport: 'soccer',
-};
+    { name: 'Sam Okafor', stage: 'offer', position: 'SF', gradYear: 2026, overall: 4.6 },
+    { name: 'Maya Torres', stage: 'visit', position: 'PG', gradYear: 2027, overall: 4.4 },
+    { name: 'Noah Patel', stage: 'signed', position: 'SG', gradYear: 2026, overall: 5 },
+  ], recruitSport: 'basketball',
+});
 
 test('every answer starts with the sample-workspace label', () => {
   for (const q of ['Which families owe money and how much?', 'roster?', 'what is the capital of France']) assert.ok(answer(q, SNAP).text.startsWith(LABEL + '\n\n'));
   assert.equal(LABEL, 'Sample workspace — this answer comes from the example data, not the AI. Sign in to ask about your own program.');
 });
-test('dues: unpaid families with amounts and the total, plus fee drafts still waiting', () => {
+test('dues: the overdue families, amounts and totals of the sample model, plus fee drafts still waiting', () => {
   const a = answer('Which families owe money and how much?', SNAP);
   assert.deepEqual([...a.intents], ['dues']);
-  assert.match(a.text, /2 of 4 families are unpaid on the \$295 monthly team fee — \$590 outstanding/);
-  assert.match(a.text, /- Ida Nilsen \(guardian Tomas Nilsen\): \$295/);
+  assert.match(a.text, /3 families are overdue, \$800 in total/);
+  assert.match(a.text, /- Jordan Carter \(Eli Carter, 14U\): \$400, 33 days late\n- Tomas Nilsen \(Ida Nilsen, 14U\): \$200, 12 days late\n- Keisha Bell \(Marcus Bell, 16U\): \$200, 12 days late/);
+  assert.match(a.text, /\$4,800 of \$8,400 billed has been collected; \$2,800 is not yet due/);
   assert.match(a.text, /- Collect \$150 Fall Classic entry — 8 families \(\$1,200 if approved\)/);
   assert.doesNotMatch(a.text, /Already approved/);
 });
-test('waivers, conflicts, roster, recruits, schedule each answer from the snapshot', () => {
-  assert.match(answer('Who is missing a waiver?', SNAP).text, /3 athletes missing a signed waiver: Nia O\./);
-  assert.match(answer('any double-bookings?', SNAP).text, /Schedule conflict — Sat 10:00 gym double-booked/);
+test('waivers, conflicts, roster, recruits, schedule each answer from the model', () => {
+  const w = answer('Who is missing a waiver?', SNAP).text;
+  assert.match(w, /3 athletes have no signed waiver on file/);
+  assert.match(w, /- Nia Okafor \(14U, guardian Renata Okafor\)\n- Marcus Bell \(16U, guardian Keisha Bell\)\n- Owen Kowalski \(16U, guardian Beth Kowalski\)/);
+  const c = answer('any double-bookings?', SNAP).text;
+  assert.match(c, /Sat Aug 8, 10:00 AM 16U practice at Northside Community Gym/); assert.match(c, /fix is drafted in the Queue: Schedule conflict/);
   const r = answer('How many athletes are on the roster?', SNAP).text;
-  assert.match(r, /4 athletes on the sample roster/); assert.match(r, /Available: 3 \(unavailable: Aarav Raman\)/); assert.match(r, /Paid: 2, unpaid: 2/);
+  assert.match(r, /14 athletes across 14U and 16U/);
+  assert.match(r, /Northside Flight 14U: 8 athletes, coach Marcus Vale, 6 of 8 paid to date, 1 waiver missing/);
+  assert.match(r, /Northside Flight 16U: 6 athletes, coach Dana Ruiz, 5 of 6 paid to date, 2 waivers missing/);
   const k = answer('who are my top recruits?', SNAP).text;
-  assert.match(k, /3 prospects, 2 still active/); assert.match(k, /1\. Sam Okafor — ST, class of 2026, offer stage, 4\.60/); assert.doesNotMatch(k, /Noah Patel/);
-  const w = answer("what's on this week?", SNAP).text;
-  assert.match(w, /Tue Aug 4, 9:00 AM 14U tryout/); assert.match(w, /Wed Aug 5, 6:00 PM–7:30 PM Practice — Northside Community Gym/);
-  assert.doesNotMatch(w, /Out of range/); assert.match(w, /Heads up: the Queue also flags schedule conflict/);
+  assert.match(k, /sample basketball board/); assert.match(k, /3 prospects, 2 still active/);
+  assert.match(k, /1\. Sam Okafor — SF, class of 2026, offer stage, 4\.60/); assert.doesNotMatch(k, /Noah Patel/);
+  const wk = answer("What's on the schedule this week?", SNAP).text;
+  assert.match(wk, /Tue Aug 4, 6:00 PM 14U practice — Northside Community Gym/);
+  assert.match(wk, /Sat Aug 8, 10:00 AM 16U practice — Northside Community Gym \(conflict\)/);
+  assert.doesNotMatch(wk, /Fall Classic/, 'Sep 19 is outside this week');
   const t = answer('anything today?', SNAP).text;
-  assert.match(t, /Today in the sample calendar \(Mon Aug 3\):\*\* nothing scheduled/); assert.match(t, /Next up: Tue Aug 4, 9:00 AM 14U tryout/);
+  assert.match(t, /Today in the sample calendar \(Mon Aug 3\):\*\* nothing scheduled/); assert.match(t, /Next up: Tue Aug 4, 6:00 PM 14U practice/);
 });
 test('unknown question: an honest line and three suggestions it can answer, no marketplace copy', () => {
   const a = answer('Should I raise prices next year?', SNAP);

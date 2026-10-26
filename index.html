@@ -29,7 +29,7 @@
 <link rel="manifest" href="/site.webmanifest">
 <script type="application/ld+json">{"@context":"https://schema.org","@type":"SoftwareApplication","name":"Sporv","url":"https://sporv.ai/","applicationCategory":"BusinessApplication","operatingSystem":"Web","description":"Sporv runs the club for you — roster, scheduling, waivers, dues and payouts, with an agent that drafts the busywork and a human who approves it.","publisher":{"@type":"Organization","name":"Sporv","url":"https://sporv.ai/","logo":"https://sporv.ai/icon-512.png"}}</script>
 <script type="application/ld+json">{"@context":"https://schema.org","@type":"WebSite","name":"Sporv AI","url":"https://sporv.ai/"}</script>
-<meta name="sporve-build" content="bf897eb815b13268">
+<meta name="sporve-build" content="d263addbe3d84613">
 </head>
 <body>
 <script>
@@ -10958,7 +10958,7 @@ function aiContext(){
      moves to subscriptions. draft_message is the one with a live send rail;
      the recap/bulk chips propose a draft the coach dispatches. */
   const MAP={
-    dashboard:["What needs my attention today?","Who's booked this week?"],
+    dashboard:["What needs my attention today?","What's on the schedule this week?"],
     roster:   ["Draft a reply to a parent","Draft a session recap"],
     inbox:    ["Draft a reply to a parent"],
     schedule: ["What's on my schedule this week?","Message families about a change"],
@@ -13255,22 +13255,34 @@ function noProviderPanelHTML(what){
     <p style="color:var(--muted);font-size:var(--text-sm);margin-top:4px">Your ${esc(what)} needs an organization to read from, and this account doesn't have one yet. Finish setup and it loads for real — nothing here is shown in its place.</p>
     <div class="imp-addrow" style="margin-top:8px"><button class="btn sm" data-gosetup="1">Finish setup</button></div></div>`;
 }
+/* The disclosed sample club's data model (src/mod-preview.js), or null. */
+function previewModel(){
+  try{return window.MOD_PREVIEW&&window.MOD_PREVIEW.model?window.MOD_PREVIEW.model():null;}catch(e){return null;}
+}
 function obligationQueue(){
   if(queueIsLive()) return (S.obligations||[]).filter(o=>o&&o.live===true);
-  if(!S.obligations) S.obligations=[
-    {id:"ob_1",kind:"fee",status:"draft",title:"Collect $150 Fall Classic entry — 8 families",
-     detail:"Tournament operator's email lists a $150 entry fee per athlete, due Sept 12. Drafted a charge for the 8 rostered families.",
+  if(!S.obligations){
+    /* The sample drafts read the ONE sample model (MOD_PREVIEW.model()), so
+       their counts and names match Money, Clients, Teams and the assistant. */
+    const pm=previewModel();
+    const t14=pm?pm.teams.find(t=>t.short==="14U"):null, n14=t14?t14.count:8;
+    const mw=pm?pm.missingWaivers:[];
+    const names=mw.length?mw.map(a=>a.initial+" ("+a.team+")").join(", ").replace(/, ([^,]*)$/," and $1"):"three athletes";
+    S.obligations=[
+    {id:"ob_1",kind:"fee",status:"draft",title:"Collect $150 Fall Classic entry — "+n14+" families",
+     detail:"Tournament operator's email lists a $150 entry fee per athlete, due Sept 12. Drafted a charge for the "+n14+" families on the 14U roster.",
      sourceKind:"email",sourceRef:"Fwd: Fall Classic — entry + deadlines.pdf"},
-    {id:"ob_2",kind:"waiver",status:"draft",title:"3 athletes missing a signed waiver",
-     detail:"Cross-checked the roster against returned waivers — Nia O., Marcus B. and one more have no waiver on file before Saturday's game.",
+    {id:"ob_2",kind:"waiver",status:"draft",title:(mw.length||3)+" athletes missing a signed waiver",
+     detail:"Cross-checked the roster against returned waivers — "+names+" have no waiver on file before Saturday's game.",
      sourceKind:"agent",sourceRef:"weekend roster sweep"},
     {id:"ob_3",kind:"schedule",status:"draft",title:"Schedule conflict — Sat 10:00 gym double-booked",
-     detail:"The gym's texted change puts your 10:00 practice on the same court as another team. Drafted a move to 11:30.",
+     detail:"The gym's texted change puts your 16U 10:00 practice on the same court as another team. Drafted a move to 11:30.",
      sourceKind:"sms",sourceRef:"Northside Gym — court change"},
-    {id:"ob_4",kind:"message",status:"draft",title:"Remind 8 families practice moved to Thursday",
-     detail:"Follow-up drafted from your schedule change; sends from you once approved.",
+    {id:"ob_4",kind:"message",status:"draft",title:"Remind "+n14+" families practice moved to Thursday",
+     detail:"Follow-up drafted from your 14U schedule change; sends from you once approved.",
      sourceKind:"agent",sourceRef:"weekend sweep"},
   ];
+  }
   return S.obligations;
 }
 /* LIVE queue (2026-08-31): a signed-in coach with a real provider row reads
@@ -13718,13 +13730,14 @@ function intakeDegradedBannerHTML(){
    the agent-intake pass over their connected inbox), so no AI runs here and
    nothing is sent or charged — Approve / Dismiss still decide each draft. */
 function obligExtractContext(){
-  /* the roster sweep's waiver finding, if it is still in the queue */
-  const w=(obligationQueue()||[]).find(o=>o&&o.kind==="waiver"&&!o.parsed&&/missing/i.test(o.title||""));
-  const n=w?+(/(\d+)\s+athletes?/i.exec(w.title)||[])[1]||0:0;
-  const names=w?((/—\s*(.+?)\s+ha(?:ve|s) no waiver/.exec(w.detail||"")||[])[1]||""):"";
-  const roster=teamRoster();
-  return {today:new Date().toISOString().slice(0,10),rosterCount:roster.length,familyCount:roster.length,
-    missingWaivers:n?{count:n,names}:null};
+  /* Per-team roster counts and missing waivers come from the ONE sample model
+     (src/mod-preview.js); the extractor picks the team the text names and
+     falls back to the default (14U) team, saying so on the card. */
+  const pm=previewModel();
+  const teams=pm?pm.teams.map(t=>({short:t.short,name:t.name,count:t.count,
+    missingWaivers:t.missingWaivers.map(a=>a.initial)})):[];
+  if(!teams.length){const r=teamRoster();return {today:new Date().toISOString().slice(0,10),rosterCount:r.length,familyCount:r.length};}
+  return {today:new Date().toISOString().slice(0,10),teams,defaultTeam:pm.defaultTeam};
 }
 function parseObligations(text){
   const X=window.SporvIntakeExtract;
@@ -21051,16 +21064,12 @@ function aiFailureCopy(err){
   return {retry:true,text:"I couldn't process that — the assistant call failed."+nothing};
 }
 /* The signed-out sample workspace, as one plain object for the deterministic
-   preview assistant (src/mod-sample-answers.js). Every value is read from the
-   records the preview already renders — the sample roster, the Queue drafts,
-   the sample team's sessions, the sample recruiting board — never invented. */
+   preview assistant (src/mod-sample-answers.js). The club itself — teams,
+   roster, dues, waivers, events — is the ONE sample model in src/mod-preview.js
+   (the same one Money, Clients, Teams, Families, Home and Schedule render);
+   the Queue drafts and the recruiting sample board are added beside it. */
 function sampleWorkspaceSnapshot(){
-  const team=SEED.teams[0];
-  const org=SAMPLE_ORGS.find(o=>o.id==="sample_team_aau")||{};
-  const hm=s=>String(s||"").replace(/^0/,"");
-  const place=a=>String(a||"").split(",")[0];
-  const events=SESSIONS.filter(s=>s.programId==="prog_1").map(s=>({date:s.date,time:hm(s.startTime)+"–"+hm(s.endTime),title:s.title.replace(/^Northside Flight 14U /,""),place:place(s.address)}))
-    .concat(SEED.bookings.filter(b=>b.programId==="prog_1").map(b=>({date:b.date,time:hm(b.startTime),title:"14U tryout",place:""})));
+  const pm=previewModel()||{teams:[],roster:[],overdue:[],missingWaivers:[],events:[],totals:{}};
   let recruits=[],recruitSport="";
   try{
     const R=window.MOD_RECRUITING&&window.MOD_RECRUITING.sampleData&&window.MOD_RECRUITING.sampleData();
@@ -21074,10 +21083,9 @@ function sampleWorkspaceSnapshot(){
       });
     }
   }catch(e){recruits=[];}
-  return {team:team.name,org:SEED.providerProfile.businessName,monthlyFee:org.price||0,today:TODAY,
-    roster:teamRoster().map(r=>({name:r.name,paid:r.paid!==false,available:r.available!==false,guardian:r.guardian||null})),
+  return Object.assign({},pm,{today:TODAY,
     queue:obligationQueue().map(o=>({kind:o.kind,status:o.status,title:o.title,detail:o.detail})),
-    events,recruits,recruitSport};
+    recruits,recruitSport});
 }
 function askCoach(q){
   const text=(q||"").trim();
@@ -35328,10 +35336,10 @@ var CSV_COLUMNS = [
   { key: "first_name", req: true, ex: "Maya", note: "Required." },
   { key: "last_name", req: true, ex: "Torres", note: "Required." },
   { key: "grad_year", req: true, ex: "2027", note: "Required. Four digits." },
-  { key: "sport", req: true, ex: "Soccer", note: "Required." },
-  { key: "position", req: false, ex: "GK", note: "Primary position." },
+  { key: "sport", req: true, ex: "Basketball", note: "Required." },
+  { key: "position", req: false, ex: "PG", note: "Primary position." },
   { key: "school", req: false, ex: "Westfield High School", note: "Current school." },
-  { key: "club_team", req: false, ex: "Metro FC 08", note: "" },
+  { key: "club_team", req: false, ex: "Chicago Elite 17U", note: "" },
   { key: "city", req: false, ex: "Naperville", note: "" },
   { key: "state", req: false, ex: "IL", note: "" },
   { key: "gpa", req: false, ex: "3.6", note: "0 to 5." },
@@ -35457,25 +35465,26 @@ function sampleData(){
     R("sr09", "Marcus", "Hale", 2027, "Bayview High School", true),
     R("sr10", "Isla", "Murphy", 2028, "Summit Academy", true),
   ];
-  recruits[0].hs_gpa = 3.8; recruits[0].intended_major = "Biology"; recruits[0].club_team = "Metro FC 08"; recruits[0].city = "Naperville"; recruits[0].state_region = "IL";
+  recruits[0].hs_gpa = 3.8; recruits[0].intended_major = "Biology"; recruits[0].club_team = "Chicago Elite 17U"; recruits[0].city = "Naperville"; recruits[0].state_region = "IL";
   recruits[2].hs_gpa = 3.1; recruits[2].intended_major = "Business";
+  recruits[1].club_team = "Lakeshore Storm 17U"; recruits[4].club_team = "Chicago Elite 17U"; recruits[5].club_team = "West Suburban Heat 16U";
   var P = function (id, rid, stage, pos, extra){
-    var p = { id: id, recruit_id: rid, sport: "Soccer", team_id: null, stage: stage, closed_reason: null, position_primary: pos,
+    var p = { id: id, recruit_id: rid, sport: "Basketball", team_id: null, stage: stage, closed_reason: null, position_primary: pos,
       positions: [pos], film_links: [], priority: null, target_entry_year: null, last_contact_at: null, created_at: ago(40) };
     for (var k in extra) p[k] = extra[k];
     return p;
   };
   var pipelines = [
-    P("sp01", "sr01", "visit", "GK", { film_links: ["https://example.com/film/maya-torres-2026-highlights"], last_contact_at: ago(5) }),
-    P("sp02", "sr02", "contacted", "CB", { last_contact_at: ago(12) }),
-    P("sp03", "sr03", "offer", "ST", { last_contact_at: ago(2) }),
-    P("sp04", "sr04", "identified", "CM"),
-    P("sp05", "sr05", "evaluated", "GK"),
-    P("sp06", "sr06", "committed", "FB", { last_contact_at: ago(9) }),
-    P("sp07", "sr07", "signed", "W", { last_contact_at: ago(20) }),
-    P("sp08", "sr08", "identified", "CB"),
-    P("sp09", "sr09", "closed", "ST", { closed_reason: "chose_other_school", last_contact_at: ago(30) }),
-    P("sp10", "sr10", "contacted", "GK", { last_contact_at: ago(16) }),
+    P("sp01", "sr01", "visit", "PG", { film_links: ["https://example.com/film/maya-torres-2026-highlights"], last_contact_at: ago(5) }),
+    P("sp02", "sr02", "contacted", "C", { last_contact_at: ago(12) }),
+    P("sp03", "sr03", "offer", "SF", { last_contact_at: ago(2) }),
+    P("sp04", "sr04", "identified", "SG"),
+    P("sp05", "sr05", "evaluated", "PG"),
+    P("sp06", "sr06", "committed", "PF", { last_contact_at: ago(9) }),
+    P("sp07", "sr07", "signed", "SG", { last_contact_at: ago(20) }),
+    P("sp08", "sr08", "identified", "C"),
+    P("sp09", "sr09", "closed", "SF", { closed_reason: "chose_other_school", last_contact_at: ago(30) }),
+    P("sp10", "sr10", "contacted", "PG", { last_contact_at: ago(16) }),
   ];
   var E = function (id, pid, s, notes, d){
     var sc = {}; CRITERIA.forEach(function (c, i){ sc[c[0]] = s[i]; });
@@ -35483,11 +35492,11 @@ function sampleData(){
       overall: overallOf(sc), projection: null, notes: notes, created_at: ago(d) };
   };
   var evals = [
-    E("se01", "sp01", [5, 4, 4, 5, 4], "Commands the box; distribution needs work.", 18),
-    E("se02", "sp01", [4, 4, 5, 5, 4], "Composed under pressure at the October showcase.", 8),
-    E("se03", "sp02", [4, 4, 4, 4, 4], "Reads the game early.", 25),
-    E("se04", "sp03", [5, 5, 4, 5, 4], "Two-footed finisher.", 14),
-    E("se05", "sp05", [4, 3, 4, 3, 4], "Good reflexes, small frame.", 10),
+    E("se01", "sp01", [5, 4, 4, 5, 4], "Runs the pick-and-roll well; left hand needs work. 5'9\", 4.1 assists per game.", 18),
+    E("se02", "sp01", [4, 4, 5, 5, 4], "Composed against full-court pressure at the October AAU showcase: 7 assists, 1 turnover.", 8),
+    E("se03", "sp02", [4, 4, 4, 4, 4], "Reads help-side rotations early. 6'9\" with a 7'1\" wingspan.", 25),
+    E("se04", "sp03", [5, 5, 4, 5, 4], "Three-level scorer; 38% from three on the AAU circuit.", 14),
+    E("se05", "sp05", [4, 3, 4, 3, 4], "Quick hands on defense, undersized at 5'10\".", 10),
     E("se06", "sp06", [4, 4, 4, 5, 4], "", 30),
     E("se07", "sp07", [4, 4, 4, 4, 4], "", 60),
     E("se08", "sp10", [4, 4, 3, 4, 4], "", 20),
@@ -35507,10 +35516,10 @@ function sampleData(){
     C("sc08", "sp10", "text", 16, "Asked for updated film."),
   ];
   var targets = [
-    { id: "st01", sport: "Soccer", entry_year: "2027", position: "GK", target_count: 2, priority: 1 },
-    { id: "st02", sport: "Soccer", entry_year: "2027", position: "CB", target_count: 1, priority: 2 },
-    { id: "st03", sport: "Soccer", entry_year: "2026", position: "ST", target_count: 1, priority: 2 },
-    { id: "st04", sport: "Soccer", entry_year: "2028", position: "CM", target_count: 2, priority: 3 },
+    { id: "st01", sport: "Basketball", entry_year: "2027", position: "PG", target_count: 2, priority: 1 },
+    { id: "st02", sport: "Basketball", entry_year: "2027", position: "C", target_count: 1, priority: 2 },
+    { id: "st03", sport: "Basketball", entry_year: "2026", position: "SF", target_count: 1, priority: 2 },
+    { id: "st04", sport: "Basketball", entry_year: "2028", position: "SG", target_count: 2, priority: 3 },
   ];
   var guardians = [
     { id: "sg01", recruit_id: "sr01", full_name: "Ana Torres", relationship: "Mother", email: "ana.torres@example.com", phone: "555-0111", is_primary: true, consent_status: "granted" },
@@ -36234,7 +36243,7 @@ function needsBody(ui){
     '<p class="rc-note">' + h(where) + "</p>" +
     '<div class="rc-grid2">' +
     '<label>Sport<input name="sport" list="rcSportList" required value="' + h(sports[0] || "") + '" autocomplete="off"></label>' +
-    '<label>Position<input name="position" required maxlength="60" placeholder="e.g. GK" autocomplete="off"></label>' +
+    '<label>Position<input name="position" required maxlength="60" placeholder="e.g. PG" autocomplete="off"></label>' +
     '<label>Grad year<input name="entry_year" required inputmode="numeric" pattern="[0-9]{4}" maxlength="4" placeholder="' + (new Date().getFullYear() + 1) + '"></label>' +
     '<label>How many you need<input name="target_count" type="number" min="0" max="99" step="1" required></label>' +
     "</div>" +
@@ -36284,7 +36293,7 @@ function importBody(ui){
   return ui.Block({ title: "Columns", subtitle: "The first row of the file must be the column names. Order does not matter.", body: doc }) +
     '<form class="rc-form rc-csv" id="rcCsvForm" novalidate>' +
     '<label>CSV file<input type="file" name="file" accept=".csv,text/csv"></label>' +
-    '<label>Or paste the rows<textarea name="text" spellcheck="false" placeholder="first_name,last_name,grad_year,sport,position&#10;Maya,Torres,2027,Soccer,GK">' + h(st.csv.text) + "</textarea></label>" +
+    '<label>Or paste the rows<textarea name="text" spellcheck="false" placeholder="first_name,last_name,grad_year,sport,position&#10;Maya,Torres,2027,Basketball,PG">' + h(st.csv.text) + "</textarea></label>" +
     '<div class="rc-actions"><button type="submit" class="cui-button cui-button--lg cui-button--secondary">Preview</button></div>' +
     (st.mode === "sample" ? '<p class="rc-note">Sample workspace: imported rows are not saved.</p>' : "") +
     "</form>" + preview;
@@ -36720,7 +36729,7 @@ window.MOD_RECRUITING = {
 
    The sample is the same club the Queue and Approvals samples describe:
    Northside Flight Basketball, the 14U roster in SEED.teams, a 16U team with
-   Marcus Bell, the three missing waivers (Nia O., Marcus B., one more), the
+   Marcus Bell, the three missing waivers (Nia O., Marcus B., Owen K.), the
    Fall Classic entry fee, and the Sat 10:00 gym double-booking.
 
    It deliberately exposes `pages`, not `views`: modView() resolves `views`
@@ -37065,6 +37074,38 @@ function scheduleBlock(){
     }) });
 }
 
+/* ── The ONE sample model ────────────────────────────────────────────
+   Plain data, no HTML. Everything else in the preview that talks about the
+   sample club — the preview assistant (mod-sample-answers.js), the Queue's
+   sample drafts, the forward-to-drafts roster counts — reads this instead of
+   keeping its own copy, so Money, the assistant and the Queue cannot drift. */
+function initial(name){ var p = String(name).split(" "); return p[0] + " " + (p[1] || "").charAt(0) + "."; }
+function model(){
+  var t = totals();
+  var athlete = function (a){
+    var tm = teamOf(a.team);
+    return { name:a.name, initial:initial(a.name), team:tm.short, teamName:tm.name, jersey:a.jersey, guardian:a.guardian,
+      owed:balanceOf(a), daysLate:oldestLate(a), unpaidInstallments:a.unpaid.slice(), paid:!a.unpaid.length, waiver:a.waiver };
+  };
+  var roster = ROSTER.map(athlete);
+  return {
+    org:"Northside Flight Basketball", sport:"Basketball", season:"Fall 2026",
+    dues:DUES, installment:INSTALLMENT, installments:INST.length,
+    teams:TEAMS.map(function (tm){
+      var m = roster.filter(function (a){ return a.team === tm.short; });
+      return { id:tm.id, short:tm.short, name:tm.name, coach:tm.coach, practice:tm.practice, venue:tm.venue,
+        count:m.length, missingWaivers:m.filter(function (a){ return !a.waiver; }) };
+    }),
+    defaultTeam:"14U",
+    roster:roster,
+    totals:{ billed:t.billed, collected:t.collected, overdue:t.overdue, upcoming:t.upcoming, overdueFamilies:t.overdueFamilies },
+    overdue:roster.filter(function (a){ return a.owed; }).sort(function (x, y){ return y.daysLate - x.daysLate; }),
+    missingWaivers:roster.filter(function (a){ return !a.waiver; }),
+    events:upcoming().map(function (e){ return { date:e.date, time:e.time, kind:e.kind, team:e.team, title:e.title, where:e.where, note:e.note || "", conflict:!!e.conflict }; }),
+    nextDue:day(INST[2].due),
+  };
+}
+
 /* ── Wiring: local only, never the network ───────────────────────── */
 function wire(){
   if (!on()) return;
@@ -37109,6 +37150,7 @@ window.MOD_PREVIEW = {
   pages:{ finances:moneyPage, roster:rosterPage, teams:teamsPage, families:familiesPage, inbox:inboxPage, organization:orgPage },
   homeStats:homeStats, todayRows:todayRows, scheduleBlock:scheduleBlock,
   eventCount:function (){ return upcoming().length; },
+  model:model,
   _test:{ totals:totals, installments:installments, events:events, roster:ROSTER },
 };
 
@@ -37460,8 +37502,25 @@ function extract(text, ctx) {
   var form = findForm(t);
   var everyAthlete = /\b(every|each|all)\s+(athletes?|players?|kids?|campers?|participants?)\b/i.test(t);
   var hasUrl = /\bhttps?:\/\/|\bwww\.|\b[\w-]+\.(?:org|com|net)\b/i.test(t);
-  var roster = +ctx.rosterCount || 0;
+  /* Which roster? With per-team context, the team(s) the text names; none
+     named → the default team, and the cards say that was assumed. */
+  var roster = +ctx.rosterCount || 0, rosterLabel = "rostered", teamAssumed = null;
+  var gap = ctx.missingWaivers || null;
+  if (ctx.teams && ctx.teams.length) {
+    var named = ctx.teams.filter(function (tm) { return new RegExp("\\b" + tm.short + "\\b", "i").test(t); });
+    if (!named.length) {
+      named = ctx.teams.filter(function (tm) { return tm.short === ctx.defaultTeam; }).slice(0, 1);
+      if (!named.length) named = [ctx.teams[0]];
+      teamAssumed = named[0].short;
+    }
+    roster = named.reduce(function (n, tm) { return n + (+tm.count || 0); }, 0);
+    rosterLabel = "on the " + named.map(function (tm) { return tm.short; }).join(" and ") + " roster" + (named.length > 1 ? "s" : "");
+    var mw = []; named.forEach(function (tm) { mw = mw.concat(tm.missingWaivers || []); });
+    gap = { count: mw.length, names: mw.join(", ").replace(/, ([^,]*)$/, " and $1"), none: !mw.length };
+  }
   var families = +ctx.familyCount || roster;
+  var athletesTxt = function (n) { return rosterLabel === "rostered" ? n + " rostered athletes" : n + " athletes " + rosterLabel; };
+  var teamNote = teamAssumed ? "which team — the text names none, so the " + teamAssumed + " roster is used" : null;
   var evLabel = eventName || "the forwarded event";
   var drafts = [];
 
@@ -37484,8 +37543,9 @@ function extract(text, ctx) {
     var unitText = collect.unit === "flat" ? "" : collect.unit === "each" ? " each" : " per " + collect.unitWord;
     var lines = [], unknown = [];
     if (collect.unit === "athlete" || collect.unit === "each") {
-      if (roster) lines.push(roster + " rostered athletes x " + moneyLabel(collect.cents) + " = " + moneyLabel(collect.cents * roster) + " if all of them take part.");
-      unknown.push(roster ? "who is attending — the total assumes all " + roster + " rostered athletes" : "how many athletes are attending");
+      if (roster) lines.push(athletesTxt(roster) + " x " + moneyLabel(collect.cents) + " = " + moneyLabel(collect.cents * roster) + " if all of them take part.");
+      unknown.push(roster ? "who is attending — the total assumes all " + athletesTxt(roster) : "how many athletes are attending");
+      if (teamNote) unknown.push(teamNote);
       if (collect.unit === "each") unknown.push("whether \"each\" means each athlete or each family");
     } else if (collect.unit === "family") {
       if (families) lines.push(families + " families x " + moneyLabel(collect.cents) + " = " + moneyLabel(collect.cents * families) + ".");
@@ -37531,9 +37591,11 @@ function extract(text, ctx) {
   if (form || K.waiver.test(t)) {
     var fname = form || "waiver";
     var lw = [], uw = [];
-    var gap = ctx.missingWaivers;
-    if (gap && gap.count) lw.push("Your roster already has " + gap.count + " athlete" + (gap.count === 1 ? "" : "s") + " with no waiver on file" + (gap.names ? " (" + gap.names + ")" : "") + " — start with them.");
+    var rl = rosterLabel === "rostered" ? "Your roster" : "Your " + rosterLabel.replace(/^on the /, "");
+    if (gap && gap.count) lw.push(rl + " already has " + gap.count + " athlete" + (gap.count === 1 ? "" : "s") + " with no waiver on file" + (gap.names ? " (" + gap.names + ")" : "") + " — start with them.");
+    else if (gap && gap.none) lw.push(rl + " has a signed waiver on file for every athlete; check the form matches this event's.");
     else if (roster) lw.push("Check all " + roster + " rostered athletes; Sporv has no waiver status to cross-check against.");
+    if (teamNote) uw.push(teamNote);
     if (!waiverDue) uw.push("when the " + fname + " is due");
     if (/\bupload/i.test(t) && !hasUrl) uw.push("where to upload it — the text has no link");
     if (!form) uw.push("which form — the text only says waiver");
@@ -37585,7 +37647,7 @@ function extract(text, ctx) {
     drafts.push({
       kind: "message",
       title: "Tell families: " + (cancelled ? cap(oldTxt) + " is cancelled" : cap(what) + " moves to " + (newD.text || "a new slot")),
-      detail: (families ? "Drafted for the " + families + " rostered families" : "Drafted for the families on this team") + " — nothing sends until you approve.",
+      detail: (families ? "Drafted for the " + families + " families " + (rosterLabel === "rostered" ? "on the roster" : rosterLabel) : "Drafted for the families on this team") + " — nothing sends until you approve.",
       unknown: [],
     });
   }
@@ -37690,8 +37752,10 @@ root.SporvIntakeExtract = { extract: extract, _moneyLabel: moneyLabel };
 
    This is a deterministic responder: no model call, no network, no writes.
    It answers the common coach questions from the SAME sample data the preview
-   already renders (sample roster, Queue drafts, sample calendar, recruiting
-   sample board), and every answer opens with the label saying exactly that.
+   already renders: the club (teams, roster, dues, waivers, events) is the one
+   sample model in mod-preview.js (MOD_PREVIEW.model()); the Queue drafts and
+   the recruiting sample board ride beside it. Every answer opens with the
+   label saying exactly that.
 
    Pure: answer(question, snapshot) -> {text, intents}. The host builds the
    snapshot (sampleWorkspaceSnapshot in sporve-web.host.html). Unit tests:
@@ -37731,17 +37795,19 @@ var INTENTS = [
 ];
 
 function duesAnswer(s) {
-  var roster = s.roster || [];
-  var unpaid = roster.filter(function (r) { return r.paid === false; });
+  var t = s.totals || {}, late = s.overdue || [];
   var out = [];
-  if (unpaid.length) {
-    out.push("**Dues on the sample roster:** " + unpaid.length + " of " + roster.length + " families are unpaid on the " +
-      money(s.monthlyFee) + " monthly team fee — " + money(s.monthlyFee * unpaid.length) + " outstanding.");
-    unpaid.forEach(function (r) { out.push("- " + r.name + (r.guardian ? " (guardian " + r.guardian + ")" : "") + ": " + money(s.monthlyFee)); });
-    out.push("The sample data does not record how many days late each one is.");
+  if (late.length) {
+    out.push("**Dues (" + (s.season || "this season") + "):** " + late.length + " " + (late.length === 1 ? "family is" : "families are") +
+      " overdue, " + money(t.overdue) + " in total.");
+    late.forEach(function (a) {
+      out.push("- " + a.guardian + " (" + a.name + ", " + a.team + "): " + money(a.owed) + ", " + a.daysLate + " days late");
+    });
   } else {
-    out.push("**Dues on the sample roster:** every family is marked paid.");
+    out.push("**Dues (" + (s.season || "this season") + "):** no family is overdue.");
   }
+  out.push(money(t.collected) + " of " + money(t.billed) + " billed has been collected; " + money(t.upcoming) +
+    " is not yet due (installment " + (s.installments || 3) + " of " + (s.installments || 3) + ", due " + dLabel(s.nextDue) + ").");
   var fees = drafts(s, "fee");
   if (fees.length) {
     out.push("Also waiting in the Queue, not yet requested from anyone:");
@@ -37755,48 +37821,55 @@ function duesAnswer(s) {
   return out.join("\n");
 }
 function waiversAnswer(s) {
+  var mw = s.missingWaivers || [];
+  if (!mw.length) return "**Waivers:** every athlete on both rosters has a signed waiver on file.";
+  var out = ["**Waivers:** " + plural(mw.length, "athlete") + " have no signed waiver on file:"];
+  mw.forEach(function (a) { out.push("- " + a.name + " (" + a.team + ", guardian " + a.guardian + ")"); });
   var w = drafts(s, "waiver");
-  if (!w.length) return "**Waivers:** the sample Queue has no open waiver gaps.";
-  var out = ["**Waivers:**"];
-  w.forEach(function (o) { out.push("- " + o.title + (o.detail ? ": " + String(o.detail).split("\n")[0] : "")); });
+  if (w.length) out.push("A follow-up for them is already drafted in the Queue: " + w[0].title + ".");
   return out.join("\n");
 }
 function conflictsAnswer(s) {
-  var c = drafts(s, "schedule").filter(function (o) { return /conflict|double/i.test(o.title + " " + (o.detail || "")); });
-  if (!c.length) return "**Schedule conflicts:** none in the sample Queue.";
+  var ev = (s.events || []).filter(function (e) { return e.conflict; });
+  var q = drafts(s, "schedule").filter(function (o) { return /conflict|double/i.test(o.title + " " + (o.detail || "")); });
+  if (!ev.length && !q.length) return "**Schedule conflicts:** none in the sample calendar.";
   var out = ["**Schedule conflicts:**"];
-  c.forEach(function (o) { out.push("- " + o.title + (o.detail ? ": " + String(o.detail).split("\n")[0] : "")); });
+  ev.forEach(function (e) { out.push("- " + dLabel(e.date) + ", " + e.time + " " + e.title + " at " + e.where + (e.note ? ": " + e.note : "")); });
+  if (q.length) out.push("The fix is drafted in the Queue: " + q[0].title + ".");
   return out.join("\n");
+}
+function evLine(e, withDay) {
+  return "- " + (withDay ? dLabel(e.date) + ", " : "") + e.time + " " + e.title + " — " + e.where + (e.conflict ? " (conflict)" : "");
 }
 function scheduleAnswer(s, q) {
   var today = s.today, end = addDays(today, 6);
-  var items = (s.events || []).filter(function (e) { return e.date >= today && e.date <= end; })
-    .sort(function (a, b) { return (a.date + a.time).localeCompare(b.date + b.time); });
+  var all = (s.events || []).slice().sort(function (a, b) { return a.date.localeCompare(b.date); });
+  var items = all.filter(function (e) { return e.date >= today && e.date <= end; });
   var out = [];
-  var wantsToday = /\b(today|tonight)\b/i.test(q);
-  if (wantsToday) {
+  if (/\b(today|tonight)\b/i.test(q)) {
     var t = items.filter(function (e) { return e.date === today; });
-    out.push(t.length ? "**Today in the sample calendar (" + dLabel(today) + "):**" : "**Today in the sample calendar (" + dLabel(today) + "):** nothing scheduled.");
-    t.forEach(function (e) { out.push("- " + e.time + " " + e.title + (e.place ? " — " + e.place : "")); });
-    var next = items.filter(function (e) { return e.date > today; })[0];
-    if (next) out.push("Next up: " + dLabel(next.date) + ", " + next.time + " " + next.title + ".");
+    out.push("**Today in the sample calendar (" + dLabel(today) + "):**" + (t.length ? "" : " nothing scheduled."));
+    t.forEach(function (e) { out.push(evLine(e, false)); });
+    var next = all.filter(function (e) { return e.date > today; })[0];
+    if (next) out.push("Next up: " + dLabel(next.date) + ", " + next.time + " " + next.title + " at " + next.where + ".");
   } else {
     out.push("**This week in the sample calendar (" + dLabel(today) + " to " + dLabel(end) + "):**");
     if (!items.length) out.push("- nothing scheduled");
-    items.forEach(function (e) { out.push("- " + dLabel(e.date) + ", " + e.time + " " + e.title + (e.place ? " — " + e.place : "")); });
+    items.forEach(function (e) { out.push(evLine(e, true)); });
+    var later = all.filter(function (e) { return e.date > end; })[0];
+    if (later) out.push("After that: " + later.title + " on " + dLabel(later.date) + ".");
   }
-  var c = drafts(s, "schedule").filter(function (o) { return /conflict|double/i.test(o.title); });
-  if (c.length) out.push("Heads up: the Queue also flags " + c[0].title.charAt(0).toLowerCase() + c[0].title.slice(1) + ".");
   return out.join("\n");
 }
 function rosterAnswer(s) {
-  var r = s.roster || [];
-  var out = [];
-  var avail = r.filter(function (a) { return a.available !== false; }), out_ = r.filter(function (a) { return a.available === false; });
-  var paid = r.filter(function (a) { return a.paid !== false; }).length;
-  out.push("**" + (s.team || "The sample team") + ":** " + plural(r.length, "athlete") + " on the sample roster.");
-  out.push("- Available: " + avail.length + (out_.length ? " (unavailable: " + out_.map(function (a) { return a.name; }).join(", ") + ")" : ""));
-  out.push("- Paid: " + paid + ", unpaid: " + (r.length - paid));
+  var r = s.roster || [], teams = s.teams || [];
+  var out = ["**Rosters:** " + plural(r.length, "athlete") + " across " + teams.map(function (t) { return t.short; }).join(" and ") + "."];
+  teams.forEach(function (t) {
+    var m = r.filter(function (a) { return a.team === t.short; });
+    var paid = m.filter(function (a) { return a.paid; }).length;
+    out.push("- " + t.name + ": " + m.length + " athletes, coach " + t.coach + ", " + paid + " of " + m.length + " paid to date, " +
+      plural(t.missingWaivers.length, "waiver") + " missing");
+  });
   return out.join("\n");
 }
 function recruitsAnswer(s) {
@@ -37804,7 +37877,7 @@ function recruitsAnswer(s) {
   if (!R.length) return "**Recruits:** the sample recruiting board is empty.";
   var active = R.filter(function (x) { return x.stage !== "closed" && x.stage !== "signed"; });
   var ranked = active.filter(function (x) { return x.overall != null; }).sort(function (a, b) { return b.overall - a.overall; }).slice(0, 3);
-  var out = ["**Recruits (sample " + (s.recruitSport || "") + " board):** " + R.length + " prospects, " + active.length + " still active in the pipeline."];
+  var out = ["**Recruits (sample " + (s.recruitSport ? s.recruitSport + " " : "") + "board):** " + R.length + " prospects, " + active.length + " still active in the pipeline."];
   if (ranked.length) {
     out.push("Top by average evaluation score (out of 5):");
     ranked.forEach(function (x, i) {

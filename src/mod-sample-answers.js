@@ -9,8 +9,10 @@
 
    This is a deterministic responder: no model call, no network, no writes.
    It answers the common coach questions from the SAME sample data the preview
-   already renders (sample roster, Queue drafts, sample calendar, recruiting
-   sample board), and every answer opens with the label saying exactly that.
+   already renders: the club (teams, roster, dues, waivers, events) is the one
+   sample model in mod-preview.js (MOD_PREVIEW.model()); the Queue drafts and
+   the recruiting sample board ride beside it. Every answer opens with the
+   label saying exactly that.
 
    Pure: answer(question, snapshot) -> {text, intents}. The host builds the
    snapshot (sampleWorkspaceSnapshot in sporve-web.host.html). Unit tests:
@@ -50,17 +52,19 @@ var INTENTS = [
 ];
 
 function duesAnswer(s) {
-  var roster = s.roster || [];
-  var unpaid = roster.filter(function (r) { return r.paid === false; });
+  var t = s.totals || {}, late = s.overdue || [];
   var out = [];
-  if (unpaid.length) {
-    out.push("**Dues on the sample roster:** " + unpaid.length + " of " + roster.length + " families are unpaid on the " +
-      money(s.monthlyFee) + " monthly team fee — " + money(s.monthlyFee * unpaid.length) + " outstanding.");
-    unpaid.forEach(function (r) { out.push("- " + r.name + (r.guardian ? " (guardian " + r.guardian + ")" : "") + ": " + money(s.monthlyFee)); });
-    out.push("The sample data does not record how many days late each one is.");
+  if (late.length) {
+    out.push("**Dues (" + (s.season || "this season") + "):** " + late.length + " " + (late.length === 1 ? "family is" : "families are") +
+      " overdue, " + money(t.overdue) + " in total.");
+    late.forEach(function (a) {
+      out.push("- " + a.guardian + " (" + a.name + ", " + a.team + "): " + money(a.owed) + ", " + a.daysLate + " days late");
+    });
   } else {
-    out.push("**Dues on the sample roster:** every family is marked paid.");
+    out.push("**Dues (" + (s.season || "this season") + "):** no family is overdue.");
   }
+  out.push(money(t.collected) + " of " + money(t.billed) + " billed has been collected; " + money(t.upcoming) +
+    " is not yet due (installment " + (s.installments || 3) + " of " + (s.installments || 3) + ", due " + dLabel(s.nextDue) + ").");
   var fees = drafts(s, "fee");
   if (fees.length) {
     out.push("Also waiting in the Queue, not yet requested from anyone:");
@@ -74,48 +78,55 @@ function duesAnswer(s) {
   return out.join("\n");
 }
 function waiversAnswer(s) {
+  var mw = s.missingWaivers || [];
+  if (!mw.length) return "**Waivers:** every athlete on both rosters has a signed waiver on file.";
+  var out = ["**Waivers:** " + plural(mw.length, "athlete") + " have no signed waiver on file:"];
+  mw.forEach(function (a) { out.push("- " + a.name + " (" + a.team + ", guardian " + a.guardian + ")"); });
   var w = drafts(s, "waiver");
-  if (!w.length) return "**Waivers:** the sample Queue has no open waiver gaps.";
-  var out = ["**Waivers:**"];
-  w.forEach(function (o) { out.push("- " + o.title + (o.detail ? ": " + String(o.detail).split("\n")[0] : "")); });
+  if (w.length) out.push("A follow-up for them is already drafted in the Queue: " + w[0].title + ".");
   return out.join("\n");
 }
 function conflictsAnswer(s) {
-  var c = drafts(s, "schedule").filter(function (o) { return /conflict|double/i.test(o.title + " " + (o.detail || "")); });
-  if (!c.length) return "**Schedule conflicts:** none in the sample Queue.";
+  var ev = (s.events || []).filter(function (e) { return e.conflict; });
+  var q = drafts(s, "schedule").filter(function (o) { return /conflict|double/i.test(o.title + " " + (o.detail || "")); });
+  if (!ev.length && !q.length) return "**Schedule conflicts:** none in the sample calendar.";
   var out = ["**Schedule conflicts:**"];
-  c.forEach(function (o) { out.push("- " + o.title + (o.detail ? ": " + String(o.detail).split("\n")[0] : "")); });
+  ev.forEach(function (e) { out.push("- " + dLabel(e.date) + ", " + e.time + " " + e.title + " at " + e.where + (e.note ? ": " + e.note : "")); });
+  if (q.length) out.push("The fix is drafted in the Queue: " + q[0].title + ".");
   return out.join("\n");
+}
+function evLine(e, withDay) {
+  return "- " + (withDay ? dLabel(e.date) + ", " : "") + e.time + " " + e.title + " — " + e.where + (e.conflict ? " (conflict)" : "");
 }
 function scheduleAnswer(s, q) {
   var today = s.today, end = addDays(today, 6);
-  var items = (s.events || []).filter(function (e) { return e.date >= today && e.date <= end; })
-    .sort(function (a, b) { return (a.date + a.time).localeCompare(b.date + b.time); });
+  var all = (s.events || []).slice().sort(function (a, b) { return a.date.localeCompare(b.date); });
+  var items = all.filter(function (e) { return e.date >= today && e.date <= end; });
   var out = [];
-  var wantsToday = /\b(today|tonight)\b/i.test(q);
-  if (wantsToday) {
+  if (/\b(today|tonight)\b/i.test(q)) {
     var t = items.filter(function (e) { return e.date === today; });
-    out.push(t.length ? "**Today in the sample calendar (" + dLabel(today) + "):**" : "**Today in the sample calendar (" + dLabel(today) + "):** nothing scheduled.");
-    t.forEach(function (e) { out.push("- " + e.time + " " + e.title + (e.place ? " — " + e.place : "")); });
-    var next = items.filter(function (e) { return e.date > today; })[0];
-    if (next) out.push("Next up: " + dLabel(next.date) + ", " + next.time + " " + next.title + ".");
+    out.push("**Today in the sample calendar (" + dLabel(today) + "):**" + (t.length ? "" : " nothing scheduled."));
+    t.forEach(function (e) { out.push(evLine(e, false)); });
+    var next = all.filter(function (e) { return e.date > today; })[0];
+    if (next) out.push("Next up: " + dLabel(next.date) + ", " + next.time + " " + next.title + " at " + next.where + ".");
   } else {
     out.push("**This week in the sample calendar (" + dLabel(today) + " to " + dLabel(end) + "):**");
     if (!items.length) out.push("- nothing scheduled");
-    items.forEach(function (e) { out.push("- " + dLabel(e.date) + ", " + e.time + " " + e.title + (e.place ? " — " + e.place : "")); });
+    items.forEach(function (e) { out.push(evLine(e, true)); });
+    var later = all.filter(function (e) { return e.date > end; })[0];
+    if (later) out.push("After that: " + later.title + " on " + dLabel(later.date) + ".");
   }
-  var c = drafts(s, "schedule").filter(function (o) { return /conflict|double/i.test(o.title); });
-  if (c.length) out.push("Heads up: the Queue also flags " + c[0].title.charAt(0).toLowerCase() + c[0].title.slice(1) + ".");
   return out.join("\n");
 }
 function rosterAnswer(s) {
-  var r = s.roster || [];
-  var out = [];
-  var avail = r.filter(function (a) { return a.available !== false; }), out_ = r.filter(function (a) { return a.available === false; });
-  var paid = r.filter(function (a) { return a.paid !== false; }).length;
-  out.push("**" + (s.team || "The sample team") + ":** " + plural(r.length, "athlete") + " on the sample roster.");
-  out.push("- Available: " + avail.length + (out_.length ? " (unavailable: " + out_.map(function (a) { return a.name; }).join(", ") + ")" : ""));
-  out.push("- Paid: " + paid + ", unpaid: " + (r.length - paid));
+  var r = s.roster || [], teams = s.teams || [];
+  var out = ["**Rosters:** " + plural(r.length, "athlete") + " across " + teams.map(function (t) { return t.short; }).join(" and ") + "."];
+  teams.forEach(function (t) {
+    var m = r.filter(function (a) { return a.team === t.short; });
+    var paid = m.filter(function (a) { return a.paid; }).length;
+    out.push("- " + t.name + ": " + m.length + " athletes, coach " + t.coach + ", " + paid + " of " + m.length + " paid to date, " +
+      plural(t.missingWaivers.length, "waiver") + " missing");
+  });
   return out.join("\n");
 }
 function recruitsAnswer(s) {
@@ -123,7 +134,7 @@ function recruitsAnswer(s) {
   if (!R.length) return "**Recruits:** the sample recruiting board is empty.";
   var active = R.filter(function (x) { return x.stage !== "closed" && x.stage !== "signed"; });
   var ranked = active.filter(function (x) { return x.overall != null; }).sort(function (a, b) { return b.overall - a.overall; }).slice(0, 3);
-  var out = ["**Recruits (sample " + (s.recruitSport || "") + " board):** " + R.length + " prospects, " + active.length + " still active in the pipeline."];
+  var out = ["**Recruits (sample " + (s.recruitSport ? s.recruitSport + " " : "") + "board):** " + R.length + " prospects, " + active.length + " still active in the pipeline."];
   if (ranked.length) {
     out.push("Top by average evaluation score (out of 5):");
     ranked.forEach(function (x, i) {

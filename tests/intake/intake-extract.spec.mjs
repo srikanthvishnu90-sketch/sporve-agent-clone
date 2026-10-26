@@ -45,7 +45,7 @@ test('gym schedule change: old slot, new slot and venue, plus the family message
   assert.deepEqual(kindsOf(r), ['schedule', 'message']);
   assert.equal(r.drafts[0].title, 'Schedule change: Thu Nov 5, 6:00–7:30pm practice moves to Fri Nov 6, 7:00–8:30pm in the auxiliary gym');
   assert.equal(r.drafts[1].title, 'Tell families: Practice moves to Fri Nov 6, 7:00–8:30pm in the auxiliary gym');
-  assert.match(r.drafts[1].detail, /8 rostered families — nothing sends until you approve/);
+  assert.match(r.drafts[1].detail, /8 families on the roster — nothing sends until you approve/);
   assert.ok(!r.drafts.some((d) => d.amountCents != null));
   // a weekday that contradicts its date is reported, never silently "fixed"
   const bad = extract('Your Thursday Nov 6 practice is moved to Saturday Nov 8 at 10am.', CTX);
@@ -93,4 +93,22 @@ test('no amount: a schedule item, never a charge, and the card says what is miss
   assert.deepEqual(kindsOf(none), ['message']);
   assert.equal(none.drafts[0].title, 'Review this message — no fee, form, event or date found');
   assert.equal(extract("   ", CTX).drafts.length, 0);
+});
+
+test('per-team rosters: the team the text names, else the default 14U roster and the card says so', () => {
+  const TEAMS = { today: '2026-10-26', defaultTeam: '14U', teams: [
+    { short: '14U', name: 'Northside Flight 14U', count: 8, missingWaivers: ['Nia O.'] },
+    { short: '16U', name: 'Northside Flight 16U', count: 6, missingWaivers: ['Marcus B.', 'Owen K.'] },
+  ] };
+  const email = 'Windy City Shootout, Nov 14-16 at Mount Prospect Sports Complex. $40 per athlete, due Nov 3. Signed liability waiver required by Nov 10.';
+  const def = extract(email, TEAMS);
+  assert.match(def.drafts[0].detail, /^8 athletes on the 14U roster x \$40 = \$320/);
+  assert.ok(def.drafts[0].unknown.includes('which team — the text names none, so the 14U roster is used'));
+  assert.match(def.drafts[1].detail, /^Your 14U roster already has 1 athlete with no waiver on file \(Nia O\.\)/);
+  const u16 = extract('16U only: ' + email, TEAMS);
+  assert.match(u16.drafts[0].detail, /^6 athletes on the 16U roster x \$40 = \$240/);
+  assert.match(u16.drafts[1].detail, /2 athletes with no waiver on file \(Marcus B\. and Owen K\.\)/);
+  assert.ok(!u16.drafts[0].unknown.some((x) => /which team/.test(x)));
+  const both = extract('Bringing 14U and 16U. ' + email, TEAMS);
+  assert.match(both.drafts[0].detail, /^14 athletes on the 14U and 16U rosters x \$40 = \$560/);
 });

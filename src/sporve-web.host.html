@@ -10904,7 +10904,7 @@ function aiContext(){
      moves to subscriptions. draft_message is the one with a live send rail;
      the recap/bulk chips propose a draft the coach dispatches. */
   const MAP={
-    dashboard:["What needs my attention today?","Who's booked this week?"],
+    dashboard:["What needs my attention today?","What's on the schedule this week?"],
     roster:   ["Draft a reply to a parent","Draft a session recap"],
     inbox:    ["Draft a reply to a parent"],
     schedule: ["What's on my schedule this week?","Message families about a change"],
@@ -13201,22 +13201,34 @@ function noProviderPanelHTML(what){
     <p style="color:var(--muted);font-size:var(--text-sm);margin-top:4px">Your ${esc(what)} needs an organization to read from, and this account doesn't have one yet. Finish setup and it loads for real — nothing here is shown in its place.</p>
     <div class="imp-addrow" style="margin-top:8px"><button class="btn sm" data-gosetup="1">Finish setup</button></div></div>`;
 }
+/* The disclosed sample club's data model (src/mod-preview.js), or null. */
+function previewModel(){
+  try{return window.MOD_PREVIEW&&window.MOD_PREVIEW.model?window.MOD_PREVIEW.model():null;}catch(e){return null;}
+}
 function obligationQueue(){
   if(queueIsLive()) return (S.obligations||[]).filter(o=>o&&o.live===true);
-  if(!S.obligations) S.obligations=[
-    {id:"ob_1",kind:"fee",status:"draft",title:"Collect $150 Fall Classic entry — 8 families",
-     detail:"Tournament operator's email lists a $150 entry fee per athlete, due Sept 12. Drafted a charge for the 8 rostered families.",
+  if(!S.obligations){
+    /* The sample drafts read the ONE sample model (MOD_PREVIEW.model()), so
+       their counts and names match Money, Clients, Teams and the assistant. */
+    const pm=previewModel();
+    const t14=pm?pm.teams.find(t=>t.short==="14U"):null, n14=t14?t14.count:8;
+    const mw=pm?pm.missingWaivers:[];
+    const names=mw.length?mw.map(a=>a.initial+" ("+a.team+")").join(", ").replace(/, ([^,]*)$/," and $1"):"three athletes";
+    S.obligations=[
+    {id:"ob_1",kind:"fee",status:"draft",title:"Collect $150 Fall Classic entry — "+n14+" families",
+     detail:"Tournament operator's email lists a $150 entry fee per athlete, due Sept 12. Drafted a charge for the "+n14+" families on the 14U roster.",
      sourceKind:"email",sourceRef:"Fwd: Fall Classic — entry + deadlines.pdf"},
-    {id:"ob_2",kind:"waiver",status:"draft",title:"3 athletes missing a signed waiver",
-     detail:"Cross-checked the roster against returned waivers — Nia O., Marcus B. and one more have no waiver on file before Saturday's game.",
+    {id:"ob_2",kind:"waiver",status:"draft",title:(mw.length||3)+" athletes missing a signed waiver",
+     detail:"Cross-checked the roster against returned waivers — "+names+" have no waiver on file before Saturday's game.",
      sourceKind:"agent",sourceRef:"weekend roster sweep"},
     {id:"ob_3",kind:"schedule",status:"draft",title:"Schedule conflict — Sat 10:00 gym double-booked",
-     detail:"The gym's texted change puts your 10:00 practice on the same court as another team. Drafted a move to 11:30.",
+     detail:"The gym's texted change puts your 16U 10:00 practice on the same court as another team. Drafted a move to 11:30.",
      sourceKind:"sms",sourceRef:"Northside Gym — court change"},
-    {id:"ob_4",kind:"message",status:"draft",title:"Remind 8 families practice moved to Thursday",
-     detail:"Follow-up drafted from your schedule change; sends from you once approved.",
+    {id:"ob_4",kind:"message",status:"draft",title:"Remind "+n14+" families practice moved to Thursday",
+     detail:"Follow-up drafted from your 14U schedule change; sends from you once approved.",
      sourceKind:"agent",sourceRef:"weekend sweep"},
   ];
+  }
   return S.obligations;
 }
 /* LIVE queue (2026-08-31): a signed-in coach with a real provider row reads
@@ -13664,13 +13676,14 @@ function intakeDegradedBannerHTML(){
    the agent-intake pass over their connected inbox), so no AI runs here and
    nothing is sent or charged — Approve / Dismiss still decide each draft. */
 function obligExtractContext(){
-  /* the roster sweep's waiver finding, if it is still in the queue */
-  const w=(obligationQueue()||[]).find(o=>o&&o.kind==="waiver"&&!o.parsed&&/missing/i.test(o.title||""));
-  const n=w?+(/(\d+)\s+athletes?/i.exec(w.title)||[])[1]||0:0;
-  const names=w?((/—\s*(.+?)\s+ha(?:ve|s) no waiver/.exec(w.detail||"")||[])[1]||""):"";
-  const roster=teamRoster();
-  return {today:new Date().toISOString().slice(0,10),rosterCount:roster.length,familyCount:roster.length,
-    missingWaivers:n?{count:n,names}:null};
+  /* Per-team roster counts and missing waivers come from the ONE sample model
+     (src/mod-preview.js); the extractor picks the team the text names and
+     falls back to the default (14U) team, saying so on the card. */
+  const pm=previewModel();
+  const teams=pm?pm.teams.map(t=>({short:t.short,name:t.name,count:t.count,
+    missingWaivers:t.missingWaivers.map(a=>a.initial)})):[];
+  if(!teams.length){const r=teamRoster();return {today:new Date().toISOString().slice(0,10),rosterCount:r.length,familyCount:r.length};}
+  return {today:new Date().toISOString().slice(0,10),teams,defaultTeam:pm.defaultTeam};
 }
 function parseObligations(text){
   const X=window.SporvIntakeExtract;
@@ -20997,16 +21010,12 @@ function aiFailureCopy(err){
   return {retry:true,text:"I couldn't process that — the assistant call failed."+nothing};
 }
 /* The signed-out sample workspace, as one plain object for the deterministic
-   preview assistant (src/mod-sample-answers.js). Every value is read from the
-   records the preview already renders — the sample roster, the Queue drafts,
-   the sample team's sessions, the sample recruiting board — never invented. */
+   preview assistant (src/mod-sample-answers.js). The club itself — teams,
+   roster, dues, waivers, events — is the ONE sample model in src/mod-preview.js
+   (the same one Money, Clients, Teams, Families, Home and Schedule render);
+   the Queue drafts and the recruiting sample board are added beside it. */
 function sampleWorkspaceSnapshot(){
-  const team=SEED.teams[0];
-  const org=SAMPLE_ORGS.find(o=>o.id==="sample_team_aau")||{};
-  const hm=s=>String(s||"").replace(/^0/,"");
-  const place=a=>String(a||"").split(",")[0];
-  const events=SESSIONS.filter(s=>s.programId==="prog_1").map(s=>({date:s.date,time:hm(s.startTime)+"–"+hm(s.endTime),title:s.title.replace(/^Northside Flight 14U /,""),place:place(s.address)}))
-    .concat(SEED.bookings.filter(b=>b.programId==="prog_1").map(b=>({date:b.date,time:hm(b.startTime),title:"14U tryout",place:""})));
+  const pm=previewModel()||{teams:[],roster:[],overdue:[],missingWaivers:[],events:[],totals:{}};
   let recruits=[],recruitSport="";
   try{
     const R=window.MOD_RECRUITING&&window.MOD_RECRUITING.sampleData&&window.MOD_RECRUITING.sampleData();
@@ -21020,10 +21029,9 @@ function sampleWorkspaceSnapshot(){
       });
     }
   }catch(e){recruits=[];}
-  return {team:team.name,org:SEED.providerProfile.businessName,monthlyFee:org.price||0,today:TODAY,
-    roster:teamRoster().map(r=>({name:r.name,paid:r.paid!==false,available:r.available!==false,guardian:r.guardian||null})),
+  return Object.assign({},pm,{today:TODAY,
     queue:obligationQueue().map(o=>({kind:o.kind,status:o.status,title:o.title,detail:o.detail})),
-    events,recruits,recruitSport};
+    recruits,recruitSport});
 }
 function askCoach(q){
   const text=(q||"").trim();
