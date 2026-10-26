@@ -29,7 +29,7 @@
 <link rel="manifest" href="/site.webmanifest">
 <script type="application/ld+json">{"@context":"https://schema.org","@type":"SoftwareApplication","name":"Sporv","url":"https://sporv.ai/","applicationCategory":"BusinessApplication","operatingSystem":"Web","description":"Sporv runs the club for you — roster, scheduling, waivers, dues and payouts, with an agent that drafts the busywork and a human who approves it.","publisher":{"@type":"Organization","name":"Sporv","url":"https://sporv.ai/","logo":"https://sporv.ai/icon-512.png"}}</script>
 <script type="application/ld+json">{"@context":"https://schema.org","@type":"WebSite","name":"Sporv AI","url":"https://sporv.ai/"}</script>
-<meta name="sporve-build" content="420f6bc321fcfb52">
+<meta name="sporve-build" content="c1cb488521e8b976">
 </head>
 <body>
 <script>
@@ -8952,7 +8952,7 @@ function topbarHTML(){
   /* Harvey-style announcement strip above the public nav (owner 2026-10-22,
      "harveys top nav bar aswell"). Family/public portal only, never the app. */
   const annBar=S.portal==="family"&&!S.annClosed
-    ?`<div class="hvl-ann"><span>Switching from TeamSnap or SportsEngine? We import your roster on a setup call.</span> <a href="${CALENDLY_URL}" target="_blank" rel="noopener">Book a call</a><button class="hvl-ann-x" data-annclose="1" aria-label="Dismiss">×</button></div>`:"";
+    ?`<div class="hvl-ann"><span>Switching from TeamSnap or SportsEngine? We import your roster during your demo.</span> <a href="${CALENDLY_URL}" target="_blank" rel="noopener">Request a demo</a><button class="hvl-ann-x" data-annclose="1" aria-label="Dismiss">×</button></div>`:"";
   return `<header class="topbar${guestFam?" guest":""}${annBar?" has-ann":""}">${annBar}<div class="shell topbar-in"><div class="nav-left">
     <button class="brand" data-nav="explore" aria-label="Sporv home"><span class="navlogo-crop"><img class="navlogo" src="${LOGO_SRC}" alt="Sporv" width="99" height="24"></span></button>
     ${/* EASED LAYOUT (owner, 2026-08-19): logo + tabs are a LEFT group; the
@@ -9023,15 +9023,15 @@ function primaryNavHTML(){
      only CTA. The mega-menu (productMenuHTML) is retired. */
   return `<nav class="tnav-row" aria-label="Primary">
     <button class="tnav prodpill ${S.prodMenu?"open":""}" data-prodtoggle="1"
-      aria-expanded="${!!S.prodMenu}" aria-haspopup="menu">Product <span class="caret">⌄</span></button>
-    <div class="tnav-dd"><button class="tnav" aria-haspopup="menu">Platform <span class="caret">⌄</span></button>
+      aria-expanded="${!!S.prodMenu}" aria-haspopup="menu">Product <svg class="caret" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg></button>
+    <div class="tnav-dd"><button class="tnav" aria-haspopup="menu">Platform <svg class="caret" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg></button>
       <div class="tnav-menu" role="menu"><button role="menuitem" data-solution="manage"><b>Manage</b><small>Run the whole program, one team or every sport</small></button><button role="menuitem" data-solution="source"><b>Source</b><small>Find and manage recruits</small></button><button role="menuitem" data-foot="page:what-is"><b>Assistant</b><small>Your own AI for the program</small></button></div></div>
-    <div class="tnav-dd"><button class="tnav" aria-haspopup="menu">Solutions <span class="caret">⌄</span></button>
+    <div class="tnav-dd"><button class="tnav" aria-haspopup="menu">Solutions <svg class="caret" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg></button>
       <div class="tnav-menu" role="menu"><button role="menuitem" data-solution="1"><b>Schools and athletic departments</b><small>Every team in the department, one account</small></button><button role="menuitem" data-solution="1"><b>Clubs, AAU and travel teams</b><small>Season fees, rosters and tournaments</small></button><button role="menuitem" data-solution="1"><b>Camps and private trainers</b><small>Sessions, packages and one-time charges</small></button></div></div>
     <button class="tnav" data-foot="nav:trust">Security</button>
-    <div class="tnav-dd"><button class="tnav" aria-haspopup="menu">Resources <span class="caret">⌄</span></button>
+    <div class="tnav-dd"><button class="tnav" aria-haspopup="menu">Resources <svg class="caret" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg></button>
       <div class="tnav-menu" role="menu"><button role="menuitem" data-foot="page:what-is"><b>What is Sporv?</b><small>How the agent works</small></button><button role="menuitem" data-foot="nav:product"><b>Product guide</b><small>Every page, explained</small></button><button role="menuitem" data-foot="info:help"><b>Help center</b><small>Answers and contact</small></button></div></div>
-    <div class="tnav-dd"><button class="tnav" aria-haspopup="menu">Company <span class="caret">⌄</span></button>
+    <div class="tnav-dd"><button class="tnav" aria-haspopup="menu">Company <svg class="caret" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg></button>
       <div class="tnav-menu" role="menu"><button role="menuitem" data-foot="nav:about"><b>About</b><small>Who builds Sporv</small></button><button role="menuitem" data-foot="info:help"><b>Contact</b><small>support@sporv.ai</small></button><button role="menuitem" data-foot="info:legal"><b>Legal</b><small>Terms, privacy and refunds</small></button></div></div>
     ${/* Right cluster (owner spec 2026-09-04, prototype .cta): signed out =
          Log in + Get started pair; signed in = Coach dashboard, and "Log in"
@@ -9047,8 +9047,8 @@ function primaryNavHTML(){
       if(signed&&role==="provider") return `<span class="cta-pair"><button class="cta start" data-dashbtn="1">Coach dashboard</button></span>`;
       /* Owner 2026-10-22 (Harvey's "Request a Demo"): the public CTA is
          "Book a call", not "Get started". Sign-up stays reachable via Log in. */
-      if(signed) return `<span class="cta-pair"><a class="cta start" href="${CALENDLY_URL}" target="_blank" rel="noopener">Book a call</a></span>`;
-      return `<span class="cta-pair"><button class="cta login" data-loginbtn="1">Log in</button><a class="cta start" href="${CALENDLY_URL}" target="_blank" rel="noopener">Book a call</a></span>`;})()}
+      if(signed) return `<span class="cta-pair"><a class="cta start" href="${CALENDLY_URL}" target="_blank" rel="noopener">Request a demo</a></span>`;
+      return `<span class="cta-pair"><button class="cta login" data-loginbtn="1">Log in</button><a class="cta start" href="${CALENDLY_URL}" target="_blank" rel="noopener">Request a demo</a></span>`;})()}
   </nav>`;
 }
 
@@ -9125,7 +9125,7 @@ function pricingHTML(){
         {id:"organization",name:"Organization",noprice:true,
          desc:"A multi-team org, AAU program, or academy.",
          feats:["Everything in Club","Unlimited coach and staff seats","Per-staff background-check gating","Compliance dashboard — certs and waivers","Roles and granular permissions","Consolidated org billing · planned"],
-         cta:"Book a call",buy:"call"},
+         cta:"Request a demo",buy:"call"},
       ];
       const feat=f=>{const i=f.indexOf(" · planned");return i<0?esc(f):esc(f.slice(0,i))+`<em class="pt-planned"> · planned</em>`;};
       /* Monthly/yearly figures both derive from CFG (spec §3); the toggle
@@ -9211,7 +9211,7 @@ function pricingHTML(){
       <h2 data-rev>Run the season, not the spreadsheet.</h2>
       <p data-rev data-rev-d="1">Set up in an afternoon. Nothing sends without you.</p>
       <div class="pr-close-btns" data-rev data-rev-d="2">
-        <a class="btn" href="${CALENDLY_URL}" target="_blank" rel="noopener">Book a 15-minute setup call</a>
+        <a class="btn" href="${CALENDLY_URL}" target="_blank" rel="noopener">Request a demo</a>
         <button class="btn ghost" data-becomecoach="1">Get started</button>
       </div>
     </div>
@@ -9291,7 +9291,7 @@ function docsShellHTML(id, body){
       <label class="docs-search"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg><input type="search" placeholder="Search" data-docsearch="1" autocomplete="off"><kbd>⌘K</kbd></label>
       <nav class="docs-tree">${DOC_GROUPS.map(([g,ids])=>group(g,ids)).join("")}</nav>
       <div class="docs-foot">
-        <a class="docs-flink" href="${CALENDLY_URL}" target="_blank" rel="noopener">Book a call</a>
+        <a class="docs-flink" href="${CALENDLY_URL}" target="_blank" rel="noopener">Request a demo</a>
         <a class="docs-flink" href="mailto:support@sporv.ai">Contact support</a>
       </div>
     </aside>
@@ -9348,14 +9348,14 @@ function coachesMenuHTML(){
     <div class="pmcol cmtalk">
       <div class="eyebrow">Talk to us</div>
       <h3>See the coach side first</h3>
-      <p>Book a call with the Sporv team — see the coach side end-to-end
+      <p>Request a demo with the Sporv team — see the coach side end-to-end
          before you commit to anything.</p>
       ${/* ghost, not filled. This lives in the Coaches mega-menu, which is in
             the DOM on every route -- so a filled accent here spent the page's
             orange budget before the page had painted anything of its own.
             Measured on /product: 3 painted elements against a cap of 2, and
             the third was menu chrome. */""}
-      <a class="btn ghost" href="${CALENDLY_URL}" target="_blank" rel="noopener" style="margin-top:16px">Book a call</a>
+      <a class="btn ghost" href="${CALENDLY_URL}" target="_blank" rel="noopener" style="margin-top:16px">Request a demo</a>
     </div>
   </div></div>`;
 }
@@ -9597,7 +9597,7 @@ function landingHTML(){
         ${/* (owner 2026-10-22, small adjustment) one line of what it does and the
              two actions, so the first screen is not a photo with no next step. */""}
         <p class="hero-sub26">For schools, clubs, AAU teams, camps and trainers. Sporv manages the program and sources your next recruits. Every message is drafted for you, and nothing sends until you approve it.</p>
-        <div class="hero-ctas26"><a class="btn pri" href="${CALENDLY_URL}" target="_blank" rel="noopener">Book a call</a><button class="btn ghost" data-foot="nav:product">See the product</button></div>
+        <div class="hero-ctas26"><a class="btn pri" href="${CALENDLY_URL}" target="_blank" rel="noopener">Request a demo</a><button class="btn ghost" data-foot="nav:product">See the product</button></div>
       </div>
     </div>
   </section>
@@ -9656,7 +9656,7 @@ function landingHTML(){
         <article class="pillar" id="source" data-rev data-rev-d="1">
           <div class="pillar-ph" style="--ph:url('/assets/landing/photo-pressbox.webp')" role="img" aria-label="A press box looking out over a lit football field at night"><div><p class="pillar-k">Source</p><h3 class="pillar-h">Find and manage recruits.</h3></div></div>
           <ul><li>A recruit board from first look to signed</li><li>Evaluations from every coach, ranked against your roster gaps</li><li>A contact log that respects the recruiting calendar</li><li>Messages to recruits and families drafted for your approval</li></ul>
-          <p><span class="tag">In development. Book a call to be one of the first programs.</span></p>
+          <p><span class="tag">In development. Request a demo to be one of the first programs.</span></p>
         </article>
       </div>
     </div>
@@ -9752,7 +9752,7 @@ function landingHTML(){
     <div class="wrap">
       <h2 data-rev>Fifteen minutes, your real roster.</h2>
       <p data-rev data-rev-d="1">Bring last season's export. We import it on the call and show you what the queue would have caught. If it isn't obviously better than what you do now, that's the end of it.</p>
-      <div data-rev data-rev-d="2"><a class="btn pri" href="${CALENDLY_URL}" target="_blank" rel="noopener">Book a 15-minute setup call</a></div>
+      <div data-rev data-rev-d="2"><a class="btn pri" href="${CALENDLY_URL}" target="_blank" rel="noopener">Request a demo</a></div>
     </div>
     ${/* Real footer (spec 01 acceptance: legal reachable, distinct links,
          support address, B2B position disclosure). Every destination is a KEPT
@@ -33768,7 +33768,7 @@ function lockedBody(){
         `<div class="org-hint" style="margin-top:8px">Requires the Enterprise plan.</div>`
       ) +
       `<div class="org-blockfoot">` +
-      u.Button({ label: "Book a call", size: "lg", variant: "primary", href: (typeof CALENDLY_URL !== "undefined" ? CALENDLY_URL : "mailto:support@sporv.ai"), attrs: 'target="_blank" rel="noopener"' }) +
+      u.Button({ label: "Request a demo", size: "lg", variant: "primary", href: (typeof CALENDLY_URL !== "undefined" ? CALENDLY_URL : "mailto:support@sporv.ai"), attrs: 'target="_blank" rel="noopener"' }) +
       `</div>`,
   });
 }
@@ -34456,7 +34456,7 @@ function deniedPage(ui){
     h1: "Teams",
     lede: "Every team, roster and season in one place, with many coaches. Available on Enterprise.",
     actions: [ui.Button({
-      label: "Book a call", size: "lg", variant: "primary",
+      label: "Request a demo", size: "lg", variant: "primary",
       href: (typeof CALENDLY_URL !== "undefined" ? CALENDLY_URL : "mailto:support@sporv.ai"),
       attrs: 'target="_blank" rel="noopener"',
     })],
@@ -34864,7 +34864,7 @@ function teaserView(ui){
     page: "families", eyebrow: "ENTERPRISE", h1: "Families",
     lede: "Guardians linked to their athletes: who pays and who to contact. Available on Enterprise.",
     actions: [ui.Button({
-      label: "Book a call", size: "lg", variant: "primary",
+      label: "Request a demo", size: "lg", variant: "primary",
       href: (typeof CALENDLY_URL !== "undefined" ? CALENDLY_URL : "mailto:support@sporv.ai"),
       attrs: 'target="_blank" rel="noopener"',
     })],
@@ -36828,7 +36828,7 @@ html body:not(.reg-coach) #app .pp-badge{background:#161616!important;color:#FFF
 
 /* Scroll-reveal fades are switched off site-wide: content that is invisible
    until it scrolls into view read as a glitch on fast scrolls. */
-.js-rev [data-rev]{opacity:1!important;transform:none!important;transition:none!important}
+/* (2026-10-26: reveals restored below, Harvey/Rogo timing) */
 
 html #app:has(.hvl){background:#F7F6F2!important}
 html #app .hvl{--ink:#161616;--ink-2:#3B3A37;--muted:#66655F;--rule:#E6E3DD;--rule-2:#D6D3CC;--canvas:#F7F6F2;--sunk:#F1EFEA;
@@ -37361,6 +37361,39 @@ html #app.coachdark .dash>.rail .railmark,html body .railmark{font-family:"Saira
   font-stretch:100%!important;text-transform:uppercase!important;letter-spacing:.04em!important;font-size:24px!important}
 html body.reg-coach .aidock-panel :is(.aidock-head-t,.aidock-head b,.aidock-empty h3,.aidock-empty-coach h3),html body .aidock-panel :is(.aidock-head-t,.aidock-empty h3){font-family:"Saira","Archivo",system-ui,sans-serif!important;
   font-weight:300!important;font-stretch:100%!important;text-transform:uppercase!important;letter-spacing:.03em!important}
+
+/* ═══ Nav chevrons, Harvey / Rogo behaviour (owner 2026-10-26) ═══
+   A thin vector chevron centred on the label (not a baseline text glyph), 6px
+   from the word, that flips when its menu is open. */
+html body:not(.reg-coach) header.topbar .tnav{display:inline-flex!important;align-items:center!important;gap:6px!important}
+html body header.topbar .tnav .caret{display:block;flex:none;width:12px;height:12px;margin:0!important;opacity:.85;transition:transform .18s ease}
+html body header.topbar .tnav-dd:hover .tnav .caret,html body header.topbar .tnav-dd:focus-within .tnav .caret,
+html body header.topbar .tnav.open .caret,html body header.topbar .tnav[aria-expanded="true"] .caret{transform:rotate(180deg)}
+@media (prefers-reduced-motion:reduce){html body header.topbar .tnav .caret{transition:none}}
+
+/* ═══ Product frame sized like Harvey's hero dashboard (owner 2026-10-26) ═══
+   Near full-bleed frame (24px page margin, 16px radius); the app window inset
+   ~8.5% each side and ~5% from the top; breaks out of the 970px text column. */
+html #app .shot26{width:min(1840px,calc(100vw - 48px))!important;max-width:none!important;
+  margin-left:calc(50% - min(920px,(100vw - 48px) / 2))!important;margin-right:0!important;
+  padding:clamp(28px,4.9vw,96px) 8.5% 0!important;border-radius:16px!important}
+@media (max-width:760px){html #app .shot26{width:calc(100vw - 24px)!important;margin-left:calc(50% - (100vw - 24px) / 2)!important;padding:20px 12px 0!important;border-radius:12px!important}}
+
+/* ═══ Scroll animations, Harvey / Rogo behaviour (owner 2026-10-26) ═══
+   Each block rises ~24px and fades in once as it enters the viewport (the
+   existing IntersectionObserver: threshold 0, fires once, never re-hides);
+   product frames and photos settle from a slight zoom. Reduced motion and
+   no-JS keep everything visible (the .js-rev class is never added). */
+html #app.js-rev [data-rev]{opacity:0;transform:translateY(24px);
+  transition:opacity .9s cubic-bezier(.16,1,.3,1),transform .9s cubic-bezier(.16,1,.3,1)}
+html #app.js-rev [data-rev].in{opacity:1;transform:none}
+html #app.js-rev [data-rev].in.now{transition:none}
+html #app.js-rev :is(.shot26,.pillar,.who>div)[data-rev]{transform:translateY(32px) scale(.98)}
+html #app.js-rev :is(.shot26,.pillar,.who>div)[data-rev].in{transform:none}
+html #app.js-rev [data-rev][data-rev-d="1"]{transition-delay:.1s}
+html #app.js-rev [data-rev][data-rev-d="2"]{transition-delay:.2s}
+html #app.js-rev [data-rev][data-rev-d="3"]{transition-delay:.3s}
+@media (prefers-reduced-motion:reduce){html #app.js-rev [data-rev]{opacity:1!important;transform:none!important;transition:none!important}}
 `;
 
 const ID = "harvey-layer";

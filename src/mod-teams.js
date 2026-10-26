@@ -296,7 +296,7 @@ function deniedPage(ui){
     h1: "Teams",
     lede: "Every team, roster and season in one place, with many coaches. Available on Enterprise.",
     actions: [ui.Button({
-      label: "Book a call", size: "lg", variant: "primary",
+      label: "Request a demo", size: "lg", variant: "primary",
       href: (typeof CALENDLY_URL !== "undefined" ? CALENDLY_URL : "mailto:support@sporv.ai"),
       attrs: 'target="_blank" rel="noopener"',
     })],
