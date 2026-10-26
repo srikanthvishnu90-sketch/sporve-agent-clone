@@ -7604,6 +7604,17 @@ const COACH_PRIVATE={
   families:"guardian contact details and athlete links",
 };
 function isCoachGuest(){ return S.portal==="coach"&&!isVerified(); }
+/* The DISCLOSED sample club (MOD_PREVIEW) may replace a COACH_PRIVATE lock only
+   when nobody's real data could be on screen: a guest in the coach portal with
+   no Supabase session, no provider row and no live queue. The loading moment
+   after a real sign-in (session present, status not yet verified) fails this
+   check and keeps the lock, so a signed-in coach never sees sample rows. */
+function previewSample(){
+  return isCoachGuest()&&!realSignedIn()&&!queueIsLive()&&!(S.coachProvider&&S.coachProvider.id);
+}
+function previewSamplePage(t){
+  return previewSample()&&window.MOD_PREVIEW&&window.MOD_PREVIEW.pages&&window.MOD_PREVIEW.pages[t]||null;
+}
 /* money and counts that belong to the business, blanked for a guest */
 function veil(v){ return isCoachGuest()?"—":v; }
 function coachLockHTML(title,what){
@@ -7867,7 +7878,7 @@ function coachGateActive(){
 /* the caller's role in the open workspace: owner | director | coach */
 function coachRole(){ const pv=S.coachProvider; return (pv&&pv.role)||"owner"; }
 /* AUDIT 2026-09-17 P1-3: a real org's money tab is Money (doc 22.6); the marketplace demo keeps Earnings. */
-function financesLabel(){ return queueIsLive()?"Money":"Earnings"; }
+function financesLabel(){ return queueIsLive()||previewSample()?"Money":"Earnings"; }
 /* Resume the wizard where the DB says this org left off — sessionStorage only
    survives the tab; provider_settings survives the device. */
 function suwResume(pv){
@@ -11579,7 +11590,7 @@ function coachHTML(){
   loadConnectors();
   /* The gate sits here, above every branch, so a private tab cannot be reached
      by any route that sets S.coachTab — including module code and the AI bar. */
-  if(isCoachGuest()&&COACH_PRIVATE[t]){
+  if(isCoachGuest()&&COACH_PRIVATE[t]&&!previewSamplePage(t)){
     const label=(modCoachTabs().concat([["finances",financesLabel()],["roster",rosterLabel()],
       ["inbox","Messages"]]).find(x=>x[0]===t)||[t,t])[1];
     return coachLockHTML(label,COACH_PRIVATE[t]);
@@ -12382,7 +12393,10 @@ function coachHomePage(){
       : ui.Button({label:"Open",size:"sm",variant:"secondary",attrs:`data-ctab="${esc(tab)}"`})),
     mono:false,
   }));
-  const todayRows=sessions.slice(0,6).map(s=>({
+  /* signed-out preview reads the disclosed sample club so Home agrees with
+     Money, Teams and Schedule; every other path keeps its own data */
+  const pvs=previewSample()&&window.MOD_PREVIEW?window.MOD_PREVIEW:null;
+  const todayRows=pvs?pvs.todayRows():sessions.slice(0,6).map(s=>({
     label:ui.html(`<b>${esc(s.p.title)}</b><small>${esc(fmtDate(s.date))} · ${esc(s.p.address||s.address||"Location pending")}</small>`),
     value:s.startTime,
   }));
@@ -12390,11 +12404,11 @@ function coachHomePage(){
     ui.Block({
       title:"Stats",
       subtitle:"This workspace at a glance.",
-      body:ui.StatGrid([
-        {label:"Active listings",value:String(mine.length),context:"Published"},
-        {label:"Clients",value:String(roster.length),context:"Athletes on the current roster"},
-        {label:"Upcoming sessions",value:String(sessions.length),context:"Scheduled ahead"},
-        {label:"Received",value:money(received),context:"Paid bookings"},
+      body:ui.StatGrid(pvs?pvs.homeStats():[
+        {label:"Programs",value:String(mine.length),context:"Active"},
+        {label:"Athletes",value:String(roster.length),context:"On the current roster"},
+        {label:"Upcoming events",value:String(sessions.length),context:"Scheduled ahead"},
+        {label:"Collected",value:money(received),context:"Paid registrations"},
       ]),
     }),
     ui.Block({
@@ -12405,16 +12419,16 @@ function coachHomePage(){
     }),
     ui.Block({
       title:"Today",
-      subtitle:"The next sessions across your published listings, ordered by date and start time.",
+      subtitle:"The next practices, games and events across your teams, ordered by date and start time.",
       action:ui.Button({label:"Full schedule",size:"sm",variant:"secondary",attrs:'data-ctab="schedule"'}),
-      body:ui.ListCard(todayRows,{emptyTitle:"No upcoming sessions",emptyBody:"Add availability before families can choose a time."}),
+      body:ui.ListCard(todayRows,{emptyTitle:"No upcoming events",emptyBody:"Add a practice or game to fill the calendar."}),
     }),
   ].join("");
   return ui.Page({
     page:"home",eyebrow:"Coach dashboard",h1:"Home",
     lede:isCoachGuest()
-      ? "A disclosed sample workspace showing how a team runs clients, sessions, and bookings in one place."
-      : "The operational state of your coaching business, from setup through today's schedule.",
+      ? "A disclosed sample workspace showing how a club runs its teams, families, dues and schedule in one place."
+      : "The operational state of your club, from setup through today's schedule.",
     body:setupBanner+body,
   });
 }
@@ -12760,8 +12774,9 @@ function coachSchedulePage(){
   const sessions=providerSessions().filter(s=>s.date>=TODAY);
   const rules=(S.recurringSlots||[]).slice();
   const live=queueIsLive(), st=live?schedState():null;
+  const pvs=!live&&previewSample()&&window.MOD_PREVIEW?window.MOD_PREVIEW:null;
   const tabs=[
-    {key:"calendar",label:live?"Schedule":"Calendar",count:live?((st.events||[]).filter(e=>e.status!=="cancelled").length):sessions.length},
+    {key:"calendar",label:live?"Schedule":"Calendar",count:live?((st.events||[]).filter(e=>e.status!=="cancelled").length):pvs?pvs.eventCount():sessions.length},
     {key:"availability",label:"Availability",count:rules.length},
     {key:"time-off",label:"Time off"},
   ];
@@ -12771,13 +12786,13 @@ function coachSchedulePage(){
     /* AUDIT 2026-09-17 P1-2: the org's events, not the marketplace sessions.
        A signed-in org reads `event`; the seeded sessions table is never shown
        to a real org (doc 28 law 1). */
-    body=queueIsLive()?schedBodyHTML():ui.Block({
-      title:"Upcoming sessions",
-      subtitle:"Sessions across your listings, soonest first.",
+    body=queueIsLive()?schedBodyHTML():pvs?pvs.scheduleBlock():ui.Block({
+      title:"Upcoming events",
+      subtitle:"Practices and events across your programs, soonest first.",
       body:ui.DataTable({
-        columns:[{key:"date",label:"Date",mono:true},{key:"time",label:"Time",mono:true},{key:"listing",label:"Listing"},{key:"location",label:"Location"},{key:"capacity",label:"Capacity",mono:true}],
+        columns:[{key:"date",label:"Date",mono:true},{key:"time",label:"Time",mono:true},{key:"listing",label:"Program"},{key:"location",label:"Location"},{key:"capacity",label:"Capacity",mono:true}],
         rows:sessions.map(s=>({date:fmtDate(s.date),time:s.startTime,listing:ui.html(`<b>${esc(s.p.title)}</b><small>${esc(s.p.sport)}</small>`),location:s.address||s.p.address||"—",capacity:`${s.p.enrolled}/${s.p.cap}`})),
-        emptyTitle:"No sessions scheduled",emptyBody:"Add a session or publish recurring availability to open the calendar.",
+        emptyTitle:"Nothing scheduled",emptyBody:"Add a practice or game, or set recurring availability, to fill the calendar.",
       }),
     });
   } else if(active==="availability"){
@@ -12804,8 +12819,9 @@ function coachSchedulePage(){
   }
   return ui.Page({
     page:"schedule",eyebrow:"Clients",h1:"Schedule",
-    lede:live?"Events, conflicts and attendance. Families only hear about a change after you approve the notice.":"Sessions families can book, and the availability behind them.",
-    actions:live?[]:[ui.Button({label:"Add session",size:"lg",variant:"primary",attrs:'data-addsession="1"'})],
+    lede:live?"Events, conflicts and attendance. Families only hear about a change after you approve the notice.":"Practices, games and tournaments for every team, and the availability behind them.",
+    actions:live?[]:[pvs?ui.Button({label:"Add event",size:"lg",variant:"primary",attrs:'data-pvsave="Add event"'})
+      :ui.Button({label:"Add session",size:"lg",variant:"primary",attrs:'data-addsession="1"'})],
     tabs:tabs,active:active,stateKey:"schedulePageTab",tabLabel:"Schedule sections",body:body,
   });
 }
@@ -13087,7 +13103,7 @@ function coachOperationsPage(){
       ? window.MOD_INSIGHTS.availabilityWarnings() : [];
     body=ui.Block({
       title:"Operating signals",
-      subtitle:"Based on your listings, sessions, capacity and bookings.",
+      subtitle:"Based on your teams, schedule, attendance and dues.",
       body:isCoachGuest()?ui.EmptyState("Sign in to see insights","Operating signals can identify private clients and remain hidden in preview mode.")
         :ui.ListCard(warnings.map(row=>({label:ui.html(`<b>${esc(row.text)}</b><small>${esc(row.action||"")}</small>`),value:row.level==="good"?"Clear":"Review",mono:false})),{emptyTitle:"No operating signals",emptyBody:"Nothing needs your attention right now."}),
     });
@@ -14301,6 +14317,8 @@ function coachQueuePage(){
 function coachBody(t){
   const mine=coachListings();
   const pp=SEED.providerProfile;
+  /* signed-out preview: the disclosed sample club replaces the lock (MOD_PREVIEW) */
+  const sample=previewSamplePage(t); if(sample) return sample();
   if(t==="queue") return coachQueuePage();
   if(t==="settings") return coachSettingsPage();
   /* Personalization onboarding (spec 30): four screens, then the workspace. */

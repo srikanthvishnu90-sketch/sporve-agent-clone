@@ -29,7 +29,7 @@
 <link rel="manifest" href="/site.webmanifest">
 <script type="application/ld+json">{"@context":"https://schema.org","@type":"SoftwareApplication","name":"Sporv","url":"https://sporv.ai/","applicationCategory":"BusinessApplication","operatingSystem":"Web","description":"Sporv runs the club for you — roster, scheduling, waivers, dues and payouts, with an agent that drafts the busywork and a human who approves it.","publisher":{"@type":"Organization","name":"Sporv","url":"https://sporv.ai/","logo":"https://sporv.ai/icon-512.png"}}</script>
 <script type="application/ld+json">{"@context":"https://schema.org","@type":"WebSite","name":"Sporv AI","url":"https://sporv.ai/"}</script>
-<meta name="sporve-build" content="310c68d0ea35ea81">
+<meta name="sporve-build" content="d8ce5a1992659748">
 </head>
 <body>
 <script>
@@ -7658,6 +7658,17 @@ const COACH_PRIVATE={
   families:"guardian contact details and athlete links",
 };
 function isCoachGuest(){ return S.portal==="coach"&&!isVerified(); }
+/* The DISCLOSED sample club (MOD_PREVIEW) may replace a COACH_PRIVATE lock only
+   when nobody's real data could be on screen: a guest in the coach portal with
+   no Supabase session, no provider row and no live queue. The loading moment
+   after a real sign-in (session present, status not yet verified) fails this
+   check and keeps the lock, so a signed-in coach never sees sample rows. */
+function previewSample(){
+  return isCoachGuest()&&!realSignedIn()&&!queueIsLive()&&!(S.coachProvider&&S.coachProvider.id);
+}
+function previewSamplePage(t){
+  return previewSample()&&window.MOD_PREVIEW&&window.MOD_PREVIEW.pages&&window.MOD_PREVIEW.pages[t]||null;
+}
 /* money and counts that belong to the business, blanked for a guest */
 function veil(v){ return isCoachGuest()?"—":v; }
 function coachLockHTML(title,what){
@@ -7921,7 +7932,7 @@ function coachGateActive(){
 /* the caller's role in the open workspace: owner | director | coach */
 function coachRole(){ const pv=S.coachProvider; return (pv&&pv.role)||"owner"; }
 /* AUDIT 2026-09-17 P1-3: a real org's money tab is Money (doc 22.6); the marketplace demo keeps Earnings. */
-function financesLabel(){ return queueIsLive()?"Money":"Earnings"; }
+function financesLabel(){ return queueIsLive()||previewSample()?"Money":"Earnings"; }
 /* Resume the wizard where the DB says this org left off — sessionStorage only
    survives the tab; provider_settings survives the device. */
 function suwResume(pv){
@@ -11633,7 +11644,7 @@ function coachHTML(){
   loadConnectors();
   /* The gate sits here, above every branch, so a private tab cannot be reached
      by any route that sets S.coachTab — including module code and the AI bar. */
-  if(isCoachGuest()&&COACH_PRIVATE[t]){
+  if(isCoachGuest()&&COACH_PRIVATE[t]&&!previewSamplePage(t)){
     const label=(modCoachTabs().concat([["finances",financesLabel()],["roster",rosterLabel()],
       ["inbox","Messages"]]).find(x=>x[0]===t)||[t,t])[1];
     return coachLockHTML(label,COACH_PRIVATE[t]);
@@ -12436,7 +12447,10 @@ function coachHomePage(){
       : ui.Button({label:"Open",size:"sm",variant:"secondary",attrs:`data-ctab="${esc(tab)}"`})),
     mono:false,
   }));
-  const todayRows=sessions.slice(0,6).map(s=>({
+  /* signed-out preview reads the disclosed sample club so Home agrees with
+     Money, Teams and Schedule; every other path keeps its own data */
+  const pvs=previewSample()&&window.MOD_PREVIEW?window.MOD_PREVIEW:null;
+  const todayRows=pvs?pvs.todayRows():sessions.slice(0,6).map(s=>({
     label:ui.html(`<b>${esc(s.p.title)}</b><small>${esc(fmtDate(s.date))} · ${esc(s.p.address||s.address||"Location pending")}</small>`),
     value:s.startTime,
   }));
@@ -12444,11 +12458,11 @@ function coachHomePage(){
     ui.Block({
       title:"Stats",
       subtitle:"This workspace at a glance.",
-      body:ui.StatGrid([
-        {label:"Active listings",value:String(mine.length),context:"Published"},
-        {label:"Clients",value:String(roster.length),context:"Athletes on the current roster"},
-        {label:"Upcoming sessions",value:String(sessions.length),context:"Scheduled ahead"},
-        {label:"Received",value:money(received),context:"Paid bookings"},
+      body:ui.StatGrid(pvs?pvs.homeStats():[
+        {label:"Programs",value:String(mine.length),context:"Active"},
+        {label:"Athletes",value:String(roster.length),context:"On the current roster"},
+        {label:"Upcoming events",value:String(sessions.length),context:"Scheduled ahead"},
+        {label:"Collected",value:money(received),context:"Paid registrations"},
       ]),
     }),
     ui.Block({
@@ -12459,16 +12473,16 @@ function coachHomePage(){
     }),
     ui.Block({
       title:"Today",
-      subtitle:"The next sessions across your published listings, ordered by date and start time.",
+      subtitle:"The next practices, games and events across your teams, ordered by date and start time.",
       action:ui.Button({label:"Full schedule",size:"sm",variant:"secondary",attrs:'data-ctab="schedule"'}),
-      body:ui.ListCard(todayRows,{emptyTitle:"No upcoming sessions",emptyBody:"Add availability before families can choose a time."}),
+      body:ui.ListCard(todayRows,{emptyTitle:"No upcoming events",emptyBody:"Add a practice or game to fill the calendar."}),
     }),
   ].join("");
   return ui.Page({
     page:"home",eyebrow:"Coach dashboard",h1:"Home",
     lede:isCoachGuest()
-      ? "A disclosed sample workspace showing how a team runs clients, sessions, and bookings in one place."
-      : "The operational state of your coaching business, from setup through today's schedule.",
+      ? "A disclosed sample workspace showing how a club runs its teams, families, dues and schedule in one place."
+      : "The operational state of your club, from setup through today's schedule.",
     body:setupBanner+body,
   });
 }
@@ -12814,8 +12828,9 @@ function coachSchedulePage(){
   const sessions=providerSessions().filter(s=>s.date>=TODAY);
   const rules=(S.recurringSlots||[]).slice();
   const live=queueIsLive(), st=live?schedState():null;
+  const pvs=!live&&previewSample()&&window.MOD_PREVIEW?window.MOD_PREVIEW:null;
   const tabs=[
-    {key:"calendar",label:live?"Schedule":"Calendar",count:live?((st.events||[]).filter(e=>e.status!=="cancelled").length):sessions.length},
+    {key:"calendar",label:live?"Schedule":"Calendar",count:live?((st.events||[]).filter(e=>e.status!=="cancelled").length):pvs?pvs.eventCount():sessions.length},
     {key:"availability",label:"Availability",count:rules.length},
     {key:"time-off",label:"Time off"},
   ];
@@ -12825,13 +12840,13 @@ function coachSchedulePage(){
     /* AUDIT 2026-09-17 P1-2: the org's events, not the marketplace sessions.
        A signed-in org reads `event`; the seeded sessions table is never shown
        to a real org (doc 28 law 1). */
-    body=queueIsLive()?schedBodyHTML():ui.Block({
-      title:"Upcoming sessions",
-      subtitle:"Sessions across your listings, soonest first.",
+    body=queueIsLive()?schedBodyHTML():pvs?pvs.scheduleBlock():ui.Block({
+      title:"Upcoming events",
+      subtitle:"Practices and events across your programs, soonest first.",
       body:ui.DataTable({
-        columns:[{key:"date",label:"Date",mono:true},{key:"time",label:"Time",mono:true},{key:"listing",label:"Listing"},{key:"location",label:"Location"},{key:"capacity",label:"Capacity",mono:true}],
+        columns:[{key:"date",label:"Date",mono:true},{key:"time",label:"Time",mono:true},{key:"listing",label:"Program"},{key:"location",label:"Location"},{key:"capacity",label:"Capacity",mono:true}],
         rows:sessions.map(s=>({date:fmtDate(s.date),time:s.startTime,listing:ui.html(`<b>${esc(s.p.title)}</b><small>${esc(s.p.sport)}</small>`),location:s.address||s.p.address||"—",capacity:`${s.p.enrolled}/${s.p.cap}`})),
-        emptyTitle:"No sessions scheduled",emptyBody:"Add a session or publish recurring availability to open the calendar.",
+        emptyTitle:"Nothing scheduled",emptyBody:"Add a practice or game, or set recurring availability, to fill the calendar.",
       }),
     });
   } else if(active==="availability"){
@@ -12858,8 +12873,9 @@ function coachSchedulePage(){
   }
   return ui.Page({
     page:"schedule",eyebrow:"Clients",h1:"Schedule",
-    lede:live?"Events, conflicts and attendance. Families only hear about a change after you approve the notice.":"Sessions families can book, and the availability behind them.",
-    actions:live?[]:[ui.Button({label:"Add session",size:"lg",variant:"primary",attrs:'data-addsession="1"'})],
+    lede:live?"Events, conflicts and attendance. Families only hear about a change after you approve the notice.":"Practices, games and tournaments for every team, and the availability behind them.",
+    actions:live?[]:[pvs?ui.Button({label:"Add event",size:"lg",variant:"primary",attrs:'data-pvsave="Add event"'})
+      :ui.Button({label:"Add session",size:"lg",variant:"primary",attrs:'data-addsession="1"'})],
     tabs:tabs,active:active,stateKey:"schedulePageTab",tabLabel:"Schedule sections",body:body,
   });
 }
@@ -13141,7 +13157,7 @@ function coachOperationsPage(){
       ? window.MOD_INSIGHTS.availabilityWarnings() : [];
     body=ui.Block({
       title:"Operating signals",
-      subtitle:"Based on your listings, sessions, capacity and bookings.",
+      subtitle:"Based on your teams, schedule, attendance and dues.",
       body:isCoachGuest()?ui.EmptyState("Sign in to see insights","Operating signals can identify private clients and remain hidden in preview mode.")
         :ui.ListCard(warnings.map(row=>({label:ui.html(`<b>${esc(row.text)}</b><small>${esc(row.action||"")}</small>`),value:row.level==="good"?"Clear":"Review",mono:false})),{emptyTitle:"No operating signals",emptyBody:"Nothing needs your attention right now."}),
     });
@@ -14355,6 +14371,8 @@ function coachQueuePage(){
 function coachBody(t){
   const mine=coachListings();
   const pp=SEED.providerProfile;
+  /* signed-out preview: the disclosed sample club replaces the lock (MOD_PREVIEW) */
+  const sample=previewSamplePage(t); if(sample) return sample();
   if(t==="queue") return coachQueuePage();
   if(t==="settings") return coachSettingsPage();
   /* Personalization onboarding (spec 30): four screens, then the workspace. */
@@ -32030,9 +32048,9 @@ function guideSnapshot(){
       limit:"Verification, approval, background-check, and payout fields are server-controlled and are never editable here.",
     },
     {
-      id:"profile", phase:1, n:2, title:"Build your public profile", tab:"media", time:"5–10 min", owner:"You", done:profileDone,
-      needs:"identity", description:"Add a useful bio and a real coach image so a family can understand who will work with their athlete.",
-      unlocks:"Makes the listing understandable once it is discoverable.",
+      id:"profile", phase:1, n:2, title:"Describe your organization", tab:"media", time:"5–10 min", owner:"You", done:profileDone,
+      needs:"identity", description:"Add a short description and a real photo so a family understands who runs the club and coaches their athlete.",
+      unlocks:"Makes the club recognizable to the families who join it.",
       why:"Parents decide whether to trust you from your profile. A name alone is not enough.",
       requirements:["Completed provider identity","A short bio describing experience and session format","A real photo of the coach or organization"],
       process:["Open Media → Profile.","Write the public bio and review how the profile reads.","Add the coach or organization image through the account-owned media path.","Reload and confirm the provider record still contains the bio and avatar URL."],
@@ -32041,20 +32059,20 @@ function guideSnapshot(){
       limit:"The Media library's session photos, video, headline, and gallery ordering are still demo/session state. They do not count as durable completion for a real coach.",
     },
     {
-      id:"listing", phase:1, n:3, title:"Publish your first listing", tab:"listings", time:"6–10 min", owner:"You", done:listingDone,
-      needs:"identity", description:"Create one purchasable service with a sport, price, ages, capacity, and—when possible—its first dated session.",
-      unlocks:"Creates a bookable offering; payment remains gated by safety, a future session, and Stripe.",
+      id:"listing", phase:1, n:3, title:"Add your first program", tab:"listings", time:"6–10 min", owner:"You", done:listingDone,
+      needs:"identity", description:"Create one program, such as a team season or camp, with a sport, dues, ages, capacity, and—when possible—its first practice.",
+      unlocks:"Creates a program families can register for; payment still needs a cleared check, a scheduled practice, and Stripe.",
       why:"Your profile describes you. A listing is the thing a family can actually sign up for.",
       requirements:["A provider record","Service title and sport","Description, price, pricing model, age range, and capacity","Optional first session date and time"],
       process:["Open Listings and choose New listing.","Complete the service fields; the client sends only coach-owned listing data.","Sporv inserts the program under the signed-in provider. If a date is supplied, it then inserts the first session.","The catalogue reloads. A partial session failure leaves the listing intact and reports that the session still needs adding."],
-      completeWhen:"You have at least one published listing.",
-      evidence:listingDone ? `${owned.length} listing${owned.length === 1 ? "" : "s"} published.` : real ? "No listing published yet." : "This sample workspace has example listings only.",
+      completeWhen:"You have at least one program.",
+      evidence:listingDone ? `${owned.length} program${owned.length === 1 ? "" : "s"} added.` : real ? "No program added yet." : "This sample workspace has example programs only.",
       limit:"A published row is not proof that a booking can complete. The server still requires background clearance, an available session, capacity, and Stripe readiness.",
     },
     {
-      id:"check", phase:2, n:4, title:"Pass your background check", tab:"getting-started", time:"Varies", owner:"Sporv + screening provider", done:backgroundDone, review:backgroundReview,
-      description:"Complete the external screening flow; only a server-recorded verified result can clear the booking safety gate.",
-      unlocks:"Satisfies the personal safety gate required before a booking is accepted.",
+      id:"check", phase:2, n:4, title:"Clear your coach background check", tab:"getting-started", time:"Varies", owner:"Sporv + screening provider", done:backgroundDone, review:backgroundReview,
+      description:"Complete the external screening flow; only a server-recorded verified result can clear the safety gate.",
+      unlocks:"Satisfies the personal safety gate required before a registration is accepted.",
       why:"A background check is run by a screening provider. You cannot mark it complete yourself, and neither can Sporv's app.",
       requirements:["A signed-in provider identity","The screening provider's separate disclosure and authorization","Any identity information requested on that provider's hosted flow"],
       process:["Ask Sporv to initiate screening for the individual coach.","Review the screening provider's own disclosure, scope, and consent form before submitting anything.","Complete the provider-hosted identity steps; sensitive screening details do not belong in this checklist.","Sporv records the returned status. The page becomes Done only when status is verified and a completion timestamp exists."],
@@ -32064,9 +32082,9 @@ function guideSnapshot(){
       href:"mailto:support@sporv.ai?subject=Start%20my%20background%20check", actionLabel:"Contact Sporv",
     },
     {
-      id:"availability", phase:2, n:5, title:"Open a real session", tab:"schedule", time:"4–8 min", owner:"You", done:availabilityDone,
-      needs:"listing", description:"Put at least one future dated session behind an owned listing so a family has a real time to choose.",
-      unlocks:"Gives an otherwise complete listing an actual bookable time.",
+      id:"availability", phase:2, n:5, title:"Schedule your first practice", tab:"schedule", time:"4–8 min", owner:"You", done:availabilityDone,
+      needs:"listing", description:"Put at least one future dated practice or event on a program so families know when to show up.",
+      unlocks:"Gives an otherwise complete program its first practice.",
       why:"Families can only book a session that has a real date and time.",
       requirements:["An owned listing","A future date","Start time and capacity","A location on the listing or session"],
       process:["Add the first session while creating a listing, or open Schedule to inspect what is already loaded.","Confirm the date is in the future and the session belongs to the intended listing.","After the session insert, reload the catalogue.","Verify the session appears under the owned listing before calling the step complete."],
@@ -32075,7 +32093,7 @@ function guideSnapshot(){
       limit:"Recurring availability and time-off are not yet durable on this web surface. Local blocks can demonstrate the editor, but they do not count as production completion.",
     },
     {
-      id:"payouts", phase:3, n:6, title:"Connect Stripe payouts", tab:"finances", time:"5–10 min", owner:"Stripe", done:payoutsDone,
+      id:"payouts", phase:3, n:6, title:"Connect Stripe to collect dues", tab:"finances", time:"5–10 min", owner:"Stripe", done:payoutsDone,
       needs:"identity", description:"Use Stripe's hosted onboarding so bank and identity details stay with Stripe rather than inside Sporv.",
       unlocks:"Satisfies the payment-readiness gate used by checkout.",
       why:"Starting Stripe setup is not the same as finishing it. This completes when Stripe says you can take payments.",
@@ -32087,7 +32105,7 @@ function guideSnapshot(){
     },
     {
       id:"policy", phase:3, n:7, title:"Confirm cancellation terms", tab:"operations", time:"2 min", owner:"Sporv policy engine", done:policyDone, optional:true,
-      needs:"listing", description:"Review the policy attached to each listing and understand that the checkout copy is snapshotted onto every booking.",
+      needs:"listing", description:"Review the policy attached to each program and understand that the checkout copy is snapshotted onto every registration.",
       unlocks:"Gives the family stable refund terms that cannot be rewritten after purchase.",
       why:"Cancellation terms decide refunds, so review them before families book.",
       requirements:["At least one owned listing","The policy displayed on that listing","An understanding of how the policy is frozen at checkout"],
@@ -32152,9 +32170,9 @@ function guideView(){
   const snapshot = guideSnapshot();
   const next = snapshot.next;
   const phases = [
-    { key:"listed", label:"Phase 1 · Get listed", subtitle:"Create the provider identity, public proof, and first service that families can evaluate." },
-    { key:"bookable", label:"Phase 2 · Get cleared to take bookings", subtitle:"Background clearance and a real future session are separate requirements; both must be true." },
-    { key:"paid", label:"Phase 3 · Get paid", subtitle:"Stripe readiness and stable booking terms complete the money side without exposing bank data to Sporv." },
+    { key:"listed", label:"Phase 1 · Set up your organization", subtitle:"Name the club, describe it, and add the first program families register for." },
+    { key:"bookable", label:"Phase 2 · Get ready for the season", subtitle:"A cleared coach background check and a first practice on the calendar are separate requirements; both must be true." },
+    { key:"paid", label:"Phase 3 · Collect dues", subtitle:"Stripe readiness and stable refund terms complete the money side without exposing bank data to Sporv." },
   ].map((phase, index) => ({...phase,steps:snapshot.steps.filter(step => step.phase === index + 1).map(step => ({
     ...step,
     action:ui.Button({label:"View process",size:"sm",variant:"secondary",attrs:`data-gs-open="${esc(step.id)}" data-gs-trigger="step-${esc(step.id)}"`}),
@@ -32163,11 +32181,11 @@ function guideView(){
     ? ui.html(`Next: <b>${esc(next.title)}</b> — ${esc(next.time)}. `)
     : ui.html("Setup is complete. Check your public listing once before inviting families.");
   const content = ui.ProgressCard({label:"Setup progress",count:`${snapshot.done} of ${snapshot.total} complete`,value:snapshot.pct,context:progressContext}) +
-    ui.Callout({title:'Before families can book.',body:`You need a published profile, an upcoming session with open spots, a completed background check, and Stripe set up to accept payments. ${snapshot.real ? "Every status below is from your account." : "This is a sample workspace, so none of these statuses are real."}`}) +
+    ui.Callout({title:'Before families can register.',body:`You need a described organization, a program with a practice on the calendar, a cleared coach background check, and Stripe set up to collect dues. ${snapshot.real ? "Every status below is from your account." : "This is a sample workspace, so none of these statuses are real."}`}) +
     ui.ProcessPhases(phases);
   const page = ui.Page({
     page:"getting-started",eyebrow:"Coach dashboard",h1:"Getting started",
-    lede:"Three stages: set up your profile, get ready for bookings, and connect payments.",
+    lede:"Three stages: set up your organization, get ready for the season, and connect dues collection.",
     actions:next ? [ui.Button({label:"Continue setup",size:"lg",variant:"primary",attrs:`data-gs-open="${esc(next.id)}" data-gs-trigger="header"`})] : [],
     body:content,
   });
@@ -36622,6 +36640,424 @@ window.MOD_RECRUITING = {
   state: { recruitTab: "board" },
   /* test seam: pure helpers, no side effects */
   _test: { parseCSV: parseCSV, overallOf: overallOf, csvPreview: csvPreview, state: function (){ return st; }, addRecruit: addRecruit, identityKey: identityKey },
+};
+
+})();
+
+</script>
+<script>
+/* ---- mod-preview.js ---- */
+"use strict";
+/* ═══════════════════════════════════════════════════════════════════
+   MOD_PREVIEW — sample Manage tabs for the signed-out coach preview.
+
+   Why this exists: a prospect browsing the preview saw "Sign in to see this"
+   on Money, the roster, Teams, Families, Messages and Organization, so the
+   Manage half of the product was invisible before signup. Those tabs were
+   locked because a signed-out visitor must never see another business's
+   families or money (see COACH_PRIVATE in the host). This module keeps that
+   rule and fills the gap with a DISCLOSED sample club instead:
+
+   - It renders only when previewSample() is true in the host: coach portal,
+     not verified, no Supabase session, no provider row, queue not live. A
+     signed-in coach (or the loading moment before their row lands) never
+     reaches these renderers; the host keeps its lock or real page for them.
+   - Every page carries the "Sample workspace." callout.
+   - Nothing here reads or writes the network. Every write-shaped button is
+     data-pvsave and answers "Not saved in the sample workspace."
+
+   The sample is the same club the Queue and Approvals samples describe:
+   Northside Flight Basketball, the 14U roster in SEED.teams, a 16U team with
+   Marcus Bell, the three missing waivers (Nia O., Marcus B., one more), the
+   Fall Classic entry fee, and the Sat 10:00 gym double-booking.
+
+   It deliberately exposes `pages`, not `views`: modView() resolves `views`
+   for every MOD_*, and these must never shadow the real teams/families/org
+   views for a signed-in coach.
+   ═══════════════════════════════════════════════════════════════════ */
+(function(){
+
+function esc(v){
+  return String(v == null ? "" : v).replace(/[&<>"']/g, function (c){
+    return { "&":"&amp;", "<":"&lt;", ">":"&gt;", '"':"&quot;", "'":"&#39;" }[c];
+  });
+}
+function on(){ return typeof previewSample === "function" && previewSample(); }
+function ui(){ return window.COACH_UI; }
+function usd(n){ return "$" + Number(n).toLocaleString("en-US"); }
+function day(n){ return typeof dayAfter === "function" ? dayAfter(n) : ""; }
+function fmt(iso){
+  try { return new Date(iso + "T12:00:00Z").toLocaleDateString("en-US", { weekday:"short", month:"short", day:"numeric", timeZone:"UTC" }); }
+  catch(_e){ return iso; }
+}
+
+/* ── The sample club ─────────────────────────────────────────────── */
+var DUES = 600, INSTALLMENT = 200;
+/* Three installments. The first two are past due relative to TODAY, the
+   third is upcoming, so the sample shows paid, overdue and not-yet-due. */
+var INST = [ { n:1, due:-33 }, { n:2, due:-12 }, { n:3, due:17 } ];
+
+var TEAMS = [
+  { id:"t14", name:"Northside Flight 14U", short:"14U", coach:"Marcus Vale",
+    practice:"Tue and Thu, 6:00–7:30 PM", venue:"Northside Community Gym" },
+  { id:"t16", name:"Northside Flight 16U", short:"16U", coach:"Dana Ruiz",
+    practice:"Mon and Wed, 7:00–8:30 PM; Sat 10:00 AM", venue:"Lakeview Fieldhouse; Saturdays at Northside Community Gym" },
+];
+
+/* [athlete, team, jersey, guardian, guardian email, unpaid installments, waiver signed] */
+var ROSTER = [
+  ["Julian Mercer",  "t14", "3",  "Alex Mercer",     "a.mercer@example.com",    [],     true ],
+  ["Nia Okafor",     "t14", "5",  "Renata Okafor",   "r.okafor@example.com",    [],     false],
+  ["Cole Whitfield", "t14", "8",  "Grace Whitfield", "g.whitfield@example.com", [],     true ],
+  ["Sofia Ibarra",   "t14", "11", "Luis Ibarra",     "l.ibarra@example.com",    [],     true ],
+  ["Aarav Raman",    "t14", "14", "Meera Raman",     "m.raman@example.com",     [],     true ],
+  ["Ida Nilsen",     "t14", "21", "Tomas Nilsen",    "t.nilsen@example.com",    [2],    true ],
+  ["Maya Brooks",    "t14", "24", "Kim Brooks",      "k.brooks@example.com",    [],     true ],
+  ["Eli Carter",     "t14", "30", "Jordan Carter",   "j.carter@example.com",    [1, 2], true ],
+  ["Marcus Bell",    "t16", "2",  "Keisha Bell",     "k.bell@example.com",      [2],    false],
+  ["Jalen Ortiz",    "t16", "4",  "Ana Ortiz",       "a.ortiz@example.com",     [],     true ],
+  ["Priya Nair",     "t16", "10", "Suresh Nair",     "s.nair@example.com",      [],     true ],
+  ["Owen Kowalski",  "t16", "12", "Beth Kowalski",   "b.kowalski@example.com",  [],     false],
+  ["Talia Reyes",    "t16", "22", "Carlos Reyes",    "c.reyes@example.com",     [],     true ],
+  ["Sam Dorsey",     "t16", "33", "Lauren Dorsey",   "l.dorsey@example.com",    [],     true ],
+].map(function (r){
+  return { name:r[0], team:r[1], jersey:r[2], guardian:r[3], email:r[4], unpaid:r[5], waiver:r[6] };
+});
+
+function teamOf(id){ for (var i = 0; i < TEAMS.length; i++) if (TEAMS[i].id === id) return TEAMS[i]; return null; }
+
+function installments(){
+  var out = [];
+  ROSTER.forEach(function (a){
+    INST.forEach(function (i){
+      var past = i.due < 0;
+      var status = !past ? "upcoming" : a.unpaid.indexOf(i.n) >= 0 ? "overdue" : "paid";
+      out.push({ athlete:a, n:i.n, due:day(i.due), daysLate:past ? -i.due : 0, status:status, amount:INSTALLMENT });
+    });
+  });
+  return out;
+}
+function totals(){
+  var t = { billed:ROSTER.length * DUES, collected:0, overdue:0, upcoming:0, overdueFamilies:0 };
+  installments().forEach(function (i){ t[i.status === "paid" ? "collected" : i.status] += i.amount; });
+  t.overdueFamilies = ROSTER.filter(function (a){ return a.unpaid.length; }).length;
+  return t;
+}
+function balanceOf(a){ return a.unpaid.length * INSTALLMENT; }
+function oldestLate(a){ return a.unpaid.length ? -INST[a.unpaid[0] - 1].due : 0; }
+
+/* Events, relative to TODAY. The Sat 10:00 16U practice carries the same
+   court conflict the Queue sample drafted a fix for. */
+function events(){
+  return [
+    { d:1,  time:"6:00 PM",  kind:"Practice",   team:"14U", title:"14U practice", where:"Northside Community Gym" },
+    { d:2,  time:"7:00 PM",  kind:"Practice",   team:"16U", title:"16U practice", where:"Lakeview Fieldhouse" },
+    { d:3,  time:"6:00 PM",  kind:"Practice",   team:"14U", title:"14U practice", where:"Northside Community Gym",
+      note:"Moved from Wednesday. A reminder to 8 families is waiting in Queue." },
+    { d:5,  time:"10:00 AM", kind:"Practice",   team:"16U", title:"16U practice", where:"Northside Community Gym",
+      note:"Conflict: the gym double-booked this court. A move to 11:30 is waiting in Queue.", conflict:true },
+    { d:5,  time:"1:00 PM",  kind:"Game",       team:"14U", title:"14U vs. Westside Hoops", where:"Northside Community Gym" },
+    { d:7,  time:"7:00 PM",  kind:"Practice",   team:"16U", title:"16U practice", where:"Lakeview Fieldhouse" },
+    { d:47, time:"8:00 AM",  kind:"Tournament", team:"14U", title:"Fall Classic, day 1", where:"Tournament site, per the operator's packet",
+      note:"$150 entry per athlete. The charge to 8 families is a draft in Queue." },
+  ].map(function (e){ e.date = day(e.d); return e; });
+}
+
+/* ── Shared pieces ───────────────────────────────────────────────── */
+function banner(nouns){
+  return ui().Callout({ title:"Sample workspace.",
+    body:"These are example " + nouns + " so you can see how it works. Nothing here is saved." });
+}
+function badge(text, tone){
+  return '<span class="cui-badge' + (tone ? " cui-badge--" + tone : "") + '">' + esc(text) + "</span>";
+}
+function saveBtn(label, what){
+  return ui().Button({ label:label, size:"sm", variant:"secondary", attrs:'data-pvsave="' + esc(what || label) + '"' });
+}
+function page(o){
+  var u = ui();
+  return u.Page({ page:"pv-" + o.key, eyebrow:o.eyebrow, h1:o.h1, lede:o.lede, actions:o.actions || [],
+    tabs:o.tabs, active:o.active, stateKey:o.stateKey, tabLabel:o.tabLabel, body:banner(o.nouns) + o.body });
+}
+function duesCell(a){
+  if (!a.unpaid.length) return badge("Paid to date", "good");
+  return badge("Overdue " + usd(balanceOf(a)), "warn");
+}
+
+/* ── Money ───────────────────────────────────────────────────────── */
+function moneyPage(){
+  var u = ui(), t = totals();
+  var tabs = [
+    { key:"owes", label:"Who owes", count:t.overdueFamilies },
+    { key:"installments", label:"Installments", count:installments().length },
+  ];
+  var active = u.activeTab(tabs, "owes", "pvMoneyTab");
+  var stats = u.StatGrid([
+    { label:"Collected", value:usd(t.collected), context:"of " + usd(t.billed) + " billed this season" },
+    { label:"Overdue", value:usd(t.overdue), context:t.overdueFamilies + " families past due" },
+    { label:"Not yet due", value:usd(t.upcoming), context:"Third installment, due " + fmt(day(INST[2].due)) },
+    { label:"Season dues", value:usd(DUES), context:"Per athlete, 3 installments of " + usd(INSTALLMENT) },
+  ]);
+  var body;
+  if (active === "owes"){
+    var late = ROSTER.filter(function (a){ return a.unpaid.length; })
+      .sort(function (x, y){ return oldestLate(y) - oldestLate(x); });
+    body = u.Block({ title:"Who owes", subtitle:"Families with an installment past its due date, longest overdue first.",
+      body:u.DataTable({
+        columns:[{ key:"family", label:"Family" }, { key:"team", label:"Team" }, { key:"owed", label:"Owed", mono:true },
+                 { key:"late", label:"Days late", mono:true }, { key:"act", label:"Actions" }],
+        rows:late.map(function (a){
+          return {
+            family:u.html("<b>" + esc(a.guardian) + "</b><small>" + esc(a.name) + "</small>"),
+            team:teamOf(a.team).short, owed:usd(balanceOf(a)), late:String(oldestLate(a)),
+            act:u.html(saveBtn(oldestLate(a) >= 30 ? "Draft payment plan" : "Draft reminder")),
+          };
+        }),
+      }) });
+  } else {
+    body = u.Block({ title:"Installments", subtitle:"Every installment this season, by athlete.",
+      body:u.DataTable({
+        columns:[{ key:"athlete", label:"Athlete" }, { key:"n", label:"Installment", mono:true }, { key:"due", label:"Due", mono:true },
+                 { key:"amount", label:"Amount", mono:true }, { key:"status", label:"Status" }],
+        rows:installments().map(function (i){
+          return {
+            athlete:u.html("<b>" + esc(i.athlete.name) + "</b><small>" + esc(teamOf(i.athlete.team).short + " · " + i.athlete.guardian) + "</small>"),
+            n:i.n + " of 3", due:fmt(i.due), amount:usd(i.amount),
+            status:u.html(i.status === "paid" ? badge("Paid", "good") : i.status === "overdue" ? badge(i.daysLate + " days late", "warn") : badge("Upcoming")),
+          };
+        }),
+      }) });
+  }
+  return page({ key:"money", eyebrow:"Business", h1:"Money", nouns:"families and amounts",
+    lede:"Dues billed, collected and overdue across both teams.",
+    tabs:tabs, active:active, stateKey:"pvMoneyTab", tabLabel:"Money sections",
+    body:u.Block({ title:"This season", subtitle:"Fall 2026 dues for 14U and 16U.", body:stats }) + body });
+}
+
+/* ── Roster ──────────────────────────────────────────────────────── */
+function rosterPage(){
+  var u = ui();
+  var label = typeof rosterLabel === "function" ? rosterLabel() : "Roster";
+  var body = TEAMS.map(function (team){
+    var rows = ROSTER.filter(function (a){ return a.team === team.id; });
+    return u.Block({ title:team.name, subtitle:rows.length + " athletes. Dues and waiver status for each.",
+      body:u.DataTable({
+        columns:[{ key:"athlete", label:"Athlete" }, { key:"jersey", label:"Jersey", mono:true }, { key:"guardian", label:"Guardian" },
+                 { key:"dues", label:"Dues" }, { key:"waiver", label:"Waiver" }],
+        rows:rows.map(function (a){
+          return {
+            athlete:u.html("<b>" + esc(a.name) + "</b>"), jersey:"#" + a.jersey,
+            guardian:u.html(esc(a.guardian) + "<small>" + esc(a.email) + "</small>"),
+            dues:u.html(duesCell(a)), waiver:u.html(a.waiver ? badge("Signed", "good") : badge("Missing", "warn")),
+          };
+        }),
+      }) });
+  }).join("");
+  return page({ key:"roster", eyebrow:label, h1:label, nouns:"athletes, families and amounts",
+    lede:"Every athlete on both teams, with dues and waiver status.",
+    actions:[u.Button({ label:"Add athlete", size:"lg", variant:"primary", attrs:'data-pvsave="Add athlete"' })],
+    body:body });
+}
+
+/* ── Teams ───────────────────────────────────────────────────────── */
+function teamsPage(){
+  var u = ui();
+  var rows = TEAMS.map(function (team){
+    var members = ROSTER.filter(function (a){ return a.team === team.id; });
+    var paid = members.filter(function (a){ return !a.unpaid.length; }).length;
+    var waivers = members.filter(function (a){ return !a.waiver; }).length;
+    return {
+      team:u.html("<b>" + esc(team.name) + "</b><small>Fall 2026 season</small>"),
+      coach:team.coach, athletes:String(members.length),
+      practice:u.html(esc(team.practice) + "<small>" + esc(team.venue) + "</small>"),
+      dues:u.html(paid + " of " + members.length + " paid to date" + (waivers ? "<small>" + waivers + " waiver" + (waivers === 1 ? "" : "s") + " missing</small>" : "")),
+    };
+  });
+  return page({ key:"teams", eyebrow:"Organization", h1:"Teams", nouns:"teams and rosters",
+    lede:"Every team, its coach, its practice times and where its families stand.",
+    actions:[u.Button({ label:"Add team", size:"lg", variant:"primary", attrs:'data-pvsave="Add team"' })],
+    body:u.Block({ title:"Fall 2026", subtitle:"Two teams, one season.",
+      body:u.DataTable({
+        columns:[{ key:"team", label:"Team" }, { key:"coach", label:"Head coach" }, { key:"athletes", label:"Athletes", mono:true },
+                 { key:"practice", label:"Practice" }, { key:"dues", label:"Dues" }],
+        rows:rows,
+      }) }) });
+}
+
+/* ── Families ────────────────────────────────────────────────────── */
+function familiesPage(){
+  var u = ui();
+  return page({ key:"families", eyebrow:"Organization", h1:"Families", nouns:"families and amounts",
+    lede:"Guardians linked to their athletes: who pays, who signs, and who to contact.",
+    actions:[u.Button({ label:"Invite family", size:"lg", variant:"primary", attrs:'data-pvsave="Invite family"' })],
+    body:u.Block({ title:"Guardians", subtitle:ROSTER.length + " families across 14U and 16U.",
+      body:u.DataTable({
+        columns:[{ key:"guardian", label:"Guardian" }, { key:"athlete", label:"Athlete" }, { key:"balance", label:"Balance", mono:true },
+                 { key:"waiver", label:"Waiver" }, { key:"act", label:"Actions" }],
+        rows:ROSTER.map(function (a){
+          return {
+            guardian:u.html("<b>" + esc(a.guardian) + "</b><small>" + esc(a.email) + "</small>"),
+            athlete:u.html(esc(a.name) + "<small>" + esc(teamOf(a.team).short) + "</small>"),
+            balance:a.unpaid.length ? usd(balanceOf(a)) + " overdue" : "$0",
+            waiver:u.html(a.waiver ? badge("Signed", "good") : badge("Missing", "warn")),
+            act:u.html(saveBtn("Message", "Message " + a.guardian)),
+          };
+        }),
+      }) }) });
+}
+
+/* ── Messages ────────────────────────────────────────────────────── */
+var THREADS = [
+  { id:"okafor", who:"Renata Okafor", about:"Nia Okafor · 14U", msgs:[
+    { me:false, text:"Is there a form Nia needs before Saturday's game?" },
+    { me:true,  text:"Yes, the season waiver. I will resend the link tonight so it is signed before first whistle." } ] },
+  { id:"carter", who:"Jordan Carter", about:"Eli Carter · 14U", msgs:[
+    { me:false, text:"We fell behind on Eli's dues. Can we split the remaining $400 over the next two months?" },
+    { me:true,  text:"That works. I will send a two-payment plan for you to confirm." } ] },
+  { id:"bell", who:"Keisha Bell", about:"Marcus Bell · 16U", msgs:[
+    { me:true,  text:"Hi Keisha, Marcus's second installment of $200 is 12 days past due. The payment link is in your email." },
+    { me:false, text:"Saw it, thank you. I will pay it Friday." } ] },
+  { id:"g16", who:"16U families", about:"Group · 6 families", group:true, msgs:[
+    { me:true,  text:"Heads up: the gym may move our Saturday 10:00 practice. I will confirm the time by Thursday." },
+    { me:false, text:"Thanks. If it moves to 11:30 we can still make it.", from:"Ana Ortiz" } ] },
+];
+function inboxPage(){
+  var u = ui();
+  var cur = null;
+  for (var i = 0; i < THREADS.length; i++) if (THREADS[i].id === S.pvThread) cur = THREADS[i];
+  cur = cur || THREADS[0];
+  var list = '<div class="pv-threads" role="list">' + THREADS.map(function (t){
+    var last = t.msgs[t.msgs.length - 1];
+    return '<button type="button" role="listitem" class="pv-thread' + (t === cur ? " on" : "") + '" data-pvthread="' + esc(t.id) + '"' +
+      (t === cur ? ' aria-current="true"' : "") + '><b>' + esc(t.who) + "</b><small>" + esc(t.about) + "</small><span>" + esc(last.text) + "</span></button>";
+  }).join("") + "</div>";
+  var pane = '<div class="cui-card pv-pane"><div class="pv-pane__head"><b>' + esc(cur.who) + "</b><small>" + esc(cur.about) + "</small></div>" +
+    '<div class="pv-msgs">' + cur.msgs.map(function (m){
+      return '<div class="pv-msg' + (m.me ? " pv-msg--me" : "") + '">' + (m.from ? "<small>" + esc(m.from) + "</small>" : "") + esc(m.text) + "</div>";
+    }).join("") + "</div>" +
+    '<form class="pv-compose" data-pvcompose="1"><label class="pv-sr" for="pvReply">Reply to ' + esc(cur.who) + '</label>' +
+    '<textarea id="pvReply" rows="2" placeholder="Write a reply"></textarea>' +
+    u.Button({ label:"Send", size:"sm", variant:"primary", type:"submit" }) + "</form></div>";
+  return page({ key:"inbox", eyebrow:typeof rosterLabel === "function" ? rosterLabel() : "Clients", h1:"Messages", nouns:"families and messages",
+    lede:"Every conversation with a family or a whole team, in one place.",
+    actions:[u.Button({ label:"New group", size:"lg", variant:"primary", attrs:'data-pvsave="New group"' })],
+    body:'<div class="pv-inbox">' + list + pane + "</div>" });
+}
+
+/* ── Organization ────────────────────────────────────────────────── */
+function orgPage(){
+  var u = ui();
+  var staff = [
+    ["Marcus Vale", "Director, 14U head coach", "verified"],
+    ["Dana Ruiz", "16U head coach", "pending"],
+    ["Theo Lang", "Strength and conditioning", "none"],
+  ];
+  var bgBadge = function (s){ return s === "verified" ? badge("Cleared", "good") : s === "pending" ? badge("In progress", "warn") : badge("Not started"); };
+  return page({ key:"organization", eyebrow:"Organization", h1:"Organization", nouns:"staff, locations and records",
+    lede:"Who runs the club, where the teams practice, and the staff behind them.",
+    body:
+      u.Block({ title:"Profile", subtitle:"How the club appears to its families.",
+        body:u.ListCard([
+          { label:u.html("<b>Name</b>"), value:"Northside Flight Basketball", mono:false },
+          { label:u.html("<b>Home city</b>"), value:"Chicago, IL", mono:false },
+          { label:u.html("<b>Sport</b>"), value:"Basketball", mono:false },
+          { label:u.html("<b>Teams</b>"), value:"14U, 16U", mono:false },
+        ]),
+        action:saveBtn("Edit profile") }) +
+      u.Block({ title:"Locations", subtitle:"Where practices and home games happen.",
+        body:u.DataTable({
+          columns:[{ key:"name", label:"Location" }, { key:"use", label:"Used by" }],
+          rows:[
+            { name:u.html("<b>Northside Community Gym</b><small>Chicago, IL</small>"), use:"14U practices, home games, 16U Saturday practice" },
+            { name:u.html("<b>Lakeview Fieldhouse</b><small>Chicago, IL</small>"), use:"16U weeknight practices" },
+          ],
+        }) }) +
+      u.Block({ title:"Staff", subtitle:"Roles and background-check status. In this sample, the statuses are examples, not real screening results.",
+        action:saveBtn("Invite staff"),
+        body:u.DataTable({
+          columns:[{ key:"name", label:"Name" }, { key:"role", label:"Role" }, { key:"bg", label:"Background check" }],
+          rows:staff.map(function (s){ return { name:u.html("<b>" + esc(s[0]) + "</b>"), role:s[1], bg:u.html(bgBadge(s[2])) }; }),
+        }) }) });
+}
+
+/* ── Hooks the host calls for Home and Schedule ──────────────────── */
+function upcoming(){ return events().filter(function (e){ return e.d >= 0; }); }
+function homeStats(){
+  var t = totals();
+  return [
+    { label:"Teams", value:String(TEAMS.length), context:"14U and 16U" },
+    { label:"Athletes", value:String(ROSTER.length), context:"On current rosters" },
+    { label:"Upcoming events", value:String(upcoming().length), context:"Practices, games and a tournament" },
+    { label:"Dues collected", value:usd(t.collected), context:"of " + usd(t.billed) + " billed, " + usd(t.overdue) + " overdue" },
+  ];
+}
+function todayRows(){
+  var u = ui();
+  return upcoming().slice(0, 6).map(function (e){
+    return { label:u.html("<b>" + esc(e.title) + "</b><small>" + esc(fmt(e.date) + " · " + e.where) + "</small>"), value:e.time };
+  });
+}
+function scheduleBlock(){
+  var u = ui();
+  return banner("teams and events") + u.Block({ title:"Upcoming events", subtitle:"Practices, games and tournaments across both teams, soonest first.",
+    body:u.DataTable({
+      columns:[{ key:"date", label:"Date", mono:true }, { key:"time", label:"Time", mono:true }, { key:"event", label:"Event" },
+               { key:"team", label:"Team" }, { key:"where", label:"Location" }],
+      rows:upcoming().map(function (e){
+        return {
+          date:fmt(e.date), time:e.time,
+          event:u.html("<b>" + esc(e.title) + "</b>" + (e.conflict ? " " + badge("Conflict", "warn") : "") + (e.note ? "<small>" + esc(e.note) + "</small>" : "")),
+          team:e.team, where:e.where,
+        };
+      }),
+    }) });
+}
+
+/* ── Wiring: local only, never the network ───────────────────────── */
+function wire(){
+  if (!on()) return;
+  Array.prototype.forEach.call(document.querySelectorAll("[data-pvsave]"), function (b){
+    b.onclick = function (ev){ ev.preventDefault(); if (typeof toast === "function") toast("Not saved in the sample workspace."); };
+  });
+  Array.prototype.forEach.call(document.querySelectorAll("[data-pvthread]"), function (b){
+    b.onclick = function (){ S.pvThread = b.dataset.pvthread; render(); };
+  });
+  Array.prototype.forEach.call(document.querySelectorAll("[data-pvcompose]"), function (f){
+    f.onsubmit = function (ev){ ev.preventDefault(); if (typeof toast === "function") toast("Not saved in the sample workspace."); };
+  });
+}
+
+var CSS = `
+.pv-inbox{display:grid;grid-template-columns:minmax(0,300px) minmax(0,1fr);gap:16px;align-items:start}
+.pv-threads{display:flex;flex-direction:column;gap:8px}
+.pv-thread{display:flex;flex-direction:column;gap:4px;padding:12px 16px;text-align:left;cursor:pointer;
+  border:1px solid var(--cui-line);border-radius:12px;background:var(--cui-panel)}
+.pv-thread.on{border-color:var(--cui-steel)}
+.pv-thread b{color:var(--cui-ink);font-weight:600}
+.pv-thread small{color:var(--cui-ink-3);font-size:var(--fs-fine)}
+.pv-thread span{color:var(--cui-ink-2);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.pv-pane{display:flex;flex-direction:column;gap:16px}
+.pv-pane__head{display:flex;flex-direction:column;gap:4px;padding-bottom:12px;border-bottom:1px solid var(--cui-line)}
+.pv-pane__head small{color:var(--cui-ink-3);font-size:var(--fs-fine)}
+.pv-msgs{display:flex;flex-direction:column;gap:8px}
+.pv-msg{max-width:60ch;padding:8px 12px;border:1px solid var(--cui-line);border-radius:12px;color:var(--cui-ink-2);line-height:1.5}
+.pv-msg small{display:block;color:var(--cui-ink-3);font-size:var(--fs-fine)}
+.pv-msg--me{margin-left:auto;background:var(--cui-panel-2);color:var(--cui-ink)}
+.pv-compose{display:flex;gap:8px;align-items:flex-end}
+.pv-compose textarea{flex:1;min-width:0;padding:8px 12px;border:1px solid var(--cui-line-2);border-radius:8px;background:transparent;resize:vertical}
+.pv-sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+@media(max-width:760px){.pv-inbox{grid-template-columns:1fr}}
+`;
+
+window.MOD_PREVIEW = {
+  css:CSS,
+  wire:wire,
+  state:{ pvThread:null, pvMoneyTab:"owes" },
+  /* host-called; NOT `views` (see header) */
+  pages:{ finances:moneyPage, roster:rosterPage, teams:teamsPage, families:familiesPage, inbox:inboxPage, organization:orgPage },
+  homeStats:homeStats, todayRows:todayRows, scheduleBlock:scheduleBlock,
+  eventCount:function (){ return upcoming().length; },
+  _test:{ totals:totals, installments:installments, events:events, roster:ROSTER },
 };
 
 })();

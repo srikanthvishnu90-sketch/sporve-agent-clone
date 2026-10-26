@@ -1357,9 +1357,9 @@ function guideSnapshot(){
       limit:"Verification, approval, background-check, and payout fields are server-controlled and are never editable here.",
     },
     {
-      id:"profile", phase:1, n:2, title:"Build your public profile", tab:"media", time:"5–10 min", owner:"You", done:profileDone,
-      needs:"identity", description:"Add a useful bio and a real coach image so a family can understand who will work with their athlete.",
-      unlocks:"Makes the listing understandable once it is discoverable.",
+      id:"profile", phase:1, n:2, title:"Describe your organization", tab:"media", time:"5–10 min", owner:"You", done:profileDone,
+      needs:"identity", description:"Add a short description and a real photo so a family understands who runs the club and coaches their athlete.",
+      unlocks:"Makes the club recognizable to the families who join it.",
       why:"Parents decide whether to trust you from your profile. A name alone is not enough.",
       requirements:["Completed provider identity","A short bio describing experience and session format","A real photo of the coach or organization"],
       process:["Open Media → Profile.","Write the public bio and review how the profile reads.","Add the coach or organization image through the account-owned media path.","Reload and confirm the provider record still contains the bio and avatar URL."],
@@ -1368,20 +1368,20 @@ function guideSnapshot(){
       limit:"The Media library's session photos, video, headline, and gallery ordering are still demo/session state. They do not count as durable completion for a real coach.",
     },
     {
-      id:"listing", phase:1, n:3, title:"Publish your first listing", tab:"listings", time:"6–10 min", owner:"You", done:listingDone,
-      needs:"identity", description:"Create one purchasable service with a sport, price, ages, capacity, and—when possible—its first dated session.",
-      unlocks:"Creates a bookable offering; payment remains gated by safety, a future session, and Stripe.",
+      id:"listing", phase:1, n:3, title:"Add your first program", tab:"listings", time:"6–10 min", owner:"You", done:listingDone,
+      needs:"identity", description:"Create one program, such as a team season or camp, with a sport, dues, ages, capacity, and—when possible—its first practice.",
+      unlocks:"Creates a program families can register for; payment still needs a cleared check, a scheduled practice, and Stripe.",
       why:"Your profile describes you. A listing is the thing a family can actually sign up for.",
       requirements:["A provider record","Service title and sport","Description, price, pricing model, age range, and capacity","Optional first session date and time"],
       process:["Open Listings and choose New listing.","Complete the service fields; the client sends only coach-owned listing data.","Sporv inserts the program under the signed-in provider. If a date is supplied, it then inserts the first session.","The catalogue reloads. A partial session failure leaves the listing intact and reports that the session still needs adding."],
-      completeWhen:"You have at least one published listing.",
-      evidence:listingDone ? `${owned.length} listing${owned.length === 1 ? "" : "s"} published.` : real ? "No listing published yet." : "This sample workspace has example listings only.",
+      completeWhen:"You have at least one program.",
+      evidence:listingDone ? `${owned.length} program${owned.length === 1 ? "" : "s"} added.` : real ? "No program added yet." : "This sample workspace has example programs only.",
       limit:"A published row is not proof that a booking can complete. The server still requires background clearance, an available session, capacity, and Stripe readiness.",
     },
     {
-      id:"check", phase:2, n:4, title:"Pass your background check", tab:"getting-started", time:"Varies", owner:"Sporv + screening provider", done:backgroundDone, review:backgroundReview,
-      description:"Complete the external screening flow; only a server-recorded verified result can clear the booking safety gate.",
-      unlocks:"Satisfies the personal safety gate required before a booking is accepted.",
+      id:"check", phase:2, n:4, title:"Clear your coach background check", tab:"getting-started", time:"Varies", owner:"Sporv + screening provider", done:backgroundDone, review:backgroundReview,
+      description:"Complete the external screening flow; only a server-recorded verified result can clear the safety gate.",
+      unlocks:"Satisfies the personal safety gate required before a registration is accepted.",
       why:"A background check is run by a screening provider. You cannot mark it complete yourself, and neither can Sporv's app.",
       requirements:["A signed-in provider identity","The screening provider's separate disclosure and authorization","Any identity information requested on that provider's hosted flow"],
       process:["Ask Sporv to initiate screening for the individual coach.","Review the screening provider's own disclosure, scope, and consent form before submitting anything.","Complete the provider-hosted identity steps; sensitive screening details do not belong in this checklist.","Sporv records the returned status. The page becomes Done only when status is verified and a completion timestamp exists."],
@@ -1391,9 +1391,9 @@ function guideSnapshot(){
       href:"mailto:support@sporv.ai?subject=Start%20my%20background%20check", actionLabel:"Contact Sporv",
     },
     {
-      id:"availability", phase:2, n:5, title:"Open a real session", tab:"schedule", time:"4–8 min", owner:"You", done:availabilityDone,
-      needs:"listing", description:"Put at least one future dated session behind an owned listing so a family has a real time to choose.",
-      unlocks:"Gives an otherwise complete listing an actual bookable time.",
+      id:"availability", phase:2, n:5, title:"Schedule your first practice", tab:"schedule", time:"4–8 min", owner:"You", done:availabilityDone,
+      needs:"listing", description:"Put at least one future dated practice or event on a program so families know when to show up.",
+      unlocks:"Gives an otherwise complete program its first practice.",
       why:"Families can only book a session that has a real date and time.",
       requirements:["An owned listing","A future date","Start time and capacity","A location on the listing or session"],
       process:["Add the first session while creating a listing, or open Schedule to inspect what is already loaded.","Confirm the date is in the future and the session belongs to the intended listing.","After the session insert, reload the catalogue.","Verify the session appears under the owned listing before calling the step complete."],
@@ -1402,7 +1402,7 @@ function guideSnapshot(){
       limit:"Recurring availability and time-off are not yet durable on this web surface. Local blocks can demonstrate the editor, but they do not count as production completion.",
     },
     {
-      id:"payouts", phase:3, n:6, title:"Connect Stripe payouts", tab:"finances", time:"5–10 min", owner:"Stripe", done:payoutsDone,
+      id:"payouts", phase:3, n:6, title:"Connect Stripe to collect dues", tab:"finances", time:"5–10 min", owner:"Stripe", done:payoutsDone,
       needs:"identity", description:"Use Stripe's hosted onboarding so bank and identity details stay with Stripe rather than inside Sporv.",
       unlocks:"Satisfies the payment-readiness gate used by checkout.",
       why:"Starting Stripe setup is not the same as finishing it. This completes when Stripe says you can take payments.",
@@ -1414,7 +1414,7 @@ function guideSnapshot(){
     },
     {
       id:"policy", phase:3, n:7, title:"Confirm cancellation terms", tab:"operations", time:"2 min", owner:"Sporv policy engine", done:policyDone, optional:true,
-      needs:"listing", description:"Review the policy attached to each listing and understand that the checkout copy is snapshotted onto every booking.",
+      needs:"listing", description:"Review the policy attached to each program and understand that the checkout copy is snapshotted onto every registration.",
       unlocks:"Gives the family stable refund terms that cannot be rewritten after purchase.",
       why:"Cancellation terms decide refunds, so review them before families book.",
       requirements:["At least one owned listing","The policy displayed on that listing","An understanding of how the policy is frozen at checkout"],
@@ -1479,9 +1479,9 @@ function guideView(){
   const snapshot = guideSnapshot();
   const next = snapshot.next;
   const phases = [
-    { key:"listed", label:"Phase 1 · Get listed", subtitle:"Create the provider identity, public proof, and first service that families can evaluate." },
-    { key:"bookable", label:"Phase 2 · Get cleared to take bookings", subtitle:"Background clearance and a real future session are separate requirements; both must be true." },
-    { key:"paid", label:"Phase 3 · Get paid", subtitle:"Stripe readiness and stable booking terms complete the money side without exposing bank data to Sporv." },
+    { key:"listed", label:"Phase 1 · Set up your organization", subtitle:"Name the club, describe it, and add the first program families register for." },
+    { key:"bookable", label:"Phase 2 · Get ready for the season", subtitle:"A cleared coach background check and a first practice on the calendar are separate requirements; both must be true." },
+    { key:"paid", label:"Phase 3 · Collect dues", subtitle:"Stripe readiness and stable refund terms complete the money side without exposing bank data to Sporv." },
   ].map((phase, index) => ({...phase,steps:snapshot.steps.filter(step => step.phase === index + 1).map(step => ({
     ...step,
     action:ui.Button({label:"View process",size:"sm",variant:"secondary",attrs:`data-gs-open="${esc(step.id)}" data-gs-trigger="step-${esc(step.id)}"`}),
@@ -1490,11 +1490,11 @@ function guideView(){
     ? ui.html(`Next: <b>${esc(next.title)}</b> — ${esc(next.time)}. `)
     : ui.html("Setup is complete. Check your public listing once before inviting families.");
   const content = ui.ProgressCard({label:"Setup progress",count:`${snapshot.done} of ${snapshot.total} complete`,value:snapshot.pct,context:progressContext}) +
-    ui.Callout({title:'Before families can book.',body:`You need a published profile, an upcoming session with open spots, a completed background check, and Stripe set up to accept payments. ${snapshot.real ? "Every status below is from your account." : "This is a sample workspace, so none of these statuses are real."}`}) +
+    ui.Callout({title:'Before families can register.',body:`You need a described organization, a program with a practice on the calendar, a cleared coach background check, and Stripe set up to collect dues. ${snapshot.real ? "Every status below is from your account." : "This is a sample workspace, so none of these statuses are real."}`}) +
     ui.ProcessPhases(phases);
   const page = ui.Page({
     page:"getting-started",eyebrow:"Coach dashboard",h1:"Getting started",
-    lede:"Three stages: set up your profile, get ready for bookings, and connect payments.",
+    lede:"Three stages: set up your organization, get ready for the season, and connect dues collection.",
     actions:next ? [ui.Button({label:"Continue setup",size:"lg",variant:"primary",attrs:`data-gs-open="${esc(next.id)}" data-gs-trigger="header"`})] : [],
     body:content,
   });
