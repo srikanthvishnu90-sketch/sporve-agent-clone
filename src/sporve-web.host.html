@@ -7604,6 +7604,17 @@ const COACH_PRIVATE={
   families:"guardian contact details and athlete links",
 };
 function isCoachGuest(){ return S.portal==="coach"&&!isVerified(); }
+/* The DISCLOSED sample club (MOD_PREVIEW) may replace a COACH_PRIVATE lock only
+   when nobody's real data could be on screen: a guest in the coach portal with
+   no Supabase session, no provider row and no live queue. The loading moment
+   after a real sign-in (session present, status not yet verified) fails this
+   check and keeps the lock, so a signed-in coach never sees sample rows. */
+function previewSample(){
+  return isCoachGuest()&&!realSignedIn()&&!queueIsLive()&&!(S.coachProvider&&S.coachProvider.id);
+}
+function previewSamplePage(t){
+  return previewSample()&&window.MOD_PREVIEW&&window.MOD_PREVIEW.pages&&window.MOD_PREVIEW.pages[t]||null;
+}
 /* money and counts that belong to the business, blanked for a guest */
 function veil(v){ return isCoachGuest()?"—":v; }
 function coachLockHTML(title,what){
@@ -7867,7 +7878,7 @@ function coachGateActive(){
 /* the caller's role in the open workspace: owner | director | coach */
 function coachRole(){ const pv=S.coachProvider; return (pv&&pv.role)||"owner"; }
 /* AUDIT 2026-09-17 P1-3: a real org's money tab is Money (doc 22.6); the marketplace demo keeps Earnings. */
-function financesLabel(){ return queueIsLive()?"Money":"Earnings"; }
+function financesLabel(){ return queueIsLive()||previewSample()?"Money":"Earnings"; }
 /* Resume the wizard where the DB says this org left off — sessionStorage only
    survives the tab; provider_settings survives the device. */
 function suwResume(pv){
@@ -10893,7 +10904,7 @@ function aiContext(){
      moves to subscriptions. draft_message is the one with a live send rail;
      the recap/bulk chips propose a draft the coach dispatches. */
   const MAP={
-    dashboard:["What needs my attention today?","Who's booked this week?"],
+    dashboard:["What needs my attention today?","What's on the schedule this week?"],
     roster:   ["Draft a reply to a parent","Draft a session recap"],
     inbox:    ["Draft a reply to a parent"],
     schedule: ["What's on my schedule this week?","Message families about a change"],
@@ -11579,7 +11590,7 @@ function coachHTML(){
   loadConnectors();
   /* The gate sits here, above every branch, so a private tab cannot be reached
      by any route that sets S.coachTab — including module code and the AI bar. */
-  if(isCoachGuest()&&COACH_PRIVATE[t]){
+  if(isCoachGuest()&&COACH_PRIVATE[t]&&!previewSamplePage(t)){
     const label=(modCoachTabs().concat([["finances",financesLabel()],["roster",rosterLabel()],
       ["inbox","Messages"]]).find(x=>x[0]===t)||[t,t])[1];
     return coachLockHTML(label,COACH_PRIVATE[t]);
@@ -12382,7 +12393,10 @@ function coachHomePage(){
       : ui.Button({label:"Open",size:"sm",variant:"secondary",attrs:`data-ctab="${esc(tab)}"`})),
     mono:false,
   }));
-  const todayRows=sessions.slice(0,6).map(s=>({
+  /* signed-out preview reads the disclosed sample club so Home agrees with
+     Money, Teams and Schedule; every other path keeps its own data */
+  const pvs=previewSample()&&window.MOD_PREVIEW?window.MOD_PREVIEW:null;
+  const todayRows=pvs?pvs.todayRows():sessions.slice(0,6).map(s=>({
     label:ui.html(`<b>${esc(s.p.title)}</b><small>${esc(fmtDate(s.date))} · ${esc(s.p.address||s.address||"Location pending")}</small>`),
     value:s.startTime,
   }));
@@ -12390,11 +12404,11 @@ function coachHomePage(){
     ui.Block({
       title:"Stats",
       subtitle:"This workspace at a glance.",
-      body:ui.StatGrid([
-        {label:"Active listings",value:String(mine.length),context:"Published"},
-        {label:"Clients",value:String(roster.length),context:"Athletes on the current roster"},
-        {label:"Upcoming sessions",value:String(sessions.length),context:"Scheduled ahead"},
-        {label:"Received",value:money(received),context:"Paid bookings"},
+      body:ui.StatGrid(pvs?pvs.homeStats():[
+        {label:"Programs",value:String(mine.length),context:"Active"},
+        {label:"Athletes",value:String(roster.length),context:"On the current roster"},
+        {label:"Upcoming events",value:String(sessions.length),context:"Scheduled ahead"},
+        {label:"Collected",value:money(received),context:"Paid registrations"},
       ]),
     }),
     ui.Block({
@@ -12405,16 +12419,16 @@ function coachHomePage(){
     }),
     ui.Block({
       title:"Today",
-      subtitle:"The next sessions across your published listings, ordered by date and start time.",
+      subtitle:"The next practices, games and events across your teams, ordered by date and start time.",
       action:ui.Button({label:"Full schedule",size:"sm",variant:"secondary",attrs:'data-ctab="schedule"'}),
-      body:ui.ListCard(todayRows,{emptyTitle:"No upcoming sessions",emptyBody:"Add availability before families can choose a time."}),
+      body:ui.ListCard(todayRows,{emptyTitle:"No upcoming events",emptyBody:"Add a practice or game to fill the calendar."}),
     }),
   ].join("");
   return ui.Page({
     page:"home",eyebrow:"Coach dashboard",h1:"Home",
     lede:isCoachGuest()
-      ? "A disclosed sample workspace showing how a team runs clients, sessions, and bookings in one place."
-      : "The operational state of your coaching business, from setup through today's schedule.",
+      ? "A disclosed sample workspace showing how a club runs its teams, families, dues and schedule in one place."
+      : "The operational state of your club, from setup through today's schedule.",
     body:setupBanner+body,
   });
 }
@@ -12760,8 +12774,9 @@ function coachSchedulePage(){
   const sessions=providerSessions().filter(s=>s.date>=TODAY);
   const rules=(S.recurringSlots||[]).slice();
   const live=queueIsLive(), st=live?schedState():null;
+  const pvs=!live&&previewSample()&&window.MOD_PREVIEW?window.MOD_PREVIEW:null;
   const tabs=[
-    {key:"calendar",label:live?"Schedule":"Calendar",count:live?((st.events||[]).filter(e=>e.status!=="cancelled").length):sessions.length},
+    {key:"calendar",label:live?"Schedule":"Calendar",count:live?((st.events||[]).filter(e=>e.status!=="cancelled").length):pvs?pvs.eventCount():sessions.length},
     {key:"availability",label:"Availability",count:rules.length},
     {key:"time-off",label:"Time off"},
   ];
@@ -12771,13 +12786,13 @@ function coachSchedulePage(){
     /* AUDIT 2026-09-17 P1-2: the org's events, not the marketplace sessions.
        A signed-in org reads `event`; the seeded sessions table is never shown
        to a real org (doc 28 law 1). */
-    body=queueIsLive()?schedBodyHTML():ui.Block({
-      title:"Upcoming sessions",
-      subtitle:"Sessions across your listings, soonest first.",
+    body=queueIsLive()?schedBodyHTML():pvs?pvs.scheduleBlock():ui.Block({
+      title:"Upcoming events",
+      subtitle:"Practices and events across your programs, soonest first.",
       body:ui.DataTable({
-        columns:[{key:"date",label:"Date",mono:true},{key:"time",label:"Time",mono:true},{key:"listing",label:"Listing"},{key:"location",label:"Location"},{key:"capacity",label:"Capacity",mono:true}],
+        columns:[{key:"date",label:"Date",mono:true},{key:"time",label:"Time",mono:true},{key:"listing",label:"Program"},{key:"location",label:"Location"},{key:"capacity",label:"Capacity",mono:true}],
         rows:sessions.map(s=>({date:fmtDate(s.date),time:s.startTime,listing:ui.html(`<b>${esc(s.p.title)}</b><small>${esc(s.p.sport)}</small>`),location:s.address||s.p.address||"—",capacity:`${s.p.enrolled}/${s.p.cap}`})),
-        emptyTitle:"No sessions scheduled",emptyBody:"Add a session or publish recurring availability to open the calendar.",
+        emptyTitle:"Nothing scheduled",emptyBody:"Add a practice or game, or set recurring availability, to fill the calendar.",
       }),
     });
   } else if(active==="availability"){
@@ -12804,8 +12819,9 @@ function coachSchedulePage(){
   }
   return ui.Page({
     page:"schedule",eyebrow:"Clients",h1:"Schedule",
-    lede:live?"Events, conflicts and attendance. Families only hear about a change after you approve the notice.":"Sessions families can book, and the availability behind them.",
-    actions:live?[]:[ui.Button({label:"Add session",size:"lg",variant:"primary",attrs:'data-addsession="1"'})],
+    lede:live?"Events, conflicts and attendance. Families only hear about a change after you approve the notice.":"Practices, games and tournaments for every team, and the availability behind them.",
+    actions:live?[]:[pvs?ui.Button({label:"Add event",size:"lg",variant:"primary",attrs:'data-pvsave="Add event"'})
+      :ui.Button({label:"Add session",size:"lg",variant:"primary",attrs:'data-addsession="1"'})],
     tabs:tabs,active:active,stateKey:"schedulePageTab",tabLabel:"Schedule sections",body:body,
   });
 }
@@ -13087,7 +13103,7 @@ function coachOperationsPage(){
       ? window.MOD_INSIGHTS.availabilityWarnings() : [];
     body=ui.Block({
       title:"Operating signals",
-      subtitle:"Based on your listings, sessions, capacity and bookings.",
+      subtitle:"Based on your teams, schedule, attendance and dues.",
       body:isCoachGuest()?ui.EmptyState("Sign in to see insights","Operating signals can identify private clients and remain hidden in preview mode.")
         :ui.ListCard(warnings.map(row=>({label:ui.html(`<b>${esc(row.text)}</b><small>${esc(row.action||"")}</small>`),value:row.level==="good"?"Clear":"Review",mono:false})),{emptyTitle:"No operating signals",emptyBody:"Nothing needs your attention right now."}),
     });
@@ -13185,22 +13201,34 @@ function noProviderPanelHTML(what){
     <p style="color:var(--muted);font-size:var(--text-sm);margin-top:4px">Your ${esc(what)} needs an organization to read from, and this account doesn't have one yet. Finish setup and it loads for real — nothing here is shown in its place.</p>
     <div class="imp-addrow" style="margin-top:8px"><button class="btn sm" data-gosetup="1">Finish setup</button></div></div>`;
 }
+/* The disclosed sample club's data model (src/mod-preview.js), or null. */
+function previewModel(){
+  try{return window.MOD_PREVIEW&&window.MOD_PREVIEW.model?window.MOD_PREVIEW.model():null;}catch(e){return null;}
+}
 function obligationQueue(){
   if(queueIsLive()) return (S.obligations||[]).filter(o=>o&&o.live===true);
-  if(!S.obligations) S.obligations=[
-    {id:"ob_1",kind:"fee",status:"draft",title:"Collect $150 Fall Classic entry — 8 families",
-     detail:"Tournament operator's email lists a $150 entry fee per athlete, due Sept 12. Drafted a charge for the 8 rostered families.",
+  if(!S.obligations){
+    /* The sample drafts read the ONE sample model (MOD_PREVIEW.model()), so
+       their counts and names match Money, Clients, Teams and the assistant. */
+    const pm=previewModel();
+    const t14=pm?pm.teams.find(t=>t.short==="14U"):null, n14=t14?t14.count:8;
+    const mw=pm?pm.missingWaivers:[];
+    const names=mw.length?mw.map(a=>a.initial+" ("+a.team+")").join(", ").replace(/, ([^,]*)$/," and $1"):"three athletes";
+    S.obligations=[
+    {id:"ob_1",kind:"fee",status:"draft",title:"Collect $150 Fall Classic entry — "+n14+" families",
+     detail:"Tournament operator's email lists a $150 entry fee per athlete, due Sept 12. Drafted a charge for the "+n14+" families on the 14U roster.",
      sourceKind:"email",sourceRef:"Fwd: Fall Classic — entry + deadlines.pdf"},
-    {id:"ob_2",kind:"waiver",status:"draft",title:"3 athletes missing a signed waiver",
-     detail:"Cross-checked the roster against returned waivers — Nia O., Marcus B. and one more have no waiver on file before Saturday's game.",
+    {id:"ob_2",kind:"waiver",status:"draft",title:(mw.length||3)+" athletes missing a signed waiver",
+     detail:"Cross-checked the roster against returned waivers — "+names+" have no waiver on file before Saturday's game.",
      sourceKind:"agent",sourceRef:"weekend roster sweep"},
     {id:"ob_3",kind:"schedule",status:"draft",title:"Schedule conflict — Sat 10:00 gym double-booked",
-     detail:"The gym's texted change puts your 10:00 practice on the same court as another team. Drafted a move to 11:30.",
+     detail:"The gym's texted change puts your 16U 10:00 practice on the same court as another team. Drafted a move to 11:30.",
      sourceKind:"sms",sourceRef:"Northside Gym — court change"},
-    {id:"ob_4",kind:"message",status:"draft",title:"Remind 8 families practice moved to Thursday",
-     detail:"Follow-up drafted from your schedule change; sends from you once approved.",
+    {id:"ob_4",kind:"message",status:"draft",title:"Remind "+n14+" families practice moved to Thursday",
+     detail:"Follow-up drafted from your 14U schedule change; sends from you once approved.",
      sourceKind:"agent",sourceRef:"weekend sweep"},
   ];
+  }
   return S.obligations;
 }
 /* LIVE queue (2026-08-31): a signed-in coach with a real provider row reads
@@ -13639,26 +13667,29 @@ function intakeDegradedBannerHTML(){
     <p style="color:var(--muted);font-size:var(--text-sm);margin-top:4px">The scan still read your records — everything it found is below. Inbox items the AI couldn't read this run will be picked up when your AI usage resets.</p>
   </div>`;
 }
-/* Demo parser for step 5 ("unstructured input is a native input type"). A
-   forwarded email/text is pasted; heuristics turn it into DRAFT obligations.
-   The real per-artifact parse runs on the RED ingest backend (Gemini); this
-   shows the shape: paste in, obligations appear, nothing is sent or charged. */
+/* Forward-to-drafts for step 5 ("unstructured input is a native input type").
+   A forwarded email/text is pasted; the deterministic extractor
+   (src/mod-intake-extract.js) turns it into DRAFT obligations: every amount
+   with its unit, dates bound to what they are for, the event, the waiver, and
+   what it could not determine. This box only exists in the signed-out sample
+   workspace (queueIsLive() hides it for real accounts, whose drafts come from
+   the agent-intake pass over their connected inbox), so no AI runs here and
+   nothing is sent or charged — Approve / Dismiss still decide each draft. */
+function obligExtractContext(){
+  /* Per-team roster counts and missing waivers come from the ONE sample model
+     (src/mod-preview.js); the extractor picks the team the text names and
+     falls back to the default (14U) team, saying so on the card. */
+  const pm=previewModel();
+  const teams=pm?pm.teams.map(t=>({short:t.short,name:t.name,count:t.count,
+    missingWaivers:t.missingWaivers.map(a=>a.initial)})):[];
+  if(!teams.length){const r=teamRoster();return {today:new Date().toISOString().slice(0,10),rosterCount:r.length,familyCount:r.length};}
+  return {today:new Date().toISOString().slice(0,10),teams,defaultTeam:pm.defaultTeam};
+}
 function parseObligations(text){
-  const t=String(text||"").trim(); if(!t) return [];
-  const firstLine=(t.split(/\n/)[0]||t).slice(0,80);
-  const out=[];
-  const money=t.match(/\$\s?(\d[\d,]*)(?:\.\d\d)?/);
-  if(money) out.push({kind:"fee",title:"Collect $"+money[1]+" — "+firstLine,
-    detail:"Amount detected in the forwarded text. Draft a charge for the rostered families once you confirm who it applies to."});
-  if(/\bwaiver|consent form|release\b/i.test(t)) out.push({kind:"waiver",title:"Waiver requirement — "+firstLine,
-    detail:"The text references a waiver/consent form. Flagged so you can check which athletes still need it."});
-  if(/\breschedul|moved to|conflict|change of (venue|time)|new time\b/i.test(t)) out.push({kind:"schedule",title:"Schedule change — "+firstLine,
-    detail:"A schedule change was detected. Draft the update and the family notification."});
-  if(/\bdeadline|due (by|on)|register by|rsvp\b/i.test(t)) out.push({kind:"deadline",title:"Deadline — "+firstLine,
-    detail:"A deadline was detected. Added as a dated obligation so it surfaces before it lapses."});
-  if(!out.length) out.push({kind:"message",title:"Draft follow-up — "+firstLine,
-    detail:"No fee, waiver, schedule change or deadline detected — drafted a message you can edit and send."});
-  return out;
+  const X=window.SporvIntakeExtract;
+  if(!X) return [];
+  return X.extract(text,obligExtractContext()).drafts.map(d=>({kind:d.kind,title:d.title,detail:d.detail,
+    unknown:d.unknown||[],amountCents:d.amountCents!=null?d.amountCents:null,dueISO:d.dueISO||null,parsed:true}));
 }
 /* ── SETTINGS (owner mock, 2026-09-01) ─────────────────────────────────────
    Rail + panes in the house coachdark register (Archivo heads, Inter body,
@@ -14219,6 +14250,9 @@ function coachQueuePage(){
       <b class="qcard-title">${esc(title+who)}</b>
       ${why?`<p class="qcard-why">${esc(why)}</p>`:""}
       ${firstLine&&firstLine!==why?`<p class="qcard-out">${esc(firstLine)}</p>`:""}
+      ${/* a pasted-text draft shows its whole reading, and what it could not tell */""}
+      ${o.parsed?(o.detail||"").split("\n").map(s=>s.trim()).filter(Boolean).slice(1).map(l=>`<p class="qcard-out">${esc(l)}</p>`).join(""):""}
+      ${o.parsed&&(o.unknown||[]).length?`<p class="qcard-why" data-oblig-unknown="1">Could not determine: ${esc(o.unknown.join("; "))}.</p>`:""}
       <div class="qcard-pills">
         <span class="pill ${stPill}">${esc(status)}</span>
         <span class="pill slate">${esc(m.label)}</span>
@@ -14301,6 +14335,8 @@ function coachQueuePage(){
 function coachBody(t){
   const mine=coachListings();
   const pp=SEED.providerProfile;
+  /* signed-out preview: the disclosed sample club replaces the lock (MOD_PREVIEW) */
+  const sample=previewSamplePage(t); if(sample) return sample();
   if(t==="queue") return coachQueuePage();
   if(t==="settings") return coachSettingsPage();
   /* Personalization onboarding (spec 30): four screens, then the workspace. */
@@ -20973,6 +21009,30 @@ function aiFailureCopy(err){
     text:"The assistant did not answer within 45 seconds. Nothing was sent. Check Approvals before asking again, in case a draft was already queued."};
   return {retry:true,text:"I couldn't process that — the assistant call failed."+nothing};
 }
+/* The signed-out sample workspace, as one plain object for the deterministic
+   preview assistant (src/mod-sample-answers.js). The club itself — teams,
+   roster, dues, waivers, events — is the ONE sample model in src/mod-preview.js
+   (the same one Money, Clients, Teams, Families, Home and Schedule render);
+   the Queue drafts and the recruiting sample board are added beside it. */
+function sampleWorkspaceSnapshot(){
+  const pm=previewModel()||{teams:[],roster:[],overdue:[],missingWaivers:[],events:[],totals:{}};
+  let recruits=[],recruitSport="";
+  try{
+    const R=window.MOD_RECRUITING&&window.MOD_RECRUITING.sampleData&&window.MOD_RECRUITING.sampleData();
+    if(R){
+      recruitSport=String((R.pipelines[0]||{}).sport||"").toLowerCase();
+      recruits=R.pipelines.map(p=>{
+        const r=R.recruits.find(x=>x.id===p.recruit_id)||{};
+        const ev=R.evals.filter(e=>e.pipeline_id===p.id&&e.overall!=null);
+        return {name:(r.first_name||"")+" "+(r.last_name||""),stage:p.stage,position:p.position_primary,gradYear:r.grad_year,
+          overall:ev.length?Math.round(ev.reduce((t,e)=>t+e.overall,0)/ev.length*100)/100:null};
+      });
+    }
+  }catch(e){recruits=[];}
+  return Object.assign({},pm,{today:TODAY,
+    queue:obligationQueue().map(o=>({kind:o.kind,status:o.status,title:o.title,detail:o.detail})),
+    recruits,recruitSport});
+}
 function askCoach(q){
   const text=(q||"").trim();
   /* A file with no question has nothing to answer — keep the file staged
@@ -21036,7 +21096,22 @@ function askCoach(q){
   };
 
   const API=window.SporveAPI;
-  if(!API||!API.fn||!window.SporveAuth||!window.SporveAuth.isSignedIn()){
+  const signedIn=!!(API&&API.fn&&window.SporveAuth&&window.SporveAuth.isSignedIn());
+  /* SIGNED-OUT COACH PREVIEW (2026-10-26): the sample workspace has no account,
+     so coach-command cannot run. It used to fall through to the family
+     catalogue matcher below and answer a dues question with "No coach has
+     cleared a background check yet ... Join the waitlist". Now a deterministic
+     responder answers from the same sample records the preview shows, and
+     every answer is labelled as sample data, not AI. No model call, no write. */
+  if(S.portal==="coach"&&!signedIn&&window.SporvSampleAnswers){
+    const a=window.SporvSampleAnswers.answer(text,sampleWorkspaceSnapshot());
+    S.chatThinking=false;
+    S.chat=[...S.chat,{role:"coach",text:a.text,sample:true}];
+    chatArchive();
+    if(S.aiOpen===false) S.aiUnread=(S.aiUnread||0)+1;
+    render(); return;
+  }
+  if(!signedIn){
     return fallback("I'm offline right now, so this is a plain catalogue match:");
   }
 
