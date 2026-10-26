@@ -13639,26 +13639,28 @@ function intakeDegradedBannerHTML(){
     <p style="color:var(--muted);font-size:var(--text-sm);margin-top:4px">The scan still read your records — everything it found is below. Inbox items the AI couldn't read this run will be picked up when your AI usage resets.</p>
   </div>`;
 }
-/* Demo parser for step 5 ("unstructured input is a native input type"). A
-   forwarded email/text is pasted; heuristics turn it into DRAFT obligations.
-   The real per-artifact parse runs on the RED ingest backend (Gemini); this
-   shows the shape: paste in, obligations appear, nothing is sent or charged. */
+/* Forward-to-drafts for step 5 ("unstructured input is a native input type").
+   A forwarded email/text is pasted; the deterministic extractor
+   (src/mod-intake-extract.js) turns it into DRAFT obligations: every amount
+   with its unit, dates bound to what they are for, the event, the waiver, and
+   what it could not determine. This box only exists in the signed-out sample
+   workspace (queueIsLive() hides it for real accounts, whose drafts come from
+   the agent-intake pass over their connected inbox), so no AI runs here and
+   nothing is sent or charged — Approve / Dismiss still decide each draft. */
+function obligExtractContext(){
+  /* the roster sweep's waiver finding, if it is still in the queue */
+  const w=(obligationQueue()||[]).find(o=>o&&o.kind==="waiver"&&!o.parsed&&/missing/i.test(o.title||""));
+  const n=w?+(/(\d+)\s+athletes?/i.exec(w.title)||[])[1]||0:0;
+  const names=w?((/—\s*(.+?)\s+ha(?:ve|s) no waiver/.exec(w.detail||"")||[])[1]||""):"";
+  const roster=teamRoster();
+  return {today:new Date().toISOString().slice(0,10),rosterCount:roster.length,familyCount:roster.length,
+    missingWaivers:n?{count:n,names}:null};
+}
 function parseObligations(text){
-  const t=String(text||"").trim(); if(!t) return [];
-  const firstLine=(t.split(/\n/)[0]||t).slice(0,80);
-  const out=[];
-  const money=t.match(/\$\s?(\d[\d,]*)(?:\.\d\d)?/);
-  if(money) out.push({kind:"fee",title:"Collect $"+money[1]+" — "+firstLine,
-    detail:"Amount detected in the forwarded text. Draft a charge for the rostered families once you confirm who it applies to."});
-  if(/\bwaiver|consent form|release\b/i.test(t)) out.push({kind:"waiver",title:"Waiver requirement — "+firstLine,
-    detail:"The text references a waiver/consent form. Flagged so you can check which athletes still need it."});
-  if(/\breschedul|moved to|conflict|change of (venue|time)|new time\b/i.test(t)) out.push({kind:"schedule",title:"Schedule change — "+firstLine,
-    detail:"A schedule change was detected. Draft the update and the family notification."});
-  if(/\bdeadline|due (by|on)|register by|rsvp\b/i.test(t)) out.push({kind:"deadline",title:"Deadline — "+firstLine,
-    detail:"A deadline was detected. Added as a dated obligation so it surfaces before it lapses."});
-  if(!out.length) out.push({kind:"message",title:"Draft follow-up — "+firstLine,
-    detail:"No fee, waiver, schedule change or deadline detected — drafted a message you can edit and send."});
-  return out;
+  const X=window.SporvIntakeExtract;
+  if(!X) return [];
+  return X.extract(text,obligExtractContext()).drafts.map(d=>({kind:d.kind,title:d.title,detail:d.detail,
+    unknown:d.unknown||[],amountCents:d.amountCents!=null?d.amountCents:null,dueISO:d.dueISO||null,parsed:true}));
 }
 /* ── SETTINGS (owner mock, 2026-09-01) ─────────────────────────────────────
    Rail + panes in the house coachdark register (Archivo heads, Inter body,
@@ -14219,6 +14221,9 @@ function coachQueuePage(){
       <b class="qcard-title">${esc(title+who)}</b>
       ${why?`<p class="qcard-why">${esc(why)}</p>`:""}
       ${firstLine&&firstLine!==why?`<p class="qcard-out">${esc(firstLine)}</p>`:""}
+      ${/* a pasted-text draft shows its whole reading, and what it could not tell */""}
+      ${o.parsed?(o.detail||"").split("\n").map(s=>s.trim()).filter(Boolean).slice(1).map(l=>`<p class="qcard-out">${esc(l)}</p>`).join(""):""}
+      ${o.parsed&&(o.unknown||[]).length?`<p class="qcard-why" data-oblig-unknown="1">Could not determine: ${esc(o.unknown.join("; "))}.</p>`:""}
       <div class="qcard-pills">
         <span class="pill ${stPill}">${esc(status)}</span>
         <span class="pill slate">${esc(m.label)}</span>
@@ -20973,6 +20978,35 @@ function aiFailureCopy(err){
     text:"The assistant did not answer within 45 seconds. Nothing was sent. Check Approvals before asking again, in case a draft was already queued."};
   return {retry:true,text:"I couldn't process that — the assistant call failed."+nothing};
 }
+/* The signed-out sample workspace, as one plain object for the deterministic
+   preview assistant (src/mod-sample-answers.js). Every value is read from the
+   records the preview already renders — the sample roster, the Queue drafts,
+   the sample team's sessions, the sample recruiting board — never invented. */
+function sampleWorkspaceSnapshot(){
+  const team=SEED.teams[0];
+  const org=SAMPLE_ORGS.find(o=>o.id==="sample_team_aau")||{};
+  const hm=s=>String(s||"").replace(/^0/,"");
+  const place=a=>String(a||"").split(",")[0];
+  const events=SESSIONS.filter(s=>s.programId==="prog_1").map(s=>({date:s.date,time:hm(s.startTime)+"–"+hm(s.endTime),title:s.title.replace(/^Northside Flight 14U /,""),place:place(s.address)}))
+    .concat(SEED.bookings.filter(b=>b.programId==="prog_1").map(b=>({date:b.date,time:hm(b.startTime),title:"14U tryout",place:""})));
+  let recruits=[],recruitSport="";
+  try{
+    const R=window.MOD_RECRUITING&&window.MOD_RECRUITING.sampleData&&window.MOD_RECRUITING.sampleData();
+    if(R){
+      recruitSport=String((R.pipelines[0]||{}).sport||"").toLowerCase();
+      recruits=R.pipelines.map(p=>{
+        const r=R.recruits.find(x=>x.id===p.recruit_id)||{};
+        const ev=R.evals.filter(e=>e.pipeline_id===p.id&&e.overall!=null);
+        return {name:(r.first_name||"")+" "+(r.last_name||""),stage:p.stage,position:p.position_primary,gradYear:r.grad_year,
+          overall:ev.length?Math.round(ev.reduce((t,e)=>t+e.overall,0)/ev.length*100)/100:null};
+      });
+    }
+  }catch(e){recruits=[];}
+  return {team:team.name,org:SEED.providerProfile.businessName,monthlyFee:org.price||0,today:TODAY,
+    roster:teamRoster().map(r=>({name:r.name,paid:r.paid!==false,available:r.available!==false,guardian:r.guardian||null})),
+    queue:obligationQueue().map(o=>({kind:o.kind,status:o.status,title:o.title,detail:o.detail})),
+    events,recruits,recruitSport};
+}
 function askCoach(q){
   const text=(q||"").trim();
   /* A file with no question has nothing to answer — keep the file staged
@@ -21036,7 +21070,22 @@ function askCoach(q){
   };
 
   const API=window.SporveAPI;
-  if(!API||!API.fn||!window.SporveAuth||!window.SporveAuth.isSignedIn()){
+  const signedIn=!!(API&&API.fn&&window.SporveAuth&&window.SporveAuth.isSignedIn());
+  /* SIGNED-OUT COACH PREVIEW (2026-10-26): the sample workspace has no account,
+     so coach-command cannot run. It used to fall through to the family
+     catalogue matcher below and answer a dues question with "No coach has
+     cleared a background check yet ... Join the waitlist". Now a deterministic
+     responder answers from the same sample records the preview shows, and
+     every answer is labelled as sample data, not AI. No model call, no write. */
+  if(S.portal==="coach"&&!signedIn&&window.SporvSampleAnswers){
+    const a=window.SporvSampleAnswers.answer(text,sampleWorkspaceSnapshot());
+    S.chatThinking=false;
+    S.chat=[...S.chat,{role:"coach",text:a.text,sample:true}];
+    chatArchive();
+    if(S.aiOpen===false) S.aiUnread=(S.aiUnread||0)+1;
+    render(); return;
+  }
+  if(!signedIn){
     return fallback("I'm offline right now, so this is a plain catalogue match:");
   }
 

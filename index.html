@@ -29,7 +29,7 @@
 <link rel="manifest" href="/site.webmanifest">
 <script type="application/ld+json">{"@context":"https://schema.org","@type":"SoftwareApplication","name":"Sporv","url":"https://sporv.ai/","applicationCategory":"BusinessApplication","operatingSystem":"Web","description":"Sporv runs the club for you — roster, scheduling, waivers, dues and payouts, with an agent that drafts the busywork and a human who approves it.","publisher":{"@type":"Organization","name":"Sporv","url":"https://sporv.ai/","logo":"https://sporv.ai/icon-512.png"}}</script>
 <script type="application/ld+json">{"@context":"https://schema.org","@type":"WebSite","name":"Sporv AI","url":"https://sporv.ai/"}</script>
-<meta name="sporve-build" content="310c68d0ea35ea81">
+<meta name="sporve-build" content="1604ec9ef397713d">
 </head>
 <body>
 <script>
@@ -13693,26 +13693,28 @@ function intakeDegradedBannerHTML(){
     <p style="color:var(--muted);font-size:var(--text-sm);margin-top:4px">The scan still read your records — everything it found is below. Inbox items the AI couldn't read this run will be picked up when your AI usage resets.</p>
   </div>`;
 }
-/* Demo parser for step 5 ("unstructured input is a native input type"). A
-   forwarded email/text is pasted; heuristics turn it into DRAFT obligations.
-   The real per-artifact parse runs on the RED ingest backend (Gemini); this
-   shows the shape: paste in, obligations appear, nothing is sent or charged. */
+/* Forward-to-drafts for step 5 ("unstructured input is a native input type").
+   A forwarded email/text is pasted; the deterministic extractor
+   (src/mod-intake-extract.js) turns it into DRAFT obligations: every amount
+   with its unit, dates bound to what they are for, the event, the waiver, and
+   what it could not determine. This box only exists in the signed-out sample
+   workspace (queueIsLive() hides it for real accounts, whose drafts come from
+   the agent-intake pass over their connected inbox), so no AI runs here and
+   nothing is sent or charged — Approve / Dismiss still decide each draft. */
+function obligExtractContext(){
+  /* the roster sweep's waiver finding, if it is still in the queue */
+  const w=(obligationQueue()||[]).find(o=>o&&o.kind==="waiver"&&!o.parsed&&/missing/i.test(o.title||""));
+  const n=w?+(/(\d+)\s+athletes?/i.exec(w.title)||[])[1]||0:0;
+  const names=w?((/—\s*(.+?)\s+ha(?:ve|s) no waiver/.exec(w.detail||"")||[])[1]||""):"";
+  const roster=teamRoster();
+  return {today:new Date().toISOString().slice(0,10),rosterCount:roster.length,familyCount:roster.length,
+    missingWaivers:n?{count:n,names}:null};
+}
 function parseObligations(text){
-  const t=String(text||"").trim(); if(!t) return [];
-  const firstLine=(t.split(/\n/)[0]||t).slice(0,80);
-  const out=[];
-  const money=t.match(/\$\s?(\d[\d,]*)(?:\.\d\d)?/);
-  if(money) out.push({kind:"fee",title:"Collect $"+money[1]+" — "+firstLine,
-    detail:"Amount detected in the forwarded text. Draft a charge for the rostered families once you confirm who it applies to."});
-  if(/\bwaiver|consent form|release\b/i.test(t)) out.push({kind:"waiver",title:"Waiver requirement — "+firstLine,
-    detail:"The text references a waiver/consent form. Flagged so you can check which athletes still need it."});
-  if(/\breschedul|moved to|conflict|change of (venue|time)|new time\b/i.test(t)) out.push({kind:"schedule",title:"Schedule change — "+firstLine,
-    detail:"A schedule change was detected. Draft the update and the family notification."});
-  if(/\bdeadline|due (by|on)|register by|rsvp\b/i.test(t)) out.push({kind:"deadline",title:"Deadline — "+firstLine,
-    detail:"A deadline was detected. Added as a dated obligation so it surfaces before it lapses."});
-  if(!out.length) out.push({kind:"message",title:"Draft follow-up — "+firstLine,
-    detail:"No fee, waiver, schedule change or deadline detected — drafted a message you can edit and send."});
-  return out;
+  const X=window.SporvIntakeExtract;
+  if(!X) return [];
+  return X.extract(text,obligExtractContext()).drafts.map(d=>({kind:d.kind,title:d.title,detail:d.detail,
+    unknown:d.unknown||[],amountCents:d.amountCents!=null?d.amountCents:null,dueISO:d.dueISO||null,parsed:true}));
 }
 /* ── SETTINGS (owner mock, 2026-09-01) ─────────────────────────────────────
    Rail + panes in the house coachdark register (Archivo heads, Inter body,
@@ -14273,6 +14275,9 @@ function coachQueuePage(){
       <b class="qcard-title">${esc(title+who)}</b>
       ${why?`<p class="qcard-why">${esc(why)}</p>`:""}
       ${firstLine&&firstLine!==why?`<p class="qcard-out">${esc(firstLine)}</p>`:""}
+      ${/* a pasted-text draft shows its whole reading, and what it could not tell */""}
+      ${o.parsed?(o.detail||"").split("\n").map(s=>s.trim()).filter(Boolean).slice(1).map(l=>`<p class="qcard-out">${esc(l)}</p>`).join(""):""}
+      ${o.parsed&&(o.unknown||[]).length?`<p class="qcard-why" data-oblig-unknown="1">Could not determine: ${esc(o.unknown.join("; "))}.</p>`:""}
       <div class="qcard-pills">
         <span class="pill ${stPill}">${esc(status)}</span>
         <span class="pill slate">${esc(m.label)}</span>
@@ -21027,6 +21032,35 @@ function aiFailureCopy(err){
     text:"The assistant did not answer within 45 seconds. Nothing was sent. Check Approvals before asking again, in case a draft was already queued."};
   return {retry:true,text:"I couldn't process that — the assistant call failed."+nothing};
 }
+/* The signed-out sample workspace, as one plain object for the deterministic
+   preview assistant (src/mod-sample-answers.js). Every value is read from the
+   records the preview already renders — the sample roster, the Queue drafts,
+   the sample team's sessions, the sample recruiting board — never invented. */
+function sampleWorkspaceSnapshot(){
+  const team=SEED.teams[0];
+  const org=SAMPLE_ORGS.find(o=>o.id==="sample_team_aau")||{};
+  const hm=s=>String(s||"").replace(/^0/,"");
+  const place=a=>String(a||"").split(",")[0];
+  const events=SESSIONS.filter(s=>s.programId==="prog_1").map(s=>({date:s.date,time:hm(s.startTime)+"–"+hm(s.endTime),title:s.title.replace(/^Northside Flight 14U /,""),place:place(s.address)}))
+    .concat(SEED.bookings.filter(b=>b.programId==="prog_1").map(b=>({date:b.date,time:hm(b.startTime),title:"14U tryout",place:""})));
+  let recruits=[],recruitSport="";
+  try{
+    const R=window.MOD_RECRUITING&&window.MOD_RECRUITING.sampleData&&window.MOD_RECRUITING.sampleData();
+    if(R){
+      recruitSport=String((R.pipelines[0]||{}).sport||"").toLowerCase();
+      recruits=R.pipelines.map(p=>{
+        const r=R.recruits.find(x=>x.id===p.recruit_id)||{};
+        const ev=R.evals.filter(e=>e.pipeline_id===p.id&&e.overall!=null);
+        return {name:(r.first_name||"")+" "+(r.last_name||""),stage:p.stage,position:p.position_primary,gradYear:r.grad_year,
+          overall:ev.length?Math.round(ev.reduce((t,e)=>t+e.overall,0)/ev.length*100)/100:null};
+      });
+    }
+  }catch(e){recruits=[];}
+  return {team:team.name,org:SEED.providerProfile.businessName,monthlyFee:org.price||0,today:TODAY,
+    roster:teamRoster().map(r=>({name:r.name,paid:r.paid!==false,available:r.available!==false,guardian:r.guardian||null})),
+    queue:obligationQueue().map(o=>({kind:o.kind,status:o.status,title:o.title,detail:o.detail})),
+    events,recruits,recruitSport};
+}
 function askCoach(q){
   const text=(q||"").trim();
   /* A file with no question has nothing to answer — keep the file staged
@@ -21090,7 +21124,22 @@ function askCoach(q){
   };
 
   const API=window.SporveAPI;
-  if(!API||!API.fn||!window.SporveAuth||!window.SporveAuth.isSignedIn()){
+  const signedIn=!!(API&&API.fn&&window.SporveAuth&&window.SporveAuth.isSignedIn());
+  /* SIGNED-OUT COACH PREVIEW (2026-10-26): the sample workspace has no account,
+     so coach-command cannot run. It used to fall through to the family
+     catalogue matcher below and answer a dues question with "No coach has
+     cleared a background check yet ... Join the waitlist". Now a deterministic
+     responder answers from the same sample records the preview shows, and
+     every answer is labelled as sample data, not AI. No model call, no write. */
+  if(S.portal==="coach"&&!signedIn&&window.SporvSampleAnswers){
+    const a=window.SporvSampleAnswers.answer(text,sampleWorkspaceSnapshot());
+    S.chatThinking=false;
+    S.chat=[...S.chat,{role:"coach",text:a.text,sample:true}];
+    chatArchive();
+    if(S.aiOpen===false) S.aiUnread=(S.aiUnread||0)+1;
+    render(); return;
+  }
+  if(!signedIn){
     return fallback("I'm offline right now, so this is a plain catalogue match:");
   }
 
@@ -36620,11 +36669,744 @@ window.MOD_RECRUITING = {
   views: { recruiting: recruitingView },
   wire: wire,
   state: { recruitTab: "board" },
+  /* the sample board's records, read-only, for the preview assistant's
+     deterministic answers (mod-sample-answers.js) — a fresh copy each call */
+  sampleData: sampleData,
   /* test seam: pure helpers, no side effects */
   _test: { parseCSV: parseCSV, overallOf: overallOf, csvPreview: csvPreview, state: function (){ return st; }, addRecruit: addRecruit, identityKey: identityKey },
 };
 
 })();
+
+</script>
+<script>
+/* ---- mod-intake-extract.js ---- */
+/* mod-intake-extract.js — the deterministic "forward something" extractor.
+   ─────────────────────────────────────────────────────────────────────────
+   Used by the Queue's "Turn into drafts" box wherever no AI runs (the
+   signed-out sample workspace). Pure: text + a small context in, draft
+   obligations out. No network, no model, no state, no writes — the host turns
+   the result into DRAFT queue rows that still need Approve / Dismiss.
+
+   What it reads out of a forwarded email or text:
+     money   — every amount with its unit (per team / per athlete / per player /
+               per family / per session / flat), late fees kept apart
+     dates   — month-day dates and ranges, bound to what they are for
+               (payment due, waiver due, registration closes, event dates,
+               schedule change), weekdays resolved inside the event range
+     times   — bound to check-in, first games / start, or the session
+     names   — the event ("Windy City Shootout"), the venue, the form
+   What it drafts:
+     Collect  (per-athlete / per-family / per-session amount, unit, due date,
+               roster total when the roster size is known; team fees noted)
+     Team fee (only when the text has no per-athlete amount)
+     Waiver   (form + due date, cross-checked against known missing waivers)
+     Event    (name, dates, venue, check-in / start) as a schedule item
+     Schedule change + the family message, Registration deadline
+   Every draft says what it could not determine. Titles are built from the
+   parsed facts, never from truncated raw text.
+
+   Test seam: tests/intake/intake-extract.spec.mjs loads this file in a vm
+   context and calls SporvIntakeExtract.extract directly. */
+(function (root) {
+"use strict";
+
+var MON_SHORT = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+var WD_SHORT = ["Sun","Mon","Tue","Wed","Thu","Fri","Sat"];
+var WD_LONG = ["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"];
+var MON_RX = "(Jan(?:uary)?|Feb(?:ruary)?|Mar(?:ch)?|Apr(?:il)?|May|June?|July?|Aug(?:ust)?|Sept?(?:ember)?|Oct(?:ober)?|Nov(?:ember)?|Dec(?:ember)?)";
+var WD_RX = "(Mon|Tues?|Wed(?:nes)?|Thu(?:rs?)?|Fri|Sat(?:ur)?|Sun)(?:day)?(s)?";
+var NUMW = { one:1, two:2, three:3, four:4, five:5, six:6, seven:7, eight:8, nine:9, ten:10, eleven:11, twelve:12 };
+
+var K = {
+  waiver: /\b(waivers?|release forms?|consent forms?|medical forms?|physicals?|paperwork)\b/i,
+  reg: /\b(register|registration|registrations|sign[- ]?ups?|enroll(?:ment)?|rsvp|rosters? (?:are |is )?due|rosters? lock)\b/i,
+  pay: /\b(pay|payment|paid|entry|fee|fees|dues|cost|tuition|deposit|balance|payable)\b|\$/i,
+  dueish: /\b(due|by|deadline|before|no later than|closes?|payable)\b/i,
+  checkin: /\b(check[- ]?in|arriv(?:e|al)|doors open)\b/i,
+  start: /\b(first games?|games? (?:start|begin)|tip[- ]?off|starts?|begins?|kick[- ]?off|warm[- ]?ups?)\b/i,
+  end: /\b(ends?|until|wrap(?:s)? up|done by)\b/i,
+  change: /\b(moved|move|moving|reschedul\w*|changed?|cancel+ed|instead|relocat\w*|swapp?\w*|pushed|now (?:at|on|in))\b/i,
+  late: /\blate\b/i,
+};
+
+/* ── small helpers ─────────────────────────────────────────────────────── */
+function cap(s) { s = String(s || ""); return s.charAt(0).toUpperCase() + s.slice(1); }
+function moneyLabel(cents) {
+  var d = cents / 100;
+  return "$" + (cents % 100 ? d.toFixed(2) : Math.round(d).toLocaleString("en-US"));
+}
+function monthIndex(word) {
+  var w = String(word || "").slice(0, 3).toLowerCase();
+  var i = ["jan","feb","mar","apr","may","jun","jul","aug","sep","oct","nov","dec"].indexOf(w);
+  return i;
+}
+function wdIndex(word) {
+  var w = String(word || "").slice(0, 2).toLowerCase();
+  return ["su","mo","tu","we","th","fr","sa"].indexOf(w);
+}
+function refDate(ctx) {
+  var t = ctx && ctx.today;
+  var d = t ? new Date(String(t).slice(0, 10) + "T12:00:00Z") : new Date();
+  return isNaN(d.getTime()) ? new Date() : d;
+}
+function utc(y, m, d) { return new Date(Date.UTC(y, m, d, 12)); }
+function iso(dt) { return dt.toISOString().slice(0, 10); }
+function dayLabel(dt, withWd) {
+  return (withWd ? WD_SHORT[dt.getUTCDay()] + " " : "") + MON_SHORT[dt.getUTCMonth()] + " " + dt.getUTCDate();
+}
+function rangeLabel(a, b) {
+  if (!b || iso(a) === iso(b)) return dayLabel(a);
+  if (a.getUTCMonth() === b.getUTCMonth()) return dayLabel(a) + "–" + b.getUTCDate();
+  return dayLabel(a) + "–" + dayLabel(b);
+}
+function uniq(arr) { var s = {}, out = []; arr.forEach(function (x) { if (!s[x]) { s[x] = 1; out.push(x); } }); return out; }
+function toNum(w) { w = String(w || "").toLowerCase(); return NUMW[w] || (/^\d+$/.test(w) ? +w : 0); }
+
+/* Normalise the text the regexes see: a.m./p.m., typographic dashes, spaces. */
+function normalise(text) {
+  return String(text || "")
+    .replace(/\r\n?/g, "\n")
+    .replace(/\b([ap])\.\s?m\.?/gi, function (_, a) { return a.toLowerCase() + "m"; })
+    .replace(/[–—]/g, "-")
+    /* "June 9 - July 14" / "5 - 6:30pm" are ranges, not clause breaks */
+    .replace(/(\d)\s+-\s+(?=\d|[A-Z][a-z]{2,8}\.?\s+\d)/g, "$1-")
+    .replace(/[‘’]/g, "'")
+    .replace(/[ \t]+/g, " ")
+    .trim();
+}
+function sentencesOf(t) {
+  return t.split(/(?<=[.!?])\s+(?=[A-Z0-9$"'(])|\n+/).map(function (s) { return s.trim(); }).filter(Boolean);
+}
+function clausesOf(s) {
+  return s.split(/[,;]\s+|\s+-\s+|:\s+/).map(function (c) { return c.trim(); }).filter(Boolean);
+}
+
+/* ── dates ─────────────────────────────────────────────────────────────── */
+function yearFor(m, d, ref, explicit) {
+  if (explicit) return { y: +explicit, assumed: false };
+  var y = ref.getUTCFullYear();
+  /* A date well in the past reads as next year: "Jan 10" forwarded in late
+     October is next January, not nine months ago. */
+  if (utc(y, m, d).getTime() < ref.getTime() - 60 * 86400000) y += 1;
+  return { y: y, assumed: true };
+}
+function findDates(str, ref) {
+  var out = [], m;
+  var rx = new RegExp("\\b" + MON_RX + "\\.?\\s+(\\d{1,2})(?:st|nd|rd|th)?(?:\\s*(?:-|to|through|thru)\\s*(?:" + MON_RX + "\\.?\\s+)?(\\d{1,2})(?:st|nd|rd|th)?)?(?:,?\\s*(\\d{4}))?\\b", "gi");
+  while ((m = rx.exec(str))) {
+    var mi = monthIndex(m[1]), d1 = +m[2];
+    if (mi < 0 || d1 < 1 || d1 > 31) continue;
+    var yy = yearFor(mi, d1, ref, m[5]);
+    var start = utc(yy.y, mi, d1), end = null;
+    if (m[4]) {
+      var mi2 = m[3] ? monthIndex(m[3]) : mi, d2 = +m[4];
+      if (d2 >= 1 && d2 <= 31) {
+        end = utc(yy.y + (mi2 < mi ? 1 : 0), mi2, d2);
+        if (end < start) end = null;
+      }
+    }
+    out.push({ index: m.index, end: m.index + m[0].length, raw: m[0], start: start, endDate: end, yearAssumed: yy.assumed });
+  }
+  var nrx = /\b(\d{1,2})\/(\d{1,2})(?:\/(\d{2,4}))?\b/g;
+  while ((m = nrx.exec(str))) {
+    var mo = +m[1] - 1, da = +m[2];
+    if (mo < 0 || mo > 11 || da < 1 || da > 31) continue;
+    var ex = m[3] ? (m[3].length === 2 ? "20" + m[3] : m[3]) : null;
+    var y2 = yearFor(mo, da, ref, ex);
+    out.push({ index: m.index, end: m.index + m[0].length, raw: m[0], start: utc(y2.y, mo, da), endDate: null, yearAssumed: y2.assumed });
+  }
+  return out.sort(function (a, b) { return a.index - b.index; });
+}
+function findWeekdays(str) {
+  var out = [], m, rx = new RegExp("\\b" + WD_RX + "\\b", "gi");
+  while ((m = rx.exec(str))) {
+    var i = wdIndex(m[1]);
+    if (i < 0) continue;
+    /* "Sat" inside "Saturday" is one match; "Mon" as in "Mon 14" stays. */
+    out.push({ index: m.index, wd: i, plural: !!m[3] || /days$/i.test(m[0]), raw: m[0] });
+  }
+  return out;
+}
+
+/* ── times ─────────────────────────────────────────────────────────────── */
+function fmtTime(h, mm, ap) {
+  return h + (mm && mm !== "00" ? ":" + mm : (mm === "00" ? ":00" : "")) + (ap || "");
+}
+function findTimes(str) {
+  var out = [], m;
+  var rx = /\b(\d{1,2})(?::(\d{2}))?\s*(am|pm)?\s*(?:-|to)\s*(\d{1,2})(?::(\d{2}))?\s*(am|pm)\b|\b(\d{1,2})(?::(\d{2}))?\s*(am|pm)\b|\b(noon)\b/gi;
+  while ((m = rx.exec(str))) {
+    if (m[4]) {
+      var ap2 = m[6].toLowerCase(), ap1 = m[3] ? m[3].toLowerCase() : "";
+      out.push({ index: m.index, label: fmtTime(m[1], m[2], ap1 && ap1 !== ap2 ? ap1 : "") + "–" + fmtTime(m[4], m[5], ap2), range: true });
+    } else if (m[7]) {
+      out.push({ index: m.index, label: fmtTime(m[7], m[8], m[9].toLowerCase()), range: false });
+    } else if (m[10]) {
+      out.push({ index: m.index, label: "noon", range: false });
+    }
+  }
+  return out;
+}
+
+/* ── money ─────────────────────────────────────────────────────────────── */
+var ATHLETE_WORDS = /^(athlete|player|kid|child|participant|camper|swimmer|wrestler|skater|gymnast|dancer|person|head|student)$/;
+var SESSION_WORDS = /^(session|class|clinic|lesson|day|week|month|night|game|practice)$/;
+function unitClass(word) {
+  if (!word) return "flat";
+  if (word === "team") return "team";
+  if (word === "family" || word === "household") return "family";
+  if (ATHLETE_WORDS.test(word)) return "athlete";
+  if (SESSION_WORDS.test(word)) return "session";
+  if (word === "each") return "each";
+  return "flat";
+}
+function singular(w) {
+  w = String(w || "").toLowerCase();
+  if (w === "families") return "family";
+  if (w === "children") return "child";
+  if (w === "classes") return "class";
+  return w.replace(/s$/, "");
+}
+function findMoney(t) {
+  var out = [], m, rx = /\$\s?(\d[\d,]*(?:\.\d{1,2})?)/g;
+  var UNIT = "(team|athlete|player|kid|child|children|participant|camper|swimmer|wrestler|skater|gymnast|dancer|person|head|student|family|families|household|session|class|classes|clinic|lesson|day|week|month|night|game|practice)s?";
+  var after = new RegExp("^\\s*(?:\\/\\s*|per\\s+|a\\s+|an\\s+|for each\\s+|each\\s+|every\\s+)?" + UNIT + "\\b", "i");
+  var before = new RegExp("\\b" + UNIT + "\\s+(?:entry|entry fee|fee|cost|price|dues)\\s*(?:is|of|:|=)?\\s*$", "i");
+  var perBefore = new RegExp("\\bper[- ]" + UNIT + "\\s+(?:entry|entry fee|fee|cost|price|dues)?\\s*(?:is|of|:|=)?\\s*$", "i");
+  while ((m = rx.exec(t))) {
+    var cents = Math.round(parseFloat(m[1].replace(/,/g, "")) * 100);
+    if (!(cents > 0)) continue;
+    var tail = t.slice(m.index + m[0].length, m.index + m[0].length + 30);
+    var head = t.slice(Math.max(0, m.index - 30), m.index);
+    var u = null, um;
+    if ((um = tail.match(after))) u = singular(um[1]);
+    else if (/^\s*each\b/i.test(tail)) u = "each";
+    else if ((um = head.match(perBefore)) || (um = head.match(before))) u = singular(um[1]);
+    out.push({
+      index: m.index, cents: cents, unitWord: u, unit: unitClass(u),
+      late: K.late.test(head.slice(-20)) || /^\s*late\b/i.test(tail),
+    });
+  }
+  /* the same amount + unit said twice is one fact */
+  var seen = {};
+  return out.filter(function (x) { var k = x.cents + "|" + x.unit + "|" + x.late; if (seen[k]) return false; seen[k] = 1; return true; });
+}
+
+/* ── names ─────────────────────────────────────────────────────────────── */
+var EV_WORDS = "Shootout|Classic|Tournament|Invitational|Showcase|Cup|Camp|Clinic|Jamboree|Tryouts?|League|Festival|Combine|Challenge|Championships?|Meet|Series|Slam|Jam|Bash|Open|Hoopfest";
+var LEAD_STOP = /^(hi|hey|hello|dear|fwd|fw|re|the|our|your|this|all|reminder|update|coaches|coach|team|teams|for|and)$/i;
+function findEvent(t) {
+  var rx = new RegExp("((?:[A-Z0-9][\\w'&]*\\s+){1,5}(?:" + EV_WORDS + "))\\b", "g"), m;
+  while ((m = rx.exec(t))) {
+    var words = m[1].split(/\s+/);
+    while (words.length > 1 && LEAD_STOP.test(words[0])) words.shift();
+    if (words.length >= 2 || !LEAD_STOP.test(words[0])) {
+      var name = words.join(" ");
+      if (name.split(/\s+/).length >= 2) return { name: name, index: m.index + m[1].indexOf(name) };
+    }
+  }
+  var sub = t.match(/^(?:subject|fwd|fw|re):\s*([^\n]{3,60})$/im);
+  if (sub) return { name: sub[1].replace(/\s*[-|].*$/, "").trim(), index: sub.index };
+  return null;
+}
+var NOT_PLACE = new RegExp("^(?:" + MON_RX + "|" + WD_RX + "|Noon|Check|Entry|Every|First|Registration|Payment)$", "i");
+function findPlaces(t) {
+  var out = [], m;
+  var rx = /(?:\bat|@|\bvenue:?|\blocation:?|\bmoved to|\bnow at|\brelocated to)\s+((?:the\s+)?[A-Z][\w'&-]*(?:\s+(?:[A-Z0-9][\w'&-]*|of|the|and|&|on))*)/g;
+  while ((m = rx.exec(t))) {
+    var p = m[1].replace(/\s+(?:on|and|the|of|&)$/i, "").trim();
+    var first = p.replace(/^the\s+/i, "").split(/\s+/)[0];
+    if (NOT_PLACE.test(first)) continue;
+    out.push({ index: m.index, name: p });
+  }
+  var rx2 = /\b(?:in|at)\s+(the\s+[a-z][\w'-]*(?:\s+[a-z][\w'-]*){0,3}?\s+(?:gym|court|field|room|rink|pool|hall|center|centre|complex|park|fieldhouse|gymnasium))\b/gi;
+  while ((m = rx2.exec(t))) out.push({ index: m.index, name: m[1].trim() });
+  return out.sort(function (a, b) { return a.index - b.index; });
+}
+function findForm(t) {
+  var m = t.match(/\b((?:signed\s+)?(?:(?:liability|medical|photo|media|concussion|participation|parental|parent|tournament|player|athlete|insurance)\s+)?(?:waivers?|release forms?|consent forms?|medical forms?|physicals?))\b/i);
+  if (!m) return null;
+  return singular(m[1].toLowerCase().replace(/\s+/g, " ")).replace(/forms$/, "form");
+}
+
+/* ── binding: what is each date / time for? ────────────────────────────── */
+function datePurpose(clause, sentence, isRange, eventName) {
+  if (K.waiver.test(clause)) return "waiver";
+  if (K.reg.test(clause)) return "registration";
+  if (K.checkin.test(clause)) return "checkin";
+  if (K.pay.test(clause) && K.dueish.test(clause)) return "payment";
+  if (K.change.test(clause)) return "change";
+  if (K.dueish.test(clause)) {
+    if (K.waiver.test(sentence)) return "waiver";
+    if (K.reg.test(sentence)) return "registration";
+    if (K.pay.test(sentence)) return "payment";
+    return "deadline";
+  }
+  if (K.change.test(sentence)) return "change";
+  if (isRange || (eventName && sentence.indexOf(eventName) >= 0)) return "event";
+  return "date";
+}
+function timePurpose(before) {
+  /* the keyword nearest BEFORE the time, inside its clause, wins */
+  var best = null, bestAt = -1;
+  [["checkin", K.checkin], ["start", K.start], ["end", K.end]].forEach(function (p) {
+    var rx = new RegExp(p[1].source, "gi"), m;
+    while ((m = rx.exec(before))) { if (m.index > bestAt) { bestAt = m.index; best = p[0]; } }
+  });
+  return best || "time";
+}
+
+/* ── the extractor ─────────────────────────────────────────────────────── */
+function extract(text, ctx) {
+  ctx = ctx || {};
+  var t = normalise(text);
+  if (!t) return { facts: null, drafts: [] };
+  var ref = refDate(ctx);
+  var sentences = sentencesOf(t);
+  var ev = findEvent(t);
+  var eventName = ev ? ev.name : null;
+
+  /* dates + times, bound clause by clause */
+  var dates = [], times = [], weekdays = [];
+  sentences.forEach(function (s, si) {
+    clausesOf(s).forEach(function (c) {
+      findDates(c, ref).forEach(function (d) {
+        d.purpose = datePurpose(c, s, !!d.endDate, eventName);
+        d.sentence = si; d.clause = c;
+        dates.push(d);
+      });
+      var wds = findWeekdays(c);
+      wds.forEach(function (w) { w.sentence = si; w.clause = c; weekdays.push(w); });
+      findTimes(c).forEach(function (tm) {
+        tm.purpose = timePurpose(c.slice(0, tm.index));
+        tm.weekday = wds.length ? wds[0] : null;
+        tm.sentence = si; tm.clause = c;
+        times.push(tm);
+      });
+    });
+  });
+  var first = function (p) { for (var i = 0; i < dates.length; i++) if (dates[i].purpose === p) return dates[i]; return null; };
+  var eventDate = first("event") || dates.filter(function (d) { return d.endDate; })[0] || null;
+  if (!eventDate && eventName) {
+    /* a lone date in the sentence that names the event is the event date */
+    var evS = -1; sentences.forEach(function (s, i) { if (evS < 0 && s.indexOf(eventName) >= 0) evS = i; });
+    eventDate = dates.filter(function (d) { return d.sentence === evS && d.purpose === "date"; })[0] || null;
+  }
+  var payDue = first("payment"), waiverDue = first("waiver"), regDue = first("registration"), genericDue = first("deadline");
+  var resolveWd = function (w) {
+    if (!w || !eventDate) return null;
+    var a = eventDate.start, b = eventDate.endDate || eventDate.start;
+    for (var d = new Date(a.getTime()); d <= b; d = new Date(d.getTime() + 86400000)) if (d.getUTCDay() === w.wd) return d;
+    return null;
+  };
+  var timeLabel = function (tm) {
+    var day = tm.weekday ? (tm.weekday.plural ? WD_LONG[tm.weekday.wd] + "s" : (resolveWd(tm.weekday) ? dayLabel(resolveWd(tm.weekday), true) : WD_LONG[tm.weekday.wd])) : "";
+    return tm.label + (day ? " " + day : "");
+  };
+
+  /* places: prefer one in the event's sentence */
+  var places = findPlaces(t);
+  var evSentence = eventDate ? eventDate.sentence : -1;
+  var place = null;
+  if (places.length) {
+    var offs = 0, bounds = sentences.map(function (s) { var i = t.indexOf(s, offs); offs = i + s.length; return [i, i + s.length]; });
+    place = places.filter(function (p) { var b = bounds[evSentence]; return b && p.index >= b[0] && p.index < b[1]; })[0] || null;
+    if (!place) place = places.filter(function (p) { return !/^the\s+[a-z]/.test(p.name); })[0] || places[0];
+  }
+
+  var amounts = findMoney(t);
+  var teamsList = uniq((t.match(/\b\d{1,2}U\b/g) || []));
+  var teamCountM = t.match(/\b(\d+|two|three|four|five|six)\s+teams\b/i);
+  var teamCount = teamsList.length > 1 ? teamsList.length : (teamCountM ? toNum(teamCountM[1]) : 0);
+  var sessCountM = t.match(/\b(\d+|two|three|four|five|six|seven|eight|nine|ten|eleven|twelve)\s+(sessions|classes|clinics|lessons|days|weeks|nights|games|practices)\b/i);
+  var sessCount = sessCountM ? toNum(sessCountM[1]) : 0;
+  var form = findForm(t);
+  var everyAthlete = /\b(every|each|all)\s+(athletes?|players?|kids?|campers?|participants?)\b/i.test(t);
+  var hasUrl = /\bhttps?:\/\/|\bwww\.|\b[\w-]+\.(?:org|com|net)\b/i.test(t);
+  var roster = +ctx.rosterCount || 0;
+  var families = +ctx.familyCount || roster;
+  var evLabel = eventName || "the forwarded event";
+  var drafts = [];
+
+  /* ── Collect: the per-athlete / per-family / per-session amount ── */
+  var notLate = amounts.filter(function (a) { return !a.late; });
+  var lateFees = amounts.filter(function (a) { return a.late; });
+  var pick = function (u) { return notLate.filter(function (a) { return a.unit === u; })[0] || null; };
+  var collect = pick("athlete") || pick("family") || pick("session") || pick("each") || null;
+  var teamFee = pick("team");
+  var flats = notLate.filter(function (a) { return a.unit === "flat"; });
+  if (!collect && !teamFee && flats.length) collect = flats[0];
+  var dueFor = function (pref) {
+    if (pref) return { label: "due " + dayLabel(pref.start), iso: iso(pref.start) };
+    if (regDue) return { label: "by " + dayLabel(regDue.start) + " (registration closes)", iso: iso(regDue.start) };
+    if (genericDue) return { label: "due " + dayLabel(genericDue.start), iso: iso(genericDue.start) };
+    return null;
+  };
+  if (collect) {
+    var due = dueFor(payDue);
+    var unitText = collect.unit === "flat" ? "" : collect.unit === "each" ? " each" : " per " + collect.unitWord;
+    var lines = [], unknown = [];
+    if (collect.unit === "athlete" || collect.unit === "each") {
+      if (roster) lines.push(roster + " rostered athletes x " + moneyLabel(collect.cents) + " = " + moneyLabel(collect.cents * roster) + " if all of them take part.");
+      unknown.push(roster ? "who is attending — the total assumes all " + roster + " rostered athletes" : "how many athletes are attending");
+      if (collect.unit === "each") unknown.push("whether \"each\" means each athlete or each family");
+    } else if (collect.unit === "family") {
+      if (families) lines.push(families + " families x " + moneyLabel(collect.cents) + " = " + moneyLabel(collect.cents * families) + ".");
+      else unknown.push("how many families this applies to");
+    } else if (collect.unit === "session") {
+      if (sessCount) lines.push(sessCount + " " + collect.unitWord + "s x " + moneyLabel(collect.cents) + " = " + moneyLabel(collect.cents * sessCount) + " per athlete for the full run.");
+      else unknown.push("how many " + collect.unitWord + "s each athlete attends");
+    } else {
+      unknown.push("who pays " + moneyLabel(collect.cents) + " — the text does not say per athlete, per family or per team");
+    }
+    if (teamFee) {
+      lines.push("Team entry " + moneyLabel(teamFee.cents) + " per team is the club's fee to the organizer" +
+        (teamCount > 1 ? " (" + teamCount + " teams = " + moneyLabel(teamFee.cents * teamCount) + ")" : "") + " — noted here, not charged to families.");
+    }
+    flats.filter(function (a) { return a !== collect; }).forEach(function (a) {
+      lines.push("Also in the text: " + moneyLabel(a.cents) + " with no unit stated (for example a bundle price) — not drafted.");
+    });
+    lateFees.forEach(function (a) { lines.push("Late fee in the text: " + moneyLabel(a.cents) + " — not drafted; only applies if you miss the deadline."); });
+    if (!due) unknown.push("the payment due date");
+    if (!eventName) unknown.push("the event name");
+    lines.push("Draft only — nothing is charged and no family is asked to pay until you approve.");
+    drafts.push({
+      kind: "fee",
+      title: "Collect " + moneyLabel(collect.cents) + unitText + " — " + evLabel + (due ? ", " + due.label : ""),
+      detail: lines.join("\n"), unknown: unknown,
+      amountCents: collect.cents, unit: collect.unit, unitWord: collect.unitWord || null, dueISO: due ? due.iso : null,
+    });
+  } else if (teamFee) {
+    var dueT = dueFor(payDue), lt = [], ut = [];
+    lt.push((teamCount > 1 ? teamCount + " teams" + (teamsList.length > 1 ? " (" + teamsList.join(", ") + ")" : "") + " x " + moneyLabel(teamFee.cents) + " = " + moneyLabel(teamFee.cents * teamCount) : "One team x " + moneyLabel(teamFee.cents)) + " owed by the club to the organizer.");
+    lt.push("No per-athlete amount in the text, so no family charge was drafted.");
+    if (!teamCount) ut.push("how many teams you are entering — assumed one");
+    if (!dueT) ut.push("the payment due date");
+    drafts.push({
+      kind: "deadline",
+      title: "Pay " + moneyLabel(teamFee.cents) + " per team entry — " + evLabel + (dueT ? ", " + dueT.label : ""),
+      detail: lt.join("\n"), unknown: ut,
+      amountCents: teamFee.cents * Math.max(1, teamCount), unit: "team", dueISO: dueT ? dueT.iso : null,
+    });
+  }
+
+  /* ── Waiver ── */
+  if (form || K.waiver.test(t)) {
+    var fname = form || "waiver";
+    var lw = [], uw = [];
+    var gap = ctx.missingWaivers;
+    if (gap && gap.count) lw.push("Your roster already has " + gap.count + " athlete" + (gap.count === 1 ? "" : "s") + " with no waiver on file" + (gap.names ? " (" + gap.names + ")" : "") + " — start with them.");
+    else if (roster) lw.push("Check all " + roster + " rostered athletes; Sporv has no waiver status to cross-check against.");
+    if (!waiverDue) uw.push("when the " + fname + " is due");
+    if (/\bupload/i.test(t) && !hasUrl) uw.push("where to upload it — the text has no link");
+    if (!form) uw.push("which form — the text only says waiver");
+    lw.push("Draft only — no reminder goes to families until you approve.");
+    drafts.push({
+      kind: "waiver",
+      title: cap(fname) + (everyAthlete ? " for every athlete" : "") + " — " + evLabel + (waiverDue ? ", due " + dayLabel(waiverDue.start) : ""),
+      detail: lw.join("\n"), unknown: uw, dueISO: waiverDue ? iso(waiverDue.start) : null,
+    });
+  }
+
+  /* ── Schedule change (+ the family message) ── */
+  var changeSentence = sentences.filter(function (s) { return /\b(moved to|moving to|reschedul\w*|changed? to|pushed to|instead|now (?:at|on|in)|relocat\w*|cancel+ed)\b/i.test(s); })[0];
+  if (changeSentence) {
+    var split = changeSentence.search(/\b(moved to|moving to|rescheduled to|rescheduled for|changed? to|pushed to|instead|now (?:at|on|in)|relocated to|will be)\b/i);
+    var beforeS = split > 0 ? changeSentence.slice(0, split) : "", afterS = split >= 0 ? changeSentence.slice(split) : changeSentence;
+    var what = (changeSentence.match(/\b(practice|game|scrimmage|session|class|tryouts?|clinic|lift|workout|photos?)\b/i) || t.match(/\b(practice|game|scrimmage|session|class|tryouts?|clinic|lift|workout)\b/i) || [null, "session"])[1].toLowerCase();
+    var mismatch = [];
+    var describe = function (seg) {
+      var bits = [];
+      var d = findDates(seg, ref)[0], w = findWeekdays(seg)[0], tm = findTimes(seg)[0], pl = findPlaces(seg)[0];
+      /* "Thursday Nov 6" when Nov 6 is a Friday: say so, never silently pick one */
+      var clash = d && w && w.wd !== d.start.getUTCDay() ? WD_LONG[w.wd] + " " + dayLabel(d.start) + ", but " + dayLabel(d.start) + " " + d.start.getUTCFullYear() + " is a " + WD_LONG[d.start.getUTCDay()] : null;
+      if (clash) mismatch.push(clash);
+      if (d) bits.push(clash ? WD_LONG[w.wd] + " " + dayLabel(d.start) : dayLabel(d.start, true));
+      else if (w) bits.push(WD_LONG[w.wd]);
+      if (tm) bits.push(tm.label);
+      var dayTime = bits.join(", ");
+      return { text: dayTime + (pl ? (dayTime ? " " : "") + (/^the\s/i.test(pl.name) ? "in " : "at ") + pl.name : ""), has: !!(d || w || tm || pl), place: !!pl, when: !!(d || w || tm) };
+    };
+    /* the old slot may sit in the sentence before the change sentence */
+    var ci = sentences.indexOf(changeSentence);
+    var oldD = describe(beforeS);
+    if (!oldD.has && ci > 0) oldD = describe(sentences[ci - 1]);
+    var newD = describe(afterS);
+    var cancelled = /\bcancel+ed\b/i.test(changeSentence) && !newD.has;
+    var oldTxt = (oldD.has ? oldD.text + " " : "") + what;
+    var lc = [], uc = [];
+    if (!oldD.has) uc.push("which " + what + " this replaces");
+    if (!cancelled && !newD.when) uc.push("the new day or time");
+    if (!cancelled && !newD.place) uc.push("the venue — assumed unchanged");
+    mismatch.forEach(function (m) { uc.push("the right date — the text says " + m); });
+    lc.push("Draft only — your calendar and families are not changed until you approve.");
+    drafts.push({
+      kind: "schedule",
+      title: cancelled ? "Schedule change: " + cap(oldTxt) + " is cancelled" : "Schedule change: " + cap(oldTxt) + " moves to " + (newD.text || "a new slot"),
+      detail: lc.join("\n"), unknown: uc,
+    });
+    drafts.push({
+      kind: "message",
+      title: "Tell families: " + (cancelled ? cap(oldTxt) + " is cancelled" : cap(what) + " moves to " + (newD.text || "a new slot")),
+      detail: (families ? "Drafted for the " + families + " rostered families" : "Drafted for the families on this team") + " — nothing sends until you approve.",
+      unknown: [],
+    });
+  }
+
+  /* ── Event (schedule item) ── */
+  if (!changeSentence && (eventDate || (eventName && (place || times.length)))) {
+    var le = [], ue = [];
+    var checkin = times.filter(function (x) { return x.purpose === "checkin"; })[0];
+    var starts = times.filter(function (x) { return x.purpose === "start"; })[0];
+    var other = times.filter(function (x) { return x.purpose === "time"; })[0];
+    var tl = [];
+    if (checkin) tl.push("Check-in " + timeLabel(checkin));
+    if (starts) tl.push("first games " + timeLabel(starts).replace(/^/, ""));
+    var pluralWd = weekdays.filter(function (w) { return w.plural; })[0];
+    if (!checkin && !starts && other) tl.push((other.weekday || !pluralWd ? "Time " : WD_LONG[pluralWd.wd] + "s ") + timeLabel(other));
+    if (!tl.length) {
+      var wdOnly = weekdays.filter(function (w) { return w.plural; })[0];
+      if (wdOnly) tl.push("Runs on " + WD_LONG[wdOnly.wd] + "s");
+    }
+    if (tl.length) le.push(tl.join(" · ") + ".");
+    if (!eventDate) ue.push("the event dates");
+    if (!place) ue.push("the venue");
+    if (!checkin && !starts && !other) ue.push("check-in or start time");
+    if (!eventName) ue.push("the event name");
+    if (eventDate && eventDate.yearAssumed) ue.push("the year — read as " + eventDate.start.getUTCFullYear());
+    le.push("Schedule item — nothing is published to families from here.");
+    drafts.push({
+      kind: "schedule",
+      title: (eventName || "Event") + (eventDate ? " — " + rangeLabel(eventDate.start, eventDate.endDate) : "") + (place ? " at " + place.name : ""),
+      detail: le.join("\n"), unknown: ue,
+      startISO: eventDate ? iso(eventDate.start) : null, endISO: eventDate && eventDate.endDate ? iso(eventDate.endDate) : null,
+      location: place ? place.name : null,
+    });
+  } else if (!changeSentence && !drafts.length && (weekdays.length || times.length)) {
+    /* "team photos Saturday 9am at the gym" — a dated item with no event name */
+    var w0 = weekdays[0], t0 = times[0];
+    var whenTxt = [w0 ? WD_LONG[w0.wd] : "", t0 ? t0.label : ""].filter(Boolean).join(" ");
+    var topic = (t.match(/\b(team photos?|picture day|meeting|parent meeting|banquet|fundraiser|practice|game|scrimmage|tryouts?)\b/i) || [null, null])[1];
+    drafts.push({
+      kind: "schedule",
+      title: (topic ? cap(topic.toLowerCase()) : "Schedule item") + " — " + whenTxt + (place ? " at " + place.name : ""),
+      detail: "Schedule item — nothing is published to families from here.",
+      unknown: [!topic ? "what the item is" : null, !place ? "the venue" : null, w0 && !dates.length ? "the exact date — only a weekday is given" : null].filter(Boolean),
+    });
+  }
+
+  /* ── Registration deadline / other deadlines ── */
+  if (regDue) {
+    drafts.push({
+      kind: "deadline",
+      title: (/rosters?/i.test(regDue.clause) ? "Rosters due " : "Registration closes ") + dayLabel(regDue.start) + " — " + evLabel,
+      detail: "Dated so it surfaces before it lapses.",
+      unknown: eventName ? [] : ["the event name"], dueISO: iso(regDue.start),
+    });
+  }
+  if (genericDue && !collect && !teamFee) {
+    drafts.push({
+      kind: "deadline",
+      title: "Deadline " + dayLabel(genericDue.start) + " — " + evLabel,
+      detail: "Dated so it surfaces before it lapses.", unknown: [], dueISO: iso(genericDue.start),
+    });
+  }
+
+  /* ── nothing recognisable: one honest message draft ── */
+  if (!drafts.length) {
+    drafts.push({
+      kind: "message",
+      title: "Review this message — no fee, form, event or date found",
+      detail: "Nothing in the text matched an amount, a waiver, a date or a schedule change, so nothing was drafted to collect or schedule.",
+      unknown: ["what action this needs"],
+    });
+  } else if (!amounts.length && /\b(fee|fees|entry|dues|cost|payment|pay)\b/i.test(t)) {
+    drafts[0].unknown = (drafts[0].unknown || []).concat(["any fee — no amount in the text, so no charge was drafted"]);
+  }
+
+  return {
+    facts: {
+      event: eventName, location: place ? place.name : null,
+      amounts: amounts.map(function (a) { return { cents: a.cents, unit: a.unit, unitWord: a.unitWord, late: a.late }; }),
+      dates: dates.map(function (d) { return { purpose: d.purpose, start: iso(d.start), end: d.endDate ? iso(d.endDate) : null }; }),
+      times: times.map(function (x) { return { purpose: x.purpose, label: timeLabel(x) }; }),
+      form: form, teams: teamCount,
+    },
+    drafts: drafts,
+  };
+}
+
+root.SporvIntakeExtract = { extract: extract, _moneyLabel: moneyLabel };
+})(typeof window !== "undefined" ? window : globalThis);
+
+</script>
+<script>
+/* ---- mod-sample-answers.js ---- */
+/* mod-sample-answers.js — the signed-out coach preview's assistant.
+   ─────────────────────────────────────────────────────────────────────────
+   A signed-out visitor in the sample workspace ("Northside Flight
+   Basketball") has no account, so the real assistant (coach-command) cannot
+   run for them. Before this module, their question fell through to the
+   retired family-marketplace catalogue matcher and answered "No coach has
+   cleared a background check yet ... Join the waitlist" to "Which families
+   owe money?" — wrong product, wrong question.
+
+   This is a deterministic responder: no model call, no network, no writes.
+   It answers the common coach questions from the SAME sample data the preview
+   already renders (sample roster, Queue drafts, sample calendar, recruiting
+   sample board), and every answer opens with the label saying exactly that.
+
+   Pure: answer(question, snapshot) -> {text, intents}. The host builds the
+   snapshot (sampleWorkspaceSnapshot in sporve-web.host.html). Unit tests:
+   tests/intake/sample-answers.spec.mjs. */
+(function (root) {
+"use strict";
+
+var LABEL = "Sample workspace — this answer comes from the example data, not the AI. Sign in to ask about your own program.";
+var SUGGEST = ["Which families owe money and how much?", "Who is missing a waiver?", "What's on the schedule this week?"];
+
+function money(n) { return "$" + Number(n).toLocaleString("en-US"); }
+function plural(n, one, many) { return n + " " + (n === 1 ? one : (many || one + "s")); }
+var WD = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+var MON = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+function dLabel(isoDay) {
+  var d = new Date(String(isoDay).slice(0, 10) + "T12:00:00Z");
+  return isNaN(d) ? String(isoDay) : WD[d.getUTCDay()] + " " + MON[d.getUTCMonth()] + " " + d.getUTCDate();
+}
+function addDays(isoDay, n) {
+  var d = new Date(String(isoDay).slice(0, 10) + "T12:00:00Z");
+  d.setUTCDate(d.getUTCDate() + n);
+  return d.toISOString().slice(0, 10);
+}
+function drafts(snap, kind) {
+  return (snap.queue || []).filter(function (o) { return o && o.status === "draft" && (!kind || o.kind === kind); });
+}
+
+/* Order matters only for ties; every matched intent is answered. */
+var INTENTS = [
+  ["dues", /\b(owe|owes|owed|owing|overdue|unpaid|dues|balance|outstanding|paid|payments?|money|collect|fees?|behind)\b/i],
+  ["waivers", /\b(waivers?|forms?|consent|release|paperwork|signed)\b/i],
+  ["conflicts", /\b(conflicts?|double[- ]?book\w*|clash\w*|overlap\w*)\b/i],
+  ["schedule", /\b(today|tonight|tomorrow|this week|next week|schedule|calendar|practices?|games?|upcoming|on deck|what'?s on|events?|tryouts?)\b/i],
+  ["roster", /\b(roster|how many (athletes|players|kids)|team size|available|availability|who'?s on|players|athletes)\b/i],
+  ["recruits", /\b(recruits?|recruiting|prospects?|rank\w*|top (players|prospects|recruits)|pipeline|commit\w*|offers?|signees?)\b/i],
+  ["queue", /\b(queue|approve|approvals?|drafts?|pending|to[- ]?do)\b/i],
+];
+
+function duesAnswer(s) {
+  var roster = s.roster || [];
+  var unpaid = roster.filter(function (r) { return r.paid === false; });
+  var out = [];
+  if (unpaid.length) {
+    out.push("**Dues on the sample roster:** " + unpaid.length + " of " + roster.length + " families are unpaid on the " +
+      money(s.monthlyFee) + " monthly team fee — " + money(s.monthlyFee * unpaid.length) + " outstanding.");
+    unpaid.forEach(function (r) { out.push("- " + r.name + (r.guardian ? " (guardian " + r.guardian + ")" : "") + ": " + money(s.monthlyFee)); });
+    out.push("The sample data does not record how many days late each one is.");
+  } else {
+    out.push("**Dues on the sample roster:** every family is marked paid.");
+  }
+  var fees = drafts(s, "fee");
+  if (fees.length) {
+    out.push("Also waiting in the Queue, not yet requested from anyone:");
+    fees.forEach(function (o) {
+      var m = /\$(\d[\d,]*)/.exec(o.title || ""), f = /(\d+)\s+families/.exec(o.title || "");
+      var total = m && f ? " (" + money(+m[1].replace(/,/g, "") * +f[1]) + " if approved)" : "";
+      out.push("- " + o.title + total);
+    });
+    out.push("Nothing is charged until you approve a draft.");
+  }
+  return out.join("\n");
+}
+function waiversAnswer(s) {
+  var w = drafts(s, "waiver");
+  if (!w.length) return "**Waivers:** the sample Queue has no open waiver gaps.";
+  var out = ["**Waivers:**"];
+  w.forEach(function (o) { out.push("- " + o.title + (o.detail ? ": " + String(o.detail).split("\n")[0] : "")); });
+  return out.join("\n");
+}
+function conflictsAnswer(s) {
+  var c = drafts(s, "schedule").filter(function (o) { return /conflict|double/i.test(o.title + " " + (o.detail || "")); });
+  if (!c.length) return "**Schedule conflicts:** none in the sample Queue.";
+  var out = ["**Schedule conflicts:**"];
+  c.forEach(function (o) { out.push("- " + o.title + (o.detail ? ": " + String(o.detail).split("\n")[0] : "")); });
+  return out.join("\n");
+}
+function scheduleAnswer(s, q) {
+  var today = s.today, end = addDays(today, 6);
+  var items = (s.events || []).filter(function (e) { return e.date >= today && e.date <= end; })
+    .sort(function (a, b) { return (a.date + a.time).localeCompare(b.date + b.time); });
+  var out = [];
+  var wantsToday = /\b(today|tonight)\b/i.test(q);
+  if (wantsToday) {
+    var t = items.filter(function (e) { return e.date === today; });
+    out.push(t.length ? "**Today in the sample calendar (" + dLabel(today) + "):**" : "**Today in the sample calendar (" + dLabel(today) + "):** nothing scheduled.");
+    t.forEach(function (e) { out.push("- " + e.time + " " + e.title + (e.place ? " — " + e.place : "")); });
+    var next = items.filter(function (e) { return e.date > today; })[0];
+    if (next) out.push("Next up: " + dLabel(next.date) + ", " + next.time + " " + next.title + ".");
+  } else {
+    out.push("**This week in the sample calendar (" + dLabel(today) + " to " + dLabel(end) + "):**");
+    if (!items.length) out.push("- nothing scheduled");
+    items.forEach(function (e) { out.push("- " + dLabel(e.date) + ", " + e.time + " " + e.title + (e.place ? " — " + e.place : "")); });
+  }
+  var c = drafts(s, "schedule").filter(function (o) { return /conflict|double/i.test(o.title); });
+  if (c.length) out.push("Heads up: the Queue also flags " + c[0].title.charAt(0).toLowerCase() + c[0].title.slice(1) + ".");
+  return out.join("\n");
+}
+function rosterAnswer(s) {
+  var r = s.roster || [];
+  var out = [];
+  var avail = r.filter(function (a) { return a.available !== false; }), out_ = r.filter(function (a) { return a.available === false; });
+  var paid = r.filter(function (a) { return a.paid !== false; }).length;
+  out.push("**" + (s.team || "The sample team") + ":** " + plural(r.length, "athlete") + " on the sample roster.");
+  out.push("- Available: " + avail.length + (out_.length ? " (unavailable: " + out_.map(function (a) { return a.name; }).join(", ") + ")" : ""));
+  out.push("- Paid: " + paid + ", unpaid: " + (r.length - paid));
+  return out.join("\n");
+}
+function recruitsAnswer(s) {
+  var R = s.recruits || [];
+  if (!R.length) return "**Recruits:** the sample recruiting board is empty.";
+  var active = R.filter(function (x) { return x.stage !== "closed" && x.stage !== "signed"; });
+  var ranked = active.filter(function (x) { return x.overall != null; }).sort(function (a, b) { return b.overall - a.overall; }).slice(0, 3);
+  var out = ["**Recruits (sample " + (s.recruitSport || "") + " board):** " + R.length + " prospects, " + active.length + " still active in the pipeline."];
+  if (ranked.length) {
+    out.push("Top by average evaluation score (out of 5):");
+    ranked.forEach(function (x, i) {
+      out.push("- " + (i + 1) + ". " + x.name + " — " + x.position + ", class of " + x.gradYear + ", " + x.stage + " stage, " + x.overall.toFixed(2));
+    });
+  }
+  return out.join("\n");
+}
+function queueAnswer(s) {
+  var d = drafts(s);
+  if (!d.length) return "**Queue:** nothing waiting for review.";
+  var out = ["**Queue:** " + plural(d.length, "draft") + " waiting for your review:"];
+  d.forEach(function (o) { out.push("- " + o.title); });
+  return out.join("\n");
+}
+var ANSWER = { dues: duesAnswer, waivers: waiversAnswer, conflicts: conflictsAnswer, schedule: scheduleAnswer, roster: rosterAnswer, recruits: recruitsAnswer, queue: queueAnswer };
+
+function answer(question, snap) {
+  var q = String(question || "");
+  var hit = INTENTS.filter(function (it) { return it[1].test(q); }).map(function (it) { return it[0]; });
+  /* "how many players have paid" is a dues question, not a roster one */
+  if (hit.indexOf("dues") >= 0) hit = hit.filter(function (h) { return h !== "roster"; });
+  /* a conflict question is answered by the conflict section alone */
+  if (hit.indexOf("conflicts") >= 0) hit = hit.filter(function (h) { return h !== "schedule"; });
+  if (hit.indexOf("recruits") >= 0) hit = hit.filter(function (h) { return h !== "roster" && h !== "queue"; });
+  hit = hit.slice(0, 2);
+  if (!hit.length) {
+    return {
+      intents: [],
+      text: LABEL + "\n\nThe sample workspace can only answer a few questions from its example data, and that one is not among them. Try:\n" +
+        SUGGEST.map(function (x) { return "- " + x; }).join("\n"),
+    };
+  }
+  return { intents: hit, text: LABEL + "\n\n" + hit.map(function (h) { return ANSWER[h](snap || {}, q); }).join("\n\n") };
+}
+
+root.SporvSampleAnswers = { answer: answer, LABEL: LABEL, SUGGEST: SUGGEST };
+})(typeof window !== "undefined" ? window : globalThis);
 
 </script>
 <script>
