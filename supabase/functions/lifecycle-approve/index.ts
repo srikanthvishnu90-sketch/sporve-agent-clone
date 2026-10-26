@@ -55,24 +55,51 @@ export const APPROVE_GUARD = {
   action: "lifecycle-approve",
   writes: "outbound_messages (status drafted -> sent | approved, approved_by, approved_at, sent_at) + notifications (one row per in-app delivery)",
   precondition: "authenticated caller; within rate limit; row exists; caller owns the row's provider; status is 'drafted' (atomic claim .eq('status','drafted')); body non-empty after the claim guardrail; a claimed guardian (in-app) or a non-bounced email (email pass)",
-  inverse: "none — a delivered message cannot be recalled. An 'approved' row still waiting for the email pass can be returned to draft from Approvals.",
+  inverse: "none — a delivered message cannot be recalled. An 'approved' row still waiting for the email pass can be returned to draft from Approvals. A claim whose in-app delivery insert is definitely refused is released back to 'drafted' before the 500; an uncertain insert is reconciled and, if unconfirmed, stays claimed.",
   receipt: "response.receipt { message_id, status, notification_id | null } — message_id is the claimed outbound_messages row; notification_id is the inserted notifications row; a delivery insert that returns no row is a 500, never ok:true",
 } as const;
 
 /* Delivery with a receipt: the notifications insert must return its row id.
    A write that returns no row (RLS, constraint, outage) is reported as an
    error — never as a delivery. Exported for tests/e2e/g4-action-registry. */
+// `definite` is true only when the database answered and refused the row
+// (a constraint, permission, type or PostgREST error code): then nothing was
+// written and the claim may be released. A thrown fetch, a timeout, an error
+// with no code, or a "success" with no row is UNCERTAIN — the row may exist.
+const DEFINITE_REFUSAL = /^(23|42|22|P0|PGRST)/;
 // deno-lint-ignore no-explicit-any
-export async function insertDeliveryReceipt(admin: any, row: { user_id: string; title: string; message: string }) {
+export async function insertDeliveryReceipt(admin: any, row: { id: string; user_id: string; title: string; message: string }) {
   try {
     const { data, error } = await admin.from("notifications").insert([row]).select("id").single();
-    if (error) return { notification_id: null, error: error.message || "delivery insert failed" };
+    if (error) {
+      const code = String((error as { code?: unknown }).code ?? "");
+      return { notification_id: null, error: error.message || "delivery insert failed", definite: DEFINITE_REFUSAL.test(code) };
+    }
     // deno-lint-ignore no-explicit-any
     const id = (data as any)?.id ?? null;
-    if (!id) return { notification_id: null, error: "delivery insert returned no row" };
-    return { notification_id: String(id), error: null };
+    if (!id) return { notification_id: null, error: "delivery insert returned no row", definite: false };
+    return { notification_id: String(id), error: null, definite: true };
   } catch (e) {
-    return { notification_id: null, error: (e as Error)?.message || "delivery insert failed" };
+    return { notification_id: null, error: (e as Error)?.message || "delivery insert failed", definite: false };
+  }
+}
+
+/* After an UNCERTAIN insert: look up the notification by the id this
+   request generated BEFORE inserting (notifications.id is a plain uuid
+   default, so a client-supplied id is accepted). Exact, no heuristics.
+   Returns the id, null when the read proves there is none, or undefined
+   when the read itself failed (still undetermined). */
+// deno-lint-ignore no-explicit-any
+export async function findDeliveredNotification(admin: any, notificationId: string): Promise<string | null | undefined> {
+  try {
+    const { data, error } = await admin.from("notifications").select("id")
+      .eq("id", notificationId).limit(1);
+    if (error) return undefined;
+    // deno-lint-ignore no-explicit-any
+    const id = Array.isArray(data) && data[0] ? (data[0] as any).id : null;
+    return id ? String(id) : null;
+  } catch {
+    return undefined;
   }
 }
 
@@ -225,20 +252,54 @@ Deno.serve(async (req) => {
     }
 
     // Only the winner reaches here. Deliver via the notifications channel + push.
-    // Residual (accepted): if this insert fails after the claim, the row is
-    // 'sent' but undelivered — the rarer, safer inverse of a double-send; a
-    // retry early-returns alreadySent rather than delivering twice.
     // G4: the delivery must hand back its row id. No row = no delivery = loud 500.
-    const delivered = await insertDeliveryReceipt(admin, { user_id: guardianId, title, message: cleanBody.slice(0, 280) });
-    if (!delivered.notification_id) {
-      return json({ error: `Marked sent but delivery failed: ${delivered.error}`, message_id: claimed.id }, 500);
+    // The id is chosen here, before the insert, so an uncertain outcome can be
+    // reconciled by exact id and a lost response can never mint a second row.
+    const note = { id: crypto.randomUUID(), user_id: guardianId, title, message: cleanBody.slice(0, 280) };
+    const delivered = await insertDeliveryReceipt(admin, note);
+    let notificationId: string | null = delivered.notification_id;
+    if (!notificationId && !delivered.definite) {
+      /* UNCERTAIN (network, timeout, no code): the row may have landed.
+         Reconcile before deciding. Found -> it was delivered; carry on with
+         that receipt. Not found, or the check failed -> keep the claim: a
+         late-committing insert plus a released draft would send twice, and a
+         message held as 'sent' is the safer, recoverable failure. */
+      const found = await findDeliveredNotification(admin, note.id);
+      if (found) {
+        notificationId = found;
+      } else {
+        return json({
+          error: `Delivery could not be confirmed (${delivered.error}). The message is held as sent so it cannot go out twice; check with the family before sending it again.`,
+          message_id: claimed.id, status: "sent", released: false, delivery: "unconfirmed",
+        }, 500);
+      }
+    }
+    if (!notificationId) {
+      /* DEFINITE refusal: the database rejected the row, so nothing reached
+         the parent. Release the claim so the row does not read 'sent' (a
+         retry would hit the alreadySent paths and the message would never
+         go): back to 'drafted' with the approval/sent stamps cleared,
+         guarded on OUR claim (status sent + this sent_at) so a concurrent
+         winner is never undone. Service role: the baseline
+         outbound_freeze_server_columns trigger returns early for it, and
+         outbound_messages_status_check allows 'drafted'. */
+      const { data: released } = await admin.from("outbound_messages")
+        .update({ status: "drafted", approved_by: null, approved_at: null, sent_at: null })
+        .eq("id", claimed.id).eq("status", "sent").eq("sent_at", sentAt)
+        .select("id").maybeSingle();
+      return json({
+        error: released?.id
+          ? `Delivery failed: ${delivered.error}. The message was returned to drafts; nothing was sent.`
+          : `Marked sent but delivery failed: ${delivered.error}`,
+        message_id: claimed.id, status: released?.id ? "drafted" : "sent", released: !!released?.id,
+      }, 500);
     }
 
-    await deliverPush(admin, guardianId, title, cleanBody.slice(0, 280));
+    await deliverPush(admin, guardianId, title, note.message);
 
     return json({ ok: true, status: "sent", sent_at: sentAt, removed, message_id: claimed.id,
-      notification_id: delivered.notification_id,
-      receipt: { message_id: claimed.id, status: "sent", notification_id: delivered.notification_id } });
+      notification_id: notificationId,
+      receipt: { message_id: claimed.id, status: "sent", notification_id: notificationId } });
   } catch (e) {
     console.error("lifecycle-approve error:", e);
     return json({ error: "Message approval could not be completed." }, 500);

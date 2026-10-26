@@ -367,8 +367,8 @@ html #app .hvl-win-row .amt{font-family:"JetBrains Mono",ui-monospace,monospace;
 html #app .hvl-win-row .st{justify-self:end;font-size:13.5px;color:#2F6F47;background:#E8F1EA;border-radius:999px;padding:3px 10px}
 html #app .hvl-win-row .st.hold{color:#2C557E;background:#E9EFF5}
 @media (max-width:900px){html #app .hvl-win{grid-template-columns:1fr}html #app .hvl-win-rail{display:none}
-  .hvl-win-row{grid-template-columns:1fr auto}html #app .hvl-win-row .msg,html #app .hvl-win-row .st{display:none}
-  .hvl-win-stats{grid-template-columns:1fr 1fr}html #app .hvl-win-stats div:last-child{display:none}}
+  html #app .hvl-win-row{grid-template-columns:1fr auto}html #app .hvl-win-row .msg,html #app .hvl-win-row .st{display:none}
+  html #app .hvl-win-stats{grid-template-columns:1fr 1fr}html #app .hvl-win-stats div:last-child{display:none}}
 
 html #app .hvl-sec{padding:112px 0}
 html #app .hvl-sec-alt{background:#FFFFFF;border-top:1px solid var(--rule);border-bottom:1px solid var(--rule)}

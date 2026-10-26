@@ -120,6 +120,27 @@ test('signed in, recruiting tables not applied: the honest not-enabled state, an
   await ctx.close();
 });
 
+test('a truncated recruit list: adding someone already saved reuses their id (server identity lookup), no second recruit row', async () => {
+  const db = freshDb({ onboarded: true, name: 'Lakeview College' });
+  db.recruits = [{ id: 'r1', provider_id: PID, first_name: 'Priya', last_name: 'Shah', grad_year: 2027, is_minor: true, status: 'active', dedupe_key: 'shah|priya|2027' }];
+  db.recruit_pipelines = [];
+  const { ctx, page, errors, fake } = await signedIn(db);
+  await page.waitForFunction(() => window.MOD_RECRUITING?._test.state().phase === 'ready', null, { timeout: 8000 });
+  const out = await page.evaluate(async () => {
+    const t = window.MOD_RECRUITING._test, st = t.state();
+    st.recruits = [];                                 // as if Priya fell past the 1000-row read limit
+    st.truncated = ['recruits (first 1000)'];
+    await t.addRecruit({ first_name: ' Priya ', last_name: 'SHAH', grad_year: 2027, sport: 'Volleyball' });
+    return { key: t.identityKey(' Priya ', 'SHAH', 2027) };
+  });
+  assert.equal(out.key, 'shah|priya|2027', 'client identity matches the dedupe_key column');
+  assert.equal(fake.log.filter((l) => l.kind === 'insert' && l.table === 'recruits').length, 0, 'no second recruit row');
+  const pipes = fake.log.filter((l) => l.kind === 'insert' && l.table === 'recruit_pipelines');
+  assert.equal(pipes.length, 1); assert.equal(pipes[0].rows[0].recruit_id, 'r1');
+  assert.deepEqual(errors, []);
+  await ctx.close();
+});
+
 test('signed in with real rows: the board shows them, and a stage move goes through move_recruit_stage', async () => {
   const db = freshDb({ onboarded: true, name: 'Lakeview College' });
   db.recruits = [{ id: 'r1', provider_id: PID, first_name: 'Priya', last_name: 'Shah', grad_year: 2027, is_minor: true, current_school: 'Oak Park HS', status: 'active' }];
@@ -131,8 +152,9 @@ test('signed in with real rows: the board shows them, and a stage move goes thro
   assert.match(s.text, /Priya Shah/);
   assert.doesNotMatch(s.text, /Sample workspace|Maya Torres/);
   await page.selectOption('[data-rc-move="p1"]', 'contacted');
-  await page.waitForTimeout(400);
-  const rpc = fake.log.filter((l) => l.kind === 'rpc' && l.fn === 'move_recruit_stage');
+  const isMove = (l) => l.kind === 'rpc' && l.fn === 'move_recruit_stage';
+  for (let i = 0; i < 50 && !fake.log.some(isMove); i++) await page.waitForTimeout(50);   // bounded: at most 2.5s
+  const rpc = fake.log.filter(isMove);
   assert.equal(rpc.length, 1);
   assert.deepEqual(rpc[0].args, { p_pipeline: 'p1', p_to: 'contacted', p_note: null, p_closed_reason: null });
   assert.equal(fake.log.filter((l) => l.kind === 'update' && l.table === 'recruit_pipelines').length, 0, 'stage is never PATCHed directly');

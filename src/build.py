@@ -37,19 +37,17 @@ ORDER = [
     # AI/approval write dispatches through it; it reads SporveAPI and the host
     # rails lazily at click time, so it only needs to load before any click.
     "mod-actions.js",
-    # mod-catalog.js third: it reads window.SporveAPI and mutates the host's
-    # PROGRAMS array, so it must load after the API and before any module that
-    # would otherwise capture a stale catalogue.
-    "mod-catalog.js",
     # mod-coachaccount.js fourth: needs SporveAPI and SporveAuth on window.
     "mod-coachaccount.js",
     # mod-onboard.js: login + onboarding surface; needs SporveAPI, SporveAuth, SporveCoach.
     "mod-onboard.js",
     # mod-booking.js fifth: the booking write path, needs API + auth.
     "mod-booking.js",
-    "mod-safety.js", "mod-reviews.js", "mod-coachops.js",
-    "mod-payments.js", "mod-search.js", "mod-coachonboard.js",
-    "mod-media.js", "mod-notes.js", "mod-insights.js",
+    # (mod-catalog, mod-reviews, mod-search, mod-media and mod-insights were
+    # deleted with spec 01; ORDER entries must name files that exist.)
+    "mod-safety.js", "mod-coachops.js",
+    "mod-payments.js", "mod-coachonboard.js",
+    "mod-notes.js",
     # Enterprise core tabs (2026-09-22): org profile/locations/staff,
     # teams CRUD, families/guardians. Self-contained MOD_* modules.
     "mod-org.js", "mod-teams.js", "mod-families.js",
@@ -69,7 +67,12 @@ _hero_source = '"__HERO_IMGS__".indexOf("__HERO") === 0 ? [] : []'
 require_once(host, _hero_source, "hero-image expression in host")
 
 found = {os.path.basename(p): p for p in glob.glob(os.path.join(HERE, "mod-*.js"))}
-names = [n for n in ORDER if n in found] + sorted(n for n in found if n not in ORDER)
+# Every ORDER entry is a required module. A rename or a deleted file used to be
+# skipped silently and ship a page missing (say) the API layer; fail instead.
+_missing = [n for n in ORDER if n not in found]
+if _missing:
+    sys.exit("FATAL: build ORDER names module(s) not found in src/: %s" % ", ".join(_missing))
+names =[n for n in ORDER if n in found] + sorted(n for n in found if n not in ORDER)
 
 blocks, report = [], []
 for n in names:

@@ -8,7 +8,12 @@
  * Policy (incident 2026-10-22, docs/incidents/2026-10-22-assistant-429.md):
  *   - at most `maxAttempts` attempts (default 3),
  *   - exponential backoff with FULL jitter: delay = random(0, min(cap, base * 2^n)),
- *   - a `retry-after` header from the upstream wins over the computed delay,
+ *   - a POSITIVE `retry-after` header from the upstream wins over the computed
+ *     delay; `Retry-After: 0` (or a past date) falls back to the jittered
+ *     backoff, so a fleet of clients never retries in lockstep,
+ *   - each RETRY attempt is told how much budget is left and its timeout is
+ *     min(attemptTimeoutMs, remaining budget); the first attempt keeps the
+ *     full attemptTimeoutMs (a slow first answer is still an answer),
  *   - never start an attempt that would push total elapsed time past
  *     `budgetMs` (default 12s) — the caller is a person watching a spinner.
  */
@@ -38,7 +43,10 @@ export function backoffDelay(attempt, { baseMs = 500, capMs = 4000, random = Mat
 }
 
 /**
- * Run `attemptFn(attemptIndex)` until it yields a non-transient outcome.
+ * Run `attemptFn(attemptIndex, { remainingMs, timeoutMs })` until it yields a
+ * non-transient outcome. `timeoutMs` is what the attempt should pass to
+ * AbortSignal.timeout(); a TimeoutError it throws is returned as `error`
+ * unwrapped.
  * `attemptFn` resolves to `{ status, retryAfter? , ...anything }` or throws on a
  * network/timeout error. Returns `{ outcome, attempts, error, retryAfterMs }`:
  *   - outcome: the last resolved value (null if every attempt threw),
@@ -50,6 +58,7 @@ export async function withUpstreamRetry(attemptFn, opts = {}) {
   const {
     maxAttempts = 3,
     budgetMs = 12_000,
+    attemptTimeoutMs = 30_000,
     baseMs = 500,
     capMs = 4000,
     random = Math.random,
@@ -65,8 +74,10 @@ export async function withUpstreamRetry(attemptFn, opts = {}) {
     attempts = i + 1;
     let transient = false;
     retryAfterMs = null;
+    const remainingMs = Math.max(0, budgetMs - (now() - start));
+    const timeoutMs = i === 0 ? attemptTimeoutMs : Math.max(1, Math.min(attemptTimeoutMs, remainingMs));
     try {
-      outcome = await attemptFn(i);
+      outcome = await attemptFn(i, { remainingMs, timeoutMs });
       error = null;
       transient = isTransientStatus(outcome?.status);
       if (transient) retryAfterMs = parseRetryAfter(outcome?.retryAfter, now());
@@ -77,7 +88,7 @@ export async function withUpstreamRetry(attemptFn, opts = {}) {
     }
     if (!transient) return { outcome, attempts, error, retryAfterMs: null };
     if (i === maxAttempts - 1) break;
-    const delay = retryAfterMs ?? backoffDelay(i, { baseMs, capMs, random });
+    const delay = retryAfterMs != null && retryAfterMs > 0 ? retryAfterMs : backoffDelay(i, { baseMs, capMs, random });
     // A timeout that already burned the budget, or a retry-after longer than
     // the person will wait, ends here — the caller reports "busy" honestly.
     if (now() - start + delay >= budgetMs) { retryAfterMs = delay; break; }

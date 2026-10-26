@@ -175,8 +175,9 @@ one new table and touches nothing that exists.
     (`SporvActions.durableState()` reports `absent`). Verify with the five
     queries at the bottom of the file; rollback is one `drop table`.
 
-    Steps: open https://supabase.com/dashboard/project/tseszaprvtvqrkfpditu/sql/new,
-    paste the whole file, click **Run**, then run verification queries 1–4
+    Steps: open https://supabase.com/dashboard/project/aveqjeafghmwafkbbnor/sql/new
+    and check the address bar shows `aveqjeafghmwafkbbnor` (the live app's
+    project — not `tseszaprvtvqrkfpditu`), paste the whole file, click **Run**, then run verification queries 1–4
     and confirm the results match the comments. Query 5 needs one approved
     chat proposal on a signed-in coach account.
 
@@ -221,6 +222,18 @@ none). The only narrowing policies switch on when an org sets
    Expected: `already_applied` = NULL. The other three are informational
    (`event_table` / `coach_helper` NULL just means the test skips the coach
    check; note `editor_bypasses_rls` and tell Claude if it is `false`).
+2a. Create the audit HMAC key in Vault (once; the migration refuses to run
+   without it, and every audit row is keyed with it). **+ New query**, paste,
+   **Run**:
+   ```sql
+   select vault.create_secret(encode(extensions.gen_random_bytes(32), 'hex'),
+                              'sporv_audit_hmac_key',
+                              'Manage P1 audit_log HMAC key. Never rotate without re-keying the chain.');
+   select count(*) as key_present from vault.decrypted_secrets where name = 'sporv_audit_hmac_key';  -- 1
+   ```
+   If it errors with "duplicate key", the key already exists: skip to step 3.
+   Do not paste the key anywhere, and do not delete it — `audit_row()` raises
+   `AUDIT_KEY_MISSING` on every audited write if it is gone.
 3. **+ New query**. Open `docs/red-drafts/2026-10-22-manage-p1-tenant-roles.sql`
    on GitHub (branch `feat/manage-phase1-drafts`), click **Raw**, select all,
    copy, paste into the editor, click **Run**. If Supabase shows "Potential

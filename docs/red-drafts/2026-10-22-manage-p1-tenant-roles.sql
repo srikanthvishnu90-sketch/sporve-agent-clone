@@ -103,6 +103,18 @@ begin
   if to_regclass('public.athletes') is null or to_regclass('public.team_athletes') is null then
     raise exception 'P1 preflight: youth athletes / team_athletes missing — wrong project?';
   end if;
+  -- audit_row() keys its hashes with an HMAC secret held in Supabase Vault.
+  -- Create it BEFORE this file (APPLY-ORDER.md, Manage Phase 1, step 0).
+  if to_regprocedure('extensions.hmac(bytea,bytea,text)') is null then
+    raise exception 'P1 preflight: extensions.hmac (pgcrypto) missing — enable pgcrypto in schema extensions';
+  end if;
+  if to_regclass('vault.decrypted_secrets') is null then
+    raise exception 'P1 preflight: Supabase Vault (vault.decrypted_secrets) missing';
+  end if;
+  if not exists (select 1 from vault.decrypted_secrets
+                  where name = 'sporv_audit_hmac_key' and coalesce(decrypted_secret, '') <> '') then
+    raise exception 'P1 preflight: Vault secret sporv_audit_hmac_key missing — create it first (APPLY-ORDER.md)';
+  end if;
 end $$;
 
 -- ── 1. Institution fields on providers (§2.3) ───────────────────────────────
@@ -459,6 +471,22 @@ begin
   if new.role_key = 'auditor' and new.ends_on is null then
     raise exception 'ROLE_SCOPE: auditor assignments must have ends_on' using errcode = '23514';
   end if;
+  -- Privilege-escalation guard: an admin.users holder (or org admin) must not
+  -- hand THEMSELVES a role whose default capabilities include a restricted
+  -- one (compliance_officer -> eligibility.certify, athletic_trainer ->
+  -- medical.read, ...). Restricted capabilities are excluded from the admin
+  -- short-circuit; self-assignment would route around that. Another admin, or
+  -- the service role (auth.uid() is null), must make such an assignment.
+  if auth.uid() is not null
+     and (tg_op = 'INSERT' or new.member_id is distinct from old.member_id or new.role_key is distinct from old.role_key)
+     and exists (select 1 from public.organization_members m
+                  where m.id = new.member_id and m.member_user_id = auth.uid())
+     and exists (select 1 from public.role_capabilities rc
+                   join public.college_capabilities c on c.key = rc.capability
+                  where rc.role_key = new.role_key and c.restricted) then
+    raise exception 'SELF_ASSIGN_RESTRICTED: % carries a restricted capability and cannot be self-assigned', new.role_key
+      using errcode = '42501';
+  end if;
   if tg_op = 'INSERT' then
     new.granted_by := coalesce(auth.uid(), new.granted_by);
   else
@@ -746,6 +774,10 @@ create trigger audit_log_no_truncate before truncate on public.audit_log
 -- so club writes are unchanged). Sensitive columns appear only inside the
 -- before/after hashes, never in diff. Hash chain per org, serialised by an
 -- advisory lock so two concurrent writers cannot fork the chain.
+-- All hashes are HMAC-SHA256 keyed with the Vault secret sporv_audit_hmac_key
+-- (read once per row, never exposed to clients): a plain sha256 of a row image
+-- lets anyone holding audit.read confirm a guessed DOB or student id offline.
+-- The *_sha256 column names are kept; their values are HMACs.
 create or replace function public.audit_row() returns trigger
 language plpgsql security definer set search_path to '' as $$
 declare
@@ -761,6 +793,9 @@ declare
   v_action   text;
   v_now      timestamptz := now();
   v_hash     text;
+  v_key      bytea;
+  v_before   text;
+  v_after    text;
 begin
   v_row := coalesce(v_new, v_old);
   if tg_nargs > 0 and tg_argv[0] = 'college_only'
@@ -784,25 +819,31 @@ begin
   v_action := coalesce(nullif(current_setting('sporv.audit_action', true), ''),
                        tg_table_name || '.' || lower(tg_op));
 
+  select convert_to(s.decrypted_secret, 'UTF8') into v_key
+    from vault.decrypted_secrets s where s.name = 'sporv_audit_hmac_key' limit 1;
+  if v_key is null or length(v_key) = 0 then
+    raise exception 'AUDIT_KEY_MISSING: Vault secret sporv_audit_hmac_key is not set' using errcode = '55000';
+  end if;
+  v_before := case when v_old is not null then encode(extensions.hmac(convert_to(v_old::text, 'UTF8'), v_key, 'sha256'), 'hex') end;
+  v_after  := case when v_new is not null then encode(extensions.hmac(convert_to(v_new::text, 'UTF8'), v_key, 'sha256'), 'hex') end;
+
   perform pg_catalog.pg_advisory_xact_lock(pg_catalog.hashtextextended('sporv.audit:' || v_provider::text, 0));
   select a.row_hash into v_prev from public.audit_log a
    where a.provider_id = v_provider order by a.id desc limit 1;
 
-  v_hash := encode(sha256(convert_to(coalesce(v_prev, '') || '|' || jsonb_build_object(
+  v_hash := encode(extensions.hmac(convert_to(coalesce(v_prev, '') || '|' || jsonb_build_object(
               'provider_id', v_provider,
               'occurred_at', to_char(v_now at time zone 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.US"Z"'),
               'actor_id', v_actor, 'actor_kind', v_kind, 'action', v_action,
               'table_name', tg_table_name, 'row_id', v_row->>'id',
-              'before', case when v_old is not null then encode(sha256(convert_to(v_old::text, 'UTF8')), 'hex') end,
-              'after',  case when v_new is not null then encode(sha256(convert_to(v_new::text, 'UTF8')), 'hex') end,
-              'diff', v_diff)::text, 'UTF8')), 'hex');
+              'before', v_before,
+              'after',  v_after,
+              'diff', v_diff)::text, 'UTF8'), v_key, 'sha256'), 'hex');
 
   insert into public.audit_log (provider_id, occurred_at, actor_id, actor_kind, action, table_name, row_id,
                                 before_sha256, after_sha256, diff, request_id, prev_hash, row_hash)
   values (v_provider, v_now, v_actor, v_kind, v_action, tg_table_name, coalesce(v_row->>'id', ''),
-          case when v_old is not null then encode(sha256(convert_to(v_old::text, 'UTF8')), 'hex') end,
-          case when v_new is not null then encode(sha256(convert_to(v_new::text, 'UTF8')), 'hex') end,
-          v_diff, nullif(current_setting('sporv.request_id', true), ''), v_prev, v_hash);
+          v_before, v_after, v_diff, nullif(current_setting('sporv.request_id', true), ''), v_prev, v_hash);
   return null;
 end $$;
 revoke all on function public.audit_row() from public, anon, authenticated;
@@ -923,7 +964,7 @@ create policy ra_delete on public.role_assignments for delete to authenticated
 grant select on public.team_staff to authenticated;         -- security_invoker: ra_* policies apply
 
 -- student_athletes: date_of_birth and user_id are NOT granted (deviation f)
-grant select (id, provider_id, user_id, institution_student_id, legal_first_name, legal_last_name, preferred_name,
+grant select (id, provider_id, institution_student_id, legal_first_name, legal_last_name, preferred_name,
               email, class_year, hometown, high_school, previous_school, major, headshot_path, bio_md,
               directory_opt_out, directory_opt_out_fields, ncaa_id, initial_full_time_term_id, status,
               created_at, updated_at)

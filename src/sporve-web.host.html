@@ -20954,8 +20954,17 @@ function aiFailureCopy(err){
   }
   if(st===503) return {retry:true,
     text:"The AI service is busy right now. I tried twice and it did not answer. Try again in a minute."+nothing};
-  if(st===429) return {retry:true,
-    text:`Too many questions in a short time. Try again in ${ra>0?Math.ceil(ra)+" seconds":"a minute"}.`+nothing};
+  if(st===429){
+    /* The gateway caps per minute AND per day; coach-command passes the
+       window on. A daily cap that resets in 9 hours must not say "seconds". */
+    const wait=ra>=5400?`about ${Math.round(ra/3600)} hours`:ra>=90?`${Math.ceil(ra/60)} minutes`:ra>0?`${Math.ceil(ra)} seconds`:"a minute";
+    if(d.window==="day"){
+      const at=ra>0?new Date(Date.now()+ra*1000):null;
+      const when=at&&at.toDateString()===new Date().toDateString()?`later today (in ${wait})`:"tomorrow";
+      return {retry:false,text:`You have reached today's assistant request limit. It resets ${when}.`+nothing};
+    }
+    return {retry:true,text:`Too many questions in a short time. Try again in ${wait}.`+nothing};
+  }
   if(st===401) return {retry:true,
     text:"Your session has ended. Sign in again, then press Try again."+nothing};
   if(st===0) return {retry:true,

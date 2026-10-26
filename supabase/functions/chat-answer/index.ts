@@ -104,6 +104,13 @@ Deno.serve(async (req) => {
         maxTokens: 700,
       }),
     });
+    /* 402 = the plan's monthly AI allowance (CONTEXT I3). Pass the gateway's
+       payload through unchanged (reason, current_plan, upgrade_to, limit,
+       current) so the client can show the upgrade path, not a generic 502. */
+    if (gResp.status === 402) {
+      const q = await gResp.json().catch(() => ({}));
+      return json({ ...q, error: q?.error ?? "This month's assistant allowance is used up." }, 402);
+    }
     const g = await gResp.json();
     if (!gResp.ok) return json({ error: g?.error ?? `ai-gateway error (${gResp.status})` }, 502);
 

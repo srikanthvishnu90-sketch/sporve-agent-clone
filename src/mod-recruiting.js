@@ -134,6 +134,12 @@ function shortDate(iso){
 }
 function fullName(r){ return r ? ((r.preferred_name || r.first_name) + " " + r.last_name) : "Unknown recruit"; }
 function norm(s){ return String(s == null ? "" : s).trim().toLowerCase(); }
+/** Today's date (YYYY-MM-DD) on the coach's own calendar, not UTC: after 7pm
+    in Chicago, toISOString() already reads tomorrow. */
+function localDate(d){
+  d = d || new Date();
+  return d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0");
+}
 function httpsOnly(list){
   return (list || []).filter(function (u){ return /^https:\/\/\S+$/i.test(u) && u.length <= 500; });
 }
@@ -165,6 +171,7 @@ var st = {
   key: null,          // identity the data was loaded under
   err: null,
   partial: [],        // secondary reads that failed (named on the page)
+  truncated: [],      // reads that hit their row limit (may be cut off; named on the page)
   recruits: [], pipelines: [], evals: [], contacts: [], targets: [], teams: [], guardians: [],
   targetsSource: "local",   // db | local
   filters: { sport: "", grad: "", pos: "", q: "" },
@@ -275,10 +282,10 @@ function kickLoad(){
   var key = identity();
   if (st.key === key && st.phase !== "idle") return;
   st.key = key;
-  st.open = null; st.adding = false; st.section = null; st.sensitive = {};
+  st.open = null; st.adding = false; st.section = null; clearSensitive();
   if (guest()){
     var d = sampleData();
-    st.mode = "sample"; st.phase = "ready"; st.partial = []; st.targetsSource = "local";
+    st.mode = "sample"; st.phase = "ready"; st.partial = []; st.truncated = []; st.targetsSource = "local";
     for (var k in d) st[k] = d[k];
     return;
   }
@@ -288,25 +295,31 @@ function kickLoad(){
     else { st.phase = "error"; st.err = friendly(e); }
   }).then(function (){ if (typeof render === "function") render(); });
 }
+/* Row limits for each live read. A read that returns exactly its limit may
+   have been cut off, so the page names it instead of implying it is complete. */
+var LIMITS = { recruits: 1000, pipelines: 2000, evaluations: 5000, contacts: 5000 };
 var RCOLS = "id,first_name,last_name,preferred_name,prospect_type,grad_year,is_minor,current_school,club_team,city," +
   "state_region,hs_gpa,intended_major,status,created_at";
+/** Read the org's recruiting rows; failed secondary reads land in st.partial, reads at their row limit in st.truncated. */
 function loadLive(){
   var a = api(), pv = providerRow();
   if (!(a && signedIn() && pv && pv.id))
     return Promise.reject(new Error("Finish setting up your workspace first. The recruit board attaches to your organization."));
   var pid = "provider_id=eq." + encodeURIComponent(pv.id);
   return Promise.all([
-    a.from("recruits", "select=" + RCOLS + "&" + pid + "&status=neq.deleted_pending&order=last_name.asc&limit=1000"),
-    a.from("recruit_pipelines", "select=*&" + pid + "&limit=2000"),
+    a.from("recruits", "select=" + RCOLS + "&" + pid + "&status=neq.deleted_pending&order=last_name.asc&limit=" + LIMITS.recruits),
+    a.from("recruit_pipelines", "select=*&" + pid + "&limit=" + LIMITS.pipelines),
   ]).then(function (res){
     st.recruits = res[0] || []; st.pipelines = res[1] || [];
-    st.partial = [];
+    st.partial = []; st.truncated = [];
+    if (st.recruits.length >= LIMITS.recruits) st.truncated.push("recruits (first " + LIMITS.recruits + ")");
+    if (st.pipelines.length >= LIMITS.pipelines) st.truncated.push("board rows (first " + LIMITS.pipelines + ")");
     var soft = function (name, p){
       return p.then(function (rows){ return rows || []; }, function (){ st.partial.push(name); return []; });
     };
     return Promise.all([
-      soft("evaluations", a.from("recruit_evaluations", "select=id,pipeline_id,evaluator_id,context,seen_on,scores,overall,projection,notes,created_at&" + pid + "&order=created_at.desc&limit=5000")),
-      soft("contact log", a.from("recruit_contacts", "select=id,pipeline_id,contact_kind,direction,counterpart,occurred_at,subject,summary,permissible_window_status&" + pid + "&order=occurred_at.desc&limit=5000")),
+      soft("evaluations", a.from("recruit_evaluations", "select=id,pipeline_id,evaluator_id,context,seen_on,scores,overall,projection,notes,created_at&" + pid + "&order=created_at.desc&limit=" + LIMITS.evaluations)),
+      soft("contact log", a.from("recruit_contacts", "select=id,pipeline_id,contact_kind,direction,counterpart,occurred_at,subject,summary,permissible_window_status&" + pid + "&order=occurred_at.desc&limit=" + LIMITS.contacts)),
       soft("recruiting needs", a.from("recruiting_targets", "select=id,sport,team_id,entry_year,position,target_count,priority,note&" + pid + "&limit=500")),
       soft("teams", a.from("teams", "select=id,name,sport&" + pid + "&order=name.asc&limit=200")),
       /* RLS returns guardian rows to org admins only; a coach gets none (I7). */
@@ -315,6 +328,8 @@ function loadLive(){
     ]);
   }).then(function (r){
     st.evals = r[0]; st.contacts = r[1]; st.targets = r[2]; st.teams = r[3]; st.guardians = r[4];
+    if (st.evals.length >= LIMITS.evaluations) st.truncated.push("evaluations (latest " + LIMITS.evaluations + ")");
+    if (st.contacts.length >= LIMITS.contacts) st.truncated.push("contact log (latest " + LIMITS.contacts + ")");
     st.targetsSource = st.partial.indexOf("recruiting needs") >= 0 ? "local" : "db";
   });
 }
@@ -418,7 +433,44 @@ function moveStage(pipelineId, to, note, reason){
     .then(function (receipt){ return reload().then(function (){ return receipt; }); });
 }
 
+/* ── identity: normalized last|first|grad year, the same shape as the
+   recruits.dedupe_key generated column ──────────────────────────────── */
+function identityKey(first, last, gy){ return norm(last) + "|" + norm(first) + "|" + (gy == null || gy === "" ? "" : String(gy)); }
+/* Put recruit rows we KNOW exist back into st.recruits when a capped reload
+   left them out, so the next attempt reuses their ids instead of inserting
+   the same person twice. */
+function rememberRecruits(list){
+  (list || []).forEach(function (x){
+    if (!x || !x.id || st.recruits.some(function (r){ return r.id === x.id; })) return;
+    st.recruits.push({ id: x.id, first_name: x.first_name, last_name: x.last_name, preferred_name: null,
+      prospect_type: x.prospect_type || "high_school", grad_year: x.grad_year, is_minor: true,
+      current_school: x.current_school || null, club_team: x.club_team || null, city: x.city || null,
+      state_region: x.state_region || null, hs_gpa: x.hs_gpa == null ? null : x.hs_gpa, intended_major: x.intended_major || null,
+      status: "active", created_at: new Date().toISOString() });
+  });
+}
+/* When the recruits read hit its row limit, the local list cannot prove a
+   person is new: ask the server by dedupe_key first (50 keys per request). */
+function findSavedIdentities(keys){
+  var truncated = (st.truncated || []).some(function (t){ return /^recruits/.test(t); });
+  if (st.mode !== "live" || !truncated || !keys.length) return Promise.resolve();
+  return Promise.resolve().then(function (){ return findSavedIdentitiesLive(keys); });
+}
+function findSavedIdentitiesLive(keys){
+  var c = liveCtx(), uniq = keys.filter(function (k, i){ return keys.indexOf(k) === i; }), chunks = [];
+  for (var i = 0; i < uniq.length; i += 50) chunks.push(uniq.slice(i, i + 50));
+  return Promise.all(chunks.map(function (ch){
+    var list = ch.map(function (k){ return encodeURIComponent('"' + k.replace(/\\/g, "\\\\").replace(/"/g, '\\"') + '"'); }).join(",");
+    return c.a.from("recruits", "select=" + RCOLS + "&provider_id=eq." + encodeURIComponent(c.pid) +
+      "&status=neq.deleted_pending&dedupe_key=in.(" + list + ")&limit=" + (ch.length * 5));
+  })).then(function (res){ res.forEach(function (rows){ rememberRecruits(rows || []); }); });
+}
+
+/** Add one recruit (or reuse an identity match) plus its board row; resolves to the new pipeline id. */
 function addRecruit(v){
+  return findSavedIdentities([identityKey(v.first_name, v.last_name, v.grad_year)]).then(function (){ return addRecruitNow(v); });
+}
+function addRecruitNow(v){
   var dup = st.recruits.find(function (r){
     return norm(r.first_name) === norm(v.first_name) && norm(r.last_name) === norm(v.last_name) && String(r.grad_year || "") === String(v.grad_year || "");
   });
@@ -457,7 +509,15 @@ function addRecruit(v){
   var c = liveCtx();
   recruit.provider_id = c.pid; pipeline.provider_id = c.pid;
   var first = dup ? Promise.resolve() : post("recruits", recruit);
-  return first.then(function (){ return post("recruit_pipelines", pipeline); })
+  return first.then(function (){
+    /* If the board-row write fails after the recruit row landed, reload first so
+       st.recruits holds that recruit and a retry reuses it instead of tripping
+       the identity dedupe on a second insert; then surface the original error. */
+    return post("recruit_pipelines", pipeline).then(null, function (e){
+      var landed = dup ? [] : [recruit];
+      return reload().then(function (){ rememberRecruits(landed); throw e; }, function (){ rememberRecruits(landed); throw e; });
+    });
+  })
     .then(function (){
       if (!guardian) return null;
       guardian.provider_id = c.pid;
@@ -530,6 +590,13 @@ function deleteTarget(id){
     .then(function (r){ if (!(r && r[0])) throw new Error("42501"); }).then(reload);
 }
 
+/* Revealed contact details live only while the drawer that asked for them is
+   open. Every clear bumps the generation, so a reveal whose response arrives
+   after the drawer closed or switched recruit is dropped, not shown. */
+var sensitiveGen = 0;
+function clearSensitive(){ sensitiveGen++; st.sensitive = {}; }
+
+/** Reveal one recruit's contact details (server writes the access receipt); a response from a superseded drawer is discarded. */
 function loadSensitive(recruitId){
   var r = st.recruits.find(function (x){ return x.id === recruitId; });
   if (!r) return Promise.resolve();
@@ -537,11 +604,13 @@ function loadSensitive(recruitId){
     st.sensitive[recruitId] = { email: r._email, phone: r._phone, is_minor: r.is_minor };
     return Promise.resolve();
   }
-  var c = liveCtx();
+  var c = liveCtx(), gen = sensitiveGen;
   return c.a.rpc("get_recruit_sensitive", { p_recruit: recruitId }).then(function (rowsOut){
+    if (gen !== sensitiveGen || st.open == null) return;   // drawer closed or switched: drop it
     var row = (rowsOut && rowsOut[0]) || null;
     st.sensitive[recruitId] = row ? { email: row.email, phone: row.phone, is_minor: row.is_minor } : { refused: "No contact details are on file." };
   }, function (e){
+    if (gen !== sensitiveGen || st.open == null) return;
     st.sensitive[recruitId] = { refused: friendly(e) };
   });
 }
@@ -607,20 +676,33 @@ function csvPreview(text){
   });
   return { rows: parsed, unknown: head.filter(function (k){ return k && !CSV_COLUMNS.some(function (c){ return c.key === k; }); }) };
 }
+/** Write the previewed CSV rows: one recruit per identity, one board row per CSV row; resolves to rows written. */
 function runImport(){
   var prev = st.csv.rows;
   if (!prev || !prev.rows) return Promise.reject(new Error("Preview the file first."));
   var ready = prev.rows.filter(function (r){ return r.status === "ready"; });
   if (!ready.length) return Promise.reject(new Error("No rows are ready to import."));
+  return findSavedIdentities(ready.map(function (r){ return identityKey(r.o.first_name, r.o.last_name, r.gy); }))
+    .then(function (){ return runImportNow(ready); });
+}
+function runImportNow(ready){
   var recs = [], pipes = [];
+  /* Identity = normalized first + last + grad year. One person on two sport
+     boards in the same file must become ONE recruit with two board rows, so
+     rows queued earlier in this import are matched as well as saved ones. */
+  var queued = {};
   ready.forEach(function (r){
+    var ident = norm(r.o.first_name) + "|" + norm(r.o.last_name) + "|" + String(r.gy);
     var existing = st.recruits.find(function (x){
       return norm(x.first_name) === norm(r.o.first_name) && norm(x.last_name) === norm(r.o.last_name) && String(x.grad_year) === String(r.gy);
     });
-    var rid = existing ? existing.id : uuid();
-    if (!existing) recs.push({ id: rid, first_name: r.o.first_name, last_name: r.o.last_name, grad_year: r.gy,
+    var rid = existing ? existing.id : queued[ident];
+    if (!rid){
+      rid = queued[ident] = uuid();
+      recs.push({ id: rid, first_name: r.o.first_name, last_name: r.o.last_name, grad_year: r.gy,
       current_school: r.o.school || null, club_team: r.o.club_team || null, city: r.o.city || null, state_region: r.o.state || null,
       hs_gpa: r.gpa, email: r.o.email || null, phone: r.o.phone || null });
+    }
     pipes.push({ id: uuid(), recruit_id: rid, sport: r.o.sport, position_primary: r.o.position || null,
       positions: r.o.position ? [r.o.position] : [], film_links: r.links, stage: r.stage, target_entry_year: String(r.gy) });
   });
@@ -640,7 +722,13 @@ function runImport(){
   /* Two bulk writes: identities, then board rows. PostgREST runs each in
      one transaction, so a bad row rejects its whole batch, not half. */
   return (recs.length ? post("recruits", recs) : Promise.resolve())
-    .then(function (){ return post("recruit_pipelines", pipes); })
+    .then(function (){
+      /* If the identities landed but the board rows did not, reload before
+         rethrowing so a retry finds those recruits and reuses their ids. */
+      return post("recruit_pipelines", pipes).then(null, function (e){
+        return reload().then(function (){ rememberRecruits(recs); throw e; }, function (){ rememberRecruits(recs); throw e; });
+      });
+    })
     .then(reload).then(function (){ return pipes.length; });
 }
 
@@ -771,6 +859,10 @@ function banner(ui){
   if (st.partial.length){
     out += '<div class="rc-banner">' + ui.Callout({ title: "Part of the board did not load.",
       body: "Could not read your " + st.partial.join(", ") + ". What is shown may be incomplete. Reload the page to try again." }) + "</div>";
+  }
+  if (st.truncated && st.truncated.length){
+    out += '<div class="rc-banner">' + ui.Callout({ title: "Showing only part of your data.",
+      body: "This page loads a fixed number of rows and reached that limit for: " + st.truncated.join(", ") + ". Anything past the limit is not shown or counted here." }) + "</div>";
   }
   return out;
 }
@@ -1052,7 +1144,7 @@ function evalSection(p){
     }).join("") +
     '<p class="rc-note">1 is well below your program\'s level, 3 is at it, 5 is well above.</p>' +
     '<div class="rc-grid2"><label>Seen on<select name="context">' + options(CONTEXTS, "film") + "</select></label>" +
-    '<label>Date<input type="date" name="seen_on" value="' + new Date().toISOString().slice(0, 10) + '"></label></div>' +
+    '<label>Date<input type="date" name="seen_on" value="' + localDate() + '"></label></div>' +
     '<label>Notes<textarea name="notes" maxlength="4000"></textarea></label>' +
     '<p class="rc-err" id="rcEvalErr" role="alert" hidden></p>' +
     '<div class="rc-actions"><button type="submit" class="cui-button cui-button--lg cui-button--primary">Save evaluation</button>' +
@@ -1139,20 +1231,20 @@ function wire(){
     keyBound = true;
     document.addEventListener("keydown", function (ev){
       if (ev.key === "Escape" && (st.open || st.adding) && typeof S !== "undefined" && S.coachTab === "recruiting"){
-        st.open = null; st.adding = false; st.section = null; render();
+        st.open = null; st.adding = false; st.section = null; clearSensitive(); render();
       }
     });
   }
 
   q("[data-rc-retry]").forEach(function (b){ b.onclick = function (){ st.key = null; st.phase = "idle"; render(); }; });
-  q("[data-rc-add]").forEach(function (b){ b.onclick = function (){ st.adding = true; st.open = null; st.focus = "drawer"; render(); }; });
+  q("[data-rc-add]").forEach(function (b){ b.onclick = function (){ st.adding = true; st.open = null; clearSensitive(); st.focus = "drawer"; render(); }; });
   q("[data-rc-open]").forEach(function (b){
-    b.onclick = function (){ st.open = b.dataset.rcOpen; st.adding = false; st.section = null; st.focus = "drawer"; render(); };
+    b.onclick = function (){ st.open = b.dataset.rcOpen; st.adding = false; st.section = null; clearSensitive(); st.focus = "drawer"; render(); };
   });
   q("[data-cui-drawer-close]").forEach(function (b){
     b.onclick = function (){
       var back = st.open;
-      st.open = null; st.adding = false; st.section = null; render();
+      st.open = null; st.adding = false; st.section = null; clearSensitive(); render();
       if (back){ var t = document.querySelector('[data-rc-open="' + back + '"]'); if (t) t.focus(); }
     };
   });
@@ -1183,7 +1275,7 @@ function wire(){
       var id = sel.dataset.rcMove, to = sel.value, p = pipelineById(id);
       if (!to || !p) return;
       var needsMore = to === "closed" || p.stage === "closed" || (STAGE_RANK[to] < STAGE_RANK[p.stage]);
-      if (needsMore){ st.open = id; st.section = "stage"; st.stageTo = to; st.focus = "drawer"; render(); return; }
+      if (needsMore){ if (st.open !== id) clearSensitive(); st.open = id; st.section = "stage"; st.stageTo = to; st.focus = "drawer"; render(); return; }
       sel.disabled = true;
       var name = fullName(recruitOf(p));
       moveStage(id, to).then(function (){
@@ -1220,7 +1312,7 @@ function wire(){
     var fd = new FormData(ef), scores = {};
     CRITERIA.forEach(function (c){ var v = Number(fd.get(c[0])); if (v) scores[c[0]] = v; });
     if (overallOf(scores) == null) return showErr("rcEvalErr", "Score every criterion from 1 to 5.");
-    var seen = val(fd, "seen_on") || new Date().toISOString().slice(0, 10);
+    var seen = val(fd, "seen_on") || localDate();
     busy(ef, true);
     addEval(ef.dataset.pl, { scores: scores, context: val(fd, "context") || "film", seen_on: seen, notes: val(fd, "notes") }).then(function (){
       st.section = null; render(); toast("Evaluation saved" + (st.mode === "sample" ? " (sample, not saved)." : "."));
@@ -1271,7 +1363,7 @@ function wire(){
     v.film_links = links;
     busy(af, true);
     addRecruit(v).then(function (plid){
-      st.adding = false; st.open = plid; st.focus = "drawer"; render();
+      st.adding = false; st.open = plid; clearSensitive(); st.focus = "drawer"; render();
       toast(v.first_name + " " + v.last_name + " added" + (st.mode === "sample" ? " (sample, not saved)." : "."));
     }, function (e){ busy(af, false); showErr("rcAddErr", friendly(e)); });
     return false;
@@ -1345,7 +1437,7 @@ window.MOD_RECRUITING = {
   wire: wire,
   state: { recruitTab: "board" },
   /* test seam: pure helpers, no side effects */
-  _test: { parseCSV: parseCSV, overallOf: overallOf, csvPreview: csvPreview, state: function (){ return st; } },
+  _test: { parseCSV: parseCSV, overallOf: overallOf, csvPreview: csvPreview, state: function (){ return st; }, addRecruit: addRecruit, identityKey: identityKey },
 };
 
 })();
