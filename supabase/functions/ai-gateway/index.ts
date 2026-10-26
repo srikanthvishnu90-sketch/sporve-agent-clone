@@ -259,6 +259,36 @@ type MonthlyBudget =
    The spend cap holds the margin floor by construction no matter how
    adverse the Haiku/Sonnet/Opus mix gets. Fail closed on DB errors, same
    philosophy as the rate limiter above. */
+// ── monthly-usage BEGIN ─────────────────────────────────────────────────────
+/* Totals over EVERY audit row of the month, read in pages. PostgREST caps a
+   response (1000 rows on Supabase by default), so a single read silently
+   stopped counting at the cap and a busy org never hit its quota. Pages are
+   read in a stable order (created_at, id) until one comes back short.
+   A failed call (output_summary "error: ...") keeps its audit row as the
+   receipt but does not consume the allowance; its est_cost_usd still counts
+   toward the spend cap (0 unless tokens were billed). Tested by
+   tests/ai/gateway-upstream-retry.spec.ts with more rows than one page. */
+async function sumMonthlyUsage(
+  fetchPage: (from: number, to: number) => Promise<{ data: unknown[] | null; error: { message: string } | null }>,
+  pageSize = 1000,
+  maxPages = 1000,
+): Promise<{ used: number; spent: number; error: string | null }> {
+  let used = 0, spent = 0;
+  for (let page = 0; page < maxPages; page++) {
+    const from = page * pageSize;
+    const { data, error } = await fetchPage(from, from + pageSize - 1);
+    if (error) return { used, spent, error: error.message || "page read failed" };
+    const rows = (data ?? []) as Array<{ est_cost_usd?: unknown; output_summary?: string | null }>;
+    for (const r of rows) {
+      if (!String(r.output_summary ?? "").startsWith("error:")) used++;
+      spent += Number(r.est_cost_usd) || 0;
+    }
+    if (rows.length < pageSize) return { used, spent, error: null };
+  }
+  return { used, spent, error: "too many audit pages" };
+}
+// ── monthly-usage END ───────────────────────────────────────────────────────
+
 async function checkMonthlyBudget(
   admin: ReturnType<typeof createClient>,
   actorId: string | null,
@@ -318,22 +348,18 @@ async function checkMonthlyBudget(
 
     const monthStart = new Date();
     monthStart.setUTCDate(1); monthStart.setUTCHours(0, 0, 0, 0);
-    const { data, error } = await admin.from("ai_audit_log")
-      .select("est_cost_usd, output_summary")
-      .in("actor_id", actorIds)
-      .gte("created_at", monthStart.toISOString());
+    const { used, spent, error } = await sumMonthlyUsage((from, to) =>
+      admin.from("ai_audit_log")
+        .select("est_cost_usd, output_summary")
+        .in("actor_id", actorIds)
+        .gte("created_at", monthStart.toISOString())
+        .order("created_at", { ascending: true })
+        .order("id", { ascending: true })
+        .range(from, to) as unknown as Promise<{ data: unknown[] | null; error: { message: string } | null }>);
     if (error) {
-      console.error("monthly budget count failed:", error.message);
+      console.error("monthly budget count failed:", error);
       return { ok: false, reason: "budget_unavailable", plan };
     }
-    const rows = (data ?? []) as Array<{ est_cost_usd?: unknown; output_summary?: string | null }>;
-    /* A failed call (upstream busy, network, 5xx) still writes its audit row —
-       that row is the receipt — but it produced no answer, so it must not
-       consume the monthly allowance. Its est_cost_usd still counts toward the
-       spend cap (it is 0 unless tokens were billed). Filtered here, not with a
-       PostgREST `not.like`, so a legacy row with a NULL summary still counts. */
-    const used = rows.filter((r) => !String(r.output_summary ?? "").startsWith("error:")).length;
-    const spent = rows.reduce((s, r) => s + (Number(r.est_cost_usd) || 0), 0);
     if (used >= quota) {
       return { ok: false, reason: "quota_exhausted", plan, used, quota, spent, cap };
     }

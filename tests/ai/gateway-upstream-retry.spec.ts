@@ -168,3 +168,42 @@ test('coach-command passes 402 / 429 / 503 through instead of relabelling them',
   assert.match(cmd, /if \(gResp\.status === 503\) \{/);
   assert.match(cmd, /if \(retried\.gResp\.ok\) \(\{ gResp, g \} = retried\);/, 'a failed improvement retry keeps the first answer');
 });
+
+// ── checkMonthlyBudget counts EVERY row, across pages (CodeRabbit #166) ──────
+type PageFn = (from: number, to: number) => Promise<{ data: unknown[] | null; error: { message: string } | null }>;
+const mb = gw.indexOf('// ── monthly-usage BEGIN');
+const me = gw.indexOf('// ── monthly-usage END');
+assert.ok(mb > 0 && me > mb, 'ai-gateway carries the paged monthly-usage helper');
+const usageTmp = join(tmpdir(), `gw-monthly-usage-${process.pid}-${Date.now()}.mts`);
+writeFileSync(usageTmp, gw.slice(mb, me) + '\nexport { sumMonthlyUsage };\n');
+const { sumMonthlyUsage } = await import(pathToFileURL(usageTmp).href) as {
+  sumMonthlyUsage: (fp: PageFn, pageSize?: number, maxPages?: number) => Promise<{ used: number; spent: number; error: string | null }>;
+};
+/* 2,345 rows, every 10th a failed call. A single capped read would see 1,000. */
+const auditRows = Array.from({ length: 2345 }, (_, i) => ({
+  est_cost_usd: 0.01, output_summary: i % 10 === 0 ? 'error: 529 after 3 attempt(s): overloaded' : 'chars=10; sha256=abc' }));
+
+test('monthly budget: pages past the server row cap and totals every row', async () => {
+  const seen: Array<[number, number]> = [];
+  const r = await sumMonthlyUsage(async (from, to) => { seen.push([from, to]); return { data: auditRows.slice(from, to + 1), error: null }; }, 1000);
+  assert.equal(r.error, null);
+  assert.equal(r.used, 2345 - 235, 'failed calls (235) do not consume the allowance');
+  assert.ok(Math.abs(r.spent - 23.45) < 1e-9, 'spend counts every row');
+  assert.deepEqual(seen, [[0, 999], [1000, 1999], [2000, 2999]], 'stops on the first short page');
+});
+
+test('monthly budget: an exact multiple of the page size reads one empty page, then stops', async () => {
+  const exact = auditRows.slice(0, 2000); const seen: number[] = [];
+  const r = await sumMonthlyUsage(async (from, to) => { seen.push(from); return { data: exact.slice(from, to + 1), error: null }; }, 1000);
+  assert.equal(r.used, 1800); assert.deepEqual(seen, [0, 1000, 2000]);
+});
+
+test('monthly budget: a page error fails closed with the error', async () => {
+  const r = await sumMonthlyUsage(async (from, to) => (from === 0 ? { data: auditRows.slice(0, to + 1), error: null } : { data: null, error: { message: 'boom' } }), 1000);
+  assert.equal(r.error, 'boom');
+});
+
+test('monthly budget: the gateway reads ai_audit_log through the paged helper in a stable order', () => {
+  assert.match(gw, /await sumMonthlyUsage\(\(from, to\) =>/);
+  assert.match(gw, /\.order\("created_at", \{ ascending: true \}\)\s*\.order\("id", \{ ascending: true \}\)\s*\.range\(from, to\)/);
+});

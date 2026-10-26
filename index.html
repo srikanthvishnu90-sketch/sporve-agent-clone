@@ -29,7 +29,7 @@
 <link rel="manifest" href="/site.webmanifest">
 <script type="application/ld+json">{"@context":"https://schema.org","@type":"SoftwareApplication","name":"Sporv","url":"https://sporv.ai/","applicationCategory":"BusinessApplication","operatingSystem":"Web","description":"Sporv runs the club for you — roster, scheduling, waivers, dues and payouts, with an agent that drafts the busywork and a human who approves it.","publisher":{"@type":"Organization","name":"Sporv","url":"https://sporv.ai/","logo":"https://sporv.ai/icon-512.png"}}</script>
 <script type="application/ld+json">{"@context":"https://schema.org","@type":"WebSite","name":"Sporv AI","url":"https://sporv.ai/"}</script>
-<meta name="sporve-build" content="de5e7ed3c1b79a16">
+<meta name="sporve-build" content="310c68d0ea35ea81">
 </head>
 <body>
 <script>
@@ -35466,7 +35466,7 @@ function kickLoad(){
   var key = identity();
   if (st.key === key && st.phase !== "idle") return;
   st.key = key;
-  st.open = null; st.adding = false; st.section = null; st.sensitive = {};
+  st.open = null; st.adding = false; st.section = null; clearSensitive();
   if (guest()){
     var d = sampleData();
     st.mode = "sample"; st.phase = "ready"; st.partial = []; st.truncated = []; st.targetsSource = "local";
@@ -35617,8 +35617,44 @@ function moveStage(pipelineId, to, note, reason){
     .then(function (receipt){ return reload().then(function (){ return receipt; }); });
 }
 
+/* ── identity: normalized last|first|grad year, the same shape as the
+   recruits.dedupe_key generated column ──────────────────────────────── */
+function identityKey(first, last, gy){ return norm(last) + "|" + norm(first) + "|" + (gy == null || gy === "" ? "" : String(gy)); }
+/* Put recruit rows we KNOW exist back into st.recruits when a capped reload
+   left them out, so the next attempt reuses their ids instead of inserting
+   the same person twice. */
+function rememberRecruits(list){
+  (list || []).forEach(function (x){
+    if (!x || !x.id || st.recruits.some(function (r){ return r.id === x.id; })) return;
+    st.recruits.push({ id: x.id, first_name: x.first_name, last_name: x.last_name, preferred_name: null,
+      prospect_type: x.prospect_type || "high_school", grad_year: x.grad_year, is_minor: true,
+      current_school: x.current_school || null, club_team: x.club_team || null, city: x.city || null,
+      state_region: x.state_region || null, hs_gpa: x.hs_gpa == null ? null : x.hs_gpa, intended_major: x.intended_major || null,
+      status: "active", created_at: new Date().toISOString() });
+  });
+}
+/* When the recruits read hit its row limit, the local list cannot prove a
+   person is new: ask the server by dedupe_key first (50 keys per request). */
+function findSavedIdentities(keys){
+  var truncated = (st.truncated || []).some(function (t){ return /^recruits/.test(t); });
+  if (st.mode !== "live" || !truncated || !keys.length) return Promise.resolve();
+  return Promise.resolve().then(function (){ return findSavedIdentitiesLive(keys); });
+}
+function findSavedIdentitiesLive(keys){
+  var c = liveCtx(), uniq = keys.filter(function (k, i){ return keys.indexOf(k) === i; }), chunks = [];
+  for (var i = 0; i < uniq.length; i += 50) chunks.push(uniq.slice(i, i + 50));
+  return Promise.all(chunks.map(function (ch){
+    var list = ch.map(function (k){ return encodeURIComponent('"' + k.replace(/\\/g, "\\\\").replace(/"/g, '\\"') + '"'); }).join(",");
+    return c.a.from("recruits", "select=" + RCOLS + "&provider_id=eq." + encodeURIComponent(c.pid) +
+      "&status=neq.deleted_pending&dedupe_key=in.(" + list + ")&limit=" + (ch.length * 5));
+  })).then(function (res){ res.forEach(function (rows){ rememberRecruits(rows || []); }); });
+}
+
 /** Add one recruit (or reuse an identity match) plus its board row; resolves to the new pipeline id. */
 function addRecruit(v){
+  return findSavedIdentities([identityKey(v.first_name, v.last_name, v.grad_year)]).then(function (){ return addRecruitNow(v); });
+}
+function addRecruitNow(v){
   var dup = st.recruits.find(function (r){
     return norm(r.first_name) === norm(v.first_name) && norm(r.last_name) === norm(v.last_name) && String(r.grad_year || "") === String(v.grad_year || "");
   });
@@ -35662,7 +35698,8 @@ function addRecruit(v){
        st.recruits holds that recruit and a retry reuses it instead of tripping
        the identity dedupe on a second insert; then surface the original error. */
     return post("recruit_pipelines", pipeline).then(null, function (e){
-      return reload().then(function (){ throw e; }, function (){ throw e; });
+      var landed = dup ? [] : [recruit];
+      return reload().then(function (){ rememberRecruits(landed); throw e; }, function (){ rememberRecruits(landed); throw e; });
     });
   })
     .then(function (){
@@ -35737,6 +35774,13 @@ function deleteTarget(id){
     .then(function (r){ if (!(r && r[0])) throw new Error("42501"); }).then(reload);
 }
 
+/* Revealed contact details live only while the drawer that asked for them is
+   open. Every clear bumps the generation, so a reveal whose response arrives
+   after the drawer closed or switched recruit is dropped, not shown. */
+var sensitiveGen = 0;
+function clearSensitive(){ sensitiveGen++; st.sensitive = {}; }
+
+/** Reveal one recruit's contact details (server writes the access receipt); a response from a superseded drawer is discarded. */
 function loadSensitive(recruitId){
   var r = st.recruits.find(function (x){ return x.id === recruitId; });
   if (!r) return Promise.resolve();
@@ -35744,11 +35788,13 @@ function loadSensitive(recruitId){
     st.sensitive[recruitId] = { email: r._email, phone: r._phone, is_minor: r.is_minor };
     return Promise.resolve();
   }
-  var c = liveCtx();
+  var c = liveCtx(), gen = sensitiveGen;
   return c.a.rpc("get_recruit_sensitive", { p_recruit: recruitId }).then(function (rowsOut){
+    if (gen !== sensitiveGen || st.open == null) return;   // drawer closed or switched: drop it
     var row = (rowsOut && rowsOut[0]) || null;
     st.sensitive[recruitId] = row ? { email: row.email, phone: row.phone, is_minor: row.is_minor } : { refused: "No contact details are on file." };
   }, function (e){
+    if (gen !== sensitiveGen || st.open == null) return;
     st.sensitive[recruitId] = { refused: friendly(e) };
   });
 }
@@ -35820,6 +35866,10 @@ function runImport(){
   if (!prev || !prev.rows) return Promise.reject(new Error("Preview the file first."));
   var ready = prev.rows.filter(function (r){ return r.status === "ready"; });
   if (!ready.length) return Promise.reject(new Error("No rows are ready to import."));
+  return findSavedIdentities(ready.map(function (r){ return identityKey(r.o.first_name, r.o.last_name, r.gy); }))
+    .then(function (){ return runImportNow(ready); });
+}
+function runImportNow(ready){
   var recs = [], pipes = [];
   /* Identity = normalized first + last + grad year. One person on two sport
      boards in the same file must become ONE recruit with two board rows, so
@@ -35860,7 +35910,7 @@ function runImport(){
       /* If the identities landed but the board rows did not, reload before
          rethrowing so a retry finds those recruits and reuses their ids. */
       return post("recruit_pipelines", pipes).then(null, function (e){
-        return reload().then(function (){ throw e; }, function (){ throw e; });
+        return reload().then(function (){ rememberRecruits(recs); throw e; }, function (){ rememberRecruits(recs); throw e; });
       });
     })
     .then(reload).then(function (){ return pipes.length; });
@@ -36365,20 +36415,20 @@ function wire(){
     keyBound = true;
     document.addEventListener("keydown", function (ev){
       if (ev.key === "Escape" && (st.open || st.adding) && typeof S !== "undefined" && S.coachTab === "recruiting"){
-        st.open = null; st.adding = false; st.section = null; st.sensitive = {}; render();
+        st.open = null; st.adding = false; st.section = null; clearSensitive(); render();
       }
     });
   }
 
   q("[data-rc-retry]").forEach(function (b){ b.onclick = function (){ st.key = null; st.phase = "idle"; render(); }; });
-  q("[data-rc-add]").forEach(function (b){ b.onclick = function (){ st.adding = true; st.open = null; st.sensitive = {}; st.focus = "drawer"; render(); }; });
+  q("[data-rc-add]").forEach(function (b){ b.onclick = function (){ st.adding = true; st.open = null; clearSensitive(); st.focus = "drawer"; render(); }; });
   q("[data-rc-open]").forEach(function (b){
-    b.onclick = function (){ st.open = b.dataset.rcOpen; st.adding = false; st.section = null; st.sensitive = {}; st.focus = "drawer"; render(); };
+    b.onclick = function (){ st.open = b.dataset.rcOpen; st.adding = false; st.section = null; clearSensitive(); st.focus = "drawer"; render(); };
   });
   q("[data-cui-drawer-close]").forEach(function (b){
     b.onclick = function (){
       var back = st.open;
-      st.open = null; st.adding = false; st.section = null; st.sensitive = {}; render();
+      st.open = null; st.adding = false; st.section = null; clearSensitive(); render();
       if (back){ var t = document.querySelector('[data-rc-open="' + back + '"]'); if (t) t.focus(); }
     };
   });
@@ -36409,7 +36459,7 @@ function wire(){
       var id = sel.dataset.rcMove, to = sel.value, p = pipelineById(id);
       if (!to || !p) return;
       var needsMore = to === "closed" || p.stage === "closed" || (STAGE_RANK[to] < STAGE_RANK[p.stage]);
-      if (needsMore){ if (st.open !== id) st.sensitive = {}; st.open = id; st.section = "stage"; st.stageTo = to; st.focus = "drawer"; render(); return; }
+      if (needsMore){ if (st.open !== id) clearSensitive(); st.open = id; st.section = "stage"; st.stageTo = to; st.focus = "drawer"; render(); return; }
       sel.disabled = true;
       var name = fullName(recruitOf(p));
       moveStage(id, to).then(function (){
@@ -36497,7 +36547,7 @@ function wire(){
     v.film_links = links;
     busy(af, true);
     addRecruit(v).then(function (plid){
-      st.adding = false; st.open = plid; st.sensitive = {}; st.focus = "drawer"; render();
+      st.adding = false; st.open = plid; clearSensitive(); st.focus = "drawer"; render();
       toast(v.first_name + " " + v.last_name + " added" + (st.mode === "sample" ? " (sample, not saved)." : "."));
     }, function (e){ busy(af, false); showErr("rcAddErr", friendly(e)); });
     return false;
@@ -36571,7 +36621,7 @@ window.MOD_RECRUITING = {
   wire: wire,
   state: { recruitTab: "board" },
   /* test seam: pure helpers, no side effects */
-  _test: { parseCSV: parseCSV, overallOf: overallOf, csvPreview: csvPreview, state: function (){ return st; } },
+  _test: { parseCSV: parseCSV, overallOf: overallOf, csvPreview: csvPreview, state: function (){ return st; }, addRecruit: addRecruit, identityKey: identityKey },
 };
 
 })();

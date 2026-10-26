@@ -301,3 +301,27 @@ test('lifecycle-approve: a notifications insert that returns no row reports no d
   const ok = await mod.insertDeliveryReceipt(notifClient({ data: { id: 'n-1' }, error: null }), row);
   assert.equal(ok.notification_id, 'n-1');
 });
+
+test('lifecycle-approve: only a coded database refusal is definite; network/no-row outcomes are uncertain', async () => {
+  const mod = await loadLifecycleApprove();
+  const row = { user_id: 'g1', title: 't', message: 'm' };
+  assert.equal((await mod.insertDeliveryReceipt(notifClient({ data: null, error: { message: 'denied', code: '42501' } }), row)).definite, true);
+  assert.equal((await mod.insertDeliveryReceipt(notifClient({ data: null, error: { message: 'fk', code: '23503' } }), row)).definite, true);
+  assert.equal((await mod.insertDeliveryReceipt(notifClient({ data: null, error: { message: 'TypeError: fetch failed', code: '' } }), row)).definite, false);
+  assert.equal((await mod.insertDeliveryReceipt(notifClient({ data: null, error: null }), row)).definite, false, 'no row and no error is not proof of nothing');
+  const thrown = { from: () => ({ insert: () => ({ select: () => ({ single: async () => { throw new Error('timeout'); } }) }) }) };
+  assert.equal((await mod.insertDeliveryReceipt(thrown, row)).definite, false);
+  const src = read('supabase/functions/lifecycle-approve/index.ts');
+  assert.match(src, /if \(!notificationId && !delivered\.definite\) \{[\s\S]*?findDeliveredNotification\([\s\S]*?released: false, delivery: "unconfirmed"/,
+    'an uncertain insert is reconciled and, if unconfirmed, stays claimed');
+});
+
+test('lifecycle-approve: reconcile finds the notification, proves absence, or stays undetermined', async () => {
+  const mod = await loadLifecycleApprove();
+  const row = { user_id: 'g1', title: 't', message: 'm' };
+  const q = (result) => { const chain = { eq: () => chain, gte: () => chain, order: () => chain, limit: async () => result };
+    return { from: () => ({ select: () => chain }) }; };
+  assert.equal(await mod.findDeliveredNotification(q({ data: [{ id: 'n-9' }], error: null }), row, '2026-10-26T00:00:00Z'), 'n-9');
+  assert.equal(await mod.findDeliveredNotification(q({ data: [], error: null }), row, '2026-10-26T00:00:00Z'), null);
+  assert.equal(await mod.findDeliveredNotification(q({ data: null, error: { message: 'x' } }), row, '2026-10-26T00:00:00Z'), undefined);
+});

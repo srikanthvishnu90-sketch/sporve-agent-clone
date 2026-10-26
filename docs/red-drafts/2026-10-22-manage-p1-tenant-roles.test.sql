@@ -391,6 +391,48 @@ begin
   perform public.p1_test_as('a1000000-0000-4000-8000-000000000002');
   if not public.has_org_capability(v_a, 'eligibility.certify') then
     raise exception 'FAIL (d2): assignment by another admin did not grant eligibility.certify'; end if;
+
+  -- UPDATE path: re-point an EXISTING assignment at yourself, or turn your own
+  -- non-restricted role into a restricted one. Through the API the column
+  -- grant refuses it (member_id / role_key are not updatable by clients) ...
+  perform public.p1_test_as('a1000000-0000-4000-8000-000000000003');                   -- AD
+  begin
+    update public.role_assignments set member_id = 'a2000000-0000-4000-8000-000000000003'
+     where member_id = 'a2000000-0000-4000-8000-000000000006' and role_key = 'compliance_officer';
+    raise exception 'FAIL (d2): AD re-pointed the compliance officer''s assignment at themselves';
+  exception when insufficient_privilege then null; end;
+  begin
+    update public.role_assignments set role_key = 'athletic_trainer'
+     where member_id = 'a2000000-0000-4000-8000-000000000003' and role_key = 'sid';
+    raise exception 'FAIL (d2): AD turned their own sid assignment into athletic_trainer';
+  exception when insufficient_privilege then null; end;
+  -- ... and the trigger refuses it on its own, even for a writer that holds
+  -- full UPDATE (the table owner acting for a signed-in user, e.g. a future
+  -- SECURITY DEFINER RPC): JWT sub = the AD, role = owner.
+  perform public.p1_test_as(null);
+  perform set_config('request.jwt.claim.sub', 'a1000000-0000-4000-8000-000000000003', true);
+  begin
+    update public.role_assignments set member_id = 'a2000000-0000-4000-8000-000000000003'
+     where member_id = 'a2000000-0000-4000-8000-000000000006' and role_key = 'compliance_officer';
+    raise exception 'FAIL (d2): guard allowed re-pointing a restricted assignment at the acting member';
+  exception when insufficient_privilege then
+    if sqlerrm not like 'SELF_ASSIGN_RESTRICTED%' then raise exception 'FAIL (d2): wrong error %', sqlerrm; end if;
+  end;
+  begin
+    update public.role_assignments set role_key = 'athletic_trainer'
+     where member_id = 'a2000000-0000-4000-8000-000000000003' and role_key = 'sid';
+    raise exception 'FAIL (d2): guard allowed changing own role_key to a restricted role';
+  exception when insufficient_privilege then
+    if sqlerrm not like 'SELF_ASSIGN_RESTRICTED%' then raise exception 'FAIL (d2): wrong error %', sqlerrm; end if;
+  end;
+  perform public.p1_test_as(null);
+  select count(*) into n from public.role_assignments
+   where (member_id = 'a2000000-0000-4000-8000-000000000006' and role_key = 'compliance_officer')
+      or (member_id = 'a2000000-0000-4000-8000-000000000003' and role_key = 'sid');
+  if n <> 2 then raise exception 'FAIL (d2): a refused UPDATE changed the rows (% of 2 intact)', n; end if;
+  select count(*) into n from public.role_assignments
+   where member_id = 'a2000000-0000-4000-8000-000000000003' and role_key in ('compliance_officer','athletic_trainer');
+  if n <> 0 then raise exception 'FAIL (d2): AD holds a restricted role after the refused UPDATEs'; end if;
   perform public.p1_test_as(null);
   raise notice 'PASS (d2): restricted roles cannot be self-assigned; non-restricted self-assignment and admin-to-other still work';
 end $$;
@@ -476,6 +518,27 @@ begin
 end $$;
 
 -- ── audit_log: append-only and chained ───────────────────────────────────────
+-- RFC 2104 HMAC-SHA256 built from the core sha256() only, so the audit check
+-- below does not trust pgcrypto's hmac() (the function audit_row() calls).
+-- Temporary: rolled back with the test.
+create or replace function pg_temp.p1_test_hmac(p_key bytea, p_msg bytea) returns bytea
+language plpgsql immutable as $$
+declare k bytea := case when length(p_key) > 64 then sha256(p_key) else p_key end; ik bytea; ok bytea; i int;
+begin
+  k := k || decode(repeat('00', 64 - length(k)), 'hex');
+  ik := k; ok := k;
+  for i in 0..63 loop
+    ik := set_byte(ik, i, get_byte(k, i) # 54);    -- 0x36
+    ok := set_byte(ok, i, get_byte(k, i) # 92);    -- 0x5c
+  end loop;
+  return sha256(ok || sha256(ik || p_msg));
+end $$;
+do $$ begin   -- RFC 4231 test case 2 pins the helper itself
+  if encode(pg_temp.p1_test_hmac(convert_to('Jefe', 'UTF8'), convert_to('what do ya want for nothing?', 'UTF8')), 'hex')
+     <> '5bdcc146bf60754e6a042426089575c75a003f089d2739839dec58b964ec3843' then
+    raise exception 'FAIL setup: test HMAC helper does not match RFC 4231';
+  end if;
+end $$;
 do $$
 declare v_a uuid := current_setting('p1.org_a')::uuid; n int;
 begin
@@ -497,13 +560,39 @@ begin
   select count(*) into n from public.audit_log where provider_id = v_a and diff ? 'institution_student_id'
      and diff->>'institution_student_id' <> '[redacted]';
   if n <> 0 then raise exception 'FAIL audit: sensitive column in clear in diff'; end if;
-  -- hashes are keyed: a row hash must not equal a plain sha256 of its own image
-  select count(*) into n from public.audit_log a
-   where a.provider_id = v_a and a.table_name = 'student_athletes' and a.after_sha256 is not null
-     and a.after_sha256 = encode(sha256(convert_to((select to_jsonb(s) from public.student_athletes s where s.id::text = a.row_id)::text, 'UTF8')), 'hex');
-  if n <> 0 then raise exception 'FAIL audit: % after-hashes are plain sha256 (unkeyed)', n; end if;
-  select count(*) into n from public.audit_log where provider_id = v_a and length(row_hash) <> 64;
-  if n <> 0 then raise exception 'FAIL audit: % row hashes are not 32-byte HMAC-SHA256', n; end if;
+  -- hashes are keyed: write one row with a known image, then recompute both
+  -- its after-hash and its chain hash here, independently of audit_row(),
+  -- as HMAC-SHA256 under the Vault key (read directly as the owner).
+  declare
+    v_key  bytea := (select convert_to(s.decrypted_secret, 'UTF8') from vault.decrypted_secrets s
+                      where s.name = 'sporv_audit_hmac_key' limit 1);
+    v_img  jsonb;
+    a      public.audit_log;
+    v_want text;
+  begin
+    if v_key is null then raise exception 'FAIL audit: Vault key not readable by the test owner'; end if;
+    insert into public.student_athletes (id, provider_id, institution_student_id, legal_first_name, legal_last_name)
+      values ('a5000000-0000-4000-8000-0000000000aa', v_a, 'A0AA', 'Known', 'Image');
+    select to_jsonb(s) into v_img from public.student_athletes s where s.id = 'a5000000-0000-4000-8000-0000000000aa';
+    select * into a from public.audit_log l
+     where l.provider_id = v_a and l.table_name = 'student_athletes'
+       and l.row_id = 'a5000000-0000-4000-8000-0000000000aa' order by l.id desc limit 1;
+    if a.id is null then raise exception 'FAIL audit: the known-image insert wrote no audit row'; end if;
+    if a.before_sha256 is not null then raise exception 'FAIL audit: an INSERT carries a before-hash'; end if;
+    v_want := encode(pg_temp.p1_test_hmac(v_key, convert_to(v_img::text, 'UTF8')), 'hex');
+    if a.after_sha256 is distinct from v_want then
+      raise exception 'FAIL audit: after-hash % is not HMAC-SHA256(key, image) %', a.after_sha256, v_want; end if;
+    if a.after_sha256 = encode(sha256(convert_to(v_img::text, 'UTF8')), 'hex') then
+      raise exception 'FAIL audit: after-hash is a plain (unkeyed) sha256'; end if;
+    v_want := encode(pg_temp.p1_test_hmac(v_key, convert_to(coalesce(a.prev_hash, '') || '|' || jsonb_build_object(
+                'provider_id', a.provider_id,
+                'occurred_at', to_char(a.occurred_at at time zone 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.US"Z"'),
+                'actor_id', a.actor_id, 'actor_kind', a.actor_kind, 'action', a.action,
+                'table_name', a.table_name, 'row_id', a.row_id,
+                'before', a.before_sha256, 'after', a.after_sha256, 'diff', a.diff)::text, 'UTF8')), 'hex');
+    if a.row_hash is distinct from v_want then
+      raise exception 'FAIL audit: row_hash % does not recompute to HMAC-SHA256 over the chain %', a.row_hash, v_want; end if;
+  end;
   raise notice 'PASS audit: update/delete rejected, one chain per org, sensitive values redacted, hashes keyed';
 end $$;
 

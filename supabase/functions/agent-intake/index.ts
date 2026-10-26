@@ -779,11 +779,14 @@ async function callExtract(args: {
         maxTokens: 600,
       }),
     });
-    // 402 = the plan's monthly AI allowance (CONTEXT I3, since 2026-10-22): same stop.
-    // 503 = the gateway already retried a busy upstream within its budget;
-    // calling again for the next event in this run would only add load.
-    if (gResp.status === 429 || gResp.status === 402 || gResp.status === 503) return { status: "rate_limited" };
     const g = await gResp.json().catch(() => ({}));
+    // 402 = the plan's monthly AI allowance (CONTEXT I3, since 2026-10-22): same stop.
+    if (gResp.status === 429 || gResp.status === 402) return { status: "rate_limited" };
+    // 503 with reason upstream_busy = the gateway already retried a busy model
+    // provider within its budget; another call this run would only add load.
+    // Any other 503 (quota service down, missing config) is an error, not a
+    // rate limit, and follows the error path.
+    if (gResp.status === 503 && g?.reason === "upstream_busy") return { status: "rate_limited" };
     if (!gResp.ok) return { status: "error" };
     const call = Array.isArray(g?.toolCalls) ? g.toolCalls[0] : null;
     const out = (call?.input ?? {}) as Record<string, unknown>;

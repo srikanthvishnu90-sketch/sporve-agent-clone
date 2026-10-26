@@ -41,7 +41,7 @@ function filterRows(rows, params) {
       if (op === 'neq') return String(x) !== raw;
       if (op === 'is') return raw === 'null' ? x == null : String(x) === raw;
       if (op === 'not.is') return raw === 'null' ? x != null : String(x) !== raw;
-      if (op === 'in') return raw.replace(/^\(|\)$/g, '').split(',').includes(String(x));
+      if (op === 'in') return raw.replace(/^\(|\)$/g, '').split(',').map((v) => v.replace(/^"(.*)"$/, '$1').replace(/\\(.)/g, '$1')).includes(String(x));   // PostgREST strips "quoted" list items
       if (op === 'like' || op === 'ilike') return new RegExp('^' + raw.replace(/%/g, '.*') + '$', op === 'ilike' ? 'i' : '').test(String(x ?? ''));
       if (op === 'gte' || op === 'lte' || op === 'gt' || op === 'lt') {   // ISO timestamps and numbers compare the same way PostgREST orders them
         const a = typeof x === 'number' ? x : String(x ?? ''), b = typeof x === 'number' ? Number(raw) : raw;
