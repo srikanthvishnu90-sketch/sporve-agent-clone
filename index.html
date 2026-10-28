@@ -29,7 +29,7 @@
 <link rel="manifest" href="/site.webmanifest">
 <script type="application/ld+json">{"@context":"https://schema.org","@type":"SoftwareApplication","name":"Sporv","url":"https://sporv.ai/","applicationCategory":"BusinessApplication","operatingSystem":"Web","description":"Sporv runs the club for you — roster, scheduling, waivers, dues and payouts, with an agent that drafts the busywork and a human who approves it.","publisher":{"@type":"Organization","name":"Sporv","url":"https://sporv.ai/","logo":"https://sporv.ai/icon-512.png"}}</script>
 <script type="application/ld+json">{"@context":"https://schema.org","@type":"WebSite","name":"Sporv AI","url":"https://sporv.ai/"}</script>
-<meta name="sporve-build" content="310c68d0ea35ea81">
+<meta name="sporve-build" content="687aed68e3b87d2a">
 </head>
 <body>
 <script>
@@ -4805,6 +4805,8 @@ body.reg-coach .rail button.on{font-weight:600}
 .cxcard{background:#141A21;border:1px solid #232B34;border-radius:12px;padding:20px}
 .cxcard b{display:block;margin-top:12px;font-size:var(--text-base);font-weight:600;color:#FFFFFF;line-height:1.3}
 .cxcard p{margin-top:8px;font-size:var(--text-sm);color:#AEB8C4;line-height:1.5}
+.cxstat{display:block;margin-top:12px;font-family:"JetBrains Mono",monospace;font-size:12px;letter-spacing:.14em;text-transform:uppercase;color:#8FA3B8}
+.cxstat.on{color:var(--ok)}
 .band.dark .cxcard p{color:#AEB8C4}
 @media(max-width:900px){.cxgrid{grid-template-columns:repeat(2,1fr)}}
 @media(max-width:560px){.cxgrid{gap:12px}.cxcard{padding:16px}}
@@ -4992,6 +4994,13 @@ body.reg-coach .rail button.on{font-weight:600}
 .lp26 .who>div:first-child{padding-left:0}
 .lp26 .who>div:last-child{border-right:0;padding-right:0}
 .lp26 .who h3{margin-bottom:10px}
+.lp26 .who>div{scroll-margin-top:96px}
+/* Solutions-menu landing marker (2026-10-27): each nav label targets its OWN
+   block (#manage/#source pillars, #who-schools/#who-clubs/#who-camps blocks);
+   the ring names the block landed on, since pillars/audience blocks sit side
+   by side on desktop and share a scroll position. */
+.lp26 .pillar.spot,.lp26 .who>div.spot{animation:spotRing 1.9s ease-out 1}
+@keyframes spotRing{0%{box-shadow:0 0 0 3px rgba(118,146,174,.95)}100%{box-shadow:0 0 0 3px rgba(118,146,174,0)}}
 .lp26 .who .m{margin-top:16px;padding-top:12px;border-top:1px solid;font-family:"JetBrains Mono",monospace;font-size:14px;color:var(--steel)}
 @media(max-width:820px){.lp26 .who{grid-template-columns:1fr}.lp26 .who>div{border-right:0;border-bottom:1px solid;padding-right:0}}
 .lp26 .price{display:grid;grid-template-columns:1fr 1fr;gap:56px;align-items:center}
@@ -7796,7 +7805,12 @@ function runIntent(intent){
 }
 function requireAuth(fn){
   if(isVerified()){fn();return true;}
-  S.pendingIntent=fn; S.modal={type:"authsheet"}; render(); return false;
+  /* One login flow only (owner 2026-10-27): every gate opens the SAME panel
+     as the top nav's Log in (email + password, with the sign-in-link and
+     create-account options inside it) — never the alternate email-link
+     sheet. completeAuth() replays the parked intent either way, and no auth
+     method itself changes. */
+  S.pendingIntent=fn; S.modal={type:"login"}; render(); return false;
 }
 
 /* completeAuth is now the SUCCESS branch only, and it is called after the
@@ -8108,7 +8122,7 @@ function toggleFav(id){
        redirect — the heap is destroyed — so a visitor who signed in with
        Google returned with the save silently dropped. INTENTS already had a
        `save` entry; nothing used it. */
-    if(S.guestSaves>=3){S.pendingIntent={kind:"save",id:id};S.modal={type:"authsheet"};render();return;}
+    if(S.guestSaves>=3){S.pendingIntent={kind:"save",id:id};S.modal={type:"login"};render();return;}
     S.guestSaves++;
   }
   S.favorites=[...S.favorites,id];
@@ -9025,9 +9039,10 @@ function primaryNavHTML(){
     <button class="tnav prodpill ${S.prodMenu?"open":""}" data-prodtoggle="1"
       aria-expanded="${!!S.prodMenu}" aria-haspopup="menu">Product <svg class="caret" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg></button>
     <div class="tnav-dd"><button class="tnav" aria-haspopup="menu">Platform <svg class="caret" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg></button>
-      <div class="tnav-menu" role="menu"><button role="menuitem" data-solution="manage"><b>Manage</b><small>Run the whole program, one team or every sport</small></button><button role="menuitem" data-solution="source"><b>Source</b><small>Find and manage recruits</small></button><button role="menuitem" data-foot="page:what-is"><b>Assistant</b><small>Your own AI for the program</small></button></div></div>
+      <div class="tnav-menu" role="menu"><button role="menuitem" data-solution="manage"><b>Manage</b><small>Run the whole program, one team or every sport</small></button><button role="menuitem" data-solution="source"><b>Source</b><small>Find and manage recruits · In development</small></button><button role="menuitem" data-foot="page:what-is"><b>Assistant</b><small>Your own AI for the program</small></button></div></div>
     <div class="tnav-dd"><button class="tnav" aria-haspopup="menu">Solutions <svg class="caret" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg></button>
-      <div class="tnav-menu" role="menu"><button role="menuitem" data-solution="1"><b>Schools and athletic departments</b><small>Every team in the department, one account</small></button><button role="menuitem" data-solution="1"><b>Clubs, AAU and travel teams</b><small>Season fees, rosters and tournaments</small></button><button role="menuitem" data-solution="1"><b>Camps and private trainers</b><small>Sessions, packages and one-time charges</small></button></div></div>
+      <div class="tnav-menu" role="menu"><button role="menuitem" data-solution="who-schools"><b>Schools and athletic departments</b><small>Every team in the department, one account</small></button><button role="menuitem" data-solution="who-clubs"><b>Clubs, AAU and travel teams</b><small>Season fees, rosters and tournaments</small></button><button role="menuitem" data-solution="who-camps"><b>Camps and private trainers</b><small>Sessions, packages and one-time charges</small></button></div></div>
+
     <button class="tnav" data-foot="nav:trust">Security</button>
     <div class="tnav-dd"><button class="tnav" aria-haspopup="menu">Resources <svg class="caret" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg></button>
       <div class="tnav-menu" role="menu"><button role="menuitem" data-foot="page:what-is"><b>What is Sporv?</b><small>How the agent works</small></button><button role="menuitem" data-foot="nav:product"><b>Product guide</b><small>Every page, explained</small></button><button role="menuitem" data-foot="info:help"><b>Help center</b><small>Answers and contact</small></button></div></div>
@@ -9596,8 +9611,9 @@ function landingHTML(){
         ${heroSportCycleHTML()}
         ${/* (owner 2026-10-22, small adjustment) one line of what it does and the
              two actions, so the first screen is not a photo with no next step. */""}
-        <p class="hero-sub26">For schools, clubs, AAU teams, camps and trainers. Sporv manages the program and sources your next recruits. Every message is drafted for you, and nothing sends until you approve it.</p>
+        <p class="hero-sub26">For schools, clubs, AAU teams, camps and trainers. Sporv manages the program; sourcing your next recruits is in development. Every message is drafted for you, and nothing sends until you approve it.</p>
         <div class="hero-ctas26"><a class="btn pri" href="${CALENDLY_URL}" target="_blank" rel="noopener">Request a demo</a><button class="btn ghost" data-foot="nav:product">See the product</button></div>
+
       </div>
     </div>
   </section>
@@ -9647,14 +9663,14 @@ function landingHTML(){
   <section class="light band" id="platform">
     <div class="wrap">
       <div class="head"><p class="k" data-rev>The platform</p><h2 data-rev data-rev-d="1">Two jobs. One system.</h2>
-        <p data-rev data-rev-d="2" style="margin-top:14px;max-width:62ch">Sporv manages the program you have and sources the athletes you want next. A recruit you sign becomes a roster athlete in the same record, so nothing is typed twice.</p></div>
+        <p data-rev data-rev-d="2" style="margin-top:14px;max-width:62ch">Sporv manages the program you have. Sourcing the athletes you want next is in development — when it lands, a recruit you sign becomes a roster athlete in the same record, so nothing is typed twice.</p></div>
       <div class="pillars">
         <article class="pillar" id="manage" data-rev>
           <div class="pillar-ph" style="--ph:url('/assets/landing/photo-pool.webp')" role="img" aria-label="An empty competition pool, early morning"><div><p class="pillar-k">Manage</p><h3 class="pillar-h">Run the whole program.</h3></div></div>
           <ul><li>Rosters, guardians and eligibility for one team or every sport in the department</li><li>Schedules, facilities and conflicts across teams</li><li>Dues, installments and waivers on one ledger</li><li>Every follow-up drafted, sent only when you approve</li></ul>
         </article>
         <article class="pillar" id="source" data-rev data-rev-d="1">
-          <div class="pillar-ph" style="--ph:url('/assets/landing/photo-pressbox.webp')" role="img" aria-label="A press box looking out over a lit football field at night"><div><p class="pillar-k">Source</p><h3 class="pillar-h">Find and manage recruits.</h3></div></div>
+          <div class="pillar-ph" style="--ph:url('/assets/landing/photo-pressbox.webp')" role="img" aria-label="A press box looking out over a lit football field at night"><div><p class="pillar-k">Source</p><h3 class="pillar-h">Find and manage recruits.</h3><p style="margin-top:10px"><span class="tag">In development</span></p></div></div>
           <ul><li>A recruit board from first look to signed</li><li>Evaluations from every coach, ranked against your roster gaps</li><li>A contact log that respects the recruiting calendar</li><li>Messages to recruits and families drafted for your approval</li></ul>
           <p><span class="tag">In development. Request a demo to be one of the first programs.</span></p>
         </article>
@@ -9687,27 +9703,16 @@ function landingHTML(){
     <div class="wrap">
       <div class="head"><p class="k" data-rev>Who it's for</p><h2 data-rev data-rev-d="1">Schools. Clubs and AAU teams. Camps and trainers.</h2></div>
       <div class="who rule">
-        <div data-rev><div class="who-ph" style="background-image:url('/assets/landing/photo-stadium.webp')" role="img" aria-label="A college stadium at dusk under the lights"></div><h3>Schools and athletic departments</h3><p>Many teams, one department: rosters, schedules, eligibility and family communication across every sport.</p><p class="m rule">Many teams · one account</p></div>
-        <div class="rule" data-rev data-rev-d="1"><div class="who-ph" style="background-image:url('/assets/landing/photo-gym.webp')" role="img" aria-label="An empty basketball gym with the court lights on"></div><h3>Clubs, AAU and travel teams</h3><p>A season fee split across installments, with families at different points in the plan.</p><p class="m rule">Billing · N installments</p></div>
-        <div class="rule" data-rev data-rev-d="2"><div class="who-ph" style="background-image:url('/assets/landing/photo-track.webp')" role="img" aria-label="An empty running track at dawn with starting blocks"></div><h3>Camps and private trainers</h3><p>One charge up front for a camp, or sessions billed as they happen with a running balance per family.</p><p class="m rule">Billing · one charge or per session</p></div>
+        <div data-rev id="who-schools"><div class="who-ph" style="background-image:url('/assets/landing/photo-stadium.webp')" role="img" aria-label="A college stadium at dusk under the lights"></div><h3>Schools and athletic departments</h3><p>Many teams, one department: rosters, schedules, eligibility and family communication across every sport.</p><p class="m rule">Many teams · one account</p></div>
+        <div class="rule" data-rev data-rev-d="1" id="who-clubs"><div class="who-ph" style="background-image:url('/assets/landing/photo-gym.webp')" role="img" aria-label="An empty basketball gym with the court lights on"></div><h3>Clubs, AAU and travel teams</h3><p>A season fee split across installments, with families at different points in the plan.</p><p class="m rule">Billing · N installments</p></div>
+        <div class="rule" data-rev data-rev-d="2" id="who-camps"><div class="who-ph" style="background-image:url('/assets/landing/photo-track.webp')" role="img" aria-label="An empty running track at dawn with starting blocks"></div><h3>Camps and private trainers</h3><p>One charge up front for a camp, or sessions billed as they happen with a running balance per family.</p><p class="m rule">Billing · one charge or per session</p></div>
       </div>
     </div>
   </section>
 
-  <section class="dark band">
-    <div class="wrap price">
-      <div data-rev>
-        <p class="k">Pricing</p>
-        <h2 style="margin-top:14px;max-width:14ch">One subscription.</h2>
-        <div class="no">Nothing per booking, nothing per family, no cut of dues</div>
-      </div>
-      <div data-rev data-rev-d="1">
-        <p>A flat subscription for the software and the agent. It is the only thing Sporv charges. Not a cut of dues. Not a per-team price. Not a seat count. No annual contract.</p>
-        <p style="margin-top:16px">Most clubs already pay more than this for software that chases nobody.</p>
-      </div>
-    </div>
-  </section>
-
+  ${/* Pricing section REMOVED (owner 2026-10-27): no public pricing anywhere
+       on the site. Anything that pointed at pricing now points at Request a
+       demo (Calendly) or is removed. */""}
   <section class="light band">
     <div class="wrap switch">
       <div data-rev>
@@ -9734,15 +9739,15 @@ function landingHTML(){
       <h2 data-rev style="margin-top:10px;max-width:22ch">Connects to the tools you already use.</h2>
       <p class="sub" data-rev style="margin-top:16px;max-width:62ch">Stripe, CSV import and your website work today. Inbox, calendar and the rest are rolling out, and each shows its real status on your Connect page. Nothing sends or charges until you approve it.</p>
       <div class="cxgrid" data-rev style="margin-top:40px">
-        ${[["gmail","Gmail","Reads parent email and tournament PDFs. Drafts only, never sends."],
-           ["gcal","Google Calendar","Reads practices, games, and conflicts. Changes only with your approval."],
-           ["outlook","Outlook","Microsoft 365 mail and calendar. Read-only — changes need your approval."],
-           ["sheets","Google Sheets","The spreadsheet you already run on, read straight in."],
-           ["drive","Google Drive","Waivers and forms, read where you already keep them."],
-           ["stripe","Stripe","Dues, refunds, and payouts on your own Stripe account."],
-           ["sms","SMS","Reads inbound parent texts. Replies stay drafts until you send."],
-           ["quickbooks","QuickBooks","Reconciliation, read-only. Your books stay the source of truth."]
-          ].map(([k,n,d])=>`<div class="cxcard"><span class="cxlogo" aria-hidden="true">${CXLOGOS[k]}</span><b>${esc(n)}</b><p>${esc(d)}</p></div>`).join("")}
+        ${[["gmail","Gmail","Reads parent email and tournament PDFs. Drafts only, never sends.","Rolling out"],
+           ["gcal","Google Calendar","Reads practices, games, and conflicts. Changes only with your approval.","Rolling out"],
+           ["outlook","Outlook","Microsoft 365 mail and calendar. Read-only — changes need your approval.","Rolling out"],
+           ["sheets","Google Sheets","The spreadsheet you already run on, read straight in.","Rolling out"],
+           ["drive","Google Drive","Waivers and forms, read where you already keep them.","Rolling out"],
+           ["stripe","Stripe","Dues, refunds, and payouts on your own Stripe account.","Works today"],
+           ["sms","SMS","Reads inbound parent texts. Replies stay drafts until you send.","Rolling out"],
+           ["quickbooks","QuickBooks","Reconciliation, read-only. Your books stay the source of truth.","Rolling out"]
+          ].map(([k,n,d,s])=>`<div class="cxcard"><span class="cxlogo" aria-hidden="true">${CXLOGOS[k]}</span><b>${esc(n)}</b><p>${esc(d)}</p><span class="cxstat${s==="Works today"?" on":""}">${esc(s)}</span></div>`).join("")}
       </div>
       <p class="sub" data-rev style="margin-top:24px">Connect each one yourself from the Connect page — nothing is connected until you do.</p>
     </div>
@@ -9821,7 +9826,7 @@ function coachLandingHTML(){
   const faq=[
     ["How does the background check work?","Every individual clears their own check — not the business. Your listings stay unbookable and hidden from search until yours clears, and an org being approved never vouches for a trainer on its roster."],
     ["When do I get paid?","Once your background check clears and your bank is connected, payouts run automatically after a completed session. The full booking amount is yours; every payout is itemized."],
-    ["What does Sporv take?",`${FEE_PCT}% of bookings — you keep 100% of what families pay. Sporv is a flat software subscription instead: free to start, $34.99 a month for Pro. Joining, listing, and messaging are free.`],
+    ["What does Sporv take?",`${FEE_PCT}% of bookings — you keep 100% of what families pay. Sporv is a flat software subscription instead: free to start. Joining, listing, and messaging are free.`],
     ["What happens when someone cancels?","The cancellation policy copied onto the booking at purchase governs the refund — not whatever your listing says later. You pick flexible, moderate, or strict per service."],
     ["Who owns the client relationship?","You do. Families you bring keep booking you, and your roster and notes are yours."],
     ["Can I leave and take my data?","Yes. Request an export at any time. Deletion is reviewed as a case so financial and safety records required by law are retained, and everything else is removed."]];
@@ -9945,7 +9950,7 @@ function coachLandingHTML(){
               <td>Automatic payout of the full amount — Sporv takes ${FEE_PCT}% of bookings. You keep every dollar families pay.</td></tr>
             <tr><th scope="row">Running the software</th>
               <td>A directory fee plus a cut of the work itself.</td>
-              <td>A flat subscription and nothing from bookings. Free to start; Pro is $34.99 a month when the business grows.</td></tr>
+              <td>A flat subscription and nothing from bookings. Free to start, with a Pro tier when the business grows.</td></tr>
             <tr><th scope="row">The background check</th>
               <td>Billed to you, or skipped.</td>
               <td>Run at Sporv's cost. Never billed to you, never optional.</td></tr>
@@ -10200,11 +10205,11 @@ function productHTML(){
   /* The agent reads the operation. Cards land on the Connect tab, where the
      connectors live. */
   const read=[
-    [PICON.message,"Email","Gmail and Outlook, read-only. It triages the inbox and drafts replies from what it knows.","tab:connect"],
-    [PICON.calendar,"Calendar","Google Calendar. It spots conflicts and drafts the schedule change for the families affected.","tab:connect"],
-    [PICON.card,"Payments","Stripe. It watches for overdue dues, failed payments, and cards about to expire.","tab:connect"],
-    [PICON.users,"Roster","Members, guardians, and teams. It finds missing info, unsigned waivers, and lapsed members.","tab:connect"],
-    [PICON.doc,"Files and sheets","Drive and Sheets. It parses tournament documents and league paperwork into draft rows.","tab:connect"],
+    [PICON.message,"Email","Gmail and Outlook, read-only. Rolling out — inbox triage and drafted replies arrive as the inbox connectors land.","tab:connect"],
+    [PICON.calendar,"Calendar","Google Calendar. Rolling out — conflict spotting and drafted schedule changes arrive as the calendar connector lands.","tab:connect"],
+    [PICON.card,"Payments","Stripe — works today. It watches for overdue dues, failed payments, and cards about to expire.","tab:connect"],
+    [PICON.users,"Roster","Members, guardians, and teams — CSV import works today. It finds missing info, unsigned waivers, and lapsed members.","tab:connect"],
+    [PICON.doc,"Files and sheets","Drive and Sheets. Rolling out — document parsing arrives as these connectors land.","tab:connect"],
   ];
   /* The agent drafts the work. Cards land on the review queue, where every
      draft waits for a human decision. */
@@ -10263,7 +10268,7 @@ function productHTML(){
     <div class="shell">
       <div class="prodsec" data-rev>
         <h2>It reads your operation</h2>
-        <p class="sub">Email, calendar, payments, roster, and files. It finds the work hiding in them.</p>
+        <p class="sub">Payments, roster, and files today; email and calendar are rolling out. It finds the work hiding in them.</p>
       </div>
       <div class="prodgrid" data-rev>${read.map(r=>card(r[0],r[1],r[2],r[3])).join("")}</div>
     </div>
@@ -10289,7 +10294,7 @@ function productHTML(){
     <div class="shell">
       <div class="prodsec" data-rev>
         <h2>What the platform enforces</h2>
-        <p class="sub">These are not labels on a marketing page. They hold in the code.</p>
+        <p class="sub">The same rules on every screen: the agent drafts the work, a person approves it, and nothing sends itself.</p>
       </div>
       <div class="prodgrid" data-rev>
         ${rules.map(([t,d])=>`<div class="prodcard" style="cursor:default">
@@ -16010,7 +16015,6 @@ function modalHTML(){
         /* Same fix as NAVROWS above: explore IS the landing page, so this must
            route to the product docs (page:roster), not data-nav="explore". */
         ["page:roster","Product","Everything Sporv runs for a club"],
-        ["pricing","Pricing","Plans and what each includes"],
         ["about","Help","Contact and support"]],"acg-top")}
       ${/* "Switch to coaching" removed (owner 2026-09-19): the consumer
            marketplace is dead, so a guest portal-switch button is vestigial.
@@ -16147,7 +16151,7 @@ const INFO={
   terms:{title:"Terms of Service",sections:[
     {h:"These terms are being finalized",b:"Sporv's full Terms of Service are being completed with counsel. Until they are published, the statements below describe how the service actually operates today, and they are the terms we hold ourselves to. Questions: support@sporv.ai."},
     {h:"What Sporv is",b:"Sporv is operations software for sports organizations, with an agent that reads your operation and drafts the work. It is not a marketplace or a booking site. Sporv does not employ coaches or run programs."},
-    {h:"What Sporv charges",b:"We charge a subscription for the software and the agent: Free, Pro at $34.99 a month, and Enterprise on custom terms. We take zero percent of parent dues at launch, and there is no parent-facing platform fee. Parent dues run on your organization's own Stripe connected account, not through Sporv."},
+    {h:"What Sporv charges",b:"We charge a subscription for the software and the agent. We take zero percent of parent dues at launch, and there is no parent-facing platform fee. Parent dues run on your organization's own Stripe connected account, not through Sporv."},
     {h:"The agent drafts, you decide",b:"Messages, calendar changes, charges, and refunds wait in your review queue for a human decision. Nothing sends or writes automatically. Settings are Off, Observe, or Draft — there is no auto state."},
     {h:"Background checks",b:"Sporv keeps a check record per person: status and dates, never report contents. Your organization runs its own checks and owns screening and compliance. No check vendor is connected to Sporv today, and Sporv does not order checks."},
     {h:"Accounts and children",b:"An adult opens and controls the account. Youth records require verifiable parental consent. Dates of birth, emergency contacts, and medical notes are visible only to guardians and organization admins."},
@@ -16164,14 +16168,14 @@ const INFO={
     {h:"Disputes and mistakes",b:"If a payment did not happen the way it should have, email support@sporv.ai with the payment reference. A person reviews it. During beta that mailbox is the record — keep your copy."},
   ]},
   help:{title:"Help & Support",sections:[
-    {h:"What is Sporv?",b:"Operations software for sports organizations. The agent reads your email, calendar, payments, roster, and files, then drafts the work into your review queue."},
-    {h:"How do I connect my tools?",b:"Open the Connect page and choose a tile: Gmail, Google Calendar, Outlook, Google Sheets, Google Drive, Stripe, SMS, QuickBooks. Connected email is read-only. Nothing sends or changes without your approval."},
+    {h:"What is Sporv?",b:"Operations software for sports organizations. The agent reads your payments, roster, and files — inbox and calendar connectors are rolling out — then drafts the work into your review queue."},
+    {h:"How do I connect my tools?",b:"Open the Connect page and choose a tile. Stripe, CSV import and your website work today; Gmail, Google Calendar, Outlook, Google Sheets, Google Drive, SMS and QuickBooks are rolling out, and each tile shows its real status. Connected email is read-only. Nothing sends or changes without your approval."},
     {h:"How does the review queue work?",b:"Every draft shows who it is for, what it says, and why — with one button per draft. You can approve in bulk. Every approval records the human who made it."},
     {h:"How do I cancel my subscription?",b:"Open Billing, then the Subscription tab, and choose Cancel my subscription. The page walks through what cancellation does before you confirm.",link:{t:"Open the cancellation page",href:"?coachtab=billing&tab=subscription"}},
     {h:"Contact us",b:"Email support@sporv.ai. Response times are not guaranteed."},
   ]},
   legal:{title:"Legal",sections:[
-    {h:"Terms of Service",b:"By using Sporv you agree to use it lawfully and as described in our Terms. Sporv is operations software for sports organizations, not a marketplace."},
+    {h:"Terms of Service",b:"Sporv's full Terms of Service are being completed with counsel. Until they are published, the Terms page states how the service actually operates today — those are the terms we hold ourselves to. Sporv is operations software for sports organizations, not a marketplace."},
     {h:"Privacy Policy",b:"We process personal data to provide the service and protect athletes. You may request deletion of your account at any time."},
     {h:"Licenses",b:"Sporv is built with open-source software. Component licenses are available on request."},
   ]},
@@ -16361,7 +16365,7 @@ function closeZoneHTML(){
    scaffold hero + cross-links so every route resolves and the link graph has
    no orphan while the pages fan out. */
 const PAGE_META={
-  "what-is":{t:"What is Sporv?",d:"The agent for sports organizations. It reads your email, calendar, and payments, then drafts the work.",sport:"Soccer",cta:"pricing",ctaL:"See plans"},
+  "what-is":{t:"What is Sporv?",d:"The agent for sports organizations. It reads your email, calendar, and payments, then drafts the work.",sport:"Soccer",cta:"demo",ctaL:"Request a demo"},
   "background-checks":{t:"How background checks work",d:"Per-person check records with dates — what Sporv enforces and what your organization owns.",sport:"Swimming",cta:"trust",ctaL:"See the trust center"},
   "search":{t:"Search by sport & age",d:"Filter by sport, age, level, and budget — results only from the real catalogue.",sport:"Basketball",cta:"explore",ctaL:"Start searching"},
   "map-search":{t:"Map search",d:"See coaches as places — distance is part of every family's decision.",sport:"Cycling",cta:"map",ctaL:"Open the map"},
@@ -16384,12 +16388,16 @@ const PAGE_META={
      plan_entitlements.purchasable=false and billing-create-checkout rejects it,
      so cta points at the pricing tab (which describes early access) — never a
      checkout. ctaL is the early-access ask, not a buy. */
-  "enterprise":{t:"Organization workspace",d:"Many coaches, teams, and families under one organization — early access.",sport:"Soccer",cta:"pricing",ctaL:"Join the early-access list"},
-  "enterprise-roster":{t:"Roster & staff",d:"Households, permission-gated records, and per-person check status — early access.",sport:"Volleyball",cta:"pricing",ctaL:"Join the early-access list"},
-  "enterprise-finance":{t:"Org payments & pay",d:"Consolidated payouts and revenue splits at zero percent of bookings — early access.",sport:"Basketball",cta:"pricing",ctaL:"Join the early-access list"},
-  "enterprise-compliance":{t:"Compliance OS",d:"Org-wide background-check orchestration that fails closed — early access.",sport:"Swimming",cta:"pricing",ctaL:"Join the early-access list"},
+  "enterprise":{t:"Organization workspace",d:"Many coaches, teams, and families under one organization — early access.",sport:"Soccer",cta:"demo",ctaL:"Join the early-access list"},
+  "enterprise-roster":{t:"Roster & staff",d:"Households, permission-gated records, and per-person check status — early access.",sport:"Volleyball",cta:"demo",ctaL:"Join the early-access list"},
+  "enterprise-finance":{t:"Org payments & pay",d:"Consolidated payouts and revenue splits at zero percent of bookings — early access.",sport:"Basketball",cta:"demo",ctaL:"Join the early-access list"},
+  "enterprise-compliance":{t:"Compliance OS",d:"Org-wide background-check orchestration that fails closed — early access.",sport:"Swimming",cta:"demo",ctaL:"Join the early-access list"},
 };
 function pageCTA(meta){
+  /* Pricing removed site-wide (owner 2026-10-27): pages that pointed at the
+     pricing tab now point at Request a demo (the Calendly call). */
+  if(meta.cta==="demo"){
+    return `<a class="pg-cta" href="${CALENDLY_URL}" target="_blank" rel="noopener">${esc(meta.ctaL)} →</a>`;}
   if(meta.cta.indexOf("coachtab:")===0){const tab=meta.cta.split(":")[1];
     return `<button class="pg-cta" data-pdest="tab:${esc(tab)}">${esc(meta.ctaL)} →</button>`;}
   return `<button class="pg-cta" data-nav="${esc(meta.cta)}">${esc(meta.ctaL)} →</button>`;
@@ -17663,8 +17671,9 @@ function render(){
      A restored/legacy start route now renders the landing. */
   else if(r.name==="start"||r.name==="home") body=landingHTML();
   /* PART 1/3 — the two new nav destinations */
-  /* Pricing page removed (owner 2026-10-22). pricingHTML() is kept, unrouted. */
-  else if(r.name==="pricing") body=landingHTML();
+  /* Pricing removed site-wide (owner 2026-10-27): the route is an honest
+     dead end, like any other unknown path. pricingHTML() is kept, unrouted. */
+  else if(r.name==="pricing") body=notFoundHTML("pricing");
   else if(r.name==="product") body=productHTML();
   else if(r.name==="messages") body=messagesHTML();
   else if(r.name==="profile") body=profileHTML();
@@ -18179,13 +18188,13 @@ document.querySelectorAll('.sig-ai-coach').forEach(sigAiCoachWire);
   $("[data-scrim]").forEach(b=>b.onclick=e=>{if(e.target===b) dismiss();});
   $("[data-modal]").forEach(b=>b.onclick=()=>{S.modal={type:b.dataset.modal};render();});
   /* [data-srole] handler removed with the role-picker step it drove. */
-  $("[data-signin]").forEach(b=>b.onclick=()=>{S.modal={type:"authsheet"};render();});
+  $("[data-signin]").forEach(b=>b.onclick=()=>{S.modal={type:"login"};render();});
   /* Get Pro from the coach preview. You cannot subscribe without an account, so
      a guest signs in first (with the coach onboarding intent parked); the
      upgrade itself lives one tab away in Billing once they are a real coach. */
   $("[data-getpro]").forEach(b=>b.onclick=()=>{
     S.signupRole="coach";S.pendingIntent={kind:"coachOnboard"};
-    S.modal={type:"authsheet"};render();
+    S.modal={type:"login"};render();
   });
   /* Pricing-card CTAs. [CRITICAL-PATH] Pro is a REAL Stripe checkout via the
      existing billing-create-checkout rail (SporveCoach.startCheckout); Enterprise
@@ -18313,7 +18322,7 @@ document.querySelectorAll('.sig-ai-coach').forEach(sigAiCoachWire);
   $("[data-msg]").forEach(b=>b.onclick=()=>{
     const id=b.dataset.msg, p=PROGRAMS.find(x=>x.id===id);
     /* Same reason as save: a descriptor survives the OAuth round trip. */
-    if(!isVerified()){S.pendingIntent={kind:"message",coachId:id};S.modal={type:"authsheet"};render();return;}
+    if(!isVerified()){S.pendingIntent={kind:"message",coachId:id};S.modal={type:"login"};render();return;}
     let c=S.conversations.find(c=>c.with===p.biz);
     if(!c){c={id:"conv_"+Date.now(),with:p.biz,programId:p.id,last:"New conversation",at:"2026-08-03T00:00:00.000Z"};
       S.conversations=[c,...S.conversations];S.messages[c.id]=[];}
@@ -19441,9 +19450,16 @@ document.querySelectorAll('.sig-ai-coach').forEach(sigAiCoachWire);
     S.obligations=[...drafts,...obligationQueue()];render();
     toast(drafts.length+" draft"+(drafts.length===1?"":"s")+" added to your queue — review before anything happens.");});
 
+  /* Each Solutions/Platform label targets its OWN block (2026-10-27): the
+     three audience labels used to share data-solution="1" and all landed on
+     #who indistinguishably. Blocks are side-by-side on desktop, so the .spot
+     ring names the exact block landed on. Legacy "1" still maps to #who. */
   $("[data-solution]").forEach(b=>b.onclick=()=>{S.portal="family";go("home");
     const tgt=b.dataset.solution==="1"?"who":b.dataset.solution;
-    setTimeout(()=>{const el=document.getElementById(tgt);if(el)el.scrollIntoView({behavior:"smooth",block:"start"});},60);});
+    setTimeout(()=>{const el=document.getElementById(tgt);if(!el)return;
+      el.scrollIntoView({behavior:"smooth",block:"start"});
+      el.classList.remove("spot");void el.offsetWidth;el.classList.add("spot");
+      setTimeout(()=>el.classList.remove("spot"),2000);},60);});
   $("[data-foot]").forEach(b=>b.onclick=()=>{
     const [kind,val]=b.dataset.foot.split(":");
     S.sportOpen=false;
@@ -19618,7 +19634,7 @@ document.querySelectorAll('.sig-ai-coach').forEach(sigAiCoachWire);
   $("[data-demoacct-removed]").forEach(b=>b.onclick=()=>{toast("");});
   $("[data-onbnext]").forEach(b=>b.onclick=()=>{S.onboardStep=Math.min(1,S.onboardStep+1);render();});
   $("[data-onbback]").forEach(b=>b.onclick=()=>{
-    if(S.onboardStep===0){S.modal={type:"authsheet"};} else S.onboardStep--; render();});
+    if(S.onboardStep===0){S.modal={type:"login"};} else S.onboardStep--; render();});
   $("[data-pick]").forEach(b=>b.onclick=()=>{
     const s=b.dataset.pick;
     S.onboardSports=S.onboardSports.includes(s)?S.onboardSports.filter(x=>x!==s):[...S.onboardSports,s];
@@ -20103,7 +20119,7 @@ document.querySelectorAll('.sig-ai-coach').forEach(sigAiCoachWire);
 
     if(isLive&&!canBook){
       S.pendingIntent={kind:"book",programId:p.id};
-      S.modal={type:"authsheet"};
+      S.modal={type:"login"};
       render();
       return;
     }
@@ -26665,9 +26681,10 @@ G.SporvPersonalizeUI = {
     const send = id("obSend"); if (send) send.onclick = sendLink;
     q("[data-oboauth]").forEach((b) => b.onclick = () => { if (!AUTH()) return fail("Sign-in is unavailable right now. Reload the page."); try { sessionStorage.setItem("sporv:oauth-intent", "signup"); if (typeof saveState === "function") saveState(); } catch (e) {} window.location.href = AUTH().oauthUrl(b.dataset.oboauth, window.location.origin + window.location.pathname); });
     /* Auth-trap fix (2026-09-19): "Log in" used to just focus the signup email
-       field, which read as a dead link. It now opens the real "Log in or sign
-       up" sheet, whose identifier flow routes an existing account to sign-in. */
-    q("[data-oblogin]").forEach((a) => a.onclick = (e) => { e.preventDefault(); S.modal = { type: "authsheet" }; render(); });
+       field, which read as a dead link. It now opens the real login panel —
+       the same one the top nav opens (2026-10-27: one login flow only; the
+       identifier sheet is retired as a login entry point). */
+    q("[data-oblogin]").forEach((a) => a.onclick = (e) => { e.preventDefault(); S.modal = { type: "login" }; render(); });
     q("[data-obpw]").forEach((a) => a.onclick = (e) => { e.preventDefault(); S.authIdentifier = o.email; S.modal = { type: "login" }; render(); });
     q("[data-obfoot]").forEach((a) => a.onclick = (e) => { e.preventDefault(); const arg = a.dataset.obfoot.split(":")[1]; if(!arg) return; window.open(location.origin + "/?page=" + encodeURIComponent(arg), "_blank", "noopener"); });
     /* The "Sent again" flash fade-out must NOT re-render the form: render()
@@ -27409,6 +27426,12 @@ G.SporvPersonalizeUI = {
     const sub = typeof subnavHTML === "function" ? subnavHTML() : "";
     const left = reportsLeft();
     const paid = (S.bookings || []).filter(paymentEligible);
+    /* Public page, real state only (2026-10-27): the quota line and the
+       "Your requests" panel are per-account state. Signed out they showed
+       seed numbers ("10 of 10 reports left today", "0 filed") to anonymous
+       visitors — show neutral copy instead; the real counters render only
+       for a signed-in account. */
+    const signedIn = isVerified();
 
     const reportRows = s.reports.map(r => `<tr>
       <td class="num">${esc(r.ref)}</td>
@@ -27465,7 +27488,9 @@ G.SporvPersonalizeUI = {
           <button class="btn" data-sf-open="report">Report a safety concern</button>
           <button class="btn ghost" data-sf-open="refund">Request a refund</button>
           <button class="btn ghost" data-sf-open="privacy">Make a privacy request</button>
-          <span class="sf-meta num sf-push">${left} of ${REPORT_DAILY_QUOTA} safety reports left today</span>
+          ${signedIn
+            ? `<span class="sf-meta num sf-push">${left} of ${REPORT_DAILY_QUOTA} safety reports left today</span>`
+            : `<span class="sf-meta sf-push">Sign in to see your requests</span>`}
         </div>
 
         <div class="sf-note sf-note-warn sf-emergency" role="note">
@@ -27517,7 +27542,7 @@ G.SporvPersonalizeUI = {
     <section class="band sf-w sf-records">
       <div class="shell" data-rev>
         <div class="prodsec"><h2>Your requests.</h2></div>
-
+        ${signedIn ? `
         <div class="sf-block">
           <div class="sf-sec"><h3>Safety reports</h3>
             <span class="sf-meta num">${s.reports.length} filed</span></div>
@@ -27552,7 +27577,7 @@ G.SporvPersonalizeUI = {
             <span class="sf-meta num">${s.privacy.length} filed</span></div>
           ${table(["Reference", "Filed", "Type", "Status"], privacyRows,
                   "No privacy requests.", "Your privacy requests")}
-        </div>
+        </div>` : `<p class="sf-none">Sign in to see your requests.</p>`}
       </div>
     </section></div>`;
   }
@@ -27582,9 +27607,22 @@ G.SporvPersonalizeUI = {
   function wire() {
     const all = sel => document.querySelectorAll(sel);
 
-    /* open our modals — behind the host's auth gate, intent resumes after sign-in */
+    /* Signed out, these buttons do what the page copy promises (2026-10-27):
+       they open an email — safety reports to safety@sporv.ai (the address the
+       Trust page and Privacy §11 name), refund and privacy requests to
+       support@sporv.ai (the address the Refunds page and Privacy §7 name).
+       No login wall: a parent with a safety concern and no account must never
+       hit an account-creation gate. Signed in, the tracked in-app forms below
+       open as before, behind the host's auth gate. */
     all("[data-sf-open]").forEach(btn => btn.onclick = () => {
       const type = btn.dataset.sfOpen;
+      if (!isVerified()) {
+        const addr = type === "report" ? "safety@sporv.ai" : "support@sporv.ai";
+        const subj = type === "report" ? "Safety report"
+          : type === "refund" ? "Refund request" : "Privacy request";
+        window.location.href = "mailto:" + addr + "?subject=" + encodeURIComponent(subj);
+        return;
+      }
       const next = {
         type,
         providerId: btn.dataset.sfProvider || null,
@@ -32244,7 +32282,7 @@ function wireGuide(){
     guideOpenId = null;
     restoreGuideBackground();
     if (typeof requireAuth === "function") requireAuth(() => navigateGuide(tab));
-    else { S.modal = {type:"authsheet"}; render(); }
+    else { S.modal = {type:"login"}; render(); }
   });
   const drawer = document.querySelector(".cui-drawer");
   if (drawer){
@@ -37940,16 +37978,16 @@ window.MOD_HARVEY = { css: CSS, ensureLast };
 
   function whatIsPage(meta) {
     var cells = [
-      ["Read", "The agent reads the operation every night: the inbox, the calendar, the dues ledger, the roster, the shared drive. Overdue installments, failed cards, unsigned waivers, schedule conflicts, and lapsed members surface as findings with the record behind them."],
+      ["Read", "The agent reads the operation every night: the dues ledger, the roster, the shared drive — and the inbox and calendar as those connectors roll out. Overdue installments, failed cards, unsigned waivers, schedule conflicts, and lapsed members surface as findings with the record behind them."],
       ["Draft", "Each finding becomes a draft in one review queue: the follow-up addressed to the right payer with the right amount, the waiver chase, the schedule notice, the session note. Drafts carry their source, so a message is traceable to the row it came from."],
       ["Approve", "Nothing sends, charges, or changes a record until a person approves it. Approve sends one draft; bulk approval handles the routine ones. Every approval records who decided. There is no automatic mode."],
       ["Records", "Session notes, eligibility lists, treasurer summaries, and minutes land as records, not chat. The season reads as one account of what happened, written from the same rows that run billing and scheduling."],
-      ["Money", "Dues run on the organization's own Stripe account, and Sporv takes zero percent of parent payments at launch. The software is a flat subscription — free to start, Pro at thirty-four ninety-nine a month."],
+      ["Money", "Dues run on the organization's own Stripe account, and Sporv takes zero percent of parent payments at launch. The software is a flat subscription — free to start."],
       ["Safety", "Accounts belong to adults. A parent's consent gates a minor's data, youth details stay compartmented, and inbound email is treated as untrusted input. The safety page lists the full protocols."]
     ];
     var questions = [
       ["Who is Sporv for?", "Sports organizations — schools and athletic departments, clubs, academies, AAU and travel teams, leagues — and the independent coaches and trainers who run sessions. One account holds the staff, the athletes, the money, and the compliance."],
-      ["What does it cost?", "The organization pays a flat subscription for the software and the agent: free to start, Pro at thirty-four ninety-nine a month, custom for larger organizations. Sporv takes zero percent of parent dues at launch."],
+      ["What does it cost?", "The organization pays a flat subscription for the software and the agent. Sporv takes zero percent of parent dues at launch. Request a demo and we will walk through the plan that fits your organization."],
       ["What does the agent never do?", "Send anything on its own. Every message, charge, and record change waits for a human approval in the review queue. The agent proposes; the organization decides."]
     ];
     var cellCard = function (cell) {
@@ -37957,7 +37995,7 @@ window.MOD_HARVEY = { css: CSS, ensureLast };
     };
     return wrap("what-is", "B01", "manifesto-split-grid-claim-questions", "D-L-L-D-L", hero(meta,
       "The agent for <em>sports organizations.</em>",
-      "Sporv reads your operation — email, calendar, dues, roster, files — and drafts the work: the follow-ups, the waiver chases, the schedule notices, the session notes. Every draft waits in one review queue, and nothing sends until a person approves it.",
+      "Sporv reads your operation — dues, roster, and files today, with email and calendar rolling out — and drafts the work: the follow-ups, the waiver chases, the schedule notices, the session notes. Every draft waits in one review queue, and nothing sends until a person approves it.",
       { tone: "dark", layout: "manifesto", eyebrow: "WHAT IS SPORV" }) +
       "<section class='pgband white pg-capability-section' data-section='capability-grid' data-layout='six-cell-border-grid'><div class='shell pg-capability-grid'>" +
       cells.slice(0, 3).map(cellCard).join("") + "</div></section>" +
@@ -37995,7 +38033,7 @@ window.MOD_HARVEY = { css: CSS, ensureLast };
   function paymentsPage(meta) {
     var prose = [
       "A family pays the price the coach published. Sporv does not add a family booking fee at checkout, and it does not take a percentage from the coach either. The paid booking records the gross service price, and the payout record shows that same amount reaching the coach. Keeping incidence explicit matters: the parent should not discover a surcharge at the last step, and the coach should not have to reverse-engineer what arrived. Tax or processor information, when applicable, is labeled separately, and no estimate is presented as a settled transfer.",
-      "Sporv takes zero percent of the paid booking. The platform's revenue is the coach subscription — free to start, thirty-four ninety-nine a month for Pro — so the money a family pays for coaching is not the money that funds the software. The coach connects a payout account after the required onboarding and safety gates clear, and the full booking amount moves as one transfer. Payout state moves from pending to in transit to paid, so a balance never disappears behind a generic success message. A failed or paused transfer keeps its amount and status while the coach follows the remediation path; it does not masquerade as revenue that reached the bank. Bookings paid during the earlier flat-fee era keep the fee that was actually recorded on them; a historical receipt is never rewritten by a pricing change.",
+      "Sporv takes zero percent of the paid booking. The platform's revenue is the coach subscription — free to start, with a paid Pro tier — so the money a family pays for coaching is not the money that funds the software. The coach connects a payout account after the required onboarding and safety gates clear, and the full booking amount moves as one transfer. Payout state moves from pending to in transit to paid, so a balance never disappears behind a generic success message. A failed or paused transfer keeps its amount and status while the coach follows the remediation path; it does not masquerade as revenue that reached the bank. Bookings paid during the earlier flat-fee era keep the fee that was actually recorded on them; a historical receipt is never rewritten by a pricing change.",
       "Refunds preserve the same arithmetic. When money goes back under the saved cancellation policy, the refunded amount is the coach revenue being returned — there is no platform fee on the booking to unwind. On historical bookings that did record a fee, the matching portion of that fee is returned with the refund rather than kept on money the coach gave back. The original charge, refunded amount, remaining paid amount, and payout adjustment stay visible. That trail lets both sides distinguish a pending transfer from money that was actually deposited, and several partial adjustments still reconcile to the original booking instead of producing a second unexplained ledger entry."
     ];
     var rail = "<aside class='pg-stat-rail' aria-label='Worked payout example'>" +
@@ -38811,7 +38849,7 @@ function hydrateReturn(){
       S.modal={type:"inviteconfirm",token:invite};render();
     } else {
       S.pendingIntent={kind:"redeemInvite",token:invite};
-      S.modal={type:"authsheet"};render();
+      S.modal={type:"login"};render();
     }
     return;
   }
@@ -38862,18 +38900,30 @@ function hydrateReturn(){
   try{
     var _segs=window.location.pathname.split("/").filter(function(s){return s;});
     if(_segs.length){
-      var _deep={pricing:1,product:1,explore:1,page:1,trust:1,about:1,info:1,
+      var _deep={product:1,explore:1,page:1,trust:1,about:1,info:1,
         coachinfo:1,messages:1,profile:1,schedule:1,notifications:1,orgpage:1};
       var _argd={page:1,orgpage:1,info:1};
       var _dn=_segs[0].toLowerCase();
       /* "start" retired as a surface; a stale /start link lands on the landing. */
       if(_dn==="start") _dn="home";
-      var _known=!!_deep[_dn];
-      if(_known&&_dn!=="info"&&_argd[_dn]&&!_segs[1]) _known=false; /* page/orgpage need a slug */
-      S.route=_known
-        ?{name:_dn,arg:(_argd[_dn]&&_segs[1])?decodeURIComponent(_segs[1]):null}
-        :{name:_dn,arg:null};
-      render();
+      /* Friendly public paths (2026-10-27): the URLs a partner, school or
+         reviewer would type land on the screen they name. /pricing is NOT
+         aliased — pricing is removed site-wide, so it falls through to the
+         "doesn't exist" screen like any other unknown path. */
+      var _alias={terms:["info","terms"],privacy:["info","privacy"],
+        refunds:["info","refund"],security:["trust",null],help:["info","help"],
+        "background-checks":["page","background-checks"]};
+      if(_alias[_dn]){
+        S.route={name:_alias[_dn][0],arg:_alias[_dn][1]};
+        render();
+      } else {
+        var _known=!!_deep[_dn];
+        if(_known&&_dn!=="info"&&_argd[_dn]&&!_segs[1]) _known=false; /* page/orgpage need a slug */
+        S.route=_known
+          ?{name:_dn,arg:(_argd[_dn]&&_segs[1])?decodeURIComponent(_segs[1]):null}
+          :{name:_dn,arg:null};
+        render();
+      }
     }
   }catch(_){}
 
