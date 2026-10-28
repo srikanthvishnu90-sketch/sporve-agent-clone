@@ -371,6 +371,12 @@
     const sub = typeof subnavHTML === "function" ? subnavHTML() : "";
     const left = reportsLeft();
     const paid = (S.bookings || []).filter(paymentEligible);
+    /* Public page, real state only (2026-10-27): the quota line and the
+       "Your requests" panel are per-account state. Signed out they showed
+       seed numbers ("10 of 10 reports left today", "0 filed") to anonymous
+       visitors — show neutral copy instead; the real counters render only
+       for a signed-in account. */
+    const signedIn = isVerified();
 
     const reportRows = s.reports.map(r => `<tr>
       <td class="num">${esc(r.ref)}</td>
@@ -427,7 +433,9 @@
           <button class="btn" data-sf-open="report">Report a safety concern</button>
           <button class="btn ghost" data-sf-open="refund">Request a refund</button>
           <button class="btn ghost" data-sf-open="privacy">Make a privacy request</button>
-          <span class="sf-meta num sf-push">${left} of ${REPORT_DAILY_QUOTA} safety reports left today</span>
+          ${signedIn
+            ? `<span class="sf-meta num sf-push">${left} of ${REPORT_DAILY_QUOTA} safety reports left today</span>`
+            : `<span class="sf-meta sf-push">Sign in to see your requests</span>`}
         </div>
 
         <div class="sf-note sf-note-warn sf-emergency" role="note">
@@ -479,7 +487,7 @@
     <section class="band sf-w sf-records">
       <div class="shell" data-rev>
         <div class="prodsec"><h2>Your requests.</h2></div>
-
+        ${signedIn ? `
         <div class="sf-block">
           <div class="sf-sec"><h3>Safety reports</h3>
             <span class="sf-meta num">${s.reports.length} filed</span></div>
@@ -514,7 +522,7 @@
             <span class="sf-meta num">${s.privacy.length} filed</span></div>
           ${table(["Reference", "Filed", "Type", "Status"], privacyRows,
                   "No privacy requests.", "Your privacy requests")}
-        </div>
+        </div>` : `<p class="sf-none">Sign in to see your requests.</p>`}
       </div>
     </section></div>`;
   }
@@ -544,9 +552,22 @@
   function wire() {
     const all = sel => document.querySelectorAll(sel);
 
-    /* open our modals — behind the host's auth gate, intent resumes after sign-in */
+    /* Signed out, these buttons do what the page copy promises (2026-10-27):
+       they open an email — safety reports to safety@sporv.ai (the address the
+       Trust page and Privacy §11 name), refund and privacy requests to
+       support@sporv.ai (the address the Refunds page and Privacy §7 name).
+       No login wall: a parent with a safety concern and no account must never
+       hit an account-creation gate. Signed in, the tracked in-app forms below
+       open as before, behind the host's auth gate. */
     all("[data-sf-open]").forEach(btn => btn.onclick = () => {
       const type = btn.dataset.sfOpen;
+      if (!isVerified()) {
+        const addr = type === "report" ? "safety@sporv.ai" : "support@sporv.ai";
+        const subj = type === "report" ? "Safety report"
+          : type === "refund" ? "Refund request" : "Privacy request";
+        window.location.href = "mailto:" + addr + "?subject=" + encodeURIComponent(subj);
+        return;
+      }
       const next = {
         type,
         providerId: btn.dataset.sfProvider || null,
