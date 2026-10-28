@@ -1571,7 +1571,7 @@ function wireGuide(){
     guideOpenId = null;
     restoreGuideBackground();
     if (typeof requireAuth === "function") requireAuth(() => navigateGuide(tab));
-    else { S.modal = {type:"authsheet"}; render(); }
+    else { S.modal = {type:"login"}; render(); }
   });
   const drawer = document.querySelector(".cui-drawer");
   if (drawer){

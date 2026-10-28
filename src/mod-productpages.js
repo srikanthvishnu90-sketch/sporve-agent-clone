@@ -301,16 +301,16 @@
 
   function whatIsPage(meta) {
     var cells = [
-      ["Read", "The agent reads the operation every night: the inbox, the calendar, the dues ledger, the roster, the shared drive. Overdue installments, failed cards, unsigned waivers, schedule conflicts, and lapsed members surface as findings with the record behind them."],
+      ["Read", "The agent reads the operation every night: the dues ledger, the roster, the shared drive — and the inbox and calendar as those connectors roll out. Overdue installments, failed cards, unsigned waivers, schedule conflicts, and lapsed members surface as findings with the record behind them."],
       ["Draft", "Each finding becomes a draft in one review queue: the follow-up addressed to the right payer with the right amount, the waiver chase, the schedule notice, the session note. Drafts carry their source, so a message is traceable to the row it came from."],
       ["Approve", "Nothing sends, charges, or changes a record until a person approves it. Approve sends one draft; bulk approval handles the routine ones. Every approval records who decided. There is no automatic mode."],
       ["Records", "Session notes, eligibility lists, treasurer summaries, and minutes land as records, not chat. The season reads as one account of what happened, written from the same rows that run billing and scheduling."],
-      ["Money", "Dues run on the organization's own Stripe account, and Sporv takes zero percent of parent payments at launch. The software is a flat subscription — free to start, Pro at thirty-four ninety-nine a month."],
+      ["Money", "Dues run on the organization's own Stripe account, and Sporv takes zero percent of parent payments at launch. The software is a flat subscription — free to start."],
       ["Safety", "Accounts belong to adults. A parent's consent gates a minor's data, youth details stay compartmented, and inbound email is treated as untrusted input. The safety page lists the full protocols."]
     ];
     var questions = [
       ["Who is Sporv for?", "Sports organizations — schools and athletic departments, clubs, academies, AAU and travel teams, leagues — and the independent coaches and trainers who run sessions. One account holds the staff, the athletes, the money, and the compliance."],
-      ["What does it cost?", "The organization pays a flat subscription for the software and the agent: free to start, Pro at thirty-four ninety-nine a month, custom for larger organizations. Sporv takes zero percent of parent dues at launch."],
+      ["What does it cost?", "The organization pays a flat subscription for the software and the agent. Sporv takes zero percent of parent dues at launch. Request a demo and we will walk through the plan that fits your organization."],
       ["What does the agent never do?", "Send anything on its own. Every message, charge, and record change waits for a human approval in the review queue. The agent proposes; the organization decides."]
     ];
     var cellCard = function (cell) {
@@ -318,7 +318,7 @@
     };
     return wrap("what-is", "B01", "manifesto-split-grid-claim-questions", "D-L-L-D-L", hero(meta,
       "The agent for <em>sports organizations.</em>",
-      "Sporv reads your operation — email, calendar, dues, roster, files — and drafts the work: the follow-ups, the waiver chases, the schedule notices, the session notes. Every draft waits in one review queue, and nothing sends until a person approves it.",
+      "Sporv reads your operation — dues, roster, and files today, with email and calendar rolling out — and drafts the work: the follow-ups, the waiver chases, the schedule notices, the session notes. Every draft waits in one review queue, and nothing sends until a person approves it.",
       { tone: "dark", layout: "manifesto", eyebrow: "WHAT IS SPORV" }) +
       "<section class='pgband white pg-capability-section' data-section='capability-grid' data-layout='six-cell-border-grid'><div class='shell pg-capability-grid'>" +
       cells.slice(0, 3).map(cellCard).join("") + "</div></section>" +
@@ -356,7 +356,7 @@
   function paymentsPage(meta) {
     var prose = [
       "A family pays the price the coach published. Sporv does not add a family booking fee at checkout, and it does not take a percentage from the coach either. The paid booking records the gross service price, and the payout record shows that same amount reaching the coach. Keeping incidence explicit matters: the parent should not discover a surcharge at the last step, and the coach should not have to reverse-engineer what arrived. Tax or processor information, when applicable, is labeled separately, and no estimate is presented as a settled transfer.",
-      "Sporv takes zero percent of the paid booking. The platform's revenue is the coach subscription — free to start, thirty-four ninety-nine a month for Pro — so the money a family pays for coaching is not the money that funds the software. The coach connects a payout account after the required onboarding and safety gates clear, and the full booking amount moves as one transfer. Payout state moves from pending to in transit to paid, so a balance never disappears behind a generic success message. A failed or paused transfer keeps its amount and status while the coach follows the remediation path; it does not masquerade as revenue that reached the bank. Bookings paid during the earlier flat-fee era keep the fee that was actually recorded on them; a historical receipt is never rewritten by a pricing change.",
+      "Sporv takes zero percent of the paid booking. The platform's revenue is the coach subscription — free to start, with a paid Pro tier — so the money a family pays for coaching is not the money that funds the software. The coach connects a payout account after the required onboarding and safety gates clear, and the full booking amount moves as one transfer. Payout state moves from pending to in transit to paid, so a balance never disappears behind a generic success message. A failed or paused transfer keeps its amount and status while the coach follows the remediation path; it does not masquerade as revenue that reached the bank. Bookings paid during the earlier flat-fee era keep the fee that was actually recorded on them; a historical receipt is never rewritten by a pricing change.",
       "Refunds preserve the same arithmetic. When money goes back under the saved cancellation policy, the refunded amount is the coach revenue being returned — there is no platform fee on the booking to unwind. On historical bookings that did record a fee, the matching portion of that fee is returned with the refund rather than kept on money the coach gave back. The original charge, refunded amount, remaining paid amount, and payout adjustment stay visible. That trail lets both sides distinguish a pending transfer from money that was actually deposited, and several partial adjustments still reconcile to the original booking instead of producing a second unexplained ledger entry."
     ];
     var rail = "<aside class='pg-stat-rail' aria-label='Worked payout example'>" +

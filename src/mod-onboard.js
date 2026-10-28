@@ -311,9 +311,10 @@
     const send = id("obSend"); if (send) send.onclick = sendLink;
     q("[data-oboauth]").forEach((b) => b.onclick = () => { if (!AUTH()) return fail("Sign-in is unavailable right now. Reload the page."); try { sessionStorage.setItem("sporv:oauth-intent", "signup"); if (typeof saveState === "function") saveState(); } catch (e) {} window.location.href = AUTH().oauthUrl(b.dataset.oboauth, window.location.origin + window.location.pathname); });
     /* Auth-trap fix (2026-09-19): "Log in" used to just focus the signup email
-       field, which read as a dead link. It now opens the real "Log in or sign
-       up" sheet, whose identifier flow routes an existing account to sign-in. */
-    q("[data-oblogin]").forEach((a) => a.onclick = (e) => { e.preventDefault(); S.modal = { type: "authsheet" }; render(); });
+       field, which read as a dead link. It now opens the real login panel —
+       the same one the top nav opens (2026-10-27: one login flow only; the
+       identifier sheet is retired as a login entry point). */
+    q("[data-oblogin]").forEach((a) => a.onclick = (e) => { e.preventDefault(); S.modal = { type: "login" }; render(); });
     q("[data-obpw]").forEach((a) => a.onclick = (e) => { e.preventDefault(); S.authIdentifier = o.email; S.modal = { type: "login" }; render(); });
     q("[data-obfoot]").forEach((a) => a.onclick = (e) => { e.preventDefault(); const arg = a.dataset.obfoot.split(":")[1]; if(!arg) return; window.open(location.origin + "/?page=" + encodeURIComponent(arg), "_blank", "noopener"); });
     /* The "Sent again" flash fade-out must NOT re-render the form: render()
