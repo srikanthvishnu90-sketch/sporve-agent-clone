@@ -16,7 +16,7 @@ const fixturePath = 'docs/red-drafts/2026-09-18-money-screen.test.sql';
 test('one round trip: the screen reads money_aged_balances and nothing else; a real org never sees marketplace earnings', () => {
   assert.match(host, /rpc\("money_aged_balances",\{p_provider:pv\.id\}\)/);
   assert.match(host, /if\(queueIsLive\(\)\) return moneyPageHTML\(\);/);
-  assert.match(host, /function financesLabel\(\)\{ return queueIsLive\(\)\?"Money":"Earnings"; \}/);
+  assert.match(host, /function financesLabel\(\)\{ return queueIsLive\(\)\|\|previewSample\(\)\?"Money":"Earnings"; \}/);
   assert.match(host, /Nobody owes anything right now\./); assert.match(host, /Couldn't load balances/); assert.match(host, /Money is not part of your role/);
   assert.match(host, /st\.loadedAt=Date\.now\(\); st\.error=\(e&&e\.message\)\|\|"Could not reach the server\."/, 'a failed load never re-fires on render');
 });

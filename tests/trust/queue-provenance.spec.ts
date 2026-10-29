@@ -26,6 +26,7 @@ function queueOf(c: Ctx): any[] {
     window: { SporveAPI: { isSignedIn: () => c.signedIn } },
     coachState: () => ({ isReal: c.isReal }),
     SEED: {},
+    previewModel: () => null,
   };
   vm.createContext(ctx);
   vm.runInContext(lift('queueIsLive') + '\n' + lift('obligationQueue') + '\n__r=obligationQueue();', ctx);
