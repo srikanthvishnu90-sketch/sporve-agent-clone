@@ -77,10 +77,10 @@ var CSV_COLUMNS = [
   { key: "first_name", req: true, ex: "Maya", note: "Required." },
   { key: "last_name", req: true, ex: "Torres", note: "Required." },
   { key: "grad_year", req: true, ex: "2027", note: "Required. Four digits." },
-  { key: "sport", req: true, ex: "Soccer", note: "Required." },
-  { key: "position", req: false, ex: "GK", note: "Primary position." },
+  { key: "sport", req: true, ex: "Basketball", note: "Required." },
+  { key: "position", req: false, ex: "PG", note: "Primary position." },
   { key: "school", req: false, ex: "Westfield High School", note: "Current school." },
-  { key: "club_team", req: false, ex: "Metro FC 08", note: "" },
+  { key: "club_team", req: false, ex: "Chicago Elite 17U", note: "" },
   { key: "city", req: false, ex: "Naperville", note: "" },
   { key: "state", req: false, ex: "IL", note: "" },
   { key: "gpa", req: false, ex: "3.6", note: "0 to 5." },
@@ -206,25 +206,26 @@ function sampleData(){
     R("sr09", "Marcus", "Hale", 2027, "Bayview High School", true),
     R("sr10", "Isla", "Murphy", 2028, "Summit Academy", true),
   ];
-  recruits[0].hs_gpa = 3.8; recruits[0].intended_major = "Biology"; recruits[0].club_team = "Metro FC 08"; recruits[0].city = "Naperville"; recruits[0].state_region = "IL";
+  recruits[0].hs_gpa = 3.8; recruits[0].intended_major = "Biology"; recruits[0].club_team = "Chicago Elite 17U"; recruits[0].city = "Naperville"; recruits[0].state_region = "IL";
   recruits[2].hs_gpa = 3.1; recruits[2].intended_major = "Business";
+  recruits[1].club_team = "Lakeshore Storm 17U"; recruits[4].club_team = "Chicago Elite 17U"; recruits[5].club_team = "West Suburban Heat 16U";
   var P = function (id, rid, stage, pos, extra){
-    var p = { id: id, recruit_id: rid, sport: "Soccer", team_id: null, stage: stage, closed_reason: null, position_primary: pos,
+    var p = { id: id, recruit_id: rid, sport: "Basketball", team_id: null, stage: stage, closed_reason: null, position_primary: pos,
       positions: [pos], film_links: [], priority: null, target_entry_year: null, last_contact_at: null, created_at: ago(40) };
     for (var k in extra) p[k] = extra[k];
     return p;
   };
   var pipelines = [
-    P("sp01", "sr01", "visit", "GK", { film_links: ["https://example.com/film/maya-torres-2026-highlights"], last_contact_at: ago(5) }),
-    P("sp02", "sr02", "contacted", "CB", { last_contact_at: ago(12) }),
-    P("sp03", "sr03", "offer", "ST", { last_contact_at: ago(2) }),
-    P("sp04", "sr04", "identified", "CM"),
-    P("sp05", "sr05", "evaluated", "GK"),
-    P("sp06", "sr06", "committed", "FB", { last_contact_at: ago(9) }),
-    P("sp07", "sr07", "signed", "W", { last_contact_at: ago(20) }),
-    P("sp08", "sr08", "identified", "CB"),
-    P("sp09", "sr09", "closed", "ST", { closed_reason: "chose_other_school", last_contact_at: ago(30) }),
-    P("sp10", "sr10", "contacted", "GK", { last_contact_at: ago(16) }),
+    P("sp01", "sr01", "visit", "PG", { film_links: ["https://example.com/film/maya-torres-2026-highlights"], last_contact_at: ago(5) }),
+    P("sp02", "sr02", "contacted", "C", { last_contact_at: ago(12) }),
+    P("sp03", "sr03", "offer", "SF", { last_contact_at: ago(2) }),
+    P("sp04", "sr04", "identified", "SG"),
+    P("sp05", "sr05", "evaluated", "PG"),
+    P("sp06", "sr06", "committed", "PF", { last_contact_at: ago(9) }),
+    P("sp07", "sr07", "signed", "SG", { last_contact_at: ago(20) }),
+    P("sp08", "sr08", "identified", "C"),
+    P("sp09", "sr09", "closed", "SF", { closed_reason: "chose_other_school", last_contact_at: ago(30) }),
+    P("sp10", "sr10", "contacted", "PG", { last_contact_at: ago(16) }),
   ];
   var E = function (id, pid, s, notes, d){
     var sc = {}; CRITERIA.forEach(function (c, i){ sc[c[0]] = s[i]; });
@@ -232,11 +233,11 @@ function sampleData(){
       overall: overallOf(sc), projection: null, notes: notes, created_at: ago(d) };
   };
   var evals = [
-    E("se01", "sp01", [5, 4, 4, 5, 4], "Commands the box; distribution needs work.", 18),
-    E("se02", "sp01", [4, 4, 5, 5, 4], "Composed under pressure at the October showcase.", 8),
-    E("se03", "sp02", [4, 4, 4, 4, 4], "Reads the game early.", 25),
-    E("se04", "sp03", [5, 5, 4, 5, 4], "Two-footed finisher.", 14),
-    E("se05", "sp05", [4, 3, 4, 3, 4], "Good reflexes, small frame.", 10),
+    E("se01", "sp01", [5, 4, 4, 5, 4], "Runs the pick-and-roll well; left hand needs work. 5'9\", 4.1 assists per game.", 18),
+    E("se02", "sp01", [4, 4, 5, 5, 4], "Composed against full-court pressure at the October AAU showcase: 7 assists, 1 turnover.", 8),
+    E("se03", "sp02", [4, 4, 4, 4, 4], "Reads help-side rotations early. 6'9\" with a 7'1\" wingspan.", 25),
+    E("se04", "sp03", [5, 5, 4, 5, 4], "Three-level scorer; 38% from three on the AAU circuit.", 14),
+    E("se05", "sp05", [4, 3, 4, 3, 4], "Quick hands on defense, undersized at 5'10\".", 10),
     E("se06", "sp06", [4, 4, 4, 5, 4], "", 30),
     E("se07", "sp07", [4, 4, 4, 4, 4], "", 60),
     E("se08", "sp10", [4, 4, 3, 4, 4], "", 20),
@@ -256,10 +257,10 @@ function sampleData(){
     C("sc08", "sp10", "text", 16, "Asked for updated film."),
   ];
   var targets = [
-    { id: "st01", sport: "Soccer", entry_year: "2027", position: "GK", target_count: 2, priority: 1 },
-    { id: "st02", sport: "Soccer", entry_year: "2027", position: "CB", target_count: 1, priority: 2 },
-    { id: "st03", sport: "Soccer", entry_year: "2026", position: "ST", target_count: 1, priority: 2 },
-    { id: "st04", sport: "Soccer", entry_year: "2028", position: "CM", target_count: 2, priority: 3 },
+    { id: "st01", sport: "Basketball", entry_year: "2027", position: "PG", target_count: 2, priority: 1 },
+    { id: "st02", sport: "Basketball", entry_year: "2027", position: "C", target_count: 1, priority: 2 },
+    { id: "st03", sport: "Basketball", entry_year: "2026", position: "SF", target_count: 1, priority: 2 },
+    { id: "st04", sport: "Basketball", entry_year: "2028", position: "SG", target_count: 2, priority: 3 },
   ];
   var guardians = [
     { id: "sg01", recruit_id: "sr01", full_name: "Ana Torres", relationship: "Mother", email: "ana.torres@example.com", phone: "555-0111", is_primary: true, consent_status: "granted" },
@@ -983,7 +984,7 @@ function needsBody(ui){
     '<p class="rc-note">' + h(where) + "</p>" +
     '<div class="rc-grid2">' +
     '<label>Sport<input name="sport" list="rcSportList" required value="' + h(sports[0] || "") + '" autocomplete="off"></label>' +
-    '<label>Position<input name="position" required maxlength="60" placeholder="e.g. GK" autocomplete="off"></label>' +
+    '<label>Position<input name="position" required maxlength="60" placeholder="e.g. PG" autocomplete="off"></label>' +
     '<label>Grad year<input name="entry_year" required inputmode="numeric" pattern="[0-9]{4}" maxlength="4" placeholder="' + (new Date().getFullYear() + 1) + '"></label>' +
     '<label>How many you need<input name="target_count" type="number" min="0" max="99" step="1" required></label>' +
     "</div>" +
@@ -1033,7 +1034,7 @@ function importBody(ui){
   return ui.Block({ title: "Columns", subtitle: "The first row of the file must be the column names. Order does not matter.", body: doc }) +
     '<form class="rc-form rc-csv" id="rcCsvForm" novalidate>' +
     '<label>CSV file<input type="file" name="file" accept=".csv,text/csv"></label>' +
-    '<label>Or paste the rows<textarea name="text" spellcheck="false" placeholder="first_name,last_name,grad_year,sport,position&#10;Maya,Torres,2027,Soccer,GK">' + h(st.csv.text) + "</textarea></label>" +
+    '<label>Or paste the rows<textarea name="text" spellcheck="false" placeholder="first_name,last_name,grad_year,sport,position&#10;Maya,Torres,2027,Basketball,PG">' + h(st.csv.text) + "</textarea></label>" +
     '<div class="rc-actions"><button type="submit" class="cui-button cui-button--lg cui-button--secondary">Preview</button></div>' +
     (st.mode === "sample" ? '<p class="rc-note">Sample workspace: imported rows are not saved.</p>' : "") +
     "</form>" + preview;
@@ -1436,6 +1437,9 @@ window.MOD_RECRUITING = {
   views: { recruiting: recruitingView },
   wire: wire,
   state: { recruitTab: "board" },
+  /* the sample board's records, read-only, for the preview assistant's
+     deterministic answers (mod-sample-answers.js) — a fresh copy each call */
+  sampleData: sampleData,
   /* test seam: pure helpers, no side effects */
   _test: { parseCSV: parseCSV, overallOf: overallOf, csvPreview: csvPreview, state: function (){ return st; }, addRecruit: addRecruit, identityKey: identityKey },
 };
