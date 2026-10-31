@@ -29,7 +29,7 @@
 <link rel="manifest" href="/site.webmanifest">
 <script type="application/ld+json">{"@context":"https://schema.org","@type":"SoftwareApplication","name":"Sporv","url":"https://sporv.ai/","applicationCategory":"BusinessApplication","operatingSystem":"Web","description":"Sporv runs the club for you — roster, scheduling, waivers, dues and payouts, with an agent that drafts the busywork and a human who approves it.","publisher":{"@type":"Organization","name":"Sporv","url":"https://sporv.ai/","logo":"https://sporv.ai/icon-512.png"}}</script>
 <script type="application/ld+json">{"@context":"https://schema.org","@type":"WebSite","name":"Sporv AI","url":"https://sporv.ai/"}</script>
-<meta name="sporve-build" content="81fb0dbd2d29c875">
+<meta name="sporve-build" content="1e4a7acabfb7be2a">
 </head>
 <body>
 <script>
@@ -9054,11 +9054,8 @@ function primaryNavHTML(){
     <div class="tnav-dd"><button class="tnav" aria-haspopup="menu">Solutions <svg class="caret" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg></button>
       <div class="tnav-menu" role="menu"><button role="menuitem" data-solution="who-schools"><b>Schools and athletic departments</b><small>Every team in the department, one account</small></button><button role="menuitem" data-solution="who-clubs"><b>Clubs, AAU and travel teams</b><small>Season fees, rosters and tournaments</small></button><button role="menuitem" data-solution="who-camps"><b>Camps and private trainers</b><small>Sessions, packages and one-time charges</small></button></div></div>
 
-    <button class="tnav" data-foot="nav:trust">Security</button>
-    <div class="tnav-dd"><button class="tnav" aria-haspopup="menu">Resources <svg class="caret" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg></button>
-      <div class="tnav-menu" role="menu"><button role="menuitem" data-foot="page:what-is"><b>What is Sporv?</b><small>How the agent works</small></button><button role="menuitem" data-foot="nav:product"><b>Product guide</b><small>Every page, explained</small></button><button role="menuitem" data-foot="info:help"><b>Help center</b><small>Answers and contact</small></button></div></div>
     <div class="tnav-dd"><button class="tnav" aria-haspopup="menu">Company <svg class="caret" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg></button>
-      <div class="tnav-menu" role="menu"><button role="menuitem" data-foot="nav:about"><b>About</b><small>Who builds Sporv</small></button><button role="menuitem" data-foot="info:help"><b>Contact</b><small>support@sporv.ai</small></button><button role="menuitem" data-foot="info:legal"><b>Legal</b><small>Terms, privacy and refunds</small></button></div></div>
+      <div class="tnav-menu" role="menu"><button role="menuitem" data-foot="nav:about"><b>About</b><small>Who builds Sporv</small></button><button role="menuitem" data-foot="info:help"><b>Contact</b><small>support@sporv.ai</small></button><button role="menuitem" data-foot="nav:trust"><b>Security</b><small>How your data is protected</small></button><button role="menuitem" data-foot="info:legal"><b>Legal</b><small>Terms, privacy and refunds</small></button></div></div>
     ${/* Right cluster (owner spec 2026-09-04, prototype .cta): signed out =
          Log in + Get started pair; signed in = Coach dashboard, and "Log in"
          must not render. State reads the REAL session (SporveAuth), never a
@@ -38870,6 +38867,18 @@ try{
 
 window.MOD_HARVEY = { css: CSS, ensureLast };
 })();
+
+/* Hero block left-aligned like Harvey / Rogo (owner 2026-10-31): headline, ticker,
+   sub-copy and the two CTAs share one left edge inside the same 1240px column the
+   nav uses. Nav CTAs stay top-right. */
+(function(){var s=document.createElement("style");s.setAttribute("data-hv-heroleft","1");s.textContent=
+ "html #app .herofull .hero-panel{justify-content:flex-start}"+
+ "html #app .herofull .herofull-in{max-width:1240px;margin:0 auto;padding:0 clamp(20px,3.7vw,53px);text-align:left;display:flex;flex-direction:column;align-items:flex-start}"+
+ "html #app .herofull .hero-ai{text-align:left;margin-left:0}"+
+ "html #app .herofull .hero-mq{margin:22px 0 0;width:100%;max-width:560px}"+
+ "html #app .herofull .hero-sub26{margin:22px 0 0;text-align:left}"+
+ "html #app .herofull .hero-ctas26{justify-content:flex-start;align-self:flex-start}";
+ document.head.appendChild(s);})();
 
 </script>
 <script>

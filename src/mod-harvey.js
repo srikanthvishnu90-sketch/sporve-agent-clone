@@ -910,3 +910,15 @@ try{
 
 window.MOD_HARVEY = { css: CSS, ensureLast };
 })();
+
+/* Hero block left-aligned like Harvey / Rogo (owner 2026-10-31): headline, ticker,
+   sub-copy and the two CTAs share one left edge inside the same 1240px column the
+   nav uses. Nav CTAs stay top-right. */
+(function(){var s=document.createElement("style");s.setAttribute("data-hv-heroleft","1");s.textContent=
+ "html #app .herofull .hero-panel{justify-content:flex-start}"+
+ "html #app .herofull .herofull-in{max-width:1240px;margin:0 auto;padding:0 clamp(20px,3.7vw,53px);text-align:left;display:flex;flex-direction:column;align-items:flex-start}"+
+ "html #app .herofull .hero-ai{text-align:left;margin-left:0}"+
+ "html #app .herofull .hero-mq{margin:22px 0 0;width:100%;max-width:560px}"+
+ "html #app .herofull .hero-sub26{margin:22px 0 0;text-align:left}"+
+ "html #app .herofull .hero-ctas26{justify-content:flex-start;align-self:flex-start}";
+ document.head.appendChild(s);})();
