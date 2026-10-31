@@ -1352,11 +1352,11 @@ onepic=$($B js "
    if(/url\(\"?data:image\/(webp|jpeg|jpg|png)/.test(getComputedStyle(e).backgroundImage)) raster++ });
  if(raster>2) return 'RASTER_PHOTOS_'+raster;   // the still counts once as bg, once via ::after stacking
  const hi=document.querySelector('.hero-panel .hero-in');
- // Owner 2026-10-31 (Harvey/Rogo): the hero block is LEFT-aligned (supersedes 2026-08-23 centred).
- if(!hi||getComputedStyle(hi).textAlign!=='left') return 'HERO_TEXT_NOT_LEFT';
+ // Owner 2026-08-23 (Devin ref), reaffirmed 2026-10-31: the hero is CENTRED, not left.
+ if(!hi||getComputedStyle(hi).textAlign!=='center') return 'HERO_TEXT_NOT_CENTER';
  S.route={name:'home',arg:null};render();
  return 'OK'})()" 2>/dev/null)
-[ "${onepic//\"/}" = "OK" ] && pass "hero is one still photograph, left-aligned, no slideshow" \
+[ "${onepic//\"/}" = "OK" ] && pass "hero is one still photograph, centred, no slideshow" \
   || fail "single-image hero rule broken: $onepic"
 
 # ── The hero may not promise a background check the catalogue cannot back ─

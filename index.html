@@ -29,7 +29,7 @@
 <link rel="manifest" href="/site.webmanifest">
 <script type="application/ld+json">{"@context":"https://schema.org","@type":"SoftwareApplication","name":"Sporv","url":"https://sporv.ai/","applicationCategory":"BusinessApplication","operatingSystem":"Web","description":"Sporv runs the club for you — roster, scheduling, waivers, dues and payouts, with an agent that drafts the busywork and a human who approves it.","publisher":{"@type":"Organization","name":"Sporv","url":"https://sporv.ai/","logo":"https://sporv.ai/icon-512.png"}}</script>
 <script type="application/ld+json">{"@context":"https://schema.org","@type":"WebSite","name":"Sporv AI","url":"https://sporv.ai/"}</script>
-<meta name="sporve-build" content="1e4a7acabfb7be2a">
+<meta name="sporve-build" content="c4a8fcb0a286de3b">
 </head>
 <body>
 <script>
@@ -9046,7 +9046,7 @@ function primaryNavHTML(){
      stays defined for reference. */
   /* Spec 01 (2026-08-31): Product is ONE page, no dropdown; Book a call is the
      only CTA. The mega-menu (productMenuHTML) is retired. */
-  return `<nav class="tnav-row" aria-label="Primary">
+  return `<nav class="tnav-row" aria-label="Primary"><div class="tnav-links">
     <button class="tnav prodpill ${S.prodMenu?"open":""}" data-prodtoggle="1"
       aria-expanded="${!!S.prodMenu}" aria-haspopup="menu">Product <svg class="caret" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg></button>
     <div class="tnav-dd"><button class="tnav" aria-haspopup="menu">Platform <svg class="caret" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg></button>
@@ -9056,6 +9056,7 @@ function primaryNavHTML(){
 
     <div class="tnav-dd"><button class="tnav" aria-haspopup="menu">Company <svg class="caret" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg></button>
       <div class="tnav-menu" role="menu"><button role="menuitem" data-foot="nav:about"><b>About</b><small>Who builds Sporv</small></button><button role="menuitem" data-foot="info:help"><b>Contact</b><small>support@sporv.ai</small></button><button role="menuitem" data-foot="nav:trust"><b>Security</b><small>How your data is protected</small></button><button role="menuitem" data-foot="info:legal"><b>Legal</b><small>Terms, privacy and refunds</small></button></div></div>
+    </div>
     ${/* Right cluster (owner spec 2026-09-04, prototype .cta): signed out =
          Log in + Get started pair; signed in = Coach dashboard, and "Log in"
          must not render. State reads the REAL session (SporveAuth), never a
@@ -38868,16 +38869,20 @@ try{
 window.MOD_HARVEY = { css: CSS, ensureLast };
 })();
 
-/* Hero block left-aligned like Harvey / Rogo (owner 2026-10-31): headline, ticker,
-   sub-copy and the two CTAs share one left edge inside the same 1240px column the
-   nav uses. Nav CTAs stay top-right. */
-(function(){var s=document.createElement("style");s.setAttribute("data-hv-heroleft","1");s.textContent=
- "html #app .herofull .hero-panel{justify-content:flex-start}"+
- "html #app .herofull .herofull-in{max-width:1240px;margin:0 auto;padding:0 clamp(20px,3.7vw,53px);text-align:left;display:flex;flex-direction:column;align-items:flex-start}"+
- "html #app .herofull .hero-ai{text-align:left;margin-left:0}"+
- "html #app .herofull .hero-mq{margin:22px 0 0;width:100%;max-width:560px}"+
- "html #app .herofull .hero-sub26{margin:22px 0 0;text-align:left}"+
- "html #app .herofull .hero-ctas26{justify-content:flex-start;align-self:flex-start}";
+/* Top nav in Rogo's layout (owner 2026-10-31): logo far left, links centred, Log in (plain text)
+   + Request a demo (pill) far right; 32px-high controls, 14px/500, 16px side padding, 40px gutters.
+   The hero stays centred. */
+(function(){var s=document.createElement("style");s.setAttribute("data-hv-rogonav","1");s.textContent=
+ "@media (min-width:901px){"+
+ "html body:not(.reg-coach) header.topbar.topbar .topbar-in{max-width:none;width:100%;padding:0 40px;margin:0;gap:0}"+
+ "html body:not(.reg-coach) header.topbar.topbar .nav-left{display:grid;grid-template-columns:1fr auto 1fr;align-items:center;width:100%;gap:0;padding:0;margin:0}"+
+ "html body:not(.reg-coach) header.topbar.topbar .tnav-row{display:contents}"+
+ "html body:not(.reg-coach) header.topbar.topbar .tnav-links{display:flex;align-items:center;justify-content:center;gap:0}"+
+ "html body:not(.reg-coach) header.topbar.topbar .cta-pair{justify-self:end;display:flex;align-items:center;gap:8px}"+
+ "}"+
+ "html body:not(.reg-coach) #app header.topbar.topbar :is(button.tnav,a.cta,button.cta){height:32px!important;min-height:32px!important;padding:0 16px!important;font-size:14px!important;font-weight:500!important;border-radius:9999px!important;line-height:1!important}"+
+ "html body:not(.reg-coach) #app header.topbar.topbar button.cta.login{border:0!important;background:transparent!important;color:#FFFFFF!important}"+
+ "html body:not(.reg-coach) #app header.topbar.topbar a.cta.start{background:#475569!important;color:#FFFFFF!important;border:0!important}";
  document.head.appendChild(s);})();
 
 </script>
