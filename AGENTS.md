@@ -1,4 +1,8 @@
-# Codex collaboration rules
+# Agent rules — single lane
+
+> **Codex is deactivated (owner, 2026-09-15).** Claude is the only agent on
+> this repository. Every Codex-specific rule below is lineage; the lane rules
+> at the bottom are the ones that bind.
 
 > **Read `CONTEXT.md` before any work. Sections 3, 6, 7, 8 are binding
 > constraints, not suggestions.** That file is the owner's build constitution
@@ -27,9 +31,9 @@ prompts, secrets, tool responses, private reasoning, or chain of thought. The
 ledger is runtime state and is intentionally ignored by Git. Source files remain
 the authority; `.clo-sync/activity.md` is coordination evidence only.
 
-## Codex owns prompt intake
+## Prompt intake
 
-Codex is the primary agent for new owner prompts in this repository. For every
+Claude is the agent for new owner prompts in this repository (Codex is out). For every
 substantive request, create or continue the gitignored folder described in
 `prompts/README.md`: keep the request verbatim in `PROMPT.md`, enumerate every
 ask in `BREAKDOWN.md`, and close every ask with evidence in `STATUS.md`. Add
@@ -139,8 +143,10 @@ required review.
 
 - Read `docs/specs/00-MASTER.md` and `docs/specs/README.md` before any work.
 - `docs/decisions/2026-09-15-decisions.md` is binding. Do not re-litigate.
-- Fable migration block: 20260915_001050-001099.
-- Codex migration block: 20260915_001100-001149. Never use another range.
+- One migration block, one lane: 20260915_001050-001149, all Claude's
+  (owner amendment 2026-09-16 — Codex is out; the former split at 001100 is
+  gone). Never use another range. Single lane means serial: one spec per
+  session, in the order the owner sets.
 - Never edit: GATES.md, docs/specs/00-MASTER.md, docs/specs/README.md.
 - Never touch files outside the assigned spec's surface. If you believe you
   must, stop and report instead.
