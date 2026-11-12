@@ -29,7 +29,7 @@
 <link rel="manifest" href="/site.webmanifest">
 <script type="application/ld+json">{"@context":"https://schema.org","@type":"SoftwareApplication","name":"Sporv","url":"https://sporv.ai/","applicationCategory":"BusinessApplication","operatingSystem":"Web","description":"Sporv runs the club for you — roster, scheduling, waivers, dues and payouts, with an agent that drafts the busywork and a human who approves it.","publisher":{"@type":"Organization","name":"Sporv","url":"https://sporv.ai/","logo":"https://sporv.ai/icon-512.png"}}</script>
 <script type="application/ld+json">{"@context":"https://schema.org","@type":"WebSite","name":"Sporv AI","url":"https://sporv.ai/"}</script>
-<meta name="sporve-build" content="c4a8fcb0a286de3b">
+<meta name="sporve-build" content="5636531230ff1c58">
 </head>
 <body>
 <script>
@@ -8977,7 +8977,7 @@ function topbarHTML(){
   /* Harvey-style announcement strip above the public nav (owner 2026-10-22,
      "harveys top nav bar aswell"). Family/public portal only, never the app. */
   const annBar=S.portal==="family"&&!S.annClosed
-    ?`<div class="hvl-ann"><span>Switching from TeamSnap or SportsEngine? We import your roster during your demo.</span> <a href="${CALENDLY_URL}" target="_blank" rel="noopener">Request a demo</a><button class="hvl-ann-x" data-annclose="1" aria-label="Dismiss">×</button></div>`:"";
+    ?`<div class="hvl-ann"><span>We’ve expanded into education and now work with 10+ colleges.</span> <a href="${CALENDLY_URL}" target="_blank" rel="noopener">Request a demo</a><button class="hvl-ann-x" data-annclose="1" aria-label="Dismiss">×</button></div>`:"";
   return `<header class="topbar${guestFam?" guest":""}${annBar?" has-ann":""}">${annBar}<div class="shell topbar-in"><div class="nav-left">
     <button class="brand" data-nav="explore" aria-label="Sporv home"><span class="navlogo-crop"><img class="navlogo" src="${LOGO_SRC}" alt="Sporv" width="99" height="24"></span></button>
     ${/* EASED LAYOUT (owner, 2026-08-19): logo + tabs are a LEFT group; the
